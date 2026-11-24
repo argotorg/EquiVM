@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.SignedComparison
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -47,13 +49,13 @@ theorem swapStepInputWord (a : SwapStepArgs)
 theorem swapStepPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12447⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12447⟩
       (swapStepRawWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (hr : -(2 ^ 255 : Int) ≤ a.remaining ∧ a.remaining < 2 ^ 255)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapStepBranchPC a)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapStepBranchPC a)
       (swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k' C' := by
   have hs : UInt256.slt (EVM.wordOfInt a.remaining) (UInt256.ofNat 0) =

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.TransferFromFinite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -38,10 +40,10 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hmaxS : (transferFromCurrentAllowanceWord evmS I).toNat = UInt256.size - 1 := by
@@ -52,7 +54,7 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance
   have hfitS : transferFromNewToNatMax evmS I < UInt256.size := by
     simpa [evmE, evmS] using hfit
   have hbody :
-      ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
+      ExecTransitionBody fork config contract evmS (transferFromStore I) transferFromTransition.body
         (.returned { contract := contract, locals := transferFromStoreToBalanceMax evmS I }
           (transferFromPostStateMax evmS I) (some [(.bool true)])) := by
     exact uniswapTransferFromBodyReturns_maxAllowance (hperm := by assumption) evmS I
@@ -105,7 +107,7 @@ theorem uniswapTransferFromBodyOk_maxAllowance
     (hfit : transferFromNewToNatMax
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreOk_maxAllowance hcode hsize hperm hwv hsz100

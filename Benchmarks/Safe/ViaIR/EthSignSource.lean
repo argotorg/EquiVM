@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.EthSignMemory
 import Benchmarks.Safe.ViaIR.SignatureRecoverySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -54,10 +56,10 @@ theorem signatureEthSource {p : SignatureInput} {f : Frame} {evm evm' : EVM.Stat
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (hv : f.locals["v"]? = some (uint256Value v)) (ho : f.locals["currentOwner"]? = some old)
     (hl : 4 ≤ v.toNat) (hh : v.toNat < 256)
-    (hbody : ExecFuncBody config (ecrecoverFrame ⟨ethSignWord p.hash, UInt256.sub v ⟨4⟩, r, s⟩)
+    (hbody : ExecFuncBody fork config (ecrecoverFrame ⟨ethSignWord p.hash, UInt256.sub v ⟨4⟩, r, s⟩)
       evm ecrecoverAddressFunction.body
       (.returned f' evm' (some [.address (AccountAddress.ofUInt256 owner)]))) :
-    ExecBlock config f evm signatureEthBody
+    ExecBlock fork config f evm signatureEthBody
       (.ok (signatureRecoveredFrame (signatureEthFrame f p.hash) owner) evm') := by
   have hc' : SignatureCore p (signatureEthFrame f p.hash) := hc.set _ _ (by decide)
   apply ExecBlock.consNormal (.letDecl (evalEthSignHash hc))
@@ -72,9 +74,9 @@ theorem signatureEthSourceRejected {p : SignatureInput} {f : Frame} {evm : EVM.S
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (hv : f.locals["v"]? = some (uint256Value v)) (hl : 4 ≤ v.toNat) (hh : v.toNat < 256)
-    (hbody : ExecFuncBody config (ecrecoverFrame ⟨ethSignWord p.hash, UInt256.sub v ⟨4⟩, r, s⟩)
+    (hbody : ExecFuncBody fork config (ecrecoverFrame ⟨ethSignWord p.hash, UInt256.sub v ⟨4⟩, r, s⟩)
       evm ecrecoverAddressFunction.body .reverted) :
-    ExecBlock config f evm signatureEthBody .reverted := by
+    ExecBlock fork config f evm signatureEthBody .reverted := by
   have hc' : SignatureCore p (signatureEthFrame f p.hash) := hc.set _ _ (by decide)
   apply ExecBlock.consNormal (.letDecl (evalEthSignHash hc))
   apply signatureRecoverSourceRejected hc' _ _ _ _ hbody

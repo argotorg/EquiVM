@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionBitmapEntryTrace
 import Benchmarks.UniswapV3.Pool.UpdatePositionBitmapSource
 import Benchmarks.UniswapV3.Pool.BitmapFlipInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -18,20 +20,20 @@ theorem updatePositionBitmapX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
     (hs : SourceState s0 ee σ (updatePositionBitmapBefore v a evm upper))
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionBitmapEntryPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionBitmapEntryPC upper)
       (updatePositionBitmapEntryWords v a evm upper ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 24 ≤ 1024) :
-    (ExecStmt config (updatePositionBitmapInputFrame v a evm upper)
+    (ExecStmt fork config (updatePositionBitmapInputFrame v a evm upper)
       (updatePositionBitmapBefore v a evm upper) (updatePositionBitmapStmt upper) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config (updatePositionBitmapInputFrame v a evm upper)
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config (updatePositionBitmapInputFrame v a evm upper)
       (updatePositionBitmapBefore v a evm upper) (updatePositionBitmapStmt upper) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config (updatePositionBitmapInputFrame v a evm upper)
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (updatePositionBitmapInputFrame v a evm upper)
       (updatePositionBitmapBefore v a evm upper) (updatePositionBitmapStmt upper)
       (.ok (updatePositionBitmapDoneFrame v a evm upper) (updatePositionBitmapAfter v a evm upper)) ∧
       ∃ σ' k' C', SourceState s0 ee σ' (updatePositionBitmapAfter v a evm upper) ∧
-      RD (deployedRuntime v) ee g s0 (updatePositionBitmapReturnPC upper)
+      RD fork (deployedRuntime v) ee g s0 (updatePositionBitmapReturnPC upper)
         (updatePositionBitmapWords v a evm ++ R)
         (updatePositionBitmapMemory mem v a evm upper) aw rdata σ' k' C' ∧
       HeapMemory (updatePositionBitmapMemory mem v a evm upper) aw p) := by

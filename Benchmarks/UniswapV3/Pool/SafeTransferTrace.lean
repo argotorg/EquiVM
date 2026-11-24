@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SafeTransferSource
 import Benchmarks.UniswapV3.Pool.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,8 +12,8 @@ set_option maxRecDepth 10000
 theorem safeTransferRequireFalseX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15511⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15511⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork (deployedRuntime v) g s0 := by
   have rdRevert := uniswapV3Pool_block_15511_fallthrough (immWords := wordsOf (immStore v))
     (by omega) rfl rd
   simp only [uniswapV3Pool_block_15511_fallthrough_stack] at rdRevert
@@ -20,9 +22,9 @@ theorem safeTransferRequireFalseX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
 theorem safeTransferRequireTrueX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw word : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15511⟩ (word :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15511⟩ (word :: R) mem aw rdata σ k C)
     (hword : word ≠ ⟨0⟩) (hov : R.length + 2 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15565⟩ R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15565⟩ R mem aw rdata σ k' C' := by
   have rdReturn := uniswapV3Pool_block_15511_taken (immWords := wordsOf (immStore v)) hov
     hword (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
   exact ⟨_, _, rdReturn⟩
@@ -30,17 +32,17 @@ theorem safeTransferRequireTrueX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
 theorem safeTransferDataX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw flag ptr : UInt256} {mem out : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15478⟩ (flag :: ptr :: R) mem aw out σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15478⟩ (flag :: ptr :: R) mem aw out σ k C)
     (hlen : memLoad ptr mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad ((UInt256.ofNat 32) + ptr) mem =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hsize : out.size < 2 ^ 255) (ha : ActiveWords aw)
     (hptr : ptr.toNat + 64 ≤ 2 ^ 200) (hov : R.length + 8 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ out.size ≠ 0 ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧ out.size ≠ 0 ∧
       (config.externalABI.decodeValue? abiBool out = none ∨
        config.externalABI.decodeValue? abiBool out = some (.bool false))) ∨
     ((out.size = 0 ∨ config.externalABI.decodeValue? abiBool out = some (.bool true)) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15565⟩ (ptr :: R) mem aw' out σ k' C' ∧
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15565⟩ (ptr :: R) mem aw' out σ k' C' ∧
         ActiveWords aw') := by
   have hsz : out.size < UInt256.size := lt_size_of_lt_sign hsize
   have ha1 : ActiveWords (M aw ptr ⟨32⟩) := activeWords_expand32 ha (by omega)
@@ -92,21 +94,21 @@ theorem safeTransferFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm evm' : EVM.State} {k C : Nat} {aw ptr junk0 junk1 junk2 arg0 arg1 arg2 ret : UInt256}
     {mem out : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (imms : Store) (token recipient : AccountAddress) (value : UInt256) (ok : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15465⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15465⟩
       (junk0 :: ptr :: ok.toUInt256 :: junk1 :: junk2 :: arg0 :: arg1 :: arg2 :: ret :: R)
       mem aw out σ k C)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata recipient value) (ok, evm', out) true)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata recipient value) (ok, evm', out) true)
     (hlen : memLoad ptr mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad ((UInt256.ofNat 32) + ptr) mem =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hsize : out.size < 2 ^ 255) (ha : ActiveWords aw)
     (hptr : ptr.toNat + 64 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body .reverted) ∨
-    (∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem aw' out σ k' C' ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm safeTransferFunction.body
+    (∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw' out σ k' C' ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm safeTransferFunction.body
         (.returned (safeTransferCallFrame imms token recipient value true out) evm' none) ∧
       ActiveWords aw') := by
   cases ok with

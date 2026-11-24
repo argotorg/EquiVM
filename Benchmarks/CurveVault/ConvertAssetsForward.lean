@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.ConvertAssetsInternal
 import Benchmarks.CurveVault.ConversionArguments
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,10 +13,10 @@ def vaultAssetsForwardBody (isFloor : Bool) : List Stmt :=
 theorem vaultAssetsForwardReturns {evm evm' : State} {locals : Store}
     {callee : Frame} {shares value : UInt256} {isFloor : Bool}
     (ha : locals.get? "_shares" = some (.int (Int.ofNat shares.toNat)))
-    (hbody : ExecFuncBody config
+    (hbody : ExecFuncBody fork config
       {contract := contract, locals := vaultConversionLocals "_shares" shares isFloor vaultMaxWord}
       evm vaultConvertAssetsFunction.body (.returned callee evm' (some [.int (Int.ofNat value.toNat)]))) :
-    ExecFuncBody config {contract := contract, locals := locals} evm (vaultAssetsForwardBody isFloor)
+    ExecFuncBody fork config {contract := contract, locals := locals} evm (vaultAssetsForwardBody isFloor)
       (.returned {contract := contract, locals := locals.insert "__c0" (.int (Int.ofNat value.toNat))}
         evm' (some [.int (Int.ofNat value.toNat)])) := by
   have heval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ha
@@ -30,10 +32,10 @@ theorem vaultAssetsForwardReturns {evm evm' : State} {locals : Store}
 
 theorem vaultAssetsForwardReverts {evm : State} {locals : Store} {shares : UInt256} {isFloor : Bool}
     (ha : locals.get? "_shares" = some (.int (Int.ofNat shares.toNat)))
-    (hbody : ExecFuncBody config
+    (hbody : ExecFuncBody fork config
       {contract := contract, locals := vaultConversionLocals "_shares" shares isFloor vaultMaxWord}
       evm vaultConvertAssetsFunction.body .reverted) :
-    ExecFuncBody config {contract := contract, locals := locals} evm (vaultAssetsForwardBody isFloor) .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals} evm (vaultAssetsForwardBody isFloor) .reverted := by
   have heval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ha
   exact ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     internalCallFunctionRevert (callee := vaultConvertAssetsFunction)

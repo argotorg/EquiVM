@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cure.LoadTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -40,13 +42,13 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some loadTransition :=
     cureDispatchLoad hsel
-  have hreach := cureReachLoadBody (σ := σ)
+  have hreach := cureReachLoadBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -84,7 +86,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
       by_cases hposEvm : solcSlotWordAt (loadPosSlotFor I) σ I = ⟨0⟩
       ·
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hbody : ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+        have hbody : ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
           simpa [evm0, locals] using
             (cureLoadSourceBodyPosZeroRevert
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -118,7 +120,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
         by_cases hnoCodeEvm : extCodeSizeWord σ key = ⟨0⟩
         ·
           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-          have hbody : ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+          have hbody : ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
             simpa [evm0, locals, key] using
               (cureLoadSourceBodyNoCodeRevert
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -153,7 +155,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 hafterPos hcanonKey hcodeSizeEvm hposMem hposRead64 hdepthLt (by simp)
             cases z
             · have hcallEvmInit :
-                  typedCallViaEVM config
+                  typedCallViaEVM fork config
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
                     (false,
@@ -163,7 +165,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       out) false := by
                 simpa [initState] using hcallEvm
               have hcallSteleSrc :
-                  typedCallViaEVM config
+                  typedCallViaEVM fork config
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (loadSrc I)) "cure" 0 []
                     (false,
@@ -174,7 +176,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 simpa [key, loadKey_address_eq I] using hcallEvmInit
               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
               have hbody :
-                  ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+                  ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
                 simpa [evm0, locals, key] using
                   (cureLoadSourceBodyCallFailureRevert
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -245,7 +247,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 have hrev := RD.cureLoadReturnDecodeShortReverts rd1623 hshort houtsz
                   hmload64 (by simp)
                 have hcallEvmInit :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
                       (true,
@@ -255,7 +257,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                         out) false := by
                   simpa [initState] using hcallEvm
                 have hcallSteleSrc :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (loadSrc I)) "cure" 0 []
                       (true,
@@ -268,7 +270,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                   loadCureDecode_none_short hshort
                 let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
-                    ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+                    ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
                   simpa [evm0, locals, key] using
                     (cureLoadSourceBodyReturnDecodeRevert
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -372,7 +374,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                   RD.cureLoadReturnDecodeOk (retWord := newAmt) rd1623 ho32 houtsz
                     hmload64 hmload128 (by simp)
                 have hcallEvmInit :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
                       (true,
@@ -386,7 +388,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                     accountMap := σCallEvm
                     substate := A' }
                 have hcallSteleSrc :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (loadSrc I)) "cure" 0 []
                       (true, evmCallStele, out) false := by
@@ -565,7 +567,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                             loadAmtSlotFor_eq I]
                         exact hslot.trans hloadedEvm
                       have hbody :=
-                        (cureLoadSourceBodyOkLoadedZero (hperm := by simpa only [evmCallStele, initState] using _hperm)
+                        (cureLoadSourceBodyOkLoadedZero (fork := fork) (hperm := by simpa only [evmCallStele, initState] using _hperm)
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmCall := evmCallStele) (out := out) (newAmt := newAmt)
                           hwv hliveEvm hposEvm hcodeSizeEvm hcallSteleSrc hdecOut
@@ -588,7 +590,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                           hcanonKey (by simpa [σSayEvm] using hloadedEvm) (by simp)
                       have hretPc' := hretPcRd.jumpdest (by native_decide) (by evm_ov)
                       have hret :
-                          RDret cureBytecode (Sat256.ofUInt256 g)
+                          RDret fork cureBytecode (Sat256.ofUInt256 g)
                             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             (sstoreAccountMap I.codeOwner
                                 (sstoreAccountMap I.codeOwner σSayEvm (solcMappingSlot ⟨7⟩ key) ⟨1⟩)
@@ -669,7 +671,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                             loadAmtSlotFor_eq I]
                         exact hslot.symm.trans hz
                       have hbody :=
-                        (cureLoadSourceBodyOkLoadedNonzero (hperm := by simpa only [evmCallStele, initState] using _hperm)
+                        (cureLoadSourceBodyOkLoadedNonzero (fork := fork) (hperm := by simpa only [evmCallStele, initState] using _hperm)
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmCall := evmCallStele) (out := out) (newAmt := newAmt)
                           hwv hliveEvm hposEvm hcodeSizeEvm hcallSteleSrc hdecOut
@@ -692,7 +694,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                           hcanonKey (by simpa [σSayEvm] using hloadedEvm) (by simp)
                       have hretPc' := hretPcRd.jumpdest (by native_decide) (by evm_ov)
                       have hret :
-                          RDret cureBytecode (Sat256.ofUInt256 g)
+                          RDret fork cureBytecode (Sat256.ofUInt256 g)
                             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             σSayEvm ByteArray.empty := by
                         simpa [σSayEvm] using RD.stop hretPc' (by native_decide) (by simp)
@@ -747,9 +749,9 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       simpa [withoutOld, oldAmtEvm, sayAfterEvm, hsayeq, holdeq] using hoverEvm
                     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     have hbody :
-                        ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+                        ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
                       simpa [evm0, locals, key] using
-                        (cureLoadSourceBodyAddRevert (hperm := by simpa only [evmCallStele, initState] using _hperm)
+                        (cureLoadSourceBodyAddRevert (fork := fork) (hperm := by simpa only [evmCallStele, initState] using _hperm)
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmCall := evmCallStele) (out := out) (newAmt := newAmt)
                           hwv hliveEvm hposEvm hcodeSizeEvm hcallSteleSrc hdecOut
@@ -771,7 +773,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                           UInt256.toByteArray ⟨128⟩ :=
                       twoWordHashMem_read64_160 key ⟨6⟩ hmemWrite hread64Write
                     have hrev :
-                        RDrev cureBytecode (Sat256.ofUInt256 g)
+                        RDrev fork cureBytecode (Sat256.ofUInt256 g)
                           (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
                       refine RD.cureLoadAddOverflowRevert
                         (ee := I) (k := k1689) (C := C1689)
@@ -830,9 +832,9 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                     simpa [hsayeq, holdeq] using hlt
                   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   have hbody :
-                      ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+                      ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
                     simpa [evm0, locals, key, evmCallStele] using
-                      (cureLoadSourceBodySubRevert (hperm := by simpa only [evmCallStele, initState] using _hperm)
+                      (cureLoadSourceBodySubRevert (fork := fork) (hperm := by simpa only [evmCallStele, initState] using _hperm)
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                         (evmCall := evmCallStele) (out := out) (newAmt := newAmt)
                         hwv hliveEvm hposEvm hcodeSizeEvm hcallSteleSrc hdecOut hunderStele)
@@ -859,7 +861,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                         UInt256.toByteArray ⟨128⟩ :=
                     twoWordHashMem_read64_160 key ⟨6⟩ hmemWrite hread64Write
                   have hrev :
-                      RDrev cureBytecode (Sat256.ofUInt256 g)
+                      RDrev fork cureBytecode (Sat256.ofUInt256 g)
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
                     refine RD.cureLoadSubUnderflowRevert
                       (ee := I) (k := k3666) (C := C3666)
@@ -898,10 +900,10 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 (key := key) (ret := ⟨484⟩) (R := [sel])
                 hafterPos hcanonKey hcodeSizeEvm hposMem hposRead64 hdepthEq (by simp)
             let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-            let A_call := (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap
+            let A_call := (Ethereum.EVM.callSubstate fork evm0.accountMap
               (EVM.address (loadSrc I)) evm0.substate)
             have hcallDepth :
-                typedCallViaEVM config evm0
+                typedCallViaEVM fork config evm0
                   (EVM.address (loadSrc I)) "cure" 0 []
                   (false, { evm0 with substate := A_call }, ByteArray.empty) false := by
               simpa [evm0, A_call, initState] using
@@ -911,7 +913,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                   (by rfl : config.externalABI.encode? "cure" [] = some sourceCureSelector)
                   (by simpa [evm0, initState] using hdepthEq))
             have hbody :
-                ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+                ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
               simpa [evm0, locals, key] using
                 (cureLoadSourceBodyCallFailureRevert
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -921,7 +923,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     ·
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals loadTransition.body .reverted := by
         simpa [evm0, locals] using
           (cureLoadSourceBodyStillLiveRevert
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

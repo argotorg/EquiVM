@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickScanBranchSource
 import Benchmarks.UniswapV4PoolManager.TickCompressSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -11,13 +13,13 @@ theorem tickScanBody {f : Frame} {evm : EVM.State} {id tick spacing : UInt256} (
     (ht : f.locals.get? "tick" = some (.int (EVM.signed tick)))
     (hs : f.locals.get? "tickSpacing" = some (.int (EVM.signed spacing)))
     (hl : f.locals.get? "lte" = some (.bool lte)) :
-    ∃ f', ExecFuncBody config f evm tickScanFunction.body
+    ∃ f', ExecFuncBody fork config f evm tickScanFunction.body
       (.returned f' evm (some (tickScanValues evm id tick spacing lte))) := by
   let compressed := tickCompressRaw tick spacing
   let f0 := valueLocal f "compressed" (.int (EVM.signed (UInt256.signextend (UInt256.ofNat 2) compressed)))
-  have hcall : ExecStmt config f evm
+  have hcall : ExecStmt fork config f evm
       (.internalCall "TickBitmap_compress" [.var "tick", .var "tickSpacing"] "compressed") (.ok f0 evm) := by
-    have h := tickCompressCall hf (evalLocalValue (cfg := config) (evm := evm) ht) (evalLocalValue hs) "compressed"
+    have h := tickCompressCall (fork := fork) hf (evalLocalValue (cfg := config) (evm := evm) ht) (evalLocalValue hs) "compressed"
     rw [tickCompressWord_value htick] at h
     exact h
   have hf0 : f0.contract = contract := (valueLocal_contract _ _ _).trans hf
@@ -43,8 +45,8 @@ theorem tickScanBody {f : Frame} {evm : EVM.State} {id tick spacing : UInt256} (
       (show evalExpr? config f0 evm (.intLit 1) = .ok (.int (EVM.signed (UInt256.ofNat 1))) by
         simp only [evalExpr?, pure]; rfl)
     rw [signextend24_add_left] at he
-    have hinc : ExecStmt config f0 evm (.assign .localVar {base := "compressed"} tickScanIncrementExpr)
-        (.ok f1 evm) := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue hc0)
+    have hinc : ExecStmt fork config f0 evm (.assign .localVar {base := "compressed"} tickScanIncrementExpr)
+        (.ok f1 evm) := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue hc0)
     have hf1 : f1.contract = contract := (valueLocal_contract _ _ _).trans hf0
     have hc1 : f1.locals.get? "compressed" =
         some (.int (EVM.signed (UInt256.signextend (UInt256.ofNat 2) (compressed+UInt256.ofNat 1)))) :=
@@ -65,7 +67,7 @@ theorem tickScanCall {f : Frame} {evm : EVM.State} {id tick spacing : UInt256} {
     (ht : evalExpr? config f evm et = .ok (.int (EVM.signed tick)))
     (hs : evalExpr? config f evm es = .ok (.int (EVM.signed spacing)))
     (hl : evalExpr? config f evm el = .ok (.bool lte)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "TickBitmap_nextInitializedTickWithinOneWord" [er, et, es, el] ret)
+    ExecStmt fork config f evm (.internalCall "TickBitmap_nextInitializedTickWithinOneWord" [er, et, es, el] ret)
       (.ok (valueLocal f ret (.tuple (tickScanValues evm id tick spacing lte))) evm) := by
   let fc : Frame := {f with locals :=
     (((((∅ : Store).insert "lte" (.bool lte)).insert "tickSpacing" (.int (EVM.signed spacing))).insert

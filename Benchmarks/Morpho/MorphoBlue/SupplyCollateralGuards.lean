@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralGuardPrepare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,12 +16,12 @@ theorem morphoSupplyCollateralGuards {v : MorphoImmutables} {ee : ExecutionEnv} 
     {s0 : State} {aw assets account srcOff len : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 24 ≤ 1024)
     (ha : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10077)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10077)
       ([len, srcOff, account, assets, UInt256.ofNat 0, UInt256.ofNat 128] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    (¬ SupplyCollateralGuards σ ee p assets account ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ SupplyCollateralGuards σ ee p assets account ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (SupplyCollateralGuards σ ee p assets account ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
         (supplyCollateralUpdateTail p.id assets account srcOff len R) (supplyCollateralGuardMem p) aw' out σ k' C') := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoSupplyCollateralCreated p hstack h
   by_cases hc : marketFieldWord σ ee p.id 4 ≠ ⟨0⟩

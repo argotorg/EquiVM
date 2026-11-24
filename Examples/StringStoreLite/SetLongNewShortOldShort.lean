@@ -1,5 +1,7 @@
 import Examples.StringStoreLite.SetLongOldShort
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — valid set-branch, new short over old short
 
@@ -44,7 +46,7 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -103,7 +105,7 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz36 hhi hsize hsel hoffMax hstart hlenMaxWord hpayloadWord
-  have rd175 : RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+  have rd175 : RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨175⟩
       [len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k175 C175 := by

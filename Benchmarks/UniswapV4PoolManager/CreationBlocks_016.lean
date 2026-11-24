@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.UniswapV4PoolManager.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -22,8 +24,8 @@ def poolManagerCreation_block_4930_memory {mem : ByteArray} {x0 : UInt256} {x1 :
 theorem poolManagerCreation_block_4930 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains x3 = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4930) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_4930_stack (R := R)) (poolManagerCreation_block_4930_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) (M aw (x2 + x1) (⟨32⟩ : UInt256)) rdata σ (k + 4) (C + ((17) + (memExpansionCost aw (x2 + x1) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4930) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_4930_stack (R := R)) (poolManagerCreation_block_4930_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) (M aw (x2 + x1) (⟨32⟩ : UInt256)) rdata σ (k + 4) (C + ((17) + (memExpansionCost aw (x2 + x1) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -36,8 +38,8 @@ theorem poolManagerCreation_block_4930 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_4930_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains x3 = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4930) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_4930_stack (R := R)) (poolManagerCreation_block_4930_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4930) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_4930_stack (R := R)) (poolManagerCreation_block_4930_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_4930 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -53,8 +55,8 @@ def poolManagerCreation_block_4934_memory {mem : ByteArray} {x0 : UInt256} {x2 :
 theorem poolManagerCreation_block_4934 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 11822) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4934) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_4934_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManagerCreation_block_4934_memory (mem := mem) (x0 := x0) (x2 := x2) (x4 := x4)) (M (M (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) x2 (⟨32⟩ : UInt256)) rdata σ (k + 18) (C + ((57) + (memExpansionCost aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) x2 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4934) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_4934_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManagerCreation_block_4934_memory (mem := mem) (x0 := x0) (x2 := x2) (x4 := x4)) (M (M (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) x2 (⟨32⟩ : UInt256)) rdata σ (k + 18) (C + ((57) + (memExpansionCost aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (x2 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 260)) (⟨32⟩ : UInt256)) x2 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -82,8 +84,8 @@ theorem poolManagerCreation_block_4934 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_4934_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 11822) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4934) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_4934_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManagerCreation_block_4934_memory (mem := mem) (x0 := x0) (x2 := x2) (x4 := x4)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4934) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_4934_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManagerCreation_block_4934_memory (mem := mem) (x0 := x0) (x2 := x2) (x4 := x4)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_4934 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -91,8 +93,8 @@ theorem poolManagerCreation_block_4934_packed {tail : ByteArray} {ee : Execution
 theorem poolManagerCreation_block_4963 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 16165) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4963) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16165) R mem aw rdata σ (k + 3) (C + ((12))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4963) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16165) R mem aw rdata σ (k + 3) (C + ((12))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -105,8 +107,8 @@ theorem poolManagerCreation_block_4963 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_4963_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 16165) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4963) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16165) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4963) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16165) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_4963 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -118,8 +120,8 @@ def poolManagerCreation_block_4968_stack {x1 : UInt256} {x2 : UInt256} {x3 : UIn
 theorem poolManagerCreation_block_4968 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4605) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4968) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4605) (poolManagerCreation_block_4968_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4968) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4605) (poolManagerCreation_block_4968_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -136,16 +138,16 @@ theorem poolManagerCreation_block_4968 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_4968_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4605) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4968) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4605) (poolManagerCreation_block_4968_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4968) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4605) (poolManagerCreation_block_4968_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_4968 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 4977. -/
 theorem poolManagerCreation_block_4977 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4977) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4977) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -165,8 +167,8 @@ theorem poolManagerCreation_block_5017_taken {tail : ByteArray} {ee : ExecutionE
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.land (UInt256.ofNat 8192) x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4847) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4847) (poolManagerCreation_block_5017_taken_stack (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4847) (poolManagerCreation_block_5017_taken_stack (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -182,8 +184,8 @@ theorem poolManagerCreation_block_5017_taken_packed {tail : ByteArray} {ee : Exe
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.land (UInt256.ofNat 8192) x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4847) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4847) (poolManagerCreation_block_5017_taken_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4847) (poolManagerCreation_block_5017_taken_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5017_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -195,8 +197,8 @@ def poolManagerCreation_block_5017_fallthrough_stack {R : List UInt256} : List U
 theorem poolManagerCreation_block_5017_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.land (UInt256.ofNat 8192) x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (poolManagerCreation_block_5017_fallthrough_stack (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (poolManagerCreation_block_5017_fallthrough_stack (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -211,8 +213,8 @@ theorem poolManagerCreation_block_5017_fallthrough {tail : ByteArray} {ee : Exec
 theorem poolManagerCreation_block_5017_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.land (UInt256.ofNat 8192) x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (poolManagerCreation_block_5017_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5017) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (poolManagerCreation_block_5017_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5017_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -224,8 +226,8 @@ def poolManagerCreation_block_5026_stack {x0 : UInt256} {R : List UInt256} : Lis
 theorem poolManagerCreation_block_5026 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4292) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4292) (poolManagerCreation_block_5026_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4292) (poolManagerCreation_block_5026_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -239,8 +241,8 @@ theorem poolManagerCreation_block_5026 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_5026_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4292) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4292) (poolManagerCreation_block_5026_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5026) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4292) (poolManagerCreation_block_5026_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5026 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -255,8 +257,8 @@ def poolManagerCreation_block_5032_memory {ee : ExecutionEnv} {mem : ByteArray} 
 /-- Automatically generated RD summary for bytecode block at pc 5032. -/
 theorem poolManagerCreation_block_5032 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5032) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (poolManagerCreation_block_5032_stack (ee := ee) (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) (poolManagerCreation_block_5032_memory (ee := ee) (mem := mem) (x5 := x5)) (M (M (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 64) (C + ((191) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5032) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (poolManagerCreation_block_5032_stack (ee := ee) (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) (poolManagerCreation_block_5032_memory (ee := ee) (mem := mem) (x5 := x5)) (M (M (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 64) (C + ((191) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 36)) (⟨32⟩ : UInt256)) x5 (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 68)) + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -329,8 +331,8 @@ theorem poolManagerCreation_block_5032 {tail : ByteArray} {ee : ExecutionEnv} {g
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem poolManagerCreation_block_5032_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5032) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (poolManagerCreation_block_5032_stack (ee := ee) (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) (poolManagerCreation_block_5032_memory (ee := ee) (mem := mem) (x5 := x5)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5032) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (poolManagerCreation_block_5032_stack (ee := ee) (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) (poolManagerCreation_block_5032_memory (ee := ee) (mem := mem) (x5 := x5)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5032 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -346,8 +348,8 @@ def poolManagerCreation_block_5167_memory {mem : ByteArray} {x0 : UInt256} {x1 :
 theorem poolManagerCreation_block_5167 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains x3 = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_5167_stack (R := R)) (poolManagerCreation_block_5167_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) (M aw (x2 + x1) (⟨32⟩ : UInt256)) rdata σ (k + 4) (C + ((17) + (memExpansionCost aw (x2 + x1) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_5167_stack (R := R)) (poolManagerCreation_block_5167_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) (M aw (x2 + x1) (⟨32⟩ : UInt256)) rdata σ (k + 4) (C + ((17) + (memExpansionCost aw (x2 + x1) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -360,8 +362,8 @@ theorem poolManagerCreation_block_5167 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_5167_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains x3 = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_5167_stack (R := R)) (poolManagerCreation_block_5167_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5167) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 x3 (poolManagerCreation_block_5167_stack (R := R)) (poolManagerCreation_block_5167_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5167 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -377,8 +379,8 @@ def poolManagerCreation_block_5171_memory {mem : ByteArray} {x1 : UInt256} {x8 :
 theorem poolManagerCreation_block_5171 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 11822) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5171) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_5171_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) (poolManagerCreation_block_5171_memory (mem := mem) (x1 := x1) (x8 := x8)) (M (M aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((45) + (memExpansionCost aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5171) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_5171_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) (poolManagerCreation_block_5171_memory (mem := mem) (x1 := x1) (x8 := x8)) (M (M aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((45) + (memExpansionCost aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x1 + (UInt256.ofNat 228)) (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -402,8 +404,8 @@ theorem poolManagerCreation_block_5171 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_5171_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 11822) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5171) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_5171_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) (poolManagerCreation_block_5171_memory (mem := mem) (x1 := x1) (x8 := x8)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5171) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11822) (poolManagerCreation_block_5171_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) (poolManagerCreation_block_5171_memory (mem := mem) (x1 := x1) (x8 := x8)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5171 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -415,8 +417,8 @@ def poolManagerCreation_block_5193_stack {x1 : UInt256} {x2 : UInt256} {x3 : UIn
 theorem poolManagerCreation_block_5193 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4841) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5193) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4841) (poolManagerCreation_block_5193_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ (k + 5) (C + ((17))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5193) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4841) (poolManagerCreation_block_5193_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ (k + 5) (C + ((17))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -431,16 +433,16 @@ theorem poolManagerCreation_block_5193 {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem poolManagerCreation_block_5193_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 4841) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5193) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4841) (poolManagerCreation_block_5193_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5193) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4841) (poolManagerCreation_block_5193_stack (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5193 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 5200. -/
 theorem poolManagerCreation_block_5200 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5200) (x0 :: R) mem aw rdata σ k C)
-    : RDrev (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5200) (x0 :: R) mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -456,8 +458,8 @@ theorem poolManagerCreation_block_5200 {tail : ByteArray} {ee : ExecutionEnv} {g
 /-- Automatically generated RD summary for bytecode block at pc 5243. -/
 theorem poolManagerCreation_block_5243 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5243) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RDrev (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5243) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -483,8 +485,8 @@ theorem poolManagerCreation_block_5243 {tail : ByteArray} {ee : ExecutionEnv} {g
 /-- Automatically generated RD summary for bytecode block at pc 5298. -/
 theorem poolManagerCreation_block_5298 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5298) (x0 :: R) mem aw rdata σ k C)
-    : RDrev (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5298) (x0 :: R) mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -500,8 +502,8 @@ theorem poolManagerCreation_block_5298 {tail : ByteArray} {ee : ExecutionEnv} {g
 /-- Automatically generated RD summary for bytecode block at pc 5341. -/
 theorem poolManagerCreation_block_5341 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5341) (x0 :: R) mem aw rdata σ k C)
-    : RDrev (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5341) (x0 :: R) mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -519,8 +521,8 @@ theorem poolManagerCreation_block_5384_taken {tail : ByteArray} {ee : ExecutionE
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -535,8 +537,8 @@ theorem poolManagerCreation_block_5384_taken_packed {tail : ByteArray} {ee : Exe
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5384_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -544,8 +546,8 @@ theorem poolManagerCreation_block_5384_taken_packed {tail : ByteArray} {ee : Exe
 theorem poolManagerCreation_block_5384_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -559,8 +561,8 @@ theorem poolManagerCreation_block_5384_fallthrough {tail : ByteArray} {ee : Exec
 theorem poolManagerCreation_block_5384_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5384) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5384_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -569,8 +571,8 @@ theorem poolManagerCreation_block_5390_taken {tail : ByteArray} {ee : ExecutionE
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 320)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 7) (C + ((27))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 7) (C + ((27))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.push2 (UInt256.ofNat 320) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -588,8 +590,8 @@ theorem poolManagerCreation_block_5390_taken_packed {tail : ByteArray} {ee : Exe
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 320)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5390_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -597,8 +599,8 @@ theorem poolManagerCreation_block_5390_taken_packed {tail : ByteArray} {ee : Exe
 theorem poolManagerCreation_block_5390_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 320)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5433) R mem aw rdata σ (k + 7) (C + ((27))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5433) R mem aw rdata σ (k + 7) (C + ((27))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode.size = 24194 := by native_decide
   have r1 := r0.push2 (UInt256.ofNat 320) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -615,8 +617,8 @@ theorem poolManagerCreation_block_5390_fallthrough {tail : ByteArray} {ee : Exec
 theorem poolManagerCreation_block_5390_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 320)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5433) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5390) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.poolManagerCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5433) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManagerCreation_block_5390_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcCallTrace
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcReuseTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,9 +12,9 @@ set_option maxRecDepth 10000
 theorem swapStepRecalcBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (zero input keep : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero input)
       (keep.toUInt256 :: R) mem aw rdata σ k C) (hov : R.length + 2 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0
+    RD fork (deployedRuntime v) ee g s0
       (if keep then swapStepRecalcReusePC zero input else swapStepRecalcCallPC zero input)
       R mem aw rdata σ (k + 3) (C + 14) := by
   cases keep
@@ -39,7 +41,7 @@ theorem swapStepRecalcChoiceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw other : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapStepArgs) (input : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC (swapStepZeroForOne a) input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC (swapStepZeroForOne a) input)
       ((swapStepKeep a input).toUInt256 ::
         swapStepRecalcWords a input currentRaw targetRaw liquidityRaw feeRaw other ++ R)
       mem aw rdata σ k C)
@@ -47,9 +49,9 @@ theorem swapStepRecalcChoiceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (ha : a.Fits) (hv : swapStepPriceValid a) (hov : R.length + 42 ≤ 1024) :
-    (¬swapStepRecalcValid a input ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬swapStepRecalcValid a input ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (swapStepRecalcValid a input ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (swapStepRecalcJoinPC (swapStepZeroForOne a) input)
+      RD fork (deployedRuntime v) ee g s0 (swapStepRecalcJoinPC (swapStepZeroForOne a) input)
         (swapStepAmount a input ::
           swapStepRecalcWords a input currentRaw targetRaw liquidityRaw feeRaw other ++ R)
         mem aw rdata σ k' C') := by

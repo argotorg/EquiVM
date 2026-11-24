@@ -3,13 +3,15 @@ import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.Lock
 import Benchmarks.CurveVault.LendInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
 theorem vaultLend_aprBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 32)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 32) rfl hsel
   have hd : dispatchMsg contract I.calldata = some lend_aprTransition := by
     apply vaultDispatch_lend_apr
@@ -31,7 +33,7 @@ theorem vaultLend_aprBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rdBody
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource (locals : Store) := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
+    have hsource (locals : Store) := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
       [.internalCall "lend_apr_body" [] "__r", .return [.var "__r"]] hvalue
       (by rw [hload]; exact hlocked)
     exact RDrev.reEquivOfDispatch hcode hd hsource hrev
@@ -53,6 +55,6 @@ theorem vaultLend_aprBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 32)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultLend_aprBodyCore hcode hsize hsel
 end Benchmarks.CurveVault

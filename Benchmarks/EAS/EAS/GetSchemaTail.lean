@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.SchemaABI
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -17,7 +19,7 @@ theorem getSchemaDecodeSource {cfg : Config} {locals imms : Store} {evm : EVM.St
     (ho : locals.get? "result" = some (.bytes out))
     (hd : cfg.externalABI.decodeValue? schemaRecordABI out = some record.tuple)
     (hl : record.schema.size ≤ 2^64-1) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaDecode
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaDecode
       (.ok {contract := contract, locals := getSchemaDecodeLocals locals record, immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := record.tuple) (by
     simp only [evalExpr?, ho, EvalResult.ofOption, EvalResult.bind, bind, hd, pure]))
@@ -38,7 +40,7 @@ theorem getSchemaDecodeRevert {cfg : Config} {locals imms : Store} {evm : EVM.St
     {out : ByteArray}
     (ho : locals.get? "result" = some (.bytes out))
     (hd : cfg.externalABI.decodeValue? schemaRecordABI out = none) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaDecode .reverted := by
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaDecode .reverted := by
   apply ExecBlock.consRevert (ExecStmt.letDeclRevert ?_)
   simp only [evalExpr?, ho, EvalResult.ofOption, EvalResult.bind, bind, hd]
 
@@ -46,7 +48,7 @@ theorem getSchemaReturnSource {cfg : Config} {locals imms : Store} {evm : EVM.St
     {record : SchemaRecord} {heap : Nat}
     (hr : locals.get? "record" = some record.tuple)
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaReturn
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm getSchemaReturn
       (.returned {contract := contract, locals := locals, immutables := imms} evm (some [record.value,.int (Int.ofNat heap)])) := by
   apply ExecBlock.consReturn
   apply ExecStmt.return

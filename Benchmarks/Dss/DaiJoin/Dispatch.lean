@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.Selectors
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -184,7 +186,7 @@ theorem daiJoinNoSelectorMatches {I : ExecutionEnv}
 
 theorem daiJoinBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
@@ -262,7 +264,7 @@ theorem daiJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem daiJoinReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
         daiJoinRootSplitPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [daiJoinRootSplitPc, daiJoinSelWord] using
@@ -285,18 +287,18 @@ theorem daiJoinReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiJoinBytecode daiJoinRootSplitPc) (daiJoinSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
         daiJoinLowFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h102 : RD daiJoinBytecode I g (initState σ σ₀ g A I)
+  have h102 : RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
       daiJoinLowJumpdestPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiJoinRootSplitPc, daiJoinLowJumpdestPc] using
       RD.selectorSplitTakenAuto h32 daiJoinRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h103 : RD daiJoinBytecode I g (initState σ σ₀ g A I)
+  have h103 : RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
       daiJoinLowFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [daiJoinLowFirstArmPc] using h102.jumpdest (by native_decide) (by simp)
@@ -306,13 +308,13 @@ theorem daiJoinReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiJoinBytecode daiJoinRootSplitPc) (daiJoinSelWord I) = ⟨0⟩) :
-    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
         daiJoinHighFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD daiJoinBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
       daiJoinHighFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiJoinHighFirstArmPc, daiJoinRootSplitPc, selArmNextPc, armTgtWidth,
@@ -333,7 +335,7 @@ theorem daiJoinReachLowBody {σ σ₀ A I} {g : Sat256}
         (daiJoinSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiJoinBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
         bodyPC [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -356,7 +358,7 @@ theorem daiJoinReachHighBody {σ σ₀ A I} {g : Sat256}
         (daiJoinSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiJoinBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiJoinBytecode I g (initState σ σ₀ g A I)
         bodyPC [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -368,11 +370,11 @@ theorem daiJoinReachHighBody {σ σ₀ A I} {g : Sat256}
 
 theorem daiJoinJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD daiJoinBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork daiJoinBytecode I g (initState σ σ₀ g A I) pc
       [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode daiJoinBytecode pc = some (.Push .PUSH2, some (daiJoinDispatchRevertPc, 2)))
     (hjump : decode daiJoinBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
   have h147 := h.push2 daiJoinDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -380,12 +382,12 @@ theorem daiJoinJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD daiJoinBytecode I g (initState σ σ₀ g A I) daiJoinLowFirstArmPc
+    (h : RD fork daiJoinBytecode I g (initState σ σ₀ g A I) daiJoinLowFirstArmPc
       [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc j))
         (daiJoinSelWord I) = ⟨0⟩) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
   have h147 := h
     |>.selectorArmNotTakenAuto (daiJoinLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -400,12 +402,12 @@ theorem daiJoinLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD daiJoinBytecode I g (initState σ σ₀ g A I) daiJoinHighFirstArmPc
+    (h : RD fork daiJoinBytecode I g (initState σ σ₀ g A I) daiJoinHighFirstArmPc
       [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinHighFirstArmPc j))
         (daiJoinSelWord I) = ⟨0⟩) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
   have h98 := h
     |>.selectorArmNotTakenAuto (daiJoinHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -421,8 +423,8 @@ theorem daiJoinHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 theorem daiJoinX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -434,8 +436,8 @@ theorem daiJoinX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem daiJoinX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -458,7 +460,7 @@ theorem daiJoinX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 9 → (daiJoinSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
   have heqLow : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc j))
@@ -522,7 +524,7 @@ theorem daiJoinX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem daiJoinNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (daiJoinX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -547,7 +549,7 @@ theorem daiJoinNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 9 → (daiJoinSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (daiJoinX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (daiJoinDispatch_none_nomatch hnm)

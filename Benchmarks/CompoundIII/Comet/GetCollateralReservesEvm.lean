@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_026
 import Benchmarks.CompoundIII.Comet.FreeWordReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,26 +14,26 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def GetCollateralReservesResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def GetCollateralReservesResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM s0 (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0
+      callViaEVM fork s0 (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0
         (tokenBalancePayload I.codeOwner)
         (z, evm', out) false ∧ σ' = evm'.accountMap ∧ out.size < 2^138 ∧
       if CollateralReservesValid evm'
           (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) z out then
-        RDret (deployedRuntime v) g s0 σ' (collateralReservesValue evm'
+        RDret fork (deployedRuntime v) g s0 σ' (collateralReservesValue evm'
           (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) out).toByteArray
-      else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+      else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem getCollateralReservesX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 44)) :
-    GetCollateralReservesResult v I g (initState σ σ₀ g A I) := by
+    GetCollateralReservesResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetCollateralReservesBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_997 (immWords := wordsOf (immStore v))
@@ -54,7 +56,7 @@ theorem getCollateralReservesX {σ σ₀ A I} {g : Sat256} (v : CometWithExtende
           have rd6 := cometWithExtendedAssetList_block_4729
             (immWords := wordsOf (immStore v)) (by change 4 ≤ 1024; decide)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd5
-          change RD _ _ _ _ _ (calldataWord I.calldata 4 :: UInt256.ofNat 1504 ::
+          change RD fork _ _ _ _ _ (calldataWord I.calldata 4 :: UInt256.ofNat 1504 ::
             UInt256.ofNat 32 :: []) _ _ _ _ _ _ at rd6
           rw [← addressWord_eq_ofNat_address hc] at rd6
           obtain ⟨evm', σ', z, out, hcall, hs', hout, hf⟩ :=

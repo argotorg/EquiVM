@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.HealthyPriceReach
 import Benchmarks.Morpho.MorphoBlue.Uint128Arithmetic
 import Benchmarks.Morpho.MorphoBlue.PositionPackedWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,9 +29,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {k C : Nat} {R : List UInt256}
 
 theorem morphoBorrowPositionReachCast (hstack : R.length + 32 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
       (borrowUpdateTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 8547] ++ borrowUpdateTail id assets shares account receiver R) mem aw out σ k' C' := by
   have rd := morphoBlocks.morpho_block_8538 (immWords := wordsOf (immStore v))
     (by change R.length + 8 + 9 ≤ 1024; omega)
@@ -38,9 +40,9 @@ theorem morphoBorrowPositionReachCast (hstack : R.length + 32 ≤ 1024)
 
 theorem morphoBorrowPositionReachAdd (hstack : R.length + 32 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8547)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8547)
       (shares :: borrowUpdateTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([positionFieldWord σ ee id account 1, shares, UInt256.ofNat 8596] ++
         borrowPositionStoreTail σ ee id assets shares account receiver R)
       (supplyPositionMem id account mem) aw' out σ k' C' := by
@@ -52,7 +54,7 @@ theorem morphoBorrowPositionReachAdd (hstack : R.length + 32 ≤ 1024)
   rw [hmask] at rd1
   have hh1 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 2) mem) =
       solcMappingSlot ⟨2⟩ id := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (UInt256.ofNat 1 + keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 2) mem))
         (twoWordHashMem id (UInt256.ofNat 2) mem))) σ ee) uint128Mask,
@@ -69,7 +71,7 @@ theorem morphoBorrowPositionReachAdd (hstack : R.length + 32 ≤ 1024)
     (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 2) mem))
       (twoWordHashMem id (UInt256.ofNat 2) mem)) _ _ _ _ _ at rd1
   rw [hh1] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (UInt256.ofNat 1 + keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (supplyPositionMem id account mem)) σ ee) uint128Mask,
       shares, UInt256.ofNat 8596, uint128Mask,
@@ -84,15 +86,15 @@ theorem morphoBorrowPositionReachAdd (hstack : R.length + 32 ≤ 1024)
 
 theorem morphoBorrowPositionStore (hstack : R.length + 32 ≤ 1024) (hperm : ee.perm = true)
     (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8596)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8596)
       (value :: borrowPositionStoreTail σ ee id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 8645] ++ borrowMarketTail id assets shares account receiver R)
       mem aw' out (storePositionPackedAccounts σ ee id account false value) k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_8596_packed (immWords := wordsOf (immStore v))
     (by change R.length + 14 + 8 ≤ 1024; omega) hperm
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ _ _ _ _
+  change RD fork _ _ _ _ _ _ _ _ _
     (sstoreAccountMap ee.codeOwner σ (positionSlot id account + UInt256.ofNat 1)
       (UInt256.lor (UInt256.land (solcSlotWordAt (positionSlot id account + UInt256.ofNat 1) σ ee)
         (UInt256.lnot uint128Mask)) (UInt256.land value uint128Mask))) _ _ at rd1
@@ -104,9 +106,9 @@ end Reach
 theorem morphoBorrowPositionStatic {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw value mask slot x y z old : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8596) ([value, mask, slot, x, y, z, old] ++ R)
-      mem aw out σ k C) : RDstatic (deployedRuntime v) g s0 := by
-  change RD _ _ _ _ _ (value :: mask :: slot :: x :: y :: z :: old :: R) _ _ _ _ _ _ at h
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8596) ([value, mask, slot, x, y, z, old] ++ R)
+      mem aw out σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
+  change RD fork _ _ _ _ _ (value :: mask :: slot :: x :: y :: z :: old :: R) _ _ _ _ _ _ at h
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨8596⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨8597⟩ : UInt256), UInt8.ofNat 22, .AND, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

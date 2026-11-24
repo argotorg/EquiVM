@@ -1,5 +1,7 @@
 import Examples.VyperERC20.TransferFromStoresAfterFromStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -10,7 +12,7 @@ namespace VyperERC20
 
 theorem erc20X_transferFromAfterToLoad {σ σ₀ A I} {g : Sat256}
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨528⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨528⟩
       [transferFromSelectorWord]
       (transferFromAfterFromLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
@@ -18,7 +20,7 @@ theorem erc20X_transferFromAfterToLoad {σ σ₀ A I} {g : Sat256}
         (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
           (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
       [transferFromToBalanceRawAfterBalance σ I
           (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord
@@ -106,7 +108,7 @@ theorem erc20X_transferFromAfterToLoad {σ σ₀ A I} {g : Sat256}
 
 theorem erc20X_transferFromBeforeToStore {σ σ₀ A I} {g : Sat256}
     (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
       [transferFromToBalanceRawAfterBalance σ I
           (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord
@@ -118,7 +120,7 @@ theorem erc20X_transferFromBeforeToStore {σ σ₀ A I} {g : Sat256}
         (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
           (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
       [transferFromToSlot I,
         transferFromNewToWord (initState σ σ₀ g A I) I,
         transferFromToSlot I, transferFromSelectorWord]
@@ -186,7 +188,7 @@ theorem erc20X_transferFromBeforeToStore {σ σ₀ A I} {g : Sat256}
 
 theorem erc20X_transferFromAfterToStore {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
       [transferFromToSlot I,
         transferFromNewToWord (initState σ σ₀ g A I) I,
         transferFromToSlot I, transferFromSelectorWord]
@@ -196,7 +198,7 @@ theorem erc20X_transferFromAfterToStore {σ σ₀ A I} {g : Sat256}
         (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
           (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨563⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨563⟩
       [transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty

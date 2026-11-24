@@ -3,6 +3,8 @@ import Reasoning.Immutables
 import Benchmarks.UniswapV4PoolManager.Bytecode
 import Benchmarks.UniswapV4PoolManager.ImmutableCode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -32,8 +34,8 @@ def poolManager_block_9885_stack {ee : ExecutionEnv} {σ : AccountMap} {x0 : UIn
 theorem poolManager_block_9885 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12295) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9885) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12295) (poolManager_block_9885_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9885) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12295) (poolManager_block_9885_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9885⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 9899) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9886⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 9899), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -52,8 +54,8 @@ theorem poolManager_block_9885 {immWords : String → UInt256} {ee : ExecutionEn
 theorem poolManager_block_9885_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12295) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9885) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12295) (poolManager_block_9885_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9885) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12295) (poolManager_block_9885_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := poolManager_block_9885 hstack hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -62,8 +64,8 @@ theorem poolManager_block_9885_packed {immWords : String → UInt256} {ee : Exec
 theorem poolManager_block_9899 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9899) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDret (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) g s0 (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land x0 x1))) ByteArray.empty := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9899) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDret fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) g s0 (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land x0 x1))) ByteArray.empty := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9899⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9900⟩ : UInt256), UInt8.ofNat 22, .AND, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -86,8 +88,8 @@ theorem poolManager_block_9980_taken {immWords : String → UInt256} {ee : Execu
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9980⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.callvalue (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9981⟩ : UInt256), UInt8.ofNat 52, .CALLVALUE, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -101,8 +103,8 @@ theorem poolManager_block_9980_taken_packed {immWords : String → UInt256} {ee 
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_9980_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -110,8 +112,8 @@ theorem poolManager_block_9980_taken_packed {immWords : String → UInt256} {ee 
 theorem poolManager_block_9980_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9980⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.callvalue (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9981⟩ : UInt256), UInt8.ofNat 52, .CALLVALUE, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -124,8 +126,8 @@ theorem poolManager_block_9980_fallthrough {immWords : String → UInt256} {ee :
 theorem poolManager_block_9980_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9980) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_9980_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -134,8 +136,8 @@ theorem poolManager_block_9986_taken {immWords : String → UInt256} {ee : Execu
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 256)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 7) (C + ((27))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw rdata σ (k + 7) (C + ((27))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 256) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9986⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 256), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932) (width := 32) (op := .PUSH32) (by decide) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9989⟩ : UInt256), UInt8.ofNat 127, .Push .PUSH32, some ((UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932), 32), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -152,8 +154,8 @@ theorem poolManager_block_9986_taken_packed {immWords : String → UInt256} {ee 
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 256)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_9986_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -161,8 +163,8 @@ theorem poolManager_block_9986_taken_packed {immWords : String → UInt256} {ee 
 theorem poolManager_block_9986_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 256)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ (k + 7) (C + ((27))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ (k + 7) (C + ((27))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 256) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9986⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 256), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932) (width := 32) (op := .PUSH32) (by decide) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9989⟩ : UInt256), UInt8.ofNat 127, .Push .PUSH32, some ((UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932), 32), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -178,8 +180,8 @@ theorem poolManager_block_9986_fallthrough {immWords : String → UInt256} {ee :
 theorem poolManager_block_9986_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.slt ((UInt256.ofNat ee.calldata.size) + (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639932)) (UInt256.ofNat 256)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9986) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_9986_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -191,8 +193,8 @@ def poolManager_block_10029_stack {ee : ExecutionEnv} {R : List UInt256} : List 
 theorem poolManager_block_10029 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 11905) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 11905) (poolManager_block_10029_stack (ee := ee) (R := R)) mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 11905) (poolManager_block_10029_stack (ee := ee) (R := R)) mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 10037) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10029⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 10037), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.calldatasize (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10032⟩ : UInt256), UInt8.ofNat 54, .CALLDATASIZE, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -205,8 +207,8 @@ theorem poolManager_block_10029 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10029_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 11905) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 11905) (poolManager_block_10029_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10029) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 11905) (poolManager_block_10029_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10029 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -219,8 +221,8 @@ theorem poolManager_block_10037_taken {immWords : String → UInt256} {ee : Exec
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 228).toNat 32)) (UInt256.ofNat 18446744073709551615)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) (poolManager_block_10037_taken_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((44))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) (poolManager_block_10037_taken_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((44))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10037⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 196) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10038⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 196), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -243,8 +245,8 @@ theorem poolManager_block_10037_taken_packed {immWords : String → UInt256} {ee
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 228).toNat 32)) (UInt256.ofNat 18446744073709551615)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 816) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) (poolManager_block_10037_taken_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 816) (poolManager_block_10037_taken_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10037_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -256,8 +258,8 @@ def poolManager_block_10037_fallthrough_stack {ee : ExecutionEnv} {x0 : UInt256}
 theorem poolManager_block_10037_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 228).toNat 32)) (UInt256.ofNat 18446744073709551615)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (poolManager_block_10037_fallthrough_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((44))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (poolManager_block_10037_fallthrough_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((44))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10037⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 196) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10038⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 196), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -279,8 +281,8 @@ theorem poolManager_block_10037_fallthrough {immWords : String → UInt256} {ee 
 theorem poolManager_block_10037_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 228).toNat 32)) (UInt256.ofNat 18446744073709551615)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (poolManager_block_10037_fallthrough_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10037) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (poolManager_block_10037_fallthrough_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10037_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -292,8 +294,8 @@ def poolManager_block_10063_stack {ee : ExecutionEnv} {x0 : UInt256} {R : List U
 theorem poolManager_block_10063 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12109) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12109) (poolManager_block_10063_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12109) (poolManager_block_10063_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 10076) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10063⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 10076), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap1 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10066⟩ : UInt256), UInt8.ofNat 144, .SWAP1, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -310,8 +312,8 @@ theorem poolManager_block_10063 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10063_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12109) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12109) (poolManager_block_10063_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10063) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12109) (poolManager_block_10063_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10063 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -324,8 +326,8 @@ theorem poolManager_block_10076_taken {immWords : String → UInt256} {ee : Exec
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (UInt256.ofNat 87100234046427240614499661373387320107015461065347489303548037305558901893923) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 1239) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 1239) (poolManager_block_10076_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 9) (C + ((29) + (Ctload))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 1239) (poolManager_block_10076_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 9) (C + ((29) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10076⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap2 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10077⟩ : UInt256), UInt8.ofNat 145, .SWAP2, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -344,8 +346,8 @@ theorem poolManager_block_10076_taken_packed {immWords : String → UInt256} {ee
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (UInt256.ofNat 87100234046427240614499661373387320107015461065347489303548037305558901893923) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 1239) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 1239) (poolManager_block_10076_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 1239) (poolManager_block_10076_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10076_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -357,8 +359,8 @@ def poolManager_block_10076_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {x2 
 theorem poolManager_block_10076_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (UInt256.ofNat 87100234046427240614499661373387320107015461065347489303548037305558901893923) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) (poolManager_block_10076_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 9) (C + ((29) + (Ctload))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) (poolManager_block_10076_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 9) (C + ((29) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10076⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap2 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10077⟩ : UInt256), UInt8.ofNat 145, .SWAP2, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -376,8 +378,8 @@ theorem poolManager_block_10076_fallthrough {immWords : String → UInt256} {ee 
 theorem poolManager_block_10076_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (UInt256.ofNat 87100234046427240614499661373387320107015461065347489303548037305558901893923) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) (poolManager_block_10076_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10076) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) (poolManager_block_10076_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10076_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -389,8 +391,8 @@ def poolManager_block_10119_stack {R : List UInt256} : List UInt256 :=
 theorem poolManager_block_10119 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 13583) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) R mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13583) (poolManager_block_10119_stack (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13583) (poolManager_block_10119_stack (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 10126) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10119⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 10126), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 13583) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10122⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 13583), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -402,8 +404,8 @@ theorem poolManager_block_10119 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10119_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 13583) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13583) (poolManager_block_10119_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10119) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13583) (poolManager_block_10119_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10119 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -419,8 +421,8 @@ def poolManager_block_10126_memory {mem : ByteArray} {x3 : UInt256} : ByteArray 
 theorem poolManager_block_10126 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 13686) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10126) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13686) (poolManager_block_10126_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManager_block_10126_memory (mem := mem) (x3 := x3)) (M (M (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ (k + 19) (C + ((52) + (memExpansionCost aw x3 (UInt256.ofNat 160)) + (30 + 6 * (((UInt256.ofNat 160).toNat + 31) / 32)) + (memExpansionCost (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10126) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13686) (poolManager_block_10126_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManager_block_10126_memory (mem := mem) (x3 := x3)) (M (M (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ (k + 19) (C + ((52) + (memExpansionCost aw x3 (UInt256.ofNat 160)) + (30 + 6 * (((UInt256.ofNat 160).toNat + 31) / 32)) + (memExpansionCost (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw x3 (UInt256.ofNat 160)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10126⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 160) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10127⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 160), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -448,8 +450,8 @@ theorem poolManager_block_10126 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10126_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 13686) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10126) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13686) (poolManager_block_10126_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManager_block_10126_memory (mem := mem) (x3 := x3)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10126) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 13686) (poolManager_block_10126_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (poolManager_block_10126_memory (mem := mem) (x3 := x3)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10126 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -462,8 +464,8 @@ theorem poolManager_block_10153_taken {immWords : String → UInt256} {ee : Exec
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.sub (UInt256.ofNat ee.source.val) (UInt256.land (memLoad (x0 + (UInt256.ofNat 128)) mem) (UInt256.ofNat 1461501637330902918203684832716283019655932542975))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 10563) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10563) (poolManager_block_10153_taken_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((49) + (memExpansionCost aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10563) (poolManager_block_10153_taken_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((49) + (memExpansionCost aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10153⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 128) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10154⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 128), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -488,8 +490,8 @@ theorem poolManager_block_10153_taken_packed {immWords : String → UInt256} {ee
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.sub (UInt256.ofNat ee.source.val) (UInt256.land (memLoad (x0 + (UInt256.ofNat 128)) mem) (UInt256.ofNat 1461501637330902918203684832716283019655932542975))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 10563) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10563) (poolManager_block_10153_taken_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10563) (poolManager_block_10153_taken_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10153_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -501,8 +503,8 @@ def poolManager_block_10153_fallthrough_stack {mem : ByteArray} {x0 : UInt256} {
 theorem poolManager_block_10153_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.sub (UInt256.ofNat ee.source.val) (UInt256.land (memLoad (x0 + (UInt256.ofNat 128)) mem) (UInt256.ofNat 1461501637330902918203684832716283019655932542975))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (poolManager_block_10153_fallthrough_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((49) + (memExpansionCost aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (poolManager_block_10153_fallthrough_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((49) + (memExpansionCost aw (x0 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10153⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 128) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10154⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 128), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -526,8 +528,8 @@ theorem poolManager_block_10153_fallthrough {immWords : String → UInt256} {ee 
 theorem poolManager_block_10153_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.sub (UInt256.ofNat ee.source.val) (UInt256.land (memLoad (x0 + (UInt256.ofNat 128)) mem) (UInt256.ofNat 1461501637330902918203684832716283019655932542975))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (poolManager_block_10153_fallthrough_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10153) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (poolManager_block_10153_fallthrough_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10153_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -540,8 +542,8 @@ theorem poolManager_block_10191_taken {immWords : String → UInt256} {ee : Exec
     (hstack : R.length + 11 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x8 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) (UInt256.ofNat 340282366920938463463374607431768211455))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 10523) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10523) (poolManager_block_10191_taken_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10523) (poolManager_block_10191_taken_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10191⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pop (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10192⟩ : UInt256), UInt8.ofNat 80, .POP, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -565,8 +567,8 @@ theorem poolManager_block_10191_taken_packed {immWords : String → UInt256} {ee
     (hstack : R.length + 11 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x8 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) (UInt256.ofNat 340282366920938463463374607431768211455))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 10523) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10523) (poolManager_block_10191_taken_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10523) (poolManager_block_10191_taken_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := poolManager_block_10191_taken hstack hcond hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -579,8 +581,8 @@ def poolManager_block_10191_fallthrough_stack {ee : ExecutionEnv} {σ : AccountM
 theorem poolManager_block_10191_fallthrough {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x8 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) (UInt256.ofNat 340282366920938463463374607431768211455))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (poolManager_block_10191_fallthrough_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (poolManager_block_10191_fallthrough_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10191⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pop (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10192⟩ : UInt256), UInt8.ofNat 80, .POP, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -603,8 +605,8 @@ theorem poolManager_block_10191_fallthrough {immWords : String → UInt256} {ee 
 theorem poolManager_block_10191_fallthrough_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x8 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) (UInt256.ofNat 340282366920938463463374607431768211455))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (poolManager_block_10191_fallthrough_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10191) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (poolManager_block_10191_fallthrough_stack (ee := ee) (σ := σ) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := poolManager_block_10191_fallthrough hstack hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -617,8 +619,8 @@ def poolManager_block_10224_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {
 theorem poolManager_block_10224 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12458) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10224_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10224_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10224⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 32), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap9 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10226⟩ : UInt256), UInt8.ofNat 152, .SWAP9, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -633,8 +635,8 @@ theorem poolManager_block_10224 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10224_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12458) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10224_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10224) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10224_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10224 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -646,8 +648,8 @@ def poolManager_block_10235_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {
 theorem poolManager_block_10235 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12458) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10235) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10235_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10235) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10235_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10235⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push0 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨10236⟩ : UInt256), UInt8.ofNat 95, .PUSH0, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -663,8 +665,8 @@ theorem poolManager_block_10235 {immWords : String → UInt256} {ee : ExecutionE
 theorem poolManager_block_10235_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) 0).contains (UInt256.ofNat 12458) = true)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10235) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10235_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 10235) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 12458) (poolManager_block_10235_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (poolManager_block_10235 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 

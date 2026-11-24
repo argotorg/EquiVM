@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.DeltaCount
 
+variable {fork : Ethereum.Fork}
+
 /-! Applying a signed currency delta preserves the source's read/write order. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -32,7 +34,7 @@ theorem applyDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Acco
     (hc : f.locals.get? "currency" = some (.address currency))
     (ht : f.locals.get? "target" = some (.address target))
     (hd : f.locals.get? "delta" = some (.int delta)) :
-    ExecFuncBody config f evm applyDeltaFunction.body (applyDeltaResult f evm target currency delta) := by
+    ExecFuncBody fork config f evm applyDeltaFunction.body (applyDeltaResult f evm target currency delta) := by
   let previous := currencyDeltaValue evm target currency
   let next := previous + delta
   let f1 := {f with locals := f.locals.insert "previous" (.int 0)}
@@ -46,7 +48,7 @@ theorem applyDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Acco
   have ht2 : f2.locals.get? "target" = some (.address target) :=
     (store_get_ne _ _ (by decide : ("next" == "target") = false)).trans
       ((store_get_ne _ _ (by decide : ("previous" == "target") = false)).trans ht)
-  have hcall := deltaSlotCall (evm := evm) (f := f2) hf (evalLocalValue ht2) (evalLocalValue hc2) "hashSlot"
+  have hcall := deltaSlotCall (fork := fork) (evm := evm) (f := f2) hf (evalLocalValue ht2) (evalLocalValue hc2) "hashSlot"
   have hslot3 : f3.locals.get? "hashSlot" = some (wordBytes32Value (currencyDeltaSlot target currency)) := store_get_self _ _ _
   have hprev3 : f3.locals.get? "previous" = some (.int 0) :=
     (store_get_ne _ _ (by decide : ("hashSlot" == "previous") = false)).trans
@@ -54,11 +56,11 @@ theorem applyDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Acco
   have hread := evalExpr_cast_int (intType := .sint ⟨256, by decide⟩)
     (rawTransient_read (f := f3) (evm := evm) hf
       (evalCastValue (evalLocalValue hslot3) (castBytes32ToUint256 _)))
-  have hprefix : ABlock config evm f applyDeltaFunction.body f4 (applyDeltaFunction.body.drop 4) := by
+  have hprefix : ABlock fork config evm f applyDeltaFunction.body f4 (applyDeltaFunction.body.drop 4) := by
     refine ⟨fun h => ?_⟩
     refine ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?]; rfl)) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?]; rfl)) ?_
-    exact ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hread (assignLocalValue hprev3)) h)
+    exact ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hread (assignLocalValue hprev3)) h)
   have hd4 : f4.locals.get? "delta" = some (.int delta) :=
     (store_get_ne _ _ (by decide : ("previous" == "delta") = false)).trans
       ((store_get_ne _ _ (by decide : ("hashSlot" == "delta") = false)).trans
@@ -83,12 +85,12 @@ theorem applyDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Acco
     by_cases hp : evm.executionEnv.perm = false
     · rw [if_pos hp]
       apply ExecFuncBody.execBlockStatic
-      exact hprefix.run (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hadd (assignLocalValue hn4))
+      exact hprefix.run (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hadd (assignLocalValue hn4))
         (ExecBlock.consStatic (ExecStmt.assignTransientStatic hcast hwrite hp)))
     · rw [if_neg hp]
       apply ExecFuncBody.execBlockRet
-      refine hprefix.run (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hadd (assignLocalValue hn4))
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hcast hwrite) (ExecBlock.consReturn (ExecStmt.return ?_))))
+      refine hprefix.run (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hadd (assignLocalValue hn4))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hcast hwrite) (ExecBlock.consReturn (ExecStmt.return ?_))))
       have hp5 : f5.locals.get? "previous" = some (.int previous) :=
         (store_get_ne _ _ (by decide : ("next" == "previous") = false)).trans (store_get_self _ _ _)
       simp only [evalExprs?, evalLocalValue hp5, evalLocalValue hn5, bind, EvalResult.bind, pure]
@@ -111,10 +113,10 @@ theorem applyDeltaCall {f : Frame} {evm : EVM.State} {target currency : AccountA
     (hc : evalExpr? config f evm ec = .ok (.address currency))
     (ht : evalExpr? config f evm et = .ok (.address target))
     (hd : evalExpr? config f evm ed = .ok (.int delta)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyDelta_applyDelta" [ec, et, ed] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyDelta_applyDelta" [ec, et, ed] retVar)
       (applyDeltaCallResult f evm target currency delta retVar) := by
   let locals := (((∅ : Store).insert "delta" (.int delta)).insert "target" (.address target)).insert "currency" (.address currency)
-  have hbody := applyDeltaBodyExec (f := {f with locals := locals}) (evm := evm) hf
+  have hbody := applyDeltaBodyExec (fork := fork) (f := {f with locals := locals}) (evm := evm) hf
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("currency" == "target") = false)).trans (store_get_self _ _ _))
     ((store_get_ne _ _ (by decide : ("currency" == "delta") = false)).trans

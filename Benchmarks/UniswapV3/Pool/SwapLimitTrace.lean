@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_011
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,13 +14,13 @@ set_option maxRecDepth 10000
 theorem swapLimitCondX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p price x1 x2 x3 x4 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2543⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2543⟩
       (p :: x1 :: x2 :: x3 :: x4 :: a.priceLimit :: x6 :: a.zeroForOne.toUInt256 :: R)
       mem aw rdata σ k C)
     (hl : a.priceLimit.toNat < 2 ^ 160)
     (hp : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) (memLoad p mem) = price)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2668⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2668⟩
       ((decide (swapLimitForPrice a price)).toUInt256 ::
         p :: x1 :: x2 :: x3 :: x4 :: a.priceLimit :: x6 :: a.zeroForOne.toUInt256 :: R)
       mem (M aw p ⟨32⟩) rdata σ k' C' := by
@@ -88,14 +90,14 @@ theorem swapLimitCondX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapLimitX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p price x1 x2 x3 x4 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2543⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2543⟩
       (p :: x1 :: x2 :: x3 :: x4 :: a.priceLimit :: x6 :: a.zeroForOne.toUInt256 :: R)
       mem aw rdata σ k C)
     (hl : a.priceLimit.toNat < 2 ^ 160)
     (hp : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) (memLoad p mem) = price)
     (hov : R.length + 13 ≤ 1024) :
-    (¬swapLimitForPrice a price ∧ RDrev (deployedRuntime v) g s0) ∨
-    (swapLimitForPrice a price ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2723⟩
+    (¬swapLimitForPrice a price ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (swapLimitForPrice a price ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2723⟩
       (p :: x1 :: x2 :: x3 :: x4 :: a.priceLimit :: x6 :: a.zeroForOne.toUInt256 :: R)
       mem (M aw p ⟨32⟩) rdata σ k' C') := by
   obtain ⟨kr, Cr, rr⟩ := swapLimitCondX (v := v) a rd hl hp hov

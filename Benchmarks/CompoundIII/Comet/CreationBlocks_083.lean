@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.CompoundIII.Comet.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -18,8 +20,8 @@ def cometWithExtendedAssetListCreation_block_19161_stack {ee : ExecutionEnv} {σ
 theorem cometWithExtendedAssetListCreation_block_19161 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15305) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19161) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19161_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19161) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19161_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -37,8 +39,8 @@ theorem cometWithExtendedAssetListCreation_block_19161 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19161_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15305) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19161) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19161_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19161) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19161_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := cometWithExtendedAssetListCreation_block_19161 hstack hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -55,8 +57,8 @@ def cometWithExtendedAssetListCreation_block_19173_memory {mem : ByteArray} {x5 
 theorem cometWithExtendedAssetListCreation_block_19173 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15305) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19173) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19173_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) (cometWithExtendedAssetListCreation_block_19173_memory (mem := mem) (x5 := x5) (x6 := x6) (x9 := x9)) (M (M (M aw x9 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x9 (UInt256.ofNat 64)) rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19173) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19173_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) (cometWithExtendedAssetListCreation_block_19173_memory (mem := mem) (x5 := x5) (x6 := x6) (x9 := x9)) (M (M (M aw x9 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x9 (UInt256.ofNat 64)) rdata σ k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -92,8 +94,8 @@ theorem cometWithExtendedAssetListCreation_block_19173 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19173_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15305) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19173) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19173_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) (cometWithExtendedAssetListCreation_block_19173_memory (mem := mem) (x5 := x5) (x6 := x6) (x9 := x9)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19173) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15305) (cometWithExtendedAssetListCreation_block_19173_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) (cometWithExtendedAssetListCreation_block_19173_memory (mem := mem) (x5 := x5) (x6 := x6) (x9 := x9)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := cometWithExtendedAssetListCreation_block_19173 hstack hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -106,8 +108,8 @@ def cometWithExtendedAssetListCreation_block_19206_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19206 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13718) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19206) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19206_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19206) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19206_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -122,8 +124,8 @@ theorem cometWithExtendedAssetListCreation_block_19206 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19206_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13718) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19206) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19206_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19206) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19206_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19206 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -139,8 +141,8 @@ def cometWithExtendedAssetListCreation_block_19215_memory {mem : ByteArray} {x0 
 theorem cometWithExtendedAssetListCreation_block_19215 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 2428) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19215) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2428) (cometWithExtendedAssetListCreation_block_19215_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (cometWithExtendedAssetListCreation_block_19215_memory (mem := mem) (x0 := x0) (x10 := x10)) (M (M (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x0 (UInt256.ofNat 64)) rdata σ (k + 15) (C + ((45) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x0 (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19215) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2428) (cometWithExtendedAssetListCreation_block_19215_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (cometWithExtendedAssetListCreation_block_19215_memory (mem := mem) (x0 := x0) (x10 := x10)) (M (M (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x0 (UInt256.ofNat 64)) rdata σ (k + 15) (C + ((45) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x0 (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) x0 (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -165,8 +167,8 @@ theorem cometWithExtendedAssetListCreation_block_19215 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19215_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 2428) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19215) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2428) (cometWithExtendedAssetListCreation_block_19215_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (cometWithExtendedAssetListCreation_block_19215_memory (mem := mem) (x0 := x0) (x10 := x10)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19215) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2428) (cometWithExtendedAssetListCreation_block_19215_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (cometWithExtendedAssetListCreation_block_19215_memory (mem := mem) (x0 := x0) (x10 := x10)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19215 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -178,8 +180,8 @@ def cometWithExtendedAssetListCreation_block_19237_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19237 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13718) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19237) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19237_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19237) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19237_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -195,8 +197,8 @@ theorem cometWithExtendedAssetListCreation_block_19237 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19237_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13718) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19237) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19237_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19237) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13718) (cometWithExtendedAssetListCreation_block_19237_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19237 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -208,8 +210,8 @@ def cometWithExtendedAssetListCreation_block_19247_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19247 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 7482) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19247) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7482) (cometWithExtendedAssetListCreation_block_19247_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19247) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7482) (cometWithExtendedAssetListCreation_block_19247_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -224,8 +226,8 @@ theorem cometWithExtendedAssetListCreation_block_19247 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19247_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 7482) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19247) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7482) (cometWithExtendedAssetListCreation_block_19247_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19247) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7482) (cometWithExtendedAssetListCreation_block_19247_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19247 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -237,8 +239,8 @@ def cometWithExtendedAssetListCreation_block_19256_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19256 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 14132) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19256) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14132) (cometWithExtendedAssetListCreation_block_19256_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 7) (C + ((24))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19256) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14132) (cometWithExtendedAssetListCreation_block_19256_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 7) (C + ((24))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -255,8 +257,8 @@ theorem cometWithExtendedAssetListCreation_block_19256 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19256_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 14132) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19256) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14132) (cometWithExtendedAssetListCreation_block_19256_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19256) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14132) (cometWithExtendedAssetListCreation_block_19256_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19256 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -268,8 +270,8 @@ def cometWithExtendedAssetListCreation_block_19267_stack {x0 : UInt256} {R : Lis
 theorem cometWithExtendedAssetListCreation_block_19267 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 10164) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19267) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 10164) (cometWithExtendedAssetListCreation_block_19267_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19267) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 10164) (cometWithExtendedAssetListCreation_block_19267_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -284,8 +286,8 @@ theorem cometWithExtendedAssetListCreation_block_19267 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19267_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 10164) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19267) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 10164) (cometWithExtendedAssetListCreation_block_19267_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19267) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 10164) (cometWithExtendedAssetListCreation_block_19267_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19267 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -298,8 +300,8 @@ theorem cometWithExtendedAssetListCreation_block_19276_taken {tail : ByteArray} 
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15192) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15192) (cometWithExtendedAssetListCreation_block_19276_taken_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15192) (cometWithExtendedAssetListCreation_block_19276_taken_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -314,8 +316,8 @@ theorem cometWithExtendedAssetListCreation_block_19276_taken_packed {tail : Byte
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 15192) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15192) (cometWithExtendedAssetListCreation_block_19276_taken_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15192) (cometWithExtendedAssetListCreation_block_19276_taken_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19276_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -327,8 +329,8 @@ def cometWithExtendedAssetListCreation_block_19276_fallthrough_stack {R : List U
 theorem cometWithExtendedAssetListCreation_block_19276_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (cometWithExtendedAssetListCreation_block_19276_fallthrough_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (cometWithExtendedAssetListCreation_block_19276_fallthrough_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -342,8 +344,8 @@ theorem cometWithExtendedAssetListCreation_block_19276_fallthrough {tail : ByteA
 theorem cometWithExtendedAssetListCreation_block_19276_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (cometWithExtendedAssetListCreation_block_19276_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19276) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (cometWithExtendedAssetListCreation_block_19276_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19276_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -355,8 +357,8 @@ def cometWithExtendedAssetListCreation_block_19282_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19282 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 16113) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16113) (cometWithExtendedAssetListCreation_block_19282_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16113) (cometWithExtendedAssetListCreation_block_19282_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.pushConst (UInt256.ofNat 97170410359406650033637493152148950675450970930936712771419491550146227510806) (width := 32) (op := .PUSH32) (by decide) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -376,8 +378,8 @@ theorem cometWithExtendedAssetListCreation_block_19282 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19282_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 16113) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16113) (cometWithExtendedAssetListCreation_block_19282_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19282) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16113) (cometWithExtendedAssetListCreation_block_19282_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19282 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -389,8 +391,8 @@ def cometWithExtendedAssetListCreation_block_19328_stack {mem : ByteArray} {x0 :
 theorem cometWithExtendedAssetListCreation_block_19328 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13801) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19328) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13801) (cometWithExtendedAssetListCreation_block_19328_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((39) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19328) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13801) (cometWithExtendedAssetListCreation_block_19328_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((39) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -412,8 +414,8 @@ theorem cometWithExtendedAssetListCreation_block_19328 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19328_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 13801) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19328) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13801) (cometWithExtendedAssetListCreation_block_19328_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19328) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13801) (cometWithExtendedAssetListCreation_block_19328_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19328 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -426,8 +428,8 @@ theorem cometWithExtendedAssetListCreation_block_19345_taken {tail : ByteArray} 
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x2 x1)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 16535) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16535) (cometWithExtendedAssetListCreation_block_19345_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16535) (cometWithExtendedAssetListCreation_block_19345_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -446,8 +448,8 @@ theorem cometWithExtendedAssetListCreation_block_19345_taken_packed {tail : Byte
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x2 x1)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 16535) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16535) (cometWithExtendedAssetListCreation_block_19345_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16535) (cometWithExtendedAssetListCreation_block_19345_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19345_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -459,8 +461,8 @@ def cometWithExtendedAssetListCreation_block_19345_fallthrough_stack {x0 : UInt2
 theorem cometWithExtendedAssetListCreation_block_19345_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x2 x1)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (cometWithExtendedAssetListCreation_block_19345_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (cometWithExtendedAssetListCreation_block_19345_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -478,8 +480,8 @@ theorem cometWithExtendedAssetListCreation_block_19345_fallthrough {tail : ByteA
 theorem cometWithExtendedAssetListCreation_block_19345_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x2 x1)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (cometWithExtendedAssetListCreation_block_19345_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19345) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (cometWithExtendedAssetListCreation_block_19345_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19345_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -491,8 +493,8 @@ def cometWithExtendedAssetListCreation_block_19355_stack {x0 : UInt256} {x1 : UI
 theorem cometWithExtendedAssetListCreation_block_19355 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains x2 = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x2 (cometWithExtendedAssetListCreation_block_19355_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x2 (cometWithExtendedAssetListCreation_block_19355_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 5) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -506,16 +508,16 @@ theorem cometWithExtendedAssetListCreation_block_19355 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19355_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains x2 = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x2 (cometWithExtendedAssetListCreation_block_19355_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19355) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x2 (cometWithExtendedAssetListCreation_block_19355_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19355 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 19361. -/
 theorem cometWithExtendedAssetListCreation_block_19361 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19361) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19361) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -539,8 +541,8 @@ def cometWithExtendedAssetListCreation_block_19383_stack {ee : ExecutionEnv} {x0
 theorem cometWithExtendedAssetListCreation_block_19383 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 1393) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19383) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1393) (cometWithExtendedAssetListCreation_block_19383_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19383) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1393) (cometWithExtendedAssetListCreation_block_19383_stack (ee := ee) (x0 := x0) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -556,8 +558,8 @@ theorem cometWithExtendedAssetListCreation_block_19383 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19383_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 1393) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19383) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1393) (cometWithExtendedAssetListCreation_block_19383_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19383) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1393) (cometWithExtendedAssetListCreation_block_19383_stack (ee := ee) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19383 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -569,8 +571,8 @@ def cometWithExtendedAssetListCreation_block_19393_stack {mem : ByteArray} {x0 :
 theorem cometWithExtendedAssetListCreation_block_19393 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 6982) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19393) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 6982) (cometWithExtendedAssetListCreation_block_19393_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 9) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19393) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 6982) (cometWithExtendedAssetListCreation_block_19393_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 9) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -589,8 +591,8 @@ theorem cometWithExtendedAssetListCreation_block_19393 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19393_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 6982) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19393) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 6982) (cometWithExtendedAssetListCreation_block_19393_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19393) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 6982) (cometWithExtendedAssetListCreation_block_19393_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19393 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -606,8 +608,8 @@ def cometWithExtendedAssetListCreation_block_19408_memory {ee : ExecutionEnv} {m
 theorem cometWithExtendedAssetListCreation_block_19408 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains x1 = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19408) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x1 (cometWithExtendedAssetListCreation_block_19408_stack (x0 := x0) (R := R)) (cometWithExtendedAssetListCreation_block_19408_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x2 := x2)) (M (M (M (M aw x0 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19408) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x1 (cometWithExtendedAssetListCreation_block_19408_stack (x0 := x0) (R := R)) (cometWithExtendedAssetListCreation_block_19408_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x2 := x2)) (M (M (M (M aw x0 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -662,8 +664,8 @@ theorem cometWithExtendedAssetListCreation_block_19408 {tail : ByteArray} {ee : 
 theorem cometWithExtendedAssetListCreation_block_19408_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains x1 = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19408) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x1 (cometWithExtendedAssetListCreation_block_19408_stack (x0 := x0) (R := R)) (cometWithExtendedAssetListCreation_block_19408_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19408) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 x1 (cometWithExtendedAssetListCreation_block_19408_stack (x0 := x0) (R := R)) (cometWithExtendedAssetListCreation_block_19408_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := cometWithExtendedAssetListCreation_block_19408 hstack hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -677,8 +679,8 @@ theorem cometWithExtendedAssetListCreation_block_19468_taken {tail : ByteArray} 
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land x0 (UInt256.ofNat 4294967295)) (UInt256.ofNat 4294967295)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 7859) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19468) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7859) (cometWithExtendedAssetListCreation_block_19468_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 12) (C + ((41))) := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19468) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7859) (cometWithExtendedAssetListCreation_block_19468_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 12) (C + ((41))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode.size = 21425 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -701,8 +703,8 @@ theorem cometWithExtendedAssetListCreation_block_19468_taken_packed {tail : Byte
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land x0 (UInt256.ofNat 4294967295)) (UInt256.ofNat 4294967295)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode 0).contains (UInt256.ofNat 7859) = true)
-    (h : RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19468) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7859) (cometWithExtendedAssetListCreation_block_19468_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 19468) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.CompoundIII.Comet.cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 7859) (cometWithExtendedAssetListCreation_block_19468_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (cometWithExtendedAssetListCreation_block_19468_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 

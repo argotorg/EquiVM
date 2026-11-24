@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt1Calls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -22,7 +24,7 @@ noncomputable def nextSqrt1QuotientFrame (imms : Store) (a : NextSqrtArgs) : Fra
 
 theorem nextSqrt1CallAssign (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hn : ¬nextSqrt1Direct a) :
-    ExecStmt config (nextSqrt1CallFrame imms a) evm
+    ExecStmt fork config (nextSqrt1CallFrame imms a) evm
       (.assign .localVar ⟨nextSqrt1CondName a.add, []⟩ (.var (nextSqrt1CallName a)))
       (.ok (nextSqrt1ChosenFrame imms a) evm) := by
   have hc : (nextSqrt1CallFrame imms a).locals.get? (nextSqrt1CondName a.add) = some (.int 0) := by
@@ -36,7 +38,7 @@ theorem nextSqrt1CallAssign (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt1DirectAssign (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hd : nextSqrt1Direct a) (hv : nextSqrt1QuotientValid a) :
-    ExecStmt config (nextSqrt1ZeroFrame imms a) evm
+    ExecStmt fork config (nextSqrt1ZeroFrame imms a) evm
       (.assign .localVar ⟨nextSqrt1CondName a.add, []⟩
         (.binary .div nextSqrt1ScaledExpr (.var "liquidity")))
       (.ok (nextSqrt1ChosenFrame imms a) evm) := by
@@ -50,7 +52,7 @@ theorem nextSqrt1DirectAssign (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt1ChoiceSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt1QuotientValid a) :
-    ExecStmt config (nextSqrt1ZeroFrame imms a) evm (nextSqrt1Branch a.add)[1]!
+    ExecStmt fork config (nextSqrt1ZeroFrame imms a) evm (nextSqrt1Branch a.add)[1]!
       (.ok (nextSqrt1ChosenFrame imms a) evm) := by
   have hg := evalNextSqrt1Small imms evm a
   by_cases hsmall : nextSqrt1Small a
@@ -58,21 +60,21 @@ theorem nextSqrt1ChoiceSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
         .ok (.bool true) := by simpa only [hsmall, decide_true] using hg
     cases ha : a.add
     · have hn : ¬nextSqrt1Direct a := fun h ↦ Bool.noConfusion (ha.symm.trans h.2)
-      have hc := nextSqrt1UnsafeReturns imms evm a hsmall ha
-      have has := nextSqrt1CallAssign imms evm a hn
+      have hc := nextSqrt1UnsafeReturns (fork := fork) imms evm a hsmall ha
+      have has := nextSqrt1CallAssign (fork := fork) imms evm a hn
       apply ExecStmt.iteTrue hgt
       refine ExecBlock.consNormal hc (ExecBlock.consNormal ?_ ExecBlock.nil)
       simpa only [nextSqrt1CallName, if_pos hsmall, nextSqrt1CondName,
         ha, Bool.false_eq_true, if_false] using has
-    · have has := nextSqrt1DirectAssign imms evm a ⟨hsmall, ha⟩ hv
+    · have has := nextSqrt1DirectAssign (fork := fork) imms evm a ⟨hsmall, ha⟩ hv
       apply ExecStmt.iteTrue hgt
       exact ExecBlock.consNormal
         (by simpa only [nextSqrt1CondName, ha, if_true] using has) ExecBlock.nil
   · have hgf : evalExpr? config (nextSqrt1ZeroFrame imms a) evm nextSqrt1SmallExpr =
         .ok (.bool false) := by simpa only [hsmall, decide_false] using hg
     have hn : ¬nextSqrt1Direct a := fun h ↦ hsmall h.1
-    have hc := nextSqrt1FullReturns imms evm a hsmall hv
-    have has := nextSqrt1CallAssign imms evm a hn
+    have hc := nextSqrt1FullReturns (fork := fork) imms evm a hsmall hv
+    have has := nextSqrt1CallAssign (fork := fork) imms evm a hn
     cases ha : a.add <;> apply ExecStmt.iteFalse hgf
     all_goals
       exact ExecBlock.consNormal
@@ -84,10 +86,10 @@ theorem nextSqrt1ChoiceSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt1QuotientSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt1QuotientValid a) :
-    ExecBlock config (nextSqrtFrame imms a) evm ((nextSqrt1Branch a.add).take 3)
+    ExecBlock fork config (nextSqrtFrame imms a) evm ((nextSqrt1Branch a.add).take 3)
       (.ok (nextSqrt1QuotientFrame imms a) evm) := by
-  have hz := nextSqrt1ZeroSource imms evm a
-  have hc := nextSqrt1ChoiceSource imms evm a hv
+  have hz := nextSqrt1ZeroSource (fork := fork) imms evm a
+  have hc := nextSqrt1ChoiceSource (fork := fork) imms evm a hv
   have he : evalExpr? config (nextSqrt1ChosenFrame imms a) evm
       (.var (nextSqrt1CondName a.add)) = .ok (.int (Int.ofNat (nextSqrt1Quotient a).toNat)) :=
     evalExpr_var_get Std.HashMap.getElem?_insert_self
@@ -99,7 +101,7 @@ theorem nextSqrt1QuotientSource (imms : Store) (evm : EVM.State) (a : NextSqrtAr
 
 theorem nextSqrt1ChoiceReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt1QuotientValid a) :
-    ExecStmt config (nextSqrt1ZeroFrame imms a) evm (nextSqrt1Branch a.add)[1]!
+    ExecStmt fork config (nextSqrt1ZeroFrame imms a) evm (nextSqrt1Branch a.add)[1]!
       .reverted := by
   have hg := evalNextSqrt1Small imms evm a
   by_cases hs : nextSqrt1Small a
@@ -121,17 +123,17 @@ theorem nextSqrt1ChoiceReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArg
       rfl
   · have hgf : evalExpr? config (nextSqrt1ZeroFrame imms a) evm nextSqrt1SmallExpr =
         .ok (.bool false) := by simpa only [hs, decide_false] using hg
-    have hc := nextSqrt1FullReverts imms evm a hs hv
+    have hc := nextSqrt1FullReverts (fork := fork) imms evm a hs hv
     cases ha : a.add <;> apply ExecStmt.iteFalse hgf <;> apply ExecBlock.consRevert
     all_goals simpa only [nextSqrt1FullCall, nextSqrt1CallName, if_neg hs,
       ha, Bool.false_eq_true, if_false, if_true] using hc
 
 theorem nextSqrt1QuotientReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt1QuotientValid a) :
-    ExecBlock config (nextSqrtFrame imms a) evm ((nextSqrt1Branch a.add).take 3)
+    ExecBlock fork config (nextSqrtFrame imms a) evm ((nextSqrt1Branch a.add).take 3)
       .reverted := by
-  have hz := nextSqrt1ZeroSource imms evm a
-  have hc := nextSqrt1ChoiceReverts imms evm a hv
+  have hz := nextSqrt1ZeroSource (fork := fork) imms evm a
+  have hc := nextSqrt1ChoiceReverts (fork := fork) imms evm a hv
   cases ha : a.add <;> simp only [ha] at hz hc ⊢
   all_goals exact ExecBlock.consNormal hz (ExecBlock.consRevert hc)
 

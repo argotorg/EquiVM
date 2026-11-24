@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.Selectors
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -284,7 +286,7 @@ theorem vatDispatch_none_nomatch {cd : ByteArray}
 
 theorem vatBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
@@ -465,11 +467,11 @@ theorem vatArms419Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 
 theorem vatJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) pc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode vatBytecode pc = some (.Push .PUSH2, some (vatDispatchRevertPc, 2)))
     (hjump : decode vatBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h452 := h.push2 vatDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -477,12 +479,12 @@ theorem vatJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem vatArms65NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms65FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms65FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (vatArms65WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -495,12 +497,12 @@ theorem vatArms65NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
 theorem vatArms114NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms114FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms114FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms114FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h147 := h
     |>.selectorArmNotTakenAuto (vatArms114WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -511,12 +513,12 @@ theorem vatArms114NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h147 (by native_decide) (by native_decide)
 
 theorem vatArms163NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms163FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms163FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h207 := h
     |>.selectorArmNotTakenAuto (vatArms163WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -529,12 +531,12 @@ theorem vatArms163NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h207 (by native_decide) (by native_decide)
 
 theorem vatArms212NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms212FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms212FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h245 := h
     |>.selectorArmNotTakenAuto (vatArms212WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -545,12 +547,12 @@ theorem vatArms212NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h245 (by native_decide) (by native_decide)
 
 theorem vatArms272NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms272FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms272FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h316 := h
     |>.selectorArmNotTakenAuto (vatArms272WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -563,12 +565,12 @@ theorem vatArms272NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h316 (by native_decide) (by native_decide)
 
 theorem vatArms321NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms321FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms321FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms321FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h354 := h
     |>.selectorArmNotTakenAuto (vatArms321WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -579,12 +581,12 @@ theorem vatArms321NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h354 (by native_decide) (by native_decide)
 
 theorem vatArms370NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms370FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms370FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h414 := h
     |>.selectorArmNotTakenAuto (vatArms370WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -597,12 +599,12 @@ theorem vatArms370NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vatJumpToNoMatchRevert h414 (by native_decide) (by native_decide)
 
 theorem vatArms419NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) vatArms419FirstPc
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) vatArms419FirstPc
       [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc j))
         (vatSelWord I) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have h452 := h
     |>.selectorArmNotTakenAuto (vatArms419WellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -617,7 +619,7 @@ theorem vatArms419NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 theorem vatReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatRootSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [vatRootSplitPc, vatSelWord] using
@@ -644,39 +646,39 @@ theorem vatReachArms419First {σ σ₀ A I} {g : Sat256}
     (hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩)
     (hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms419FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h249 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h249 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatRootSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vatRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h250 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h250 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
       using h249.jumpdest (by native_decide) (by simp)
-  have h358 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h358 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) :=
     RD.selectorSplitTakenAuto h250 vatLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h359 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h359 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [vatLowLowSplitPc, vatLowSplitPc, armTgt, pushAt]
       using h358.jumpdest (by native_decide) (by simp)
-  have h418 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h418 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatLowLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 1 + 5) (C32 + 22 + 1 + 22 + 1 + 22) :=
     RD.selectorSplitTakenAuto h359 vatLowLowSplitWellFormed hlowlow
       (by jump_dest) (by simp)
-  have h419 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h419 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms419FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 1 + 5 + 1)
@@ -701,7 +703,7 @@ theorem vatReachArms419Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms419FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -719,30 +721,30 @@ theorem vatReachArms163First {σ σ₀ A I} {g : Sat256}
     (hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩)
     (hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms163FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [vatHighSplitPc, vatRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 vatRootSplitWellFormed hroot (by simp)
-  have h151 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h151 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatHighSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 5) (C32 + 22 + 22) :=
     RD.selectorSplitTakenAuto h43 vatHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h152 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h152 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [vatHighLowSplitPc, vatHighSplitPc, armTgt, pushAt]
       using h151.jumpdest (by native_decide) (by simp)
-  have h163 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h163 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms163FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
@@ -767,7 +769,7 @@ theorem vatReachArms163Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms163FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -785,36 +787,36 @@ theorem vatReachArms212First {σ σ₀ A I} {g : Sat256}
     (hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩)
     (hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms212FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [vatHighSplitPc, vatRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 vatRootSplitWellFormed hroot (by simp)
-  have h151 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h151 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatHighSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 5) (C32 + 22 + 22) :=
     RD.selectorSplitTakenAuto h43 vatHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h152 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h152 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [vatHighLowSplitPc, vatHighSplitPc, armTgt, pushAt]
       using h151.jumpdest (by native_decide) (by simp)
-  have h211 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h211 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatHighLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) :=
     RD.selectorSplitTakenAuto h152 vatHighLowSplitWellFormed hhighlow
       (by jump_dest) (by simp)
-  have h212 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h212 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms212FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 1 + 5 + 1) (C32 + 22 + 22 + 1 + 22 + 1) := by
@@ -838,7 +840,7 @@ theorem vatReachArms212Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms212FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -856,33 +858,33 @@ theorem vatReachArms370First {σ σ₀ A I} {g : Sat256}
     (hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩)
     (hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms370FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h249 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h249 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatRootSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vatRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h250 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h250 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
       using h249.jumpdest (by native_decide) (by simp)
-  have h358 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h358 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) :=
     RD.selectorSplitTakenAuto h250 vatLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h359 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h359 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [vatLowLowSplitPc, vatLowSplitPc, armTgt, pushAt]
       using h358.jumpdest (by native_decide) (by simp)
-  have h370 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h370 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms370FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 1 + 5) (C32 + 22 + 1 + 22 + 1 + 22) := by
@@ -907,7 +909,7 @@ theorem vatReachArms370Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms370FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -925,32 +927,32 @@ theorem vatReachArms114First {σ σ₀ A I} {g : Sat256}
     (hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩)
     (hhighhigh :
       UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms114FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [vatHighSplitPc, vatRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 vatRootSplitWellFormed hroot (by simp)
-  have h54 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [vatHighHighSplitPc, vatHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 vatHighSplitWellFormed hhigh (by simp)
-  have h113 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h113 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatHighHighSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) :=
     RD.selectorSplitTakenAuto h54 vatHighHighSplitWellFormed hhighhigh
       (by jump_dest) (by simp)
-  have h114 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h114 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms114FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
@@ -974,7 +976,7 @@ theorem vatReachArms114Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms114FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -992,29 +994,29 @@ theorem vatReachArms272First {σ σ₀ A I} {g : Sat256}
     (hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩)
     (hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms272FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h249 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h249 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatRootSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vatRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h250 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h250 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
       using h249.jumpdest (by native_decide) (by simp)
-  have h261 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h261 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [vatLowHighSplitPc, vatLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h250 vatLowSplitWellFormed hlow (by simp)
-  have h272 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h272 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms272FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
@@ -1039,7 +1041,7 @@ theorem vatReachArms272Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms272FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -1057,26 +1059,26 @@ theorem vatReachArms65First {σ σ₀ A I} {g : Sat256}
     (hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩)
     (hhighhigh :
       UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms65FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [vatHighSplitPc, vatRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 vatRootSplitWellFormed hroot (by simp)
-  have h54 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatHighHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [vatHighHighSplitPc, vatHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 vatHighSplitWellFormed hhigh (by simp)
-  have h65 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h65 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms65FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
@@ -1101,7 +1103,7 @@ theorem vatReachArms65Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms65FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -1119,35 +1121,35 @@ theorem vatReachArms321First {σ σ₀ A I} {g : Sat256}
     (hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩)
     (hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatArms321FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h249 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h249 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatRootSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vatRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h250 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h250 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
       using h249.jumpdest (by native_decide) (by simp)
-  have h261 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h261 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatLowHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [vatLowHighSplitPc, vatLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h250 vatLowSplitWellFormed hlow (by simp)
-  have h320 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h320 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       (armTgt vatBytecode vatLowHighSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) :=
     RD.selectorSplitTakenAuto h261 vatLowHighSplitWellFormed hlowhigh
       (by jump_dest) (by simp)
-  have h321 : RD vatBytecode I g (initState σ σ₀ g A I)
+  have h321 : RD fork vatBytecode I g (initState σ σ₀ g A I)
       vatArms321FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ
       (k32 + 5 + 1 + 5 + 5 + 1) (C32 + 22 + 1 + 22 + 22 + 1) := by
@@ -1171,7 +1173,7 @@ theorem vatReachArms321Body {σ σ₀ A I} {g : Sat256}
         (vatSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vatBytecode 0).contains bodyPC = true)
     (hbody : armTgt vatBytecode (nthArmPc vatBytecode vatArms321FirstPc i) = bodyPC) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         bodyPC [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -1186,7 +1188,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 28 → (vatSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have heq65 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
@@ -1343,22 +1345,22 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
     vatReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
   by_cases hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩
-  · have h249 : RD vatBytecode I g (initState σ σ₀ g A I)
+  · have h249 : RD fork vatBytecode I g (initState σ σ₀ g A I)
         (armTgt vatBytecode vatRootSplitPc) [vatSelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
       RD.selectorSplitTakenAuto h32 vatRootSplitWellFormed hroot (by jump_dest) (by simp)
-    have h250 : RD vatBytecode I g (initState σ σ₀ g A I)
+    have h250 : RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
       simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
         using h249.jumpdest (by native_decide) (by simp)
     by_cases hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
-    · have h358 : RD vatBytecode I g (initState σ σ₀ g A I)
+    · have h358 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
           (UInt256.ofNat 3) ByteArray.empty σ
           (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) :=
         RD.selectorSplitTakenAuto h250 vatLowSplitWellFormed hlow (by jump_dest) (by simp)
-      have h359 : RD vatBytecode I g (initState σ σ₀ g A I)
+      have h359 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           vatLowLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ
           (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
@@ -1366,13 +1368,13 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
           using h358.jumpdest (by native_decide) (by simp)
       by_cases hlowlow :
           UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
-      · have h418 : RD vatBytecode I g (initState σ σ₀ g A I)
+      · have h418 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             (armTgt vatBytecode vatLowLowSplitPc) [vatSelWord I] solcFreePtrMem
             (UInt256.ofNat 3) ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 1 + 5) (C32 + 22 + 1 + 22 + 1 + 22) :=
           RD.selectorSplitTakenAuto h359 vatLowLowSplitWellFormed hlowlow
             (by jump_dest) (by simp)
-        have h419 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h419 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms419FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 1 + 5 + 1)
@@ -1384,7 +1386,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
             UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
           by_contra hne
           exact hlowlow hne
-        have h370 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h370 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms370FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 1 + 5) (C32 + 22 + 1 + 22 + 1 + 22) := by
@@ -1395,7 +1397,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
     · have hlow0 : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
         by_contra hne
         exact hlow hne
-      have h261 : RD vatBytecode I g (initState σ σ₀ g A I)
+      have h261 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           vatLowHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ
           (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -1404,13 +1406,13 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
           RD.selectorSplitNotTakenAuto h250 vatLowSplitWellFormed hlow0 (by simp)
       by_cases hlowhigh :
           UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) ≠ ⟨0⟩
-      · have h320 : RD vatBytecode I g (initState σ σ₀ g A I)
+      · have h320 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             (armTgt vatBytecode vatLowHighSplitPc) [vatSelWord I] solcFreePtrMem
             (UInt256.ofNat 3) ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) :=
           RD.selectorSplitTakenAuto h261 vatLowHighSplitWellFormed hlowhigh
             (by jump_dest) (by simp)
-        have h321 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h321 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms321FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 5 + 1) (C32 + 22 + 1 + 22 + 22 + 1) := by
@@ -1421,7 +1423,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
             UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
           by_contra hne
           exact hlowhigh hne
-        have h272 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h272 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms272FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
@@ -1432,19 +1434,19 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
   · have hroot0 : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
       by_contra hne
       exact hroot hne
-    have h43 : RD vatBytecode I g (initState σ σ₀ g A I)
+    have h43 : RD fork vatBytecode I g (initState σ σ₀ g A I)
         vatHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ (k32 + 5) (C32 + 22) := by
       simpa [vatHighSplitPc, vatRootSplitPc, selArmNextPc, armTgtWidth,
         selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
         RD.selectorSplitNotTakenAuto h32 vatRootSplitWellFormed hroot0 (by simp)
     by_cases hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩
-    · have h151 : RD vatBytecode I g (initState σ σ₀ g A I)
+    · have h151 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           (armTgt vatBytecode vatHighSplitPc) [vatSelWord I] solcFreePtrMem
           (UInt256.ofNat 3) ByteArray.empty σ
           (k32 + 5 + 5) (C32 + 22 + 22) :=
         RD.selectorSplitTakenAuto h43 vatHighSplitWellFormed hhigh (by jump_dest) (by simp)
-      have h152 : RD vatBytecode I g (initState σ σ₀ g A I)
+      have h152 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           vatHighLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ
           (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
@@ -1452,13 +1454,13 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
           using h151.jumpdest (by native_decide) (by simp)
       by_cases hhighlow :
           UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
-      · have h211 : RD vatBytecode I g (initState σ σ₀ g A I)
+      · have h211 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             (armTgt vatBytecode vatHighLowSplitPc) [vatSelWord I] solcFreePtrMem
             (UInt256.ofNat 3) ByteArray.empty σ
             (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) :=
           RD.selectorSplitTakenAuto h152 vatHighLowSplitWellFormed hhighlow
             (by jump_dest) (by simp)
-        have h212 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h212 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms212FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 5 + 1 + 5 + 1) (C32 + 22 + 22 + 1 + 22 + 1) := by
@@ -1469,7 +1471,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
             UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
           by_contra hne
           exact hhighlow hne
-        have h163 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h163 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms163FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
@@ -1480,7 +1482,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
     · have hhigh0 : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
         by_contra hne
         exact hhigh hne
-      have h54 : RD vatBytecode I g (initState σ σ₀ g A I)
+      have h54 : RD fork vatBytecode I g (initState σ σ₀ g A I)
           vatHighHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ
           (k32 + 5 + 5) (C32 + 22 + 22) := by
@@ -1489,13 +1491,13 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
           RD.selectorSplitNotTakenAuto h43 vatHighSplitWellFormed hhigh0 (by simp)
       by_cases hhighhigh :
           UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) ≠ ⟨0⟩
-      · have h113 : RD vatBytecode I g (initState σ σ₀ g A I)
+      · have h113 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             (armTgt vatBytecode vatHighHighSplitPc) [vatSelWord I] solcFreePtrMem
             (UInt256.ofNat 3) ByteArray.empty σ
             (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) :=
           RD.selectorSplitTakenAuto h54 vatHighHighSplitWellFormed hhighhigh
             (by jump_dest) (by simp)
-        have h114 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h114 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms114FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
@@ -1506,7 +1508,7 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
             UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
           by_contra hne
           exact hhighhigh hne
-        have h65 : RD vatBytecode I g (initState σ σ₀ g A I)
+        have h65 : RD fork vatBytecode I g (initState σ σ₀ g A I)
             vatArms65FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
             ByteArray.empty σ
             (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
@@ -1517,8 +1519,8 @@ theorem vatX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem vatX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -1530,8 +1532,8 @@ theorem vatX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem vatX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero

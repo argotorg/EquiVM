@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintRuntimeFinalize
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -36,14 +38,14 @@ theorem RD.uniswapUpdateConditionFalseSkipsCumulatives
     {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨7060⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hskip :
       UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩ ∨
       UInt256.land reserve0 reserve112Mask = ⟨0⟩ ∨
       UInt256.land reserve1 reserve112Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7241⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ ee) ee ::
         uniswapUpdateTimestampWord ee :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata σ k' C' := by
@@ -70,7 +72,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_aw6
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨7339⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata acc k C)
@@ -79,7 +81,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_aw6
     (hperm : ee.perm = true)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ret R
       (uniswapSyncLogMem packed mem) feeToStaticcallActiveWords rdata acc k' C' := by
   exact RD.uniswapUpdateEmitSyncAndJump
     (awLoad := feeToStaticcallActiveWords) (awLog := feeToStaticcallActiveWords)

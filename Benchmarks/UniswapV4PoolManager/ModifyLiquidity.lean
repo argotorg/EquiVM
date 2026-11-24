@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Dispatch
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityDecodeTrace
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityBodyCorrect
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `modifyLiquidity((address,address,uint24,int24,address),(int24,int24,int256,bytes32),bytes)`
 
@@ -24,15 +26,15 @@ theorem poolManagerModifyLiquidityBody {σ σ₀ A I} {g : UInt256} (v : PoolMan
     (_hWF : Syntax.poolManagerWF σ I)
     (hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 18) rfl hsel
   have hd : dispatchMsg contract I.calldata = some modifyLiquidityTransition := by
     apply poolManagerDispatch_modifyLiquidity <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachModifyLiquidityBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachModifyLiquidityBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5199⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -91,9 +93,9 @@ theorem poolManagerModifyLiquidityBody {σ σ₀ A I} {g : UInt256} (v : PoolMan
               (by rw [hsrcNat]; exact hbounds.2.2.2) hbounds.2.2.1 hGas rdBody with
             hog | ⟨result, hbody, htrace⟩
           · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rw [← hcode] at hog; exact hog))
-          · have hpre := modifyLiquidityPreludeSource (imms := immStore v) (evm := evm)
+          · have hpre := modifyLiquidityPreludeSource (fork := fork) (imms := immStore v) (evm := evm)
               hwv hhi hkeyarg hparamsarg
-            have hb : ExecTransitionBody config contract evm args modifyLiquidityTransition.body result (immStore v) := by
+            have hb : ExecTransitionBody fork config contract evm args modifyLiquidityTransition.body result (immStore v) := by
               simpa only [List.take_append_drop] using
                 execFuncBody_prepend hpre (execFuncBody_of_trace hbody htrace)
             exact abiResultTrace_refinement hcode hd hdec hb htrace rfl rfl

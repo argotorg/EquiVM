@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Pot.ConstructorTraceWards
 import Benchmarks.Dss.Pot.ConstructorTraceVat
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Pot constructor scalar-store + return trace
 
@@ -21,9 +23,9 @@ theorem potCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {σVat : AccountMap} {k C : Nat}
     (vat : AccountAddress) (hperm : I.perm = true)
-    (h : RD (potCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
+    (h : RD fork (potCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
       (potCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata σVat k C) :
-    RDret (potCtorCode vat) g s0
+    RDret fork (potCtorCode vat) g s0
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
@@ -59,7 +61,7 @@ theorem potInitcodeSuccess
     (hcode : I.code = potCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (potCtorCode vat) g
+    RDret fork (potCtorCode vat) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner

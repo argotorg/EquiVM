@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapLock
 import Examples.UniswapV2Pair.ErrorStringCopyCore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,14 +12,14 @@ theorem uniswapSwapOutputGuardRuntimeCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd1556 : RD uniswapV2PairBytecode I g s0 ⟨1556⟩
+    (rd1556 : RD fork uniswapV2PairBytecode I g s0 ⟨1556⟩
       (dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    (¬ (0 < amount0Out.toNat ∨ 0 < amount1Out.toNat)) ∧ RDrev uniswapV2PairBytecode g s0 ∨
+    (¬ (0 < amount0Out.toNat ∨ 0 < amount1Out.toNat)) ∧ RDrev fork uniswapV2PairBytecode g s0 ∨
     (0 < amount0Out.toNat ∨ 0 < amount1Out.toNat) ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨1628⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨1628⟩
         (dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
-  have hto1569 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1569⟩
+  have hto1569 : ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1569⟩
       ((if 0 < amount0Out.toNat ∨ 0 < amount1Out.toNat then ⟨1⟩ else ⟨0⟩) ::
         dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
     have rd1563 := evm_run rd1556 with [dup5, iszero, iszero, dup1, push2 ⟨1569⟩]

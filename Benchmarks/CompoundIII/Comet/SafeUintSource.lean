@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -21,9 +23,9 @@ theorem safeUintCallable_result (width : BitWidth) (evm : EVM.State) (imms : Sto
     let frame : Frame :=
       { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
     if n.toNat < 2^width.val then
-      ExecFuncBody config frame evm (safeUintCallable width).body
+      ExecFuncBody fork config frame evm (safeUintCallable width).body
         (.returned frame evm (some [.int n.toNat]))
-    else ExecFuncBody config frame evm (safeUintCallable width).body .reverted := by
+    else ExecFuncBody fork config frame evm (safeUintCallable width).body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
@@ -50,10 +52,10 @@ theorem safeUint_call (width : BitWidth) (name : Ident)
     (frame : Frame) (evm : EVM.State) (n : UInt256) (expr : Expr) (ret : Ident)
     (hc : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.int n.toNat)) :
-    ExecStmt config frame evm (.internalCall name [expr] ret)
+    ExecStmt fork config frame evm (.internalCall name [expr] ret)
       (if n.toNat < 2^width.val then
         .ok { frame with locals := frame.locals.insert ret (.int n.toNat) } evm else .reverted) := by
-  have hb := safeUintCallable_result width evm frame.immutables n
+  have hb := safeUintCallable_result (fork := fork) width evm frame.immutables n
   dsimp only at hb
   split_ifs with hn
   · rw [if_pos hn] at hb

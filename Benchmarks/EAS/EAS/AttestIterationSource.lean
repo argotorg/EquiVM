@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.RequestGuards
 import Benchmarks.EAS.EAS.RecordStoreRun
 import Benchmarks.EAS.EAS.RefUIDRun
 import Benchmarks.EAS.EAS.RecordTailRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -23,7 +25,7 @@ theorem attestReadRequest_source {L imms : Store} {evm : EVM.State} {rs : List A
     (hd : L.get? "data" = some (.array (rs.map AttestationRequestRecord.tuple)))
     (hi : L.get? "i" = some (.int (Int.ofNat i))) (hb : i < rs.length)
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestReadRequest
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestReadRequest
       (.ok {contract := contract,locals := attestRequestLocals L rs[i] heap,immutables := imms} evm) := by
   apply heapResultBlock_ok (decodeAttestationDataCall (r := rs[i]) (heap := heap) ?_) hh (by decide) (by decide) (by decide)
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm

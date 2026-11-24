@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.CheckedSub256Evm
 import Benchmarks.CompoundIII.Comet.AssetCallMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,14 +14,14 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def TransferInRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def TransferInRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret free : UInt256) (R : List UInt256)
     (result : Option (EVM.State × UInt256)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', value) => ∃ σ' mem aw out k C, SourceState s0 ee σ' evm' ∧
       memLoad ⟨64⟩ mem = free ∧ free.toNat ≤ mem.size ∧
-      RD (deployedRuntime v) ee g s0 ret (value :: R) mem aw out σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (value :: R) mem aw out σ' k C
 
 theorem cometTransferInAfter {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
@@ -28,11 +30,11 @@ theorem cometTransferInAfter {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 16 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = ptr) (hlo : 96 ≤ ptr.toNat)
     (hb : ptr.toNat + 100 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13340⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13340⟩
       (dummy :: EVM.word sender.val :: amount :: EVM.word asset.val :: ⟨32⟩ :: pre ::
         tokenBalanceSelectorWord :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, TransferInAfter asset sender amount pre evm result ∧
-      TransferInRun v ee g s0 ret (ptr + ⟨32⟩) R result := by
+    ∃ result, TransferInAfter fork asset sender amount pre evm result ∧
+      TransferInRun fork v ee g s0 ret (ptr + ⟨32⟩) R result := by
   obtain ⟨result, ht, hr⟩ := cometTransferInCall (v := v)
     (by change R.length + 3 + 10 ≤ 1024; omega) hfree hb hs h
   cases result with
@@ -75,10 +77,10 @@ theorem cometTransferInInternal {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 16 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = ptr) (hlo : 96 ≤ ptr.toNat)
     (hb : ptr.toNat + 132 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13272⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13272⟩
       (EVM.word asset.val :: EVM.word sender.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, TransferInTrace asset sender amount evm result ∧
-      TransferInRun v ee g s0 ret (ptr + ⟨64⟩) R result := by
+    ∃ result, TransferInTrace fork asset sender amount evm result ∧
+      TransferInRun fork v ee g s0 ret (ptr + ⟨64⟩) R result := by
   obtain ⟨evm', σ', z, out, hc, hs', hh, hr⟩ := cometTransferInBalanceBefore (v := v)
     (by change R.length + 1 + 15 ≤ 1024; omega) hfree hlo (by omega) hs h
   have hbalance := TokenBalanceTrace.response hc (lt_trans hh (by decide))

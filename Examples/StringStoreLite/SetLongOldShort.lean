@@ -1,5 +1,7 @@
 import Examples.StringStoreLite.SetOldLong
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — long set over old short storage
 
@@ -60,11 +62,11 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
           evmStele1) :
     (I.perm = true ∧ ∃ evmEvm1,
       EVMStateEquiv evmEvm1 evmStele1 ∧
-      RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
+      RDret fork stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         evmEvm1.accountMap
         (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))) ∨
-      (I.perm = false ∧ RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+      (I.perm = false ∧ RDstatic fork stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let evmStele0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
@@ -134,7 +136,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz36 hhi hsize hsel hoffMax hstart hlenMaxWord hpayloadWord
-  have rd175 : RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+  have rd175 : RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨175⟩
       [len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k175 C175 := by
@@ -174,7 +176,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
         clearCurrentHashAw (setHelperEntryAw len) :=
       longDataWordsLoopAw_setHelper_eq (len := len) hlenMaxLen (len.toNat / 32) (by omega)
     have hreach261 :
-        ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+        ∃ k C, RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
           [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
           (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
@@ -279,7 +281,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
       fun _ hrd261 => ?_
     obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hreach261 :
-        ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+        ∃ k C, RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
           [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
           (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))

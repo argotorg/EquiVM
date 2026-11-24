@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ReturnDataMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -26,9 +28,9 @@ def safeTransferMessageMem (isFrom decoded : Bool) (mem : ByteArray) : ByteArray
 theorem morphoTransferStatusPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw data next status : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (hstack : R.length + 7 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferStatusPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferStatusPC isFrom)
       (data :: next :: status :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
       (memLoad (UInt256.ofNat 64) mem :: safeTransferMessagePC isFrom false :: status ::
         memLoad (UInt256.ofNat 64) mem :: next :: data :: R) mem aw' out σ k' C' := by
   cases isFrom
@@ -40,9 +42,9 @@ theorem morphoTransferStatusPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {
 theorem morphoTransferResultPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw a b status : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (hstack : R.length + 5 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferResultPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferResultPC isFrom)
       (a :: b :: status :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
       (memLoad (UInt256.ofNat 64) mem :: safeTransferMessagePC isFrom true :: status ::
         memLoad (UInt256.ofNat 64) mem :: R) mem aw' out σ k' C' := by
   cases isFrom
@@ -54,9 +56,9 @@ theorem morphoTransferResultPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {
 theorem morphoTransferMessageWrite {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw ptr status : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom decoded : Bool) (hstack : R.length + 5 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferMessagePC isFrom decoded)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferMessagePC isFrom decoded)
       (status :: ptr :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (status :: ptr :: R)
       (writeWord (writeWord mem ptr.toNat (safeTransferErrorLength isFrom decoded))
         (ptr + UInt256.ofNat 32).toNat (safeTransferErrorPayload isFrom decoded)) aw' out σ k' C' := by
@@ -74,9 +76,9 @@ theorem morphoTransferMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {mem out : ByteArray} {aw ptr status : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom decoded : Bool) (hstack : R.length + 7 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
       (ptr :: safeTransferMessagePC isFrom decoded :: status :: ptr :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (status :: ptr :: R) (safeTransferMessageMem isFrom decoded mem) aw' out σ k' C' := by
   have hp := uadd_word_ofNat_toNat ptr 64 (by change _ < 2 ^ 256; omega)
   have hg : UInt256.lor (UInt256.gt (ptr + UInt256.ofNat 64) (UInt256.ofNat 18446744073709551615))
@@ -96,8 +98,8 @@ theorem morphoAlloc64Overflow {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {mem out : ByteArray} {aw ptr : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hp : ptr.toNat < 2 ^ 64) (hbad : 2 ^ 64 ≤ ptr.toNat + 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
-      (ptr :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
+      (ptr :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have ha := uadd_word_ofNat_toNat ptr 64 (by change _ < 2 ^ 256; omega)
   have rd1 := morphoBlocks.morpho_block_11507_taken
     (immWords := wordsOf (immStore v)) hstack
@@ -111,9 +113,9 @@ theorem morphoTransferRequireFalse {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {s0 : State} {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom decoded : Bool) (hstack : R.length + 11 ≤ 1024)
     (hm : MorphoHeap mem ptr 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (UInt256.ofNat 0 :: ptr :: ret :: R) (safeTransferMessageMem isFrom decoded mem)
-      aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+      aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have he := (morphoErrorMem_properties_general (safeTransferErrorLength isFrom decoded)
     (safeTransferErrorPayload isFrom decoded) ptr mem hm.lower hm.free hm.size
     (by have hg := hm.gap; omega) (by have hb := hm.space; change _ < 2 ^ 256; omega)).2.2

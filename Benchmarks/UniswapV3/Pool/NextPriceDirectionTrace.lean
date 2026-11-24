@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextPriceGuardTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,11 +19,11 @@ theorem nextPriceDirectionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (input : Bool) (a : NextPriceArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextPriceDirectionPC input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextPriceDirectionPC input)
       (⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (nextPriceCalleePC input a)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (nextPriceCalleePC input a)
       ((if input then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw :: priceRaw ::
         nextPriceReturnPC a :: ⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) ::
         a.amount :: liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C' := by
@@ -61,12 +63,12 @@ theorem nextPriceReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw result : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextPriceArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextPriceReturnPC a)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextPriceReturnPC a)
       (result :: ⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (result :: R) mem aw rdata σ k' C' := by
-  have hr : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨18114⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (result :: R) mem aw rdata σ k' C' := by
+  have hr : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨18114⟩
       (result :: ⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C' := by
     cases hz : a.zeroForOne

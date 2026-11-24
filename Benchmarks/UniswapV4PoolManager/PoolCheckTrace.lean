@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0Source
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,10 +14,10 @@ theorem poolCheckTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret slot : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+3 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13686⟩ (slot :: ret :: R) mem aw rdata σ k C) :
-    (slot0SqrtPriceWord (solcSlotWordAt slot σ I) = ⟨0⟩ ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13686⟩ (slot :: ret :: R) mem aw rdata σ k C) :
+    (slot0SqrtPriceWord (solcSlotWordAt slot σ I) = ⟨0⟩ ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (slot0SqrtPriceWord (solcSlotWordAt slot σ I) ≠ ⟨0⟩ ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C') := by
+      RD fork (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C') := by
   have he : UInt256.land (UInt256.ofNat 1461501637330902918203684832716283019655932542975)
       (solcSlotWordAt slot σ I) = slot0SqrtPriceWord (solcSlotWordAt slot σ I) :=
     u256_land_comm _ _

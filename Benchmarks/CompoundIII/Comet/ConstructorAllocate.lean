@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecodeHead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -13,12 +15,12 @@ theorem cometCreationAllocate {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
     {mem rdata : ByteArray} {aw ptr len ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2711⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2711⟩
       (ptr :: len :: ret :: R) mem aw rdata σ k C) :
     if constructorAllocationGuard ptr len = ⟨0⟩ then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret R
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret R
         (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
   split
   · rename_i hg
     have r1 := cometWithExtendedAssetListCreation_block_2711_fallthrough
@@ -68,17 +70,17 @@ set_option maxRecDepth 2000 in
 theorem cometConstructorRecordAllocate {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [UInt256.ofNat (constructorRecordBase c), ⟨672⟩, ⟨99⟩, ⟨928⟩, ⟨32⟩,
         constructorArgumentSizeWord c, UInt256.ofNat (constructorRecordBase c)]
       (constructorCopiedMemory c) aw ByteArray.empty σ k C) :
     if constructorRecordBase c + 672 < 2^64 then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨99⟩
         [⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c, UInt256.ofNat (constructorRecordBase c)]
         (constructorRecordMemory c) aw' ByteArray.empty σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
   have hr := cometCreationAllocate (by change 10 ≤ 1024; decide) (by native_decide) h
   simpa only [constructorRecordAllocationGuard hsize, constructorRecordAllocationEnd hsize,

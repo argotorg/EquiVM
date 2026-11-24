@@ -1,5 +1,7 @@
 import Benchmarks.Safe.Main.ExecTransactionGasUsed
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -35,11 +37,11 @@ set_option maxRecDepth 100000 in
 theorem safeExecSuccessRoute (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src} {sigPtr guard hash before used : UInt256}
     {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3953⟩
+    (h : RD fork safeBytecode I g s0 ⟨3953⟩
       (used :: before :: execResultSaved p src sigPtr guard hash z R) mem aw rdata σ k C)
     (hov : R.length + 20 ≤ 1024) :
     ∃ flag k' C', (flag = ⟨0⟩ ↔ ExecSuccessAllowed p z) ∧
-      RD safeBytecode I g s0 ⟨3977⟩
+      RD fork safeBytecode I g s0 ⟨3977⟩
         (flag :: used :: execResultSaved p src sigPtr guard hash z R) mem aw rdata σ k' C' := by
   cases z with
   | true =>
@@ -52,7 +54,7 @@ theorem safeExecSuccessRoute (p : ExecTransactionInput)
     have h₁ := safeRuntime_block_3953_fallthrough (by simp [execResultSaved]; omega)
       (by decide) h
     have h₂ := safeRuntime_block_3964 (by simp [execResultSaved]; omega) h₁
-    change RD safeBytecode I g s0 _
+    change RD fork safeBytecode I g s0 _
       (UInt256.isZero p.tx.safeTxGas :: used ::
         execResultSaved p src sigPtr guard hash false R) _ _ _ _ _ _ at h₂
     by_cases hs : p.tx.safeTxGas = ⟨0⟩
@@ -73,25 +75,25 @@ set_option maxRecDepth 100000 in
 theorem safeExecSuccessCheck (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src locals} {sigPtr guard hash before used : UInt256}
     {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3953⟩
+    (h : RD fork safeBytecode I g s0 ⟨3953⟩
       (used :: before :: execResultSaved p src sigPtr guard hash z R) mem aw rdata σ k C)
     (hl : ExecTransactionLocals p locals) (hz : locals["success"]? = some (.bool z))
     (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 15) .reverted) ∨
     ∃ k' C',
-      (∀ result, ExecBlock config { contract := contract, locals := locals } evm
+      (∀ result, ExecBlock fork config { contract := contract, locals := locals } evm
         (exectransactionTransition.body.drop 16) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 15) result) ∧
-      RD safeBytecode I g s0 ⟨3993⟩
+      RD fork safeBytecode I g s0 ⟨3993⟩
         (used :: execResultSaved p src sigPtr guard hash z R) mem aw rdata σ k' C' := by
   obtain ⟨flag, k₁, C₁, hflag, h₁⟩ := safeExecSuccessRoute p h hov
   have he := safeExecSuccessExpr p evm hl hz
   by_cases hf : flag = ⟨0⟩
   · have h₂ := safeRuntime_block_3977_taken (by simp [execResultSaved]; omega)
       (by rw [hf]; decide) (by jump_dest) h₁
-    have hs : ExecStmt config { contract := contract, locals := locals } evm
+    have hs : ExecStmt fork config { contract := contract, locals := locals } evm
         (.require execSuccessExpr) (.ok { contract := contract, locals := locals } evm) :=
       .requireTrue (by simpa only [hflag.mp hf, decide_true] using he)
     exact .inr ⟨_, _, fun _ ht ↦ .consNormal hs ht, h₂⟩

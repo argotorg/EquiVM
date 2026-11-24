@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,9 +23,9 @@ theorem morphoAllocDynamicExact {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hsmall : ptr.toNat + size + 31 ≤ 2 ^ 200)
     (hfit : ptr.toNat + (size + 31) / 32 * 32 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
       (ptr :: UInt256.ofNat size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (returnReserveMem mem ptr size) aw' rdata σ k' C' := by
   have hp := returnReservePtr_toNat hsmall
   have hcond : UInt256.lor (UInt256.gt (returnReservePtr ptr size)
@@ -47,9 +49,9 @@ theorem morphoAllocDynamicOverflow {v : MorphoImmutables} {ee : ExecutionEnv} {g
     (hstack : R.length + 5 ≤ 1024)
     (hsmall : ptr.toNat + size + 31 ≤ 2 ^ 200)
     (hbad : 2 ^ 64 ≤ ptr.toNat + (size + 31) / 32 * 32)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
       (ptr :: UInt256.ofNat size :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hp := returnReservePtr_toNat hsmall
   have hcond : UInt256.lor (UInt256.gt (returnReservePtr ptr size)
       (UInt256.ofNat 18446744073709551615))
@@ -69,9 +71,9 @@ theorem morphoAllocDynamic {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : ptr.toNat + size + 31 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
       (ptr :: UInt256.ofNat size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (returnReserveMem mem ptr size) aw' rdata σ k' C' := by
   exact morphoAllocDynamicExact size hstack hvalid (by omega) (by omega) h
 

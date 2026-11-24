@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BytesDecode
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem decodeBytesSlice {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024)
     (hsize : I.calldata.size < UInt256.size) (hstart : start.toNat+solcMaxU64+32 < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12109⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12109⟩
       (start :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    (¬BytesSliceBounds I.calldata start.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (BytesSliceBounds I.calldata start.toNat ∧ ∃ k' C', C+114 ≤ C' ∧ RD (deployedRuntime v) I g s0 ret
+    (¬BytesSliceBounds I.calldata start.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (BytesSliceBounds I.calldata start.toNat ∧ ∃ k' C', C+114 ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret
       (calldataWord I.calldata start.toNat :: (start+⟨32⟩) :: R) mem aw rdata σ k' C') := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
     rw [deployedRuntime_jumps]; jump_dest
@@ -40,7 +42,7 @@ theorem decodeBytesSlice {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (by simp only [poolManagerBlocks.poolManager_block_12109_taken_stack, List.length_cons]; omega) rd⟩
   have hg := slt_lit_one_low hh (by rw [h31]; omega)
   have rd1 := poolManagerBlocks.poolManager_block_12109_fallthrough (by omega) (by rw [hg]; rfl) h
-  change RD _ _ _ _ ⟨12122⟩ (ret :: UInt256.ofNat I.calldata.size :: start :: R) _ _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ ⟨12122⟩ (ret :: UInt256.ofNat I.calldata.size :: start :: R) _ _ _ _ _ _ at rd1
   let len := calldataWord I.calldata start.toNat
   by_cases hn : len.toNat ≤ solcMaxU64
   swap
@@ -50,7 +52,7 @@ theorem decodeBytesSlice {I : ExecutionEnv} {g : Sat256} {s0 : State}
     exact .inl ⟨fun hb => hn hb.2.2.1, emptyRevert v
       (by simp only [poolManagerBlocks.poolManager_block_12122_taken_stack, List.length_cons]; omega) rd⟩
   have rd2 := poolManagerBlocks.poolManager_block_12122_fallthrough (by omega) (ugt_zero hn) rd1
-  change RD _ _ _ _ ⟨12140⟩ (UInt256.ofNat I.calldata.size :: ret :: len :: start :: R) _ _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ ⟨12140⟩ (UInt256.ofNat I.calldata.size :: ret :: len :: start :: R) _ _ _ _ _ _ at rd2
   have hs : (start+len).toNat = start.toNat+len.toNat := by
     rw [uadd_toNat, Nat.mod_eq_of_lt (lt_trans (by omega : start.toNat+len.toNat < 2^255) (by decide))]
   have he : ((start+len)+UInt256.ofNat 32).toNat = start.toNat+len.toNat+32 := by

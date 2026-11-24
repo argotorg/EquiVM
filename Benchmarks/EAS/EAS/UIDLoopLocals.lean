@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.UIDLoopSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -40,9 +42,9 @@ theorem uidNextLocals_keep (L : Store) (word bump : UInt256) (heap : Nat) : UIDL
 
 theorem uidIteration_break {L imms : Store} {evm : EVM.State} {a : AttestationRecord} {bump word : UInt256} {heap next : Nat}
     (hf : UIDLoopLocals L a bump heap) (hz : dbUIDWord evm word = ⟨0⟩)
-    (hc : ExecBlock config {contract := contract,locals := L,immutables := imms} evm uidCompute
+    (hc : ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm uidCompute
       (.ok {contract := contract,locals := uidComputeLocals L word next,immutables := imms} evm)) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm uidIteration
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm uidIteration
       (.break {contract := contract,locals := uidComputeLocals L word next,immutables := imms} evm) := by
   apply execBlock_append hc
   apply ExecBlock.consBreak
@@ -53,15 +55,15 @@ theorem uidIteration_break {L imms : Store} {evm : EVM.State} {a : AttestationRe
 
 theorem uidIteration_next {L imms : Store} {evm : EVM.State} {a : AttestationRecord} {bump word : UInt256} {heap next : Nat}
     (hf : UIDLoopLocals L a bump heap) (hz : dbUIDWord evm word ≠ ⟨0⟩) (hb : bump.toNat < 2^32)
-    (hc : ExecBlock config {contract := contract,locals := L,immutables := imms} evm uidCompute
+    (hc : ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm uidCompute
       (.ok {contract := contract,locals := uidComputeLocals L word next,immutables := imms} evm)) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm uidIteration
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm uidIteration
       (.ok {contract := contract,locals := uidNextLocals L word bump next,immutables := imms} evm) := by
   apply execBlock_append hc
   refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ?_
   · simpa only [decide_eq_false hz] using uidAvailable_eval (imms := imms) (evm := evm)
       (hf.compute (word := word) (next := next)).db (store_get_self _ _ _)
-  · exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  · exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (uidBump_eval (hf.compute (word := word) (next := next)).bump hb)
       (assignLocalBase_ok (hf.compute (word := word) (next := next)).bump)) ExecBlock.nil
 

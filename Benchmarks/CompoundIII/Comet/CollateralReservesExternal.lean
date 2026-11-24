@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CollateralReservesSource
 import Benchmarks.CompoundIII.Comet.AddressGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -13,13 +15,13 @@ theorem getCollateralReservesTransition_body :
 theorem getCollateralReserves_returns {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 (tokenBalancePayload I.codeOwner)
         (true, evm', out) false)
     (hsize : out.size < 2^255)
     (hvalid : CollateralReservesValid evm'
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) true out) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "asset" I) getCollateralReservesTransition.body
       (.returned frame evm' (some [.int (collateralReservesValue evm'
         (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) out).toNat])) (immStore v) := by
@@ -48,13 +50,13 @@ theorem getCollateralReserves_returns {σ σ₀ A I} {g : Sat256}
 theorem getCollateralReserves_reverts {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray) (z : Bool)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 (tokenBalancePayload I.codeOwner)
         (z, evm', out) false)
     (hsize : out.size < 2^255)
     (hvalid : ¬ CollateralReservesValid evm'
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) z out) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "asset" I) getCollateralReservesTransition.body
       .reverted (immStore v) := by
   let addr := AccountAddress.ofNat (calldataWord I.calldata 4).toNat

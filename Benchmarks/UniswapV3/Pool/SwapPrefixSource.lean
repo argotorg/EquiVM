@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapModel
 import Benchmarks.UniswapV3.Pool.NoDelegateCall
 import Benchmarks.UniswapV3.Pool.SourceSignedDivision
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,7 +16,7 @@ macro "swap_prefix_get" : tactic =>
 
 theorem swapZerosSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 3)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 3)
       (.ok (swapInitFrame v a) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.letDecl (name := "amount0")
@@ -26,7 +28,7 @@ theorem swapZerosSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.
 
 theorem swapDelegateCall (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecStmt config (swapInitFrame v a) evm (.internalCall "checkNotDelegateCall" [] "__c0")
+    ExecStmt fork config (swapInitFrame v a) evm (.internalCall "checkNotDelegateCall" [] "__c0")
       (.ok (swapDelegateFrame v a) evm) :=
   internalCallFunctionReturn (callee := noDelegateCallFunction) (argVals := []) (locals := ∅)
     (calleeStele := noDelegateCallFrame v) (value := none)
@@ -35,9 +37,9 @@ theorem swapDelegateCall (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM
 theorem swapDelegateSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 4)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 4)
       (.ok (swapDelegateFrame v a) evm) := by
-  change ExecBlock config _ _ (swapTransition.body.take 3 ++
+  change ExecBlock fork config _ _ (swapTransition.body.take 3 ++
     [.internalCall "checkNotDelegateCall" [] "__c0"]) _
   exact execBlock_append_ok (swapZerosSource v a evm hwv)
     (ExecBlock.consNormal (swapDelegateCall v a evm hself) ExecBlock.nil)
@@ -53,9 +55,9 @@ theorem evalSwapSpecifiedNonzero (v : UniswapV3PoolImmutables) (a : SwapArgs) (e
 theorem swapSlot0Source (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hself : evm.executionEnv.codeOwner = v.original)
     (hn : a.amountSpecified ≠ 0) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 6)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 6)
       (.ok (swapSlot0Frame v a evm) evm) := by
-  change ExecBlock config _ _ (swapTransition.body.take 4 ++
+  change ExecBlock fork config _ _ (swapTransition.body.take 4 ++
     [swapTransition.body[4]!, swapTransition.body[5]!]) _
   apply execBlock_append_ok (swapDelegateSource v a evm hwv hself)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -65,7 +67,7 @@ theorem swapSlot0Source (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.
 
 theorem swapDelegateReverts (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hself : evm.executionEnv.codeOwner ≠ v.original) :
-    ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .reverted
+    ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 swapTransition.body]
@@ -77,7 +79,7 @@ theorem swapDelegateReverts (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : 
 theorem swapSpecifiedReverts (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hself : evm.executionEnv.codeOwner = v.original)
     (hn : a.amountSpecified = 0) :
-    ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .reverted
+    ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 swapTransition.body]

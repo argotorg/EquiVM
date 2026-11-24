@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.FeeGrowthStorage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -31,7 +33,7 @@ theorem swapStateMiddleBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionE
     {s0 : EVM.State} {k C : Nat}
     {aw cursor price tick snap x4 x5 x6 x7 x9 x10 x11 x12 x13 x14 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (zero : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, price, cursor, x4, x5, x6, x7,
         snap, x9, x10, x11, x12, x13, x14, zero.toUInt256] ++ R) mem aw rdata σ k C)
     (hp : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) price = price)
@@ -39,7 +41,7 @@ theorem swapStateMiddleBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionE
     (htc : UInt256.signextend (UInt256.ofNat 2) tick = tick)
     (ha : BoundedActiveWords aw limit) (hb : cursor.toNat + 64 ≤ limit)
     (hs : snap.toNat + 64 ≤ limit) (hov : R.length + 17 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2950⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2950⟩
       ([feeGrowthWord (!zero) σ ee, UInt256.ofNat 32 + (UInt256.ofNat 32 + cursor),
         x4, x5, x6, x7, snap, x9, x10, x11, x12, x13, x14, zero.toUInt256] ++ R)
       (swapStateMiddleMem mem cursor price tick) aw' rdata σ k' C' ∧
@@ -79,7 +81,7 @@ theorem swapStateMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat}
     {aw cursor price tick snap x4 x5 x6 x7 x9 x10 x11 x12 x13 x14 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (zero : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, price, cursor, x4, x5, x6, x7,
         snap, x9, x10, x11, x12, x13, x14, zero.toUInt256] ++ R) mem aw rdata σ k C)
     (hp : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) price = price)
@@ -87,7 +89,7 @@ theorem swapStateMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (htc : UInt256.signextend (UInt256.ofNat 2) tick = tick)
     (ha : ActiveWords aw) (hb : cursor.toNat + 64 ≤ 2 ^ 200)
     (hs : snap.toNat + 64 ≤ 2 ^ 200) (hov : R.length + 17 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2950⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2950⟩
       ([feeGrowthWord (!zero) σ ee, UInt256.ofNat 32 + (UInt256.ofNat 32 + cursor),
         x4, x5, x6, x7, snap, x9, x10, x11, x12, x13, x14, zero.toUInt256] ++ R)
       (swapStateMiddleMem mem cursor price tick) aw' rdata σ k' C' ∧ ActiveWords aw' := by

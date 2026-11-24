@@ -5,6 +5,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_017
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_018
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -31,14 +33,14 @@ theorem safeStorageAtAllocationMemory (bytes : UInt256) :
 
 theorem safeStorageAtAllocate {I g s0 σ k C aw rdata bytes len offset}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2990⟩
+    (h : RD fork safeBytecode I g s0 ⟨2990⟩
       (bytes :: ⟨0⟩ :: ⟨96⟩ :: len :: offset :: R) solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) (hsize : I.calldata.size < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3037⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3037⟩
       (⟨0⟩ :: ⟨128⟩ :: ⟨96⟩ :: len :: offset :: R)
       (storageAtAllocatedMemory bytes) aw' rdata σ k' C' := by
   have hmem := safeStorageAtAllocationMemory bytes
-  have hstart : ∃ aw' k' C' x, RD safeBytecode I g s0 ⟨3032⟩
+  have hstart : ∃ aw' k' C' x, RD fork safeBytecode I g s0 ⟨3032⟩
       (x :: ⟨128⟩ :: ⟨0⟩ :: ⟨96⟩ :: len :: offset :: R)
       (storageAtAllocatedMemory bytes) aw' rdata σ k' C' := by
     by_cases hz : bytes = ⟨0⟩
@@ -70,10 +72,10 @@ theorem safeStorageAtAllocate {I g s0 σ k C aw rdata bytes len offset}
   exact ⟨_, _, _, h₂⟩
 
 theorem safeStorageAtLengthCheck {I g s0 σ k C aw mem rdata len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2959⟩ (len :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2959⟩ (len :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024)
     (hn : (UInt256.shiftLeft len (UInt256.ofNat 5)).toNat ≤ 2 ^ 64 - 1) :
-    RD safeBytecode I g s0 ⟨2990⟩
+    RD fork safeBytecode I g s0 ⟨2990⟩
       (UInt256.shiftLeft len (UInt256.ofNat 5) :: ⟨0⟩ :: ⟨96⟩ :: len :: R)
       mem aw rdata σ (k + 17) (C + 55) := by
   have hg : UInt256.gt (UInt256.shiftLeft len (UInt256.ofNat 5))
@@ -82,10 +84,10 @@ theorem safeStorageAtLengthCheck {I g s0 σ k C aw mem rdata len} {R : List UInt
   exact safeRuntime_block_2959_taken hov (by rw [hg]; decide) (by jump_dest) h
 
 theorem safeStorageAtLengthFail {I g s0 σ k C aw mem rdata len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2959⟩ (len :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2959⟩ (len :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024)
     (hn : ¬(UInt256.shiftLeft len (UInt256.ofNat 5)).toNat ≤ 2 ^ 64 - 1) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hg : UInt256.gt (UInt256.shiftLeft len (UInt256.ofNat 5))
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
         (UInt256.ofNat 1)) = ⟨1⟩ := ugt_one (by simpa using hn)

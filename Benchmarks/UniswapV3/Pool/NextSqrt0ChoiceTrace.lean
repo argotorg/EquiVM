@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0PrefixTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_068
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,13 +13,13 @@ theorem nextSqrt0AddChoiceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20017⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20017⟩
       (nextSqrt0Product a :: a.amount :: a.price :: nextSqrt0Product a ::
         nextSqrt0Numerator a :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    (¬nextSqrt0Fast a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20066⟩
+    (¬nextSqrt0Fast a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20066⟩
       (nextSqrt0Product a :: nextSqrt0Numerator a :: R) mem aw rdata σ k' C') ∨
-    (nextSqrt0Fast a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20035⟩
+    (nextSqrt0Fast a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20035⟩
       ((nextSqrt0Numerator a + nextSqrt0Product a) :: nextSqrt0Product a ::
         nextSqrt0Numerator a :: R) mem aw rdata σ k' C') := by
   by_cases he : nextSqrt0ProductExact a
@@ -50,12 +52,12 @@ theorem nextSqrt0SubtractGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20136⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20136⟩
       (nextSqrt0Product a :: a.amount :: a.price :: nextSqrt0Product a ::
         nextSqrt0Numerator a :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    (¬nextSqrt0SubtractGuard a ∧ RDrev (deployedRuntime v) g s0) ∨
-    (nextSqrt0SubtractGuard a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20158⟩
+    (¬nextSqrt0SubtractGuard a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (nextSqrt0SubtractGuard a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20158⟩
       (nextSqrt0Product a :: nextSqrt0Numerator a :: R) mem aw rdata σ k' C') := by
   by_cases he : nextSqrt0ProductExact a
   · have heq : UInt256.eq (UInt256.div (nextSqrt0Product a) a.amount) a.price = ⟨1⟩ := by

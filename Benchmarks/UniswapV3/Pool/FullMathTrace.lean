@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FullMathArithmetic
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -29,17 +31,17 @@ theorem inverseNewtonWord_eq (d : UInt256) :
 theorem fullMathLongX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret a b d : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13083⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13083⟩
       (productHigh a b :: UInt256.mul a b :: ⟨0⟩ :: d :: b :: a :: ret :: R)
       mem aw rdata σ k C)
     (hv : fullMathValid a b d)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       (fullMathResult a b d :: R) mem aw rdata σ k' C' := by
   have r1 := uniswapV3Pool_block_13083 (immWords := wordsOf (immStore v)) (by evm_ov) rd
   have htwos : UInt256.land d (UInt256.sub (UInt256.ofNat 0) d) = wordLowBit d :=
     u256_land_comm _ _
-  have hr1 : RD (deployedRuntime v) ee g s0 ⟨13151⟩
+  have hr1 : RD fork (deployedRuntime v) ee g s0 ⟨13151⟩
       (UInt256.sub ⟨0⟩ (wordLowBit d) :: wordLowBit d ::
         inverseNewtonWord (UInt256.div d (wordLowBit d))
           (UInt256.xor ⟨2⟩ (UInt256.mul (UInt256.div d (wordLowBit d)) ⟨3⟩)) 6 ::
@@ -51,11 +53,11 @@ theorem fullMathLongX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     exact r1
   rw [inverseNewtonWord_eq] at hr1
   have r2 := uniswapV3Pool_block_13151 (immWords := wordsOf (immStore v)) (by evm_ov) hr1
-  have hr2 : RD (deployedRuntime v) ee g s0 ⟨13186⟩
+  have hr2 : RD fork (deployedRuntime v) ee g s0 ⟨13186⟩
       (fullMathResult a b d :: UInt256.div d (wordLowBit d) :: b :: a :: ret :: R)
       mem aw rdata σ (k + 64 + 34) (C + 223 + 108) := by
     simp only [uniswapV3Pool_block_13151_stack] at r2
-    change RD (deployedRuntime v) ee g s0 ⟨13186⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨13186⟩
       (fullMathAlgorithm a b d :: UInt256.div d (wordLowBit d) :: b :: a :: ret :: R)
       mem aw rdata σ (k + 64 + 34) (C + 223 + 108) at r2
     rw [fullMathAlgorithm_eq a b d hv] at r2
@@ -66,11 +68,11 @@ theorem fullMathLongX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem fullMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret a b d : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13017⟩ (d :: b :: a :: ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13017⟩ (d :: b :: a :: ret :: R)
       mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    (¬ fullMathValid a b d ∧ RDrev (deployedRuntime v) g s0) ∨
-    (fullMathValid a b d ∧ ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    (¬ fullMathValid a b d ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (fullMathValid a b d ∧ ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       (fullMathResult a b d :: R) mem aw rdata σ k' C') := by
   have hhigh : UInt256.sub
       (UInt256.sub (UInt256.mulMod a b (UInt256.lnot (UInt256.ofNat 0))) (UInt256.mul b a))
@@ -79,7 +81,7 @@ theorem fullMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   by_cases hz : productHigh a b = ⟨0⟩
   · have r1 := uniswapV3Pool_block_13017_fallthrough (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [hhigh]; exact hz) rd
-    have r1' : RD (deployedRuntime v) ee g s0 ⟨13048⟩
+    have r1' : RD fork (deployedRuntime v) ee g s0 ⟨13048⟩
         (productHigh a b :: UInt256.mul a b :: ⟨0⟩ :: d :: b :: a :: ret :: R)
         mem aw rdata σ (k + 27) (C + 91) := by
       simpa only [uniswapV3Pool_block_13017_fallthrough_stack, hhigh, u256_mul_comm b a] using r1
@@ -93,7 +95,7 @@ theorem fullMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1'
       have r3 := uniswapV3Pool_block_13060 (immWords := wordsOf (immStore v)) (by evm_ov)
         (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r2
-      have r3' : RD (deployedRuntime v) ee g s0 ⟨13186⟩
+      have r3' : RD fork (deployedRuntime v) ee g s0 ⟨13186⟩
           (fullMathResult a b d :: d :: b :: a :: ret :: R)
           mem aw rdata σ (k + 27 + 5 + 9) (C + 91 + 22 + 30) := by
         simpa only [uniswapV3Pool_block_13060_stack, fullMath_small_eq a b d hv hz] using r3
@@ -107,7 +109,7 @@ theorem fullMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   · have r1 := uniswapV3Pool_block_13017_taken (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [hhigh]; exact hz)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
-    have r1' : RD (deployedRuntime v) ee g s0 ⟨13071⟩
+    have r1' : RD fork (deployedRuntime v) ee g s0 ⟨13071⟩
         (productHigh a b :: UInt256.mul a b :: ⟨0⟩ :: d :: b :: a :: ret :: R)
         mem aw rdata σ (k + 27) (C + 91) := by
       simpa only [uniswapV3Pool_block_13017_taken_stack, hhigh, u256_mul_comm b a] using r1

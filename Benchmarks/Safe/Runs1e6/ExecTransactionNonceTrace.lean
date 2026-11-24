@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.ExecTransactionDecodeSteps
 import Benchmarks.Safe.Runs1e6.CheckedIncrement
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -23,11 +25,11 @@ set_option maxRecDepth 100000
 
 theorem safeExecNonceStart (evm : EVM.State) {I g s0 σ k C aw mem rdata len}
     {ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4166⟩ (execTransactionDecodedStack I.calldata len ptr R)
+    (h : RD fork safeBytecode I g s0 ⟨4166⟩ (execTransactionDecodedStack I.calldata len ptr R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hov : R.length + 36 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨13831⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨13831⟩
       (execNonce evm :: ⟨4199⟩ :: ⟨0⟩ :: ⟨5⟩ ::
         execHashStack I.calldata len ptr (execNonce evm) R) mem aw rdata σ k' C' := by
   have hload : (σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -41,19 +43,19 @@ theorem safeExecNonceStart (evm : EVM.State) {I g s0 σ k C aw mem rdata len}
 
 theorem safeExecNonceStore (evm : EVM.State) {I g s0 σ k C aw mem rdata}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4199⟩ ((execNonce evm + ⟨1⟩) :: ⟨0⟩ :: ⟨5⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨4199⟩ ((execNonce evm + ⟨1⟩) :: ⟨0⟩ :: ⟨5⟩ :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hp : I.perm = true) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6275⟩ R
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6275⟩ R
       mem aw rdata (execNonceState evm).accountMap k' C' := by
   obtain ⟨k', C', h₁⟩ := safeRuntime_block_4199 hov hp (by jump_dest) h
   exact ⟨k', C', by simpa only [execNonceState, storageStore_accountMap, hee, hacc] using h₁⟩
 
 theorem safeExecNonceStatic {I g s0 σ k C aw mem rdata} {value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4199⟩ (value :: ⟨0⟩ :: ⟨5⟩ :: R) mem aw rdata σ k C)
-    (hp : I.perm = false) (hov : R.length + 3 ≤ 1024) : RDstatic safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨4199⟩ (value :: ⟨0⟩ :: ⟨5⟩ :: R) mem aw rdata σ k C)
+    (hp : I.perm = false) (hov : R.length + 3 ≤ 1024) : RDstatic fork safeBytecode g s0 := by
   have h₁ := h.jumpdest (by native_decide) (by simp; omega)
   have h₂ := h₁.swap2 (by native_decide) (by simp; omega)
   have h₃ := h₂.swap1 (by native_decide) (by simp; omega)

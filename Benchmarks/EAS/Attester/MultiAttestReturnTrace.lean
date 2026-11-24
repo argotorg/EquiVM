@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiAttestCallTrace
 import Benchmarks.EAS.Attester.WordArrayEncodeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -24,12 +26,12 @@ theorem multiAttestCallBounds {cd : ByteArray} (hc : MultiHeadChecks cd)
 
 theorem multiAttestReachReturnDecoder {words : String → UInt256} {I g s0 σ k C aw out R}
     {a b c : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1787⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1787⟩
       ([⟨1⟩, a, b, c] ++ R) (multiAttestEncodedMemory I.calldata) aw out σ k C)
     (hstack : R.length + 6 ≤ 1024) (hc : MultiHeadChecks I.calldata)
     (hshape : BatchShape I.calldata) (hrows : BatchRowsValid I.calldata)
     (hout : out.size < 2 ^ 138) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
       ([UInt256.ofNat (multiAttestBuiltFree I.calldata),
         UInt256.ofNat (multiAttestBuiltFree I.calldata + out.size), ⟨1873⟩] ++ R)
       (returnArrayInputMemory (multiAttestEncodedMemory I.calldata)
@@ -50,12 +52,12 @@ theorem multiAttestReachReturnDecoder {words : String → UInt256} {I g s0 σ k 
 
 theorem multiAttestReturnDecoded {words : String → UInt256} {I g s0 σ k C aw out R}
     {base : Nat} {mem : ByteArray}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨121⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨121⟩
       (UInt256.ofNat (returnArrayFree base out) :: R)
       (returnArrayDecodedMemory mem base out) aw out σ k C)
     (hstack : R.length + 10 ≤ 1024) (hlo : 96 ≤ base) (hc : ReturnArrayChecks out)
     (hcap : returnArrayEnd base out ≤ solcMaxU64) :
-    RDret (immutableLayout.runtime attesterBytecode words) g s0 σ
+    RDret fork (immutableLayout.runtime attesterBytecode words) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat (returnArrayCount out)] ++
         wordArrayWords (returnArrayWords out) 0 (returnArrayCount out))) := by
   have hb := (returnArrayFree_bounds base out).1

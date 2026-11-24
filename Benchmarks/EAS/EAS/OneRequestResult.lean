@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.OneRequestAllocate
 import Benchmarks.EAS.EAS.OneRequestMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,8 +12,8 @@ theorem easOneRequestAllocate_revert {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1) (hfail : ¬ heap.toNat+256 ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6864⟩ (ret::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6864⟩ (ret::R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hn64 : allocateNext heap.toNat 64 = heap.toNat+64 := fixedAllocation_next .bytes64 hh
   have hn : (UInt256.ofNat (heap.toNat+64)).toNat = heap.toNat+64 := ulit_toNat' _ (by change _ < 2^256; omega)
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_6864_packed (immWords := wordsOf (immStore v))
@@ -27,11 +29,11 @@ theorem easOneRequestAllocate_revert {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       (by change allocateNext heap.toNat 64 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 64; rw [hn64]; exact ⟨h64,by omega⟩)
       (by rw [easPatchedValidJumps v]; jump_dest) r1
     obtain ⟨a3,k3,C3,r3⟩ := easBlocks.eas_block_6881_packed (immWords := wordsOf (immStore v)) (by omega) r2
-    change RD (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
+    change RD fork (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
       (Reasoning.Theory.writeWord (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 64))) heap.toNat ⟨1⟩)
       a3 rdata σ k3 C3 at r3
     rw [hn64] at r3
-    change RD (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
+    change RD fork (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
       (oneRequestHeadMemory mem heap) a3 rdata σ k3 C3 at r3
     obtain ⟨a4,k4,C4,r4⟩ := easBlocks.eas_block_6924_taken_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) (by decide)

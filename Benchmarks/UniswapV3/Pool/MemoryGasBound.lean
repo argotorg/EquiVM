@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObservationRead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -38,10 +40,10 @@ theorem MemoryGasBound.capacity {aw p : UInt256} {cost allowance : Nat} {gas : S
 theorem memoryGasCapacityOrOOG {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {pc aw p : UInt256} {stack : List UInt256} {mem rdata : ByteArray} {σ : AccountMap}
     {k C allowance : Nat}
-    (rd : RD code ee g s0 pc stack mem aw rdata σ k C)
+    (rd : RD fork code ee g s0 pc stack mem aw rdata σ k C)
     (h : MemoryGasBound aw C allowance) (ha : allowance ≤ 2 ^ 200)
     (hp : p.toNat ≤ aw.toNat * 32 + 32) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ p.toNat + 4096 ≤ 2 ^ 200 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ p.toNat + 4096 ≤ 2 ^ 200 := by
   rcases rd with hoog | ⟨s, _, _, _, _, _, _, hc, _⟩
   · exact Or.inl hoog
   · exact Or.inr (h.capacity hc ha hp)

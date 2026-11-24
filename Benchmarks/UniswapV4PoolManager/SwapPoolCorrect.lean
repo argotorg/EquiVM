@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapPoolSelectTrace
 import Benchmarks.UniswapV4PoolManager.SwapWrapperCallCorrect
 import Benchmarks.UniswapV4PoolManager.SwapAfterCorrect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -30,12 +32,12 @@ theorem swapPoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
     (hcd : I.calldata.size < 2^255) (hgas : g.toNat < 324518553658429321982441292826060)
     (hclean : UInt256.land rawFee (UInt256.ofNat 16777215) = fee) (hfeeBound : fee.toNat < 2^24)
     (hpaid : Cₘ aw ≤ C) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨1614⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1614⟩
       ([rawFee, before, amount, src, len, poolSlot id, paramsPtr+UInt256.ofNat 64,
         keyPtr, id, keyPtr+UInt256.ofNat 128, paramsPtr, junk]++R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (swapTransition.body.drop 22) result ∧
-      abiResultTrace swapTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (swapTransition.body.drop 22) result ∧
+      abiResultTrace fork swapTransition.returnType (deployedRuntime v) g s0 result := by
   have hfit : free.toNat+4000 < UInt256.size := by
     change _ ≤ 2^64-1 at hroom
     change _ < 2^256
@@ -43,7 +45,7 @@ theorem swapPoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
   have h160 := uadd_word_ofNat_toNat free 160 (by omega)
   let pp := swapPoolParams key p amount fee
   let pre := swapPoolAliasFrame f id
-  have halias := swapPoolAliasSource (evm := evm) hs
+  have halias := swapPoolAliasSource (fork := fork) (evm := evm) hs
   have hcpre : pre.contract = contract := by dsimp only [pre, swapPoolAliasFrame]; exact hc
   have hkpre : pre.locals.get? "key" = some (poolKeyValue key) :=
     (store_get_ne _ _ (by decide : (swapPoolAlias == "key") = false)).trans hk
@@ -80,8 +82,8 @@ theorem swapPoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
   | returned cf post values =>
     obtain ⟨delta, out, nextFree, aw3, k3, C3, hIp, hσp, hv, hpaid3, rd3, hm⟩ := ht
     subst values
-    change ExecStmt config pre evm swapTransition.body[23]! (.ok (swapPoolCallFrame pre delta) post) at hcall
-    have hassign := swapPoolDeltaSource (evm := post) (delta := delta) hdpre
+    change ExecStmt fork config pre evm swapTransition.body[23]! (.ok (swapPoolCallFrame pre delta) post) at hcall
+    have hassign := swapPoolDeltaSource (fork := fork) (evm := post) (delta := delta) hdpre
     let ff := swapPoolDeltaFrame pre delta
     have hcff : ff.contract = contract := by
       dsimp only [ff, swapPoolDeltaFrame, swapPoolCallFrame]

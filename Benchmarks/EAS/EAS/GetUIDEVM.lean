@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.UIDTail
 import Benchmarks.EAS.EAS.UIDHash
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,13 +17,13 @@ theorem easGetUID {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+30 ≤ 1024) (hview : AttestationMemoryView mem src dataPtr a)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hdisj : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ heap.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
     if allocateNext heap.toNat (157+a.data.size) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (157+a.data.size) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidDonePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidDonePC site)
         (getUIDWord a bump::bump::uidSaved site src R) (getUIDMemory mem heap dataPtr a bump) aw' rdata σ k' C' ∧
         MemoryPrefix mem (getUIDMemory mem heap dataPtr a bump) heap.toNat ∧
         memLoad (UInt256.ofNat 64) (getUIDMemory mem heap dataPtr a bump) = UInt256.ofNat (allocateNext heap.toNat (157+a.data.size))
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlen : a.data.size < 2^64 := by have hd := hview.dataLow; omega
   have hs : (UInt256.ofNat (157+a.data.size)).toNat = 157+a.data.size := ulit_toNat' _ (by change 157+a.data.size < 2^256; omega)
   have hsaved : (uidSaved site src R).length ≤ R.length+9 := by cases site <;> simp only [uidSaved,List.length_cons] <;> omega

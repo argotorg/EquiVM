@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityEventTrace
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaAddCostTrace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -33,19 +35,19 @@ theorem modifyLiquidityDeltaCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (hkb : keyPtr.toNat+160 ≤ free.toNat) (hpb : paramsPtr.toNat+128 ≤ free.toNat)
     (hfit : free.toNat+128 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨6046⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6046⟩
       ([j0, j1, j2, principal, paramsPtr, id, fees, src, len, ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
     ∃ result,
-      ExecBlock config f evm ((modifyLiquidityTransition.body.drop 20).take 6) result ∧
-      blockResultTrace (deployedRuntime v) g s0 (fun f' post =>
+      ExecBlock fork config f evm ((modifyLiquidityTransition.body.drop 20).take 6) result ∧
+      blockResultTrace fork (deployedRuntime v) g s0 (fun f' post =>
         f' = modifyLiquidityEventFrame f principal fees ∧ post = evm ∧ ∃ aw' k' C', Cₘ aw' ≤ C' ∧
-          RD (deployedRuntime v) I g s0 ⟨14427⟩
+          RD fork (deployedRuntime v) I g s0 ⟨14427⟩
             ([key.hooks, keyPtr, paramsPtr, balanceDeltaCombineWord false principal fees, fees, src, len,
               ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
             (modifyLiquidityEventMemory mem free p) aw' rdata post.accountMap k' C')
         (fun _ _ => False) result := by
-  have hs := modifyLiquidityDeltaSource (evm := evm) hf ht hprincipal hfees hcaller
+  have hs := modifyLiquidityDeltaSource (fork := fork) (evm := evm) hf ht hprincipal hfees hcaller
   have hr := balanceDeltaAddCostTrace (R := [src, len, ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
     f v (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) h
   by_cases hsum : balanceDeltaCombineFits false principal fees

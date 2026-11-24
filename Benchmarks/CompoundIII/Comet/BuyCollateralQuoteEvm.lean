@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.BuyCollateralTransferEvm
 import Benchmarks.CompoundIII.Comet.QuoteInternal
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,10 +19,10 @@ theorem cometBuyCollateralAfterQuote {v : CometWithExtendedAssetListImmutables}
     (hmin : calldataWord ee.calldata 36 = minimum)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hb : free.toNat + 100 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6497⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6497⟩
       (amount :: EVM.word asset.val :: base :: EVM.word recipient.val :: R) mem aw rdata σ k C) :
-    ∃ result, BuyCollateralAfterQuote asset recipient minimum amount evm result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    ∃ result, BuyCollateralAfterQuote fork asset recipient minimum amount evm result ∧
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   by_cases hm : minimum.toNat ≤ amount.toNat
   · have r1 := cometWithExtendedAssetList_block_6497_fallthrough
       (immWords := wordsOf (immStore v)) (by omega) (by
@@ -72,10 +74,10 @@ theorem cometBuyCollateralAfterIn {v : CometWithExtendedAssetListImmutables}
     (hmin : calldataWord ee.calldata 36 = minimum)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hb : free.toNat + 832 + 768 * v.numAssets.toNat < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6486⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6486⟩
       (received :: EVM.word asset.val :: EVM.word recipient.val :: R) mem aw rdata σ k C) :
-    ∃ result, BuyCollateralAfterIn v asset recipient minimum received evm result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    ∃ result, BuyCollateralAfterIn fork v asset recipient minimum received evm result ∧
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   have r1 := cometWithExtendedAssetList_block_6486 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 6 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

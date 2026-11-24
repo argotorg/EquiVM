@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecodedMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -19,10 +21,10 @@ theorem cometConstructorDecimalsEnter {σ σ₀ A I} {g : Sat256} {c : Construct
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨685⟩ (constructorAssetLoopStack c c.assetConfigs.length)
       (constructorAssetLoopMemory c c.assetConfigs.length) aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨733⟩
       ((g.subNat C').toUInt256 :: constructorRecordWord c 2 ::
         UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) :: ⟨4⟩ ::
@@ -60,7 +62,7 @@ theorem cometConstructorDecodeToDecimals {σ σ₀ A I} {g : Sat256} {c : Constr
     (hcode : I.code = cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
     (hv : I.weiValue = ⟨0⟩) (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size) :
     if constructorAssetFree c c.assetConfigs.length < 2^64 then
-      ∃ aw k C, RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw k C, RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨733⟩
         ((g.subNat C).toUInt256 :: constructorRecordWord c 2 ::
           UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) :: ⟨4⟩ ::
@@ -69,9 +71,9 @@ theorem cometConstructorDecodeToDecimals {σ σ₀ A I} {g : Sat256} {c : Constr
           UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)
         (constructorDecimalsMemory c) aw ByteArray.empty σ k C
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
-  have decoded := cometConstructorDecode (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hv hsize
+  have decoded := cometConstructorDecode (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hv hsize
   split
   · rename_i hfree
     rw [if_pos hfree] at decoded

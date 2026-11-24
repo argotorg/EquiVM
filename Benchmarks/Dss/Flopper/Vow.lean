@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flopper
@@ -19,7 +21,7 @@ theorem flopperReachVowBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 17)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨574⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0x626cb3c5⟩ := by
@@ -62,12 +64,12 @@ theorem flopperVowBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (vowTransition.params.map Param.name)
         (transitionSignature vowTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨574⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -102,7 +104,7 @@ theorem flopperVowBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 17) rfl hsel
   exact flopperVowBodyCore hcode hwv (flopperDispatchVow hsel) (flopperDecode_vow hsz)

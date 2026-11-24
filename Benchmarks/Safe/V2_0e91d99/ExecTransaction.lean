@@ -3,6 +3,8 @@ import Benchmarks.Safe.V2_0e91d99.ExecTransactionDecoderEvidence
 import Benchmarks.Safe.V2_0e91d99.ExecTransactionBodyTrace
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_009
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -15,16 +17,16 @@ theorem safeExectransactionBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some exectransactionTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x6a 0x76 0x12 0x02 ⟨0x6a761202⟩
     hdispatch exectransactionSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x6a761202⟩ 0 ⟨1050⟩ hcode hsize hlong hword (by native_decide)
   have hdecode := safeRuntime_block_1050 (by simp) (by jump_dest) hentry
   let evm := initState σ σ₀ (.ofUInt256 g) A I
   cases hdec : decodeCalldata execTransactionNames execTransactionTypes I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       obtain hr | ⟨dataLen, sigLen, _, _, _, hb, _, _, _⟩ :=
         safeDecodeExecTransactionEvidence hdecode hlong hsize (by simp) (by jump_dest)
       · exact hr
@@ -53,7 +55,7 @@ theorem safeExectransactionBodyCore
       · exact reEquivReturnElim hcode hr fun _ _ hΞ ↦
           reEquivSelectorExecution hdispatch hdec' hs
             (.success hΞ rfl ha'.symm (.abi (returnEquiv_of_encode (boolReturnEncoding z))))
-    · have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    · have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
         obtain hr | ⟨dataLen', sigLen', _, _, _, hb', ho', hn', _⟩ :=
           safeDecodeExecTransactionEvidence hdecode hlong hsize (by simp) (by jump_dest)
         · exact hr
@@ -65,7 +67,7 @@ theorem safeExectransactionBodyCore
             ulit_toNat' _ (by change sigLen' < 2 ^ 256; omega)] at ht
           exact ht
         exact (hvalid ⟨heq.symm ▸ hn', ho'⟩).elim
-      have hs : ExecTransitionBody config contract evm p.args
+      have hs : ExecTransitionBody fork config contract evm p.args
           exectransactionTransition.body .reverted := by
         refine .execBlockRevert ?_
         by_cases hn : sigLen ≤ 2 ^ 64 - 192
@@ -79,7 +81,7 @@ theorem safeExectransactionRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some exectransactionTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeExectransactionBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V2_0e91d99

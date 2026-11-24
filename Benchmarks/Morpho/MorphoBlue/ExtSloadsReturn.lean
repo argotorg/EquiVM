@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsPrepare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,10 +16,10 @@ theorem morphoExtSloadsCopyLoop {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
       i + remaining = n → src + 32 * remaining ≤ mem.size →
       src + 32 * remaining ≤ dst → dst + 32 * remaining < UInt256.size →
       (∀ j, j < remaining → memLoad (UInt256.ofNat (src + 32 * j)) mem = values (i + j)) →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6991)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6991)
         ([UInt256.ofNat i, UInt256.ofNat 32, UInt256.ofNat n, UInt256.ofNat src,
           UInt256.ofNat dst, free, free] ++ R) mem aw rdata σ k C →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6999)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6999)
         ([UInt256.ofNat n, UInt256.ofNat 32, UInt256.ofNat n,
           UInt256.ofNat (src + 32 * remaining), UInt256.ofNat (dst + 32 * remaining), free, free] ++ R)
         (wordSequenceMemory mem dst (wordArrayWords values i remaining)) aw' rdata σ k' C' := by
@@ -42,7 +44,7 @@ theorem morphoExtSloadsCopyLoop {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
         (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd0
       have hword : memLoad (UInt256.ofNat src) mem = values i := by
         simpa only [Nat.mul_zero, Nat.add_zero] using hload 0 (by omega)
-      change RD _ _ _ _ _
+      change RD fork _ _ _ _ _
         ([UInt256.ofNat 1 + UInt256.ofNat i, UInt256.ofNat 32, UInt256.ofNat n,
           UInt256.ofNat 32 + UInt256.ofNat src, UInt256.ofNat 32 + UInt256.ofNat dst, free, free] ++ R)
         ((memLoad (UInt256.ofNat src) mem).toByteArray.write 0 mem (UInt256.ofNat dst).toNat 32)
@@ -76,9 +78,9 @@ theorem morphoExtSloadsReturn {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     (hfree : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat (160 + 32 * n))
     (hcount : memLoad (UInt256.ofNat 128) mem = UInt256.ofNat n)
     (hloads : ∀ j, j < n → memLoad (UInt256.ofNat (160 + 32 * j)) mem = values j)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6963)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6963)
       (extSloadsReadStack off n n R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat n] ++ wordArrayWords values 0 n)) := by
   let f := 160 + 32 * n
   have hf : f + 64 + 32 * n < UInt256.size := by
@@ -118,7 +120,7 @@ theorem morphoExtSloadsReturn {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
   have hret : (UInt256.sub (UInt256.ofNat (f + 64 + 32 * n)) (UInt256.ofNat f)).toNat =
       64 + 32 * n := by
     rw [usub_ofNat_lit_toNat (by omega) hf]; omega
-  change RDret _ _ _ _ ((wordSequenceMemory header (f + 64) (wordArrayWords values 0 n)).readWithPadding
+  change RDret fork _ _ _ _ ((wordSequenceMemory header (f + 64) (wordArrayWords values 0 n)).readWithPadding
     (UInt256.ofNat f).toNat (UInt256.sub (UInt256.ofNat (f + 64 + 32 * n)) (UInt256.ofNat f)).toNat) at hr
   rw [hfn, hret] at hr
   have hmem : wordSequenceMemory header (f + 64) (wordArrayWords values 0 n) =

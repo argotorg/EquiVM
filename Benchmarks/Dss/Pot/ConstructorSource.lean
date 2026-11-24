@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Pot constructor Stele source semantics
 
@@ -198,7 +200,7 @@ theorem potCtorBodySuccess
     let locals := potCtorLocals vat
     let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } (potCtorPostState evm0 vat)) := by
   intro locals evm0
   have hassignWards :
@@ -219,22 +221,22 @@ theorem potCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [potCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hassignVat) ?_
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [potCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_potCtorLocalVat (evm := potCtorAfterWardsState evm0) vat
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
       (assign_potCtorDsrStorage _ locals (by simp [locals, potCtorLocals]))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
       (assign_potCtorChiStorage _ locals (by simp [locals, potCtorLocals]))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, potCtorAfterChiState, storageStore_executionEnv, evm0, initState] using hperm)) ?_
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, potCtorAfterChiState, storageStore_executionEnv, evm0, initState] using hperm)) ?_
       (assign_potCtorRhoStorage _ locals (by simp [locals, potCtorLocals]))) ?_
   · simp [evalExpr?, envValue, pure]
   exact ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, potCtorAfterChiState, potCtorAfterRhoState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [potCtorAfterWardsState, potCtorAfterVatState, potCtorAfterDsrState, potCtorAfterChiState, potCtorAfterRhoState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
       (assign_potCtorLiveStorage _ locals (by simp [locals, potCtorLocals])))
     ExecBlock.nil
 
@@ -243,7 +245,7 @@ theorem potSteleCtorExecSuccess
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat]
+    steleCtorExec fork config contract [.address vat]
       σ σ₀ g A I
       (.returned { contract := contract, locals := potCtorLocals vat }
         (potCtorPostState
@@ -259,14 +261,14 @@ theorem potSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (potCtorBodySuccess (hperm := hperm)
+        (potCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem potSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat]
+    steleCtorExec fork config contract [.address vat]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀

@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.CreateMarketGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,9 +13,9 @@ theorem morphoCreateMarketStoreStatic {v : MorphoImmutables} {ee : ExecutionEnv}
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨4950⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup5 (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨4951⟩ : UInt256), UInt8.ofNat 132, .DUP5, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

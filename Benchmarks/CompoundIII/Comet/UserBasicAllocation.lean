@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.MemoryAllocate
 import Benchmarks.CompoundIII.Comet.WordStructAllocation
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -51,11 +53,11 @@ theorem cometAllocateUserBasic {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 9 ≤ 1024) (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hb : ptr.toNat + 160 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7655⟩ (slot :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7655⟩ (slot :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       UserBasicMemory (userBasicAllocatedMemory mem ptr (solcSlotWordAt slot σ ee)) ptr
         (userBasicData (solcSlotWordAt slot σ ee)) ∧
-      RD (deployedRuntime v) ee g s0 ret (ptr :: R)
+      RD fork (deployedRuntime v) ee g s0 ret (ptr :: R)
         (userBasicAllocatedMemory mem ptr (solcSlotWordAt slot σ ee)) aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7655
     (immWords := wordsOf (immStore v)) (by omega)

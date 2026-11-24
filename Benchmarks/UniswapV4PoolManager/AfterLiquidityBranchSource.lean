@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterLiquidityFinishSource
 import Benchmarks.UniswapV4PoolManager.HookDeltaSource
 import Benchmarks.UniswapV4PoolManager.LiquidityHookSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -43,8 +45,8 @@ theorem afterLiquidityBranchBody {f : Frame} {evm post : State} {hook : AccountA
     (hcaller : f.locals.get? "callerDelta" = some (.int (EVM.signed delta)))
     (hhook : f.locals.get? "hookDelta" = some old)
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
-    (hcall : callViaEVM evm hook 0 (afterLiquidityPayload add evm.executionEnv.source key p delta fees data) (z, post, out)) :
-    ExecBlock config f evm (afterLiquidityBranch add)
+    (hcall : callViaEVM fork evm hook 0 (afterLiquidityPayload add evm.executionEnv.source key p delta fees data) (z, post, out)) :
+    ExecBlock fork config f evm (afterLiquidityBranch add)
       (afterLiquidityBranchResult f post delta z (afterLiquidityPayload add evm.executionEnv.source key p delta fees data)
         out (afterLiquidityParse hook add)) := by
   let payload := afterLiquidityPayload add evm.executionEnv.source key p delta fees data
@@ -67,7 +69,7 @@ theorem afterLiquidityBranchBody {f : Frame} {evm post : State} {hook : AccountA
     · rw [if_pos hbad] at hinvoke ⊢
       exact ExecBlock.consNormal (ExecStmt.letDecl hpayload) (ExecBlock.consRevert hinvoke)
     · rw [if_neg hbad] at hinvoke ⊢
-      have hfinish := afterLiquidityFinish (f := afterLiquidityReplyFrame f payload out (afterLiquidityParse hook add))
+      have hfinish := afterLiquidityFinish (fork := fork) (f := afterLiquidityReplyFrame f payload out (afterLiquidityParse hook add))
         (evm := post) hf
         ((store_get_ne _ _ (by decide : ("result" == "callerDelta") = false)).trans
           ((store_get_ne _ _ (by decide : ("payload" == "callerDelta") = false)).trans hcaller))

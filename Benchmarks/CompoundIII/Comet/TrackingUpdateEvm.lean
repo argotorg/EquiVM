@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TrackingIncrementEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -11,15 +13,15 @@ theorem cometTrackingSupplyUpdate {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8289⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8289⟩
       (totalsPrincipalWord (solcSlotWordAt ⟨1⟩ σ ee) false :: elapsed :: ⟨0⟩ :: R)
       mem aw rdata σ k C) :
     if TrackingAccrualValid v false (solcSlotWordAt ⟨0⟩ σ ee) (solcSlotWordAt ⟨1⟩ σ ee)
         elapsed then
       ∃ σ' dummy k' C', SourceState s0 ee σ' (trackingAccrualState evm v false elapsed) ∧
-        RD (deployedRuntime v) ee g s0 ⟨8097⟩ (dummy :: elapsed :: ⟨0⟩ :: R)
+        RD fork (deployedRuntime v) ee g s0 ⟨8097⟩ (dummy :: elapsed :: ⟨0⟩ :: R)
           mem aw rdata σ' k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let total := totalsPrincipalWord w1 false
@@ -39,7 +41,7 @@ theorem cometTrackingSupplyUpdate {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k3, C3, r3⟩ := cometWithExtendedAssetList_block_8344
       (immWords := wordsOf (immStore v)) (by omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.land ⟨2^64-1⟩ (UInt256.shiftRight w0 ⟨128⟩) :: inc ::
         ⟨8363⟩ :: ⟨8401⟩ :: elapsed :: ⟨0⟩ :: R) _ _ _ _ _ _ at r3
     have hidx : UInt256.land ⟨2^64-1⟩ (UInt256.shiftRight w0 ⟨128⟩) = idx := by
@@ -54,7 +56,7 @@ theorem cometTrackingSupplyUpdate {v : CometWithExtendedAssetListImmutables}
         (immWords := wordsOf (immStore v)) (by omega) hperm
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
       let σ' := sstoreAccountMap ee.codeOwner σ ⟨0⟩ (uint64FieldWrite w0 (idx + inc) 2)
-      change RD _ _ _ _ _ (elapsed :: ⟨0⟩ :: R) mem aw rdata σ' _ _ at r5
+      change RD fork _ _ _ _ _ (elapsed :: ⟨0⟩ :: R) mem aw rdata σ' _ _ at r5
       have r6 := cometWithExtendedAssetList_block_8401 (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5
@@ -73,14 +75,14 @@ theorem cometTrackingBorrowUpdate {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8169⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8169⟩
       (elapsed :: ⟨0⟩ :: totalsPrincipalWord (solcSlotWordAt ⟨1⟩ σ ee) true :: R)
       mem aw rdata σ k C) :
     if TrackingAccrualValid v true (solcSlotWordAt ⟨0⟩ σ ee) (solcSlotWordAt ⟨1⟩ σ ee)
         elapsed then
       ∃ σ' a b c k' C', SourceState s0 ee σ' (trackingAccrualState evm v true elapsed) ∧
-        RD (deployedRuntime v) ee g s0 ⟨8126⟩ (a :: b :: c :: R) mem aw rdata σ' k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ⟨8126⟩ (a :: b :: c :: R) mem aw rdata σ' k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let total := totalsPrincipalWord w1 true
@@ -100,7 +102,7 @@ theorem cometTrackingBorrowUpdate {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k3, C3, r3⟩ := cometWithExtendedAssetList_block_8234
       (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.shiftRight w0 ⟨192⟩ :: inc :: ⟨8249⟩ :: ⟨0⟩ :: ⟨8281⟩ :: R) _ _ _ _ _ _ at r3
     have hidx : UInt256.shiftRight w0 ⟨192⟩ = idx := (trackingIndexWord_eq w0 true).symm
     rw [hidx] at r3
@@ -112,7 +114,7 @@ theorem cometTrackingBorrowUpdate {v : CometWithExtendedAssetListImmutables}
         (immWords := wordsOf (immStore v)) (by omega) hperm
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
       let σ' := sstoreAccountMap ee.codeOwner σ ⟨0⟩ (uint64FieldWrite w0 (idx + inc) 3)
-      change RD _ _ _ _ _ R mem aw rdata σ' _ _ at r5
+      change RD fork _ _ _ _ _ R mem aw rdata σ' _ _ at r5
       have r6 := cometWithExtendedAssetList_block_8281 (immWords := wordsOf (immStore v))
         (by omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5

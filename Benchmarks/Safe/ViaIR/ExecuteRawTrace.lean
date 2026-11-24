@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_045
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_046
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -14,20 +16,20 @@ set_option maxRecDepth 2000 in
 theorem safeExecuteRawTrace {I g s0 σ k C aw mem rdata}
     {target value ptr operation ret : UInt256} {R : List UInt256}
     (evm : EVM.State) (payload : ByteArray)
-    (h : RD safeBytecode I g s0 ⟨10140⟩
+    (h : RD fork safeBytecode I g s0 ⟨10140⟩
       (target :: value :: ptr :: operation :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hdata : mem.readWithPadding (ptr + UInt256.ofNat 32).toNat (memLoad ptr mem).toNat =
       payload)
     (hop : operation.toNat ≤ 1) (hov : R.length + 14 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDstatic safeBytecode g s0 ∧ operation ≠ ⟨1⟩ ∧
+    (RDstatic fork safeBytecode g s0 ∧ operation ≠ ⟨1⟩ ∧
       evm.executionEnv.perm = false ∧ value ≠ ⟨0⟩) ∨
     ∃ evm' σ' z out aw' k' C',
-      executeViaEVM evm (AccountAddress.ofUInt256 target) value payload operation z evm' out ∧
+      executeViaEVM fork evm (AccountAddress.ofUInt256 target) value payload operation z evm' out ∧
       (operation = ⟨1⟩ ∨ value = ⟨0⟩ ∨ evm.executionEnv.perm = true) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork safeBytecode I g s0 ret ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         mem aw' out σ' k' C' ∧ out.size < UInt256.size ∧
       (payload.size ≤ maxReturnDataSizeByGas → out.size < 2 ^ 138) := by
   have h₁ := safeRuntime_block_10140_fallthrough (by simp; omega) (by

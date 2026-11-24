@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_019
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_020
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,10 +15,10 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000
 
 theorem safeGetOwnersLoopExit {I g s0 σ k C aw mem rdata i} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4105⟩
+    (h : RD fork safeBytecode I g s0 ⟨4105⟩
       (⟨1⟩ :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨4171⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨4171⟩
       (⟨1⟩ :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R) mem aw rdata σ k' C' := by
   have hout := safeRuntime_block_4105_taken (by simp; omega) (by decide) (by jump_dest) h
   exact ⟨_, _, hout⟩
@@ -24,12 +26,12 @@ theorem safeGetOwnersLoopExit {I g s0 σ k C aw mem rdata i} {R : List UInt256}
 set_option maxHeartbeats 800000 in
 theorem safeGetOwnersLoopNext {I g s0 σ k C aw mem rdata n words i current}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4105⟩
+    (h : RD fork safeBytecode I g s0 ⟨4105⟩
       (current :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) (hm : AddressArrayMemory mem n words)
     (hn : n ≤ 2 ^ 64 - 1) (hi : i < n)
     (hc : current.toNat < EVM.addressModulus) (hs : current ≠ ⟨1⟩) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4105⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4105⟩
       (ownerLinkAt σ I current :: ⟨0⟩ :: UInt256.ofNat (i + 1) :: ⟨128⟩ :: R)
       (getOwnersStepMemory mem i current) aw' rdata σ k' C' := by
   have hiword := ulit_toNat' i (by change i < 2 ^ 256; omega)
@@ -66,7 +68,7 @@ theorem safeGetOwnersLoopNext {I g s0 σ k C aw mem rdata n words i current}
   have hh := twoWordHashMem_mapSlot_of_ge64 (mem := writeWord mem (160 + 32 * i) current)
     current ⟨2⟩ (by rw [writeWord_sparse_size]; have := hm.lower; omega)
   change keccakWord ⟨0⟩ ⟨64⟩ (getOwnersStepMemory mem i current) = mapSlot current ⟨2⟩ at hh
-  change RD safeBytecode I g s0 ⟨7497⟩
+  change RD fork safeBytecode I g s0 ⟨7497⟩
     (UInt256.ofNat i :: ⟨4165⟩ :: ⟨0⟩ ::
       UInt256.land solcAddrMask (solcSlotWordAt
         (keccakWord ⟨0⟩ ⟨64⟩ (getOwnersStepMemory mem i current)) σ I) :: ⟨128⟩ :: R)
@@ -84,11 +86,11 @@ theorem safeGetOwnersLoopNext {I g s0 σ k C aw mem rdata n words i current}
 
 theorem safeGetOwnersLoopOutOfBounds {I g s0 σ k C aw mem rdata n words i current}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4105⟩
+    (h : RD fork safeBytecode I g s0 ⟨4105⟩
       (current :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) (hm : AddressArrayMemory mem n words)
     (hi : i = n) (hc : current.toNat < EVM.addressModulus) (hs : current ≠ ⟨1⟩) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hcount : memLoad ⟨128⟩ mem = UInt256.ofNat n :=
     mloadWordValue_of_readWithPadding (by change 128 < mem.size; have := hm.lower; omega)
       hm.count

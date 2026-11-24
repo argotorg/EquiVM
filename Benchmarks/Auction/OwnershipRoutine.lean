@@ -1,6 +1,8 @@
 import Benchmarks.Auction.SetterSource
 import Benchmarks.Auction.Events
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -17,15 +19,15 @@ theorem assignOwner (evm : EVM.State) (locals : Store) (value : UInt256)
     hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_address_offset0 evm ⟨151⟩ value hc)
 
 theorem transferOwnerRoutineSplit {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
         rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
           (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have rd3578 := evm_run h with [jumpdest, push1 ⟨151⟩, dup1]
   obtain ⟨_, _, rd3579⟩ := rd3578.sload (by native_decide) (by evm_ov)
   have rd3590 := evm_run rd3579 with [
@@ -52,7 +54,7 @@ theorem transferOwnerRoutineSplit {I g s0 value ret R rdata σ k C}
     raw log3 0 (UInt256.ofNat 3) (by native_decide) hperm mem_cost
       (by decide) (by evm_ov),
     pop, pop, jump hret ]
-  change RD _ _ _ _ _ _ _ _ _
+  change RD fork _ _ _ _ _ _ _ _ _
     (sstoreAccountMap I.codeOwner σ ⟨151⟩
       (UInt256.lor (UInt256.land solcAddrMask value)
         (UInt256.land (solcSlotWord σ I ⟨151⟩) (UInt256.lnot solcAddrMask)))) _ _ at rdRet
@@ -61,19 +63,19 @@ theorem transferOwnerRoutineSplit {I g s0 value ret R rdata σ k C}
   exact ⟨_, _, rdRet⟩
 
 theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
       rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
         (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' :=
   permSplit_true hperm (transferOwnerRoutineSplit h hret hov)
 
 theorem auctionInternalReturn {I g s0 ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1163⟩ (ret :: R) mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨1163⟩ (ret :: R) mem aw rdata acc k C)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 1 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpdest, jump hret]⟩
 
 end Auction

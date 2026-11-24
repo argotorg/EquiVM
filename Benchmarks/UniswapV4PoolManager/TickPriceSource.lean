@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickPriceNormalizeSource
 import Benchmarks.UniswapV4PoolManager.TickPriceFinishSource
 import Benchmarks.UniswapV4PoolManager.MostSignificantBitSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,10 +31,10 @@ set_option maxHeartbeats 1000000 in
 theorem tickPriceBlock {f : Frame} {evm : EVM.State} {sqrtPrice : UInt256}
     (hf : f.contract = contract)
     (hs : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat))) :
-    ∃ f', ExecBlock config f evm tickPriceFunction.body
+    ∃ f', ExecBlock fork config f evm tickPriceFunction.body
       (signedWordResult f' evm (tickPriceResult sqrtPrice)) := by
   let f1 : Frame := {f with locals := f.locals.insert "tick" (.int 0)}
-  have hinit : ExecStmt config f evm tickPriceFunction.body[0]! (.ok f1 evm) :=
+  have hinit : ExecStmt fork config f evm tickPriceFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure])
   have hs1 : f1.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat)) :=
     (store_get_ne _ _ (by decide : ("tick" == "sqrtPriceX96") = false)).trans hs
@@ -52,13 +54,13 @@ theorem tickPriceBlock {f : Frame} {evm : EVM.State} {sqrtPrice : UInt256}
     have hprice := evalWordShl (n := 32) (b := .intLit 32) (by decide) hcast
       (by simp only [evalExpr?, pure]; rfl)
     have hp2 : f2.locals.get? "price" = some (.int (Int.ofNat price.toNat)) := store_get_self _ _ _
-    have hpref : ExecBlock config f evm (tickPriceFunction.body.take 4) (.ok f3 evm) :=
+    have hpref : ExecBlock fork config f evm (tickPriceFunction.body.take 4) (.ok f3 evm) :=
       ExecBlock.consNormal hinit (ExecBlock.consNormal
         (ExecStmt.iteFalse (by simpa only [decide_eq_false hout] using hguard) ExecBlock.nil)
         (ExecBlock.consNormal (ExecStmt.letDecl hprice)
           (ExecBlock.consNormal (ExecStmt.letDecl (evalLocalValue hp2)) ExecBlock.nil)))
     have hr3 : f3.locals.get? "r" = some (.int (Int.ofNat price.toNat)) := store_get_self _ _ _
-    have hmsb := mostSignificantBitCall (f := f3) (evm := evm) (x := price) hf (evalLocalValue hr3) "msb"
+    have hmsb := mostSignificantBitCall (fork := fork) (f := f3) (evm := evm) (x := price) hf (evalLocalValue hr3) "msb"
     by_cases hz : price = ⟨0⟩
     · rw [if_pos hz] at hmsb
       have hz' : UInt256.shiftLeft sqrtPrice (UInt256.ofNat 32) = ⟨0⟩ := hz
@@ -78,7 +80,7 @@ theorem tickPriceBlock {f : Frame} {evm : EVM.State} {sqrtPrice : UInt256}
         (store_get_ne _ _ (by decide : ("msb" == "r") = false)).trans hr3
       have hm5 : f5.locals.get? "msb" = some (.int (Int.ofNat msb.toNat)) :=
         (store_get_ne _ _ (by decide : ("r" == "msb") = false)).trans hm4
-      have hsetup : ExecBlock config f3 evm ((tickPriceFunction.body.drop 4).take 3) (.ok f6 evm) :=
+      have hsetup : ExecBlock fork config f3 evm ((tickPriceFunction.body.drop 4).take 3) (.ok f6 evm) :=
         ExecBlock.consNormal hmsb (ExecBlock.consNormal
           (tickPriceNormalizeSource (mostSignificantBit_lt_256 price) hp4 hm4 hr4)
           (ExecBlock.consNormal (tickPriceLogStartSource hm5) ExecBlock.nil))
@@ -114,14 +116,14 @@ theorem tickPriceBlock {f : Frame} {evm : EVM.State} {sqrtPrice : UInt256}
 theorem tickPriceBody {f : Frame} {evm : EVM.State} {sqrtPrice : UInt256}
     (hf : f.contract = contract)
     (hs : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat))) :
-    ∃ f', ExecFuncBody config f evm tickPriceFunction.body
+    ∃ f', ExecFuncBody fork config f evm tickPriceFunction.body
       (signedWordResult f' evm (tickPriceResult sqrtPrice)) :=
   execFuncBodySignedWordResult (tickPriceBlock hf hs)
 
 theorem tickPriceCall {f : Frame} {evm : EVM.State} {e : Expr} {sqrtPrice : UInt256}
     (hf : f.contract = contract)
     (he : evalExpr? config f evm e = .ok (.int (Int.ofNat sqrtPrice.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "TickMath_getTickAtSqrtPrice" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "TickMath_getTickAtSqrtPrice" [e] retVar)
       (match tickPriceResult sqrtPrice with
        | none => .reverted
        | some tick => .ok {f with locals := f.locals.insert retVar (.int (EVM.signed tick))} evm) := by

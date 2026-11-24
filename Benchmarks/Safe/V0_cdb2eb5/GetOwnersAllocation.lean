@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Memory
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_022
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -20,16 +22,16 @@ theorem safeGetOwnersAllocationMemory (n : Nat) (hn : n ≤ 2 ^ 64 - 1) :
 
 set_option maxHeartbeats 800000 in
 theorem safeGetOwnersAllocate {I g s0 σ k C aw rdata n} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4224⟩
+    (h : RD fork safeBytecode I g s0 ⟨4224⟩
       (UInt256.ofNat n :: ⟨0⟩ :: R) solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hn : n ≤ 2 ^ 64 - 1)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4325⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4325⟩
       (ownerLinkAt σ I ⟨1⟩ :: ⟨0⟩ :: ⟨128⟩ :: R)
       (twoWordHashMem ⟨1⟩ ⟨2⟩ (addressArrayAllocatedMemory solcFreePtrMem n)) aw' rdata σ k' C' :=
         by
   have hmem := safeGetOwnersAllocationMemory n hn
-  have hstart : ∃ aw' k' C' x, RD safeBytecode I g s0 ⟨4265⟩
+  have hstart : ∃ aw' k' C' x, RD fork safeBytecode I g s0 ⟨4265⟩
       (x :: ⟨128⟩ :: ⟨0⟩ :: R) (addressArrayAllocatedMemory solcFreePtrMem n) aw' rdata σ k' C' :=
         by
     by_cases hz : n = 0
@@ -67,7 +69,7 @@ theorem safeGetOwnersAllocate {I g s0 σ k C aw rdata n} {R : List UInt256}
   obtain ⟨aw₁, k₁, C₁, x, h₁⟩ := hstart
   obtain ⟨aw₂, k₂, C₂, h₂⟩ := safeRuntime_block_4265_packed (by omega) h₁
   simp only [safeRuntime_block_4265_stack, safeAddressMask, ← safeOwnerSentinelSlot] at h₂
-  change RD safeBytecode I g s0 ⟨4325⟩
+  change RD fork safeBytecode I g s0 ⟨4325⟩
     (UInt256.land solcAddrMask (solcSlotWordAt (mapSlot ⟨1⟩ ⟨2⟩) σ I) ::
       ⟨0⟩ :: ⟨128⟩ :: R) (twoWordHashMem ⟨1⟩ ⟨2⟩ (addressArrayAllocatedMemory solcFreePtrMem n))
     aw₂ rdata σ k₂ C₂ at h₂
@@ -75,9 +77,9 @@ theorem safeGetOwnersAllocate {I g s0 σ k C aw rdata n} {R : List UInt256}
   exact ⟨_, _, _, h₂⟩
 
 theorem safeGetOwnersCountCheck {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4195⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨4195⟩ R mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hn : (solcSlotWordAt ⟨3⟩ σ I).toNat ≤ 2 ^ 64 - 1) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨4224⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨4224⟩
       (solcSlotWordAt ⟨3⟩ σ I :: ⟨0⟩ :: ⟨96⟩ :: R) mem aw rdata σ k' C' := by
   have hg : UInt256.gt (solcSlotWordAt ⟨3⟩ σ I)
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
@@ -88,9 +90,9 @@ theorem safeGetOwnersCountCheck {I g s0 σ k C aw mem rdata} {R : List UInt256}
     (by jump_dest) h
 
 theorem safeGetOwnersCountFail {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4195⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨4195⟩ R mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hn : ¬(solcSlotWordAt ⟨3⟩ σ I).toNat ≤ 2 ^ 64 - 1) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hg : UInt256.gt (solcSlotWordAt ⟨3⟩ σ I)
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
         (UInt256.ofNat 1)) = ⟨1⟩ := ugt_one (by simpa using hn)

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListHead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -14,10 +16,10 @@ theorem cometCreateAssetListStep {tail : ByteArray} {ee : ExecutionEnv} {g : Sat
     (hn : c.assetConfigs.length ≤ 24) (hi : i < c.assetConfigs.length)
     (hlo : constructorAssetFree c c.assetConfigs.length ≤ ptr)
     (hp : ptr + 68 + 224 * c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
       (createAssetListEvmStack c ptr factory i R) (createAssetListEvmMemory c mem ptr i)
       aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
       (createAssetListEvmStack c ptr factory (i + 1) R)
       (createAssetListEvmMemory c mem ptr (i + 1)) aw' rdata σ k' C' := by
   have hs : (UInt256.ofNat (constructorAssetFree c i)).toNat = constructorAssetFree c i := by
@@ -75,10 +77,10 @@ theorem cometCreateAssetListLoop {tail : ByteArray} {ee : ExecutionEnv} {g : Sat
     (hn : c.assetConfigs.length ≤ 24) (hi : i ≤ c.assetConfigs.length)
     (hlo : constructorAssetFree c c.assetConfigs.length ≤ ptr)
     (hp : ptr + 68 + 224 * c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
       (createAssetListEvmStack c ptr factory i R) (createAssetListEvmMemory c mem ptr i)
       aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1367⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1367⟩
       (createAssetListEvmStack c ptr factory c.assetConfigs.length R)
       (createAssetListEvmMemory c mem ptr c.assetConfigs.length) aw' rdata σ k' C' := by
   induction hremaining : c.assetConfigs.length - i generalizing i aw k C with
@@ -97,10 +99,10 @@ theorem cometCreateAssetListReady {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
     {c : ConstructorConfig} {ptr : Nat} {factory : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hp : ptr + 68 + 224 * c.assetConfigs.length < 2^64)
     (hfactory : factory.toNat < 2^160)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1367⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1367⟩
       (createAssetListEvmStack c ptr factory c.assetConfigs.length R)
       (createAssetListEvmMemory c mem ptr c.assetConfigs.length) aw rdata σ k C) :
-    ∃ k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1393⟩
+    ∃ k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1393⟩
       ((g.subNat C').toUInt256 :: factory :: UInt256.ofNat 0 :: UInt256.ofNat ptr ::
         UInt256.ofNat (68 + 224 * c.assetConfigs.length) :: UInt256.ofNat ptr ::
         UInt256.ofNat 32 :: UInt256.ofNat ptr :: R)

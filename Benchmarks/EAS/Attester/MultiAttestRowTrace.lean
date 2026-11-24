@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiAttestInnerTrace
 import Benchmarks.EAS.Attester.MultiAttestMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -8,7 +10,7 @@ namespace Benchmarks.EAS.Attester
 
 theorem multiAttestOuterStore {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n i schemaPtr : Nat} {innerIndex dataBase innerN uidData secondData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1567⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1567⟩
       ([innerIndex, dataBase, innerN, innerN, uidData, UInt256.ofNat i,
         UInt256.ofNat base, UInt256.ofNat n, ⟨96⟩, UInt256.ofNat n, secondData,
         UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R) mem aw out σ k C)
@@ -18,7 +20,7 @@ theorem multiAttestOuterStore {words : String → UInt256} {I g s0 σ mem aw out
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hi : i < n) (hf : free + 64 < UInt256.size)
     (hcd : schemaPtr + 32 * n < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
       ([UInt256.ofNat (i + 1), UInt256.ofNat base, UInt256.ofNat n, ⟨96⟩, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R)
       (pairSlotMemory mem free (base + 32 + 32 * i)
@@ -74,7 +76,7 @@ theorem multiAttestOuterStore {words : String → UInt256} {I g s0 σ mem aw out
 
 theorem multiAttestRowBuild {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n i schemaPtr uidPtr m : Nat} {secondData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1221⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1221⟩
       ([UInt256.ofNat m, UInt256.ofNat m, UInt256.ofNat uidPtr, UInt256.ofNat i,
         UInt256.ofNat base, UInt256.ofNat n, ⟨96⟩, UInt256.ofNat n, secondData,
         UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R) mem aw out σ k C)
@@ -85,7 +87,7 @@ theorem multiAttestRowBuild {words : String → UInt256} {I g s0 σ mem aw out k
     (hi : i < n) (hm : 0 < m) (hm64 : m ≤ solcMaxU64)
     (hf : free + 96 + 480 * m < UInt256.size)
     (hcd : schemaPtr + 32 * n < UInt256.size) (huid : uidPtr + 32 * m < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
       ([UInt256.ofNat (i + 1), UInt256.ofNat base, UInt256.ofNat n, ⟨96⟩, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R)
       (multiAttestRowMemory mem I.calldata free base i schemaPtr uidPtr m) aw' out σ k' C' := by
@@ -107,7 +109,7 @@ theorem multiAttestRowBuild {words : String → UInt256} {I g s0 σ mem aw out k
       (structArrayMemory mem free m attestDefaultFields) = UInt256.ofNat (free + 32 + 224 * m) from
       structArrayMemory_freePtr hfree)
     (show 0 + m = m from Nat.zero_add _) (by omega) huid
-  change RD _ _ _ _ _ _ (attestDataMemory mem I.calldata free uidPtr m) _ _ _ _ _ at h''
+  change RD fork _ _ _ _ _ _ (attestDataMemory mem I.calldata free uidPtr m) _ _ _ _ _ at h''
   have hp := attestDataMemory_prefix mem I.calldata free uidPtr m
   have hsize := hp.size
   have hl := (hp.load_preserved hbase (by omega) hin (by omega)).trans hlen

@@ -3,6 +3,8 @@ import Reasoning.Storage
 import Benchmarks.Dss.Pot.DripSuckBase
 import Benchmarks.Dss.Pot.DripSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,9 +19,9 @@ set_option maxHeartbeats 0 in
 /-- `@1960 → @2005`: load `vat`/`vow`/`Pie`, mask addresses, `_mul(Pie, chi_) = Pie*chi_`. -/
 theorem potDripX_mulReady {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hfit : chi_.toNat * (dripPieWord σ'' I).toNat < UInt256.size)
-    (h : RD potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
+    (h : RD fork potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨2005⟩
+    ∃ k' C', RD fork potBytecode I g s0 ⟨2005⟩
       (dripPieWord σ'' I * chi_ :: dripThisWord I :: dripVowTargetWord σ'' I ::
         potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ'' k' C' := by
@@ -77,11 +79,11 @@ set_option maxHeartbeats 0 in
 /-- `@2005 → @2079`: build the `suck(vow,this,rad)` calldata in memory, reach the CALL
 `EXTCODESIZE` guard. -/
 theorem potDripX_callGuard {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
-    (h : RD potBytecode I g s0 ⟨2005⟩
+    (h : RD fork potBytecode I g s0 ⟨2005⟩
       (dripPieWord σ'' I * chi_ :: dripThisWord I :: dripVowTargetWord σ'' I ::
         potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨2079⟩
+    ∃ k' C', RD fork potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
         ⟨341⟩ :: [sel])
@@ -181,7 +183,7 @@ theorem potDripX_callGuard {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel c
 theorem potDripX_postCall {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hdepth : I.depth.val < 1024)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
-    (h : RD potBytecode I g s0 ⟨2079⟩
+    (h : RD fork potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
         ⟨341⟩ :: [sel])
@@ -190,15 +192,15 @@ theorem potDripX_postCall {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel ch
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ'' s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ'' s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I))
-          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I)))
+          (toExecute fork σ'' (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD potBytecode I g s0 ⟨2095⟩
+      ∧ RD fork potBytecode I g s0 ⟨2095⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I ::
             chi_ :: tmp :: ⟨341⟩ :: [sel])
           (potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem)
@@ -229,10 +231,10 @@ theorem potDripX_successTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {acc : AccountMap}
     (hsize : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD potBytecode I g s0 ⟨2095⟩
+    (h : RD fork potBytecode I g s0 ⟨2095⟩
       (⟨1⟩ :: w1 :: w2 :: w3 :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       mem (UInt256.ofNat 8) o acc k C) :
-    RDret potBytecode g s0 acc (UInt256.toByteArray tmp) := by
+    RDret fork potBytecode g s0 acc (UInt256.toByteArray tmp) := by
   obtain ⟨k1, C1, rd2113⟩ := RD.solcCallSuccessGuardOk (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h
     (by decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -280,10 +282,10 @@ theorem potDripX_failTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel chi_ tmp w1 w2 w3 : UInt256} {o mem : ByteArray} {aw : UInt256}
     {acc : AccountMap}
     (hosz : o.size < UInt256.size)
-    (h : RD potBytecode I g s0 ⟨2095⟩
+    (h : RD fork potBytecode I g s0 ⟨2095⟩
       (⟨0⟩ :: w1 :: w2 :: w3 :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       mem aw o acc k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -293,13 +295,13 @@ theorem potDripX_failTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
 /-- `@2079`: `extcodesize(vat) = 0` ⇒ the checked external call reverts. -/
 theorem potDripX_ecsZero {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) = ⟨0⟩)
-    (h : RD potBytecode I g s0 ⟨2079⟩
+    (h : RD fork potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
         ⟨341⟩ :: [sel])
       (potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem)
       (UInt256.ofNat 8) ByteArray.empty σ'' k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -309,13 +311,13 @@ theorem potDripX_ecsZero {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi
 theorem potDripX_depthLimit {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (h : RD potBytecode I g s0 ⟨2079⟩
+    (h : RD fork potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
         ⟨341⟩ :: [sel])
       (potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem)
       (UInt256.ofNat 8) ByteArray.empty σ'' k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   obtain ⟨gasWord, k1, C1, rd2094⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -329,9 +331,9 @@ set_option maxHeartbeats 0 in
 /-- `@1960`: `_mul(Pie, chi_)` overflow (`size ≤ chi_ * Pie`) reverts (empty revert). -/
 theorem potDripX_mulReverts {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hover : UInt256.size ≤ chi_.toNat * (dripPieWord σ'' I).toNat)
-    (h : RD potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
+    (h : RD fork potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have hvatEq : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -488,7 +490,7 @@ theorem potSuckEncode_eq (σ : AccountMap) (I : ExecutionEnv) (rad : UInt256)
 
 /-- `_rpow(0, n, base)` returns `base` if `n = 0`, else `0`. -/
 theorem execRpowFunctionXZeroReturns (evm : EVM.State) (n : UInt256) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals ⟨0⟩ n potRay } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals ⟨0⟩ n potRay } evm
       rpowFunction.body
       (.returned { contract := contract, locals := uintTernaryLocals ⟨0⟩ n potRay } evm
         (some [.int (Int.ofNat (if n = ⟨0⟩ then potRay else ⟨0⟩).toNat)])) := by
@@ -517,7 +519,7 @@ theorem execRpowFunctionXZeroReturns (evm : EVM.State) (n : UInt256) :
   · have hnZero : evalExpr? config { contract := contract, locals := locals } evm
         (.binary .eq (.var "n") (.intLit 0)) = .ok (.bool true) := by
       apply evalExpr_eq_int_true hn hzeroLit; rw [hnz]
-    have hblock : ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+    have hblock : ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := locals } evm
           (some [.int (Int.ofNat potRay.toNat)])) := by
       simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteTrue hxZero
@@ -530,7 +532,7 @@ theorem execRpowFunctionXZeroReturns (evm : EVM.State) (n : UInt256) :
       intro hbad; exact hnz (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
     have hzeroRet : evalExpr? config { contract := contract, locals := locals } evm (.intLit 0) =
         .ok (.int 0) := by simp [evalExpr?, pure]
-    have hblock : ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+    have hblock : ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := locals } evm (some [.int 0])) := by
       simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteTrue hxZero
         (ExecBlock.consReturn (ExecStmt.iteFalse hnZero
@@ -584,14 +586,14 @@ theorem potDripStele_rpowArgs {σ σ₀ A I} {g : UInt256}
 /-- `s2` returns `pow`: the `_rpow` internal call, given the coupled/`x=0` `_rpow` body. -/
 theorem potDripStele_rpowReturn {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
       (.returned { contract := contract, locals := rpowLocals }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [.int (Int.ofNat pow.toNat)]))) :
-    ExecStmt config { contract := contract, locals := (∅ : Store) }
+    ExecStmt fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_rpow"
         [.storage dsrRef, sub256 (.env .timestamp) (.storage rhoRef), .intLit one] "pow")
@@ -613,7 +615,7 @@ theorem potDripStele_rpowReturn {σ σ₀ A I} {g pow : UInt256} {rpowLocals : S
 /-- `s3` returns `tmp = _rmul(pow, chi)` when `pow * chi` fits. -/
 theorem potDripStele_rmulReturn {σ σ₀ A I} {g pow : UInt256}
     (hfit : pow.toNat * (dripChiWord σ I).toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := dripPowFrameLocals pow }
+    ExecStmt fork config { contract := contract, locals := dripPowFrameLocals pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_rmul" [.var "pow", .storage chiRef] "tmp")
       (.ok { contract := contract, locals := dripTmpFrameLocals σ I pow }
@@ -630,20 +632,20 @@ theorem potDripStele_rmulReturn {σ σ₀ A I} {g pow : UInt256}
       [.var "pow", .storage chiRef] =
         .ok [.int (Int.ofNat pow.toNat), .int (Int.ofNat (dripChiWord σ I).toNat)] := by
     simp [evalExprs?, EvalResult.bind, bind, pure, hpow, hchi]
-  have h := internalCallFunctionReturn
+  have h := internalCallFunctionReturn (fork := fork)
     (cfg := config) (caller := { contract := contract, locals := dripPowFrameLocals pow })
     (evm := evm0) (name := "_rmul") (retVar := "tmp") (args := [.var "pow", .storage chiRef])
     (argVals := [.int (Int.ofNat pow.toNat), .int (Int.ofNat (dripChiWord σ I).toNat)])
     (callee := rmulFunction) (locals := uintBinaryLocals pow (dripChiWord σ I))
     hargs rfl (by simp [rmulFunction, uintBinaryLocals, bindParams?])
-    (execRmulFunctionReturn evm0 (x := pow) (y := dripChiWord σ I)
+    (execRmulFunctionReturn (fork := fork) evm0 (x := pow) (y := dripChiWord σ I)
       (prod := pow * dripChiWord σ I) (q := dripTmpVal σ I pow) rfl hfit rfl)
   simpa [resumeAfterInternalCall, dripTmpFrameLocals, collapseReturns] using h
 
 /-- `s3` reverts: `_rmul(pow, chi)` overflows in the inner `_mul`. -/
 theorem potDripStele_rmulRevert {σ σ₀ A I} {g pow : UInt256}
     (hover : UInt256.size ≤ pow.toNat * (dripChiWord σ I).toNat) :
-    ExecStmt config { contract := contract, locals := dripPowFrameLocals pow }
+    ExecStmt fork config { contract := contract, locals := dripPowFrameLocals pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_rmul" [.var "pow", .storage chiRef] "tmp") .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
@@ -666,7 +668,7 @@ theorem potDripStele_rmulRevert {σ σ₀ A I} {g pow : UInt256}
 /-- `s4` returns `chi_ = _sub(tmp, chi)` when `chi ≤ tmp`. -/
 theorem potDripStele_subReturn {σ σ₀ A I} {g pow : UInt256}
     (hle : (dripChiWord σ I).toNat ≤ (dripTmpVal σ I pow).toNat) :
-    ExecStmt config { contract := contract, locals := dripTmpFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripTmpFrameLocals σ I pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_sub" [.var "tmp", .storage chiRef] "chi_")
       (.ok { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
@@ -679,7 +681,7 @@ theorem potDripStele_subReturn {σ σ₀ A I} {g pow : UInt256}
       (.storage chiRef) = .ok (.int (Int.ofNat (dripChiWord σ I).toNat)) := by
     rw [evalExpr_potChiOfLocals (by simp [dripTmpFrameLocals, dripPowFrameLocals]),
       storageLoad_initState_ofUInt256_solcSlotWordAt (σ := σ) (σ₀ := σ₀) (A := A) (I := I) ⟨4⟩]
-  have h := internalCallFunctionReturn
+  have h := internalCallFunctionReturn (fork := fork)
     (cfg := config) (caller := { contract := contract, locals := dripTmpFrameLocals σ I pow })
     (evm := evm0) (name := "_sub") (retVar := "chi_") (args := [.var "tmp", .storage chiRef])
     (argVals := [.int (Int.ofNat (dripTmpVal σ I pow).toNat),
@@ -687,14 +689,14 @@ theorem potDripStele_subReturn {σ σ₀ A I} {g pow : UInt256}
     (callee := subFunction) (locals := uintBinaryLocals (dripTmpVal σ I pow) (dripChiWord σ I))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, htmp, hchi]) rfl
     (by simp [subFunction, uintBinaryLocals, bindParams?])
-    (execSubFunctionReturn evm0 (x := dripTmpVal σ I pow) (y := dripChiWord σ I)
+    (execSubFunctionReturn (fork := fork) evm0 (x := dripTmpVal σ I pow) (y := dripChiWord σ I)
       (diff := dripChiDeltaVal σ I pow) rfl hle)
   simpa [resumeAfterInternalCall, dripChiDeltaFrameLocals, collapseReturns] using h
 
 /-- `s4` reverts: `_sub(tmp, chi)` underflows (`tmp < chi`). -/
 theorem potDripStele_subRevert {σ σ₀ A I} {g pow : UInt256}
     (hlt : (dripTmpVal σ I pow).toNat < (dripChiWord σ I).toNat) :
-    ExecStmt config { contract := contract, locals := dripTmpFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripTmpFrameLocals σ I pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_sub" [.var "tmp", .storage chiRef] "chi_") .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
@@ -717,7 +719,7 @@ theorem potDripStele_subRevert {σ σ₀ A I} {g pow : UInt256}
 
 /-- `s5`: `chi := tmp` mutates slot 4 (`evm0 → dripEvmChi`). -/
 theorem potDripStele_assignChiStmt {σ σ₀ A I} {g pow : UInt256} :
-    ExecStmt config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.assign .storage chiRef (.var "tmp"))
       (if (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.perm then .ok { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
@@ -734,19 +736,19 @@ theorem potDripStele_assignChiStmt {σ σ₀ A I} {g pow : UInt256} :
 
 theorem potDripStele_assignChi {σ σ₀ A I} {g pow : UInt256}
     (hperm : I.perm = true) :
-    ExecStmt config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.assign .storage chiRef (.var "tmp"))
       (.ok { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
         (dripEvmChi (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (dripTmpVal σ I pow))) := by
   simpa only [initState, hperm, if_true] using
-    (potDripStele_assignChiStmt (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (pow := pow))
+    (potDripStele_assignChiStmt (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (pow := pow))
 
 /-- `s6`: `rho := now` mutates slot 7 (`dripEvmChi → dripEvmRho`). -/
 theorem potDripStele_assignRho {σ σ₀ A I} {g pow : UInt256}
     (hperm : I.perm = true) :
-    ExecStmt config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       (dripEvmChi (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dripTmpVal σ I pow))
       (.assign .storage rhoRef (.env .timestamp))
       (.ok { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
@@ -765,7 +767,7 @@ theorem potDripStele_assignRho {σ σ₀ A I} {g pow : UInt256}
 /-- `s7` returns `rad = _mul(Pie, chi_)` on `dripEvmRho` when `Pie * chi_` fits. -/
 theorem potDripStele_mulReturn {σ σ₀ A I} {g pow : UInt256}
     (hfit : (dripPieWord σ I).toNat * (dripChiDeltaVal σ I pow).toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I))
       (.internalCall "_mul" [.storage PieRef, .var "chi_"] "rad")
@@ -783,7 +785,7 @@ theorem potDripStele_mulReturn {σ σ₀ A I} {g pow : UInt256}
   have hchi_ : evalExpr? config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       evmR (.var "chi_") = .ok (.int (Int.ofNat (dripChiDeltaVal σ I pow).toNat)) :=
     evalExpr_varUInt256 (store_get_self _ _ _)
-  have h := internalCallFunctionReturn
+  have h := internalCallFunctionReturn (fork := fork)
     (cfg := config) (caller := { contract := contract, locals := dripChiDeltaFrameLocals σ I pow })
     (evm := evmR) (name := "_mul") (retVar := "rad") (args := [.storage PieRef, .var "chi_"])
     (argVals := [.int (Int.ofNat (dripPieWord σ I).toNat),
@@ -792,14 +794,14 @@ theorem potDripStele_mulReturn {σ σ₀ A I} {g pow : UInt256}
     (locals := uintBinaryLocals (dripPieWord σ I) (dripChiDeltaVal σ I pow))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, hPie, hchi_]) rfl
     (by simp [mulFunction, uintBinaryLocals, bindParams?])
-    (execMulFunctionReturn evmR (x := dripPieWord σ I) (y := dripChiDeltaVal σ I pow)
+    (execMulFunctionReturn (fork := fork) evmR (x := dripPieWord σ I) (y := dripChiDeltaVal σ I pow)
       (prod := dripRadVal σ I pow) rfl hfit)
   simpa [resumeAfterInternalCall, dripRadFrameLocals, collapseReturns] using h
 
 /-- `s7` reverts: `_mul(Pie, chi_)` overflows. -/
 theorem potDripStele_mulRevert {σ σ₀ A I} {g pow : UInt256}
     (hover : UInt256.size ≤ (dripPieWord σ I).toNat * (dripChiDeltaVal σ I pow).toNat) :
-    ExecStmt config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
+    ExecStmt fork config { contract := contract, locals := dripChiDeltaFrameLocals σ I pow }
       (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I))
       (.internalCall "_mul" [.storage PieRef, .var "chi_"] "rad") .reverted := by
@@ -961,7 +963,7 @@ theorem potDripStele_cv {σ σ₀ A I} {g : UInt256} (hwv : I.weiValue = ⟨0⟩
 theorem potDripSteleBody_rmulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -969,9 +971,9 @@ theorem potDripSteleBody_rmulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocal
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [.int (Int.ofNat pow.toNat)])))
     (hover : UInt256.size ≤ pow.toNat * (dripChiWord σ I).toNat) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -985,7 +987,7 @@ theorem potDripSteleBody_rmulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocal
 theorem potDripSteleBody_subReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -994,9 +996,9 @@ theorem potDripSteleBody_subReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals
         (some [.int (Int.ofNat pow.toNat)])))
     (hfitRmul : pow.toNat * (dripChiWord σ I).toNat < UInt256.size)
     (hlt : (dripTmpVal σ I pow).toNat < (dripChiWord σ I).toNat) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1011,7 +1013,7 @@ theorem potDripSteleBody_subReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals
 theorem potDripSteleBody_mulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1022,9 +1024,9 @@ theorem potDripSteleBody_mulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals
     (hleSub : (dripChiWord σ I).toNat ≤ (dripTmpVal σ I pow).toNat)
     (hover : UInt256.size ≤ (dripPieWord σ I).toNat * (dripChiDeltaVal σ I pow).toNat)
     (hperm : I.perm = true) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1033,8 +1035,8 @@ theorem potDripSteleBody_mulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals
     refine ExecBlock.consNormal (potDripStele_rpowReturn hle hrpow) ?_
     refine ExecBlock.consNormal (potDripStele_rmulReturn hfitRmul) ?_
     refine ExecBlock.consNormal (potDripStele_subReturn hleSub) ?_
-    refine ExecBlock.consNormal (potDripStele_assignChi (hperm := hperm)) ?_
-    refine ExecBlock.consNormal (potDripStele_assignRho (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignChi (fork := fork) (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignRho (fork := fork) (hperm := hperm)) ?_
     exact ExecBlock.consRevert (potDripStele_mulRevert hover)
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -1042,7 +1044,7 @@ theorem potDripSteleBody_mulReverts {σ σ₀ A I} {g pow : UInt256} {rpowLocals
 theorem potDripSteleBody_ecsZero {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1057,9 +1059,9 @@ theorem potDripSteleBody_ecsZero {σ σ₀ A I} {g pow : UInt256} {rpowLocals : 
         (dripTmpVal σ I pow) (dripNowWord I)).lookupAccount (dripVatAddress σ I)).option 0
         (fun acc => acc.code.size))).toNat = 0)
     (hperm : I.perm = true) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1068,8 +1070,8 @@ theorem potDripSteleBody_ecsZero {σ σ₀ A I} {g pow : UInt256} {rpowLocals : 
     refine ExecBlock.consNormal (potDripStele_rpowReturn hle hrpow) ?_
     refine ExecBlock.consNormal (potDripStele_rmulReturn hfitRmul) ?_
     refine ExecBlock.consNormal (potDripStele_subReturn hleSub) ?_
-    refine ExecBlock.consNormal (potDripStele_assignChi (hperm := hperm)) ?_
-    refine ExecBlock.consNormal (potDripStele_assignRho (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignChi (fork := fork) (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignRho (fork := fork) (hperm := hperm)) ?_
     refine ExecBlock.consNormal (potDripStele_mulReturn hfitMul) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse (potDripStele_vatGuardFalse hnocode))
   exact ExecFuncBody.execBlockRevert hblock
@@ -1105,7 +1107,7 @@ theorem potDripSteleBody_callFail {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
     {evm' : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1119,16 +1121,16 @@ theorem potDripSteleBody_callFail {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
       (((dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I)).lookupAccount (dripVatAddress σ I)).option 0
         (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config
+    (hcall : typedCallViaEVM fork config
       (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I))
       (EVM.address (dripVatAddress σ I)) "suck" 0
       [.address (AccountAddress.ofNat (dripVowTargetWord σ I).toNat), .address I.codeOwner,
         .int (Int.ofNat (dripRadVal σ I pow).toNat)] (false, evm', out) true)
     (hperm : I.perm = true) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1137,11 +1139,11 @@ theorem potDripSteleBody_callFail {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
     refine ExecBlock.consNormal (potDripStele_rpowReturn hle hrpow) ?_
     refine ExecBlock.consNormal (potDripStele_rmulReturn hfitRmul) ?_
     refine ExecBlock.consNormal (potDripStele_subReturn hleSub) ?_
-    refine ExecBlock.consNormal (potDripStele_assignChi (hperm := hperm)) ?_
-    refine ExecBlock.consNormal (potDripStele_assignRho (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignChi (fork := fork) (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignRho (fork := fork) (hperm := hperm)) ?_
     refine ExecBlock.consNormal (potDripStele_mulReturn hfitMul) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (potDripStele_vatGuardTrue hcodePos)) ?_
-    exact ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := Or.inl rfl) potDripStele_evalVat
+    exact ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inl rfl) potDripStele_evalVat
       (by simp [evalExpr?, pure]) potDripStele_suckArgs hcall)
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -1150,7 +1152,7 @@ theorem potDripSteleBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
     {evm' : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1164,7 +1166,7 @@ theorem potDripSteleBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
       (((dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I)).lookupAccount (dripVatAddress σ I)).option 0
         (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config
+    (hcall : typedCallViaEVM fork config
       (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (dripTmpVal σ I pow) (dripNowWord I))
       (EVM.address (dripVatAddress σ I)) "suck" 0
@@ -1172,11 +1174,11 @@ theorem potDripSteleBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
         .int (Int.ofNat (dripRadVal σ I pow).toNat)] (true, evm', out) true)
     (hdec : config.externalABI.decode? "suck" out = some [])
     (hperm : I.perm = true) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body
       (.returned { contract := contract, locals := dripSuckFrameLocals σ I pow } evm'
         (some [.int (Int.ofNat (dripTmpVal σ I pow).toNat)])) := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body
       (.returned { contract := contract, locals := dripSuckFrameLocals σ I pow } evm'
         (some [.int (Int.ofNat (dripTmpVal σ I pow).toNat)])) := by
@@ -1187,11 +1189,11 @@ theorem potDripSteleBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
     refine ExecBlock.consNormal (potDripStele_rpowReturn hle hrpow) ?_
     refine ExecBlock.consNormal (potDripStele_rmulReturn hfitRmul) ?_
     refine ExecBlock.consNormal (potDripStele_subReturn hleSub) ?_
-    refine ExecBlock.consNormal (potDripStele_assignChi (hperm := hperm)) ?_
-    refine ExecBlock.consNormal (potDripStele_assignRho (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignChi (fork := fork) (hperm := hperm)) ?_
+    refine ExecBlock.consNormal (potDripStele_assignRho (fork := fork) (hperm := hperm)) ?_
     refine ExecBlock.consNormal (potDripStele_mulReturn hfitMul) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (potDripStele_vatGuardTrue hcodePos)) ?_
-    refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (hperm := Or.inl rfl) potDripStele_evalVat
+    refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl) potDripStele_evalVat
       (by simp [evalExpr?, pure]) potDripStele_suckArgs hcall hdec) ?_
     exact ExecBlock.consReturn (ExecStmt.return
       (evalExprs?_singleton (evalExpr_varUInt256 (dripSuckFrameLocals_get_tmp σ I pow))))
@@ -1201,7 +1203,7 @@ theorem potDripSteleBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals :
 theorem potDripSteleBody_static {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Store}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1211,9 +1213,9 @@ theorem potDripSteleBody_static {σ σ₀ A I} {g pow : UInt256} {rpowLocals : S
     (hfitRmul : pow.toNat * (dripChiWord σ I).toNat < UInt256.size)
     (hleSub : (dripChiWord σ I).toNat ≤ (dripTmpVal σ I pow).toNat)
     (hperm : I.perm = false) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .staticViolation := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .staticViolation := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1261,9 +1263,9 @@ theorem potDripStele_timeGuardFalse {σ σ₀ A I} {g : UInt256}
 theorem potDripSteleBody_invalidNow {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlt : (dripNowWord I).toNat < (dripRhoWord σ I).toNat) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1274,11 +1276,11 @@ theorem potDripSteleBody_invalidNow {σ σ₀ A I} {g : UInt256}
 /-- `s2` reverts: the `_rpow` internal call reverts (from the coupled loop). -/
 theorem potDripStele_rpowRevert {σ σ₀ A I} {g : UInt256}
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body .reverted) :
-    ExecStmt config { contract := contract, locals := (∅ : Store) }
+    ExecStmt fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "_rpow"
         [.storage dsrRef, sub256 (.env .timestamp) (.storage rhoRef), .intLit one] "pow")
@@ -1298,13 +1300,13 @@ theorem potDripStele_rpowRevert {σ σ₀ A I} {g : UInt256}
 theorem potDripSteleBody_rpowReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body .reverted) :
-    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       dripTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := (∅ : Store) }
+  have hblock : ExecBlock fork config { contract := contract, locals := (∅ : Store) }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) dripTransition.body .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1324,18 +1326,18 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
     (hdecode : config.externalABI.decodeCalldata? (dripTransition.params.map Param.name)
       (transitionSignature dripTransition).paramTypes I.calldata = some ∅)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
       (.returned { contract := contract, locals := rpowLocals }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [.int (Int.ofNat pow.toNat)])))
-    (rd1926 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd1926 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hchi : dripChiWord σ I = dripChiWord σ I := rfl
   have hPie : dripPieWord σ I = dripPieWord σ I := rfl
   have hVat : solcSlotWordAt ⟨5⟩ σ I = solcSlotWordAt ⟨5⟩ σ I := rfl
@@ -1362,7 +1364,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
         by_cases hecs :
             Reasoning.Theory.extCodeSizeWord σ2 (dripVatTargetWord σ2 I) = ⟨0⟩
         · exact RDrev.reEquivExecutionRevert hcode (potDripX_ecsZero hecs rd2079) hdispatch hdecode
-            (potDripSteleBody_ecsZero (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul
+            (potDripSteleBody_ecsZero (fork := fork) (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul
               (potDripStele_vatCodeZero (v4 := dripTmpVal σ I pow)
                 (v7 := UInt256.ofNat I.header.timestamp) hecs))
         · have hVat'' : dripVatTargetWord σ2 I = dripVatTargetWord σ I := by
@@ -1415,7 +1417,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
               have hlt := Nat.le_of_lt_succ I.depth.isLt
               have h1024 : (1024 : Fin 1025).val = 1024 := by decide
               omega
-            have hcallStele := callNotMade_depthLimit (cfg := config)
+            have hcallStele := callNotMade_depthLimit (fork := fork) (cfg := config)
               (evm := dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I))
               (tgt := EVM.address (dripVatAddress σ I)) (name := "suck")
@@ -1423,7 +1425,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
                 .address I.codeOwner, .int (Int.ofNat (dripRadVal σ I pow).toNat)])
               (callPerm := true) hcd (by rw [dripEvmRho_executionEnv]; exact hdepthEq)
             exact RDrev.reEquivExecutionRevert hcode (potDripX_depthLimit hecs hdepthEq rd2079)
-              hdispatch hdecode (potDripSteleBody_callFail (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul
+              hdispatch hdecode (potDripSteleBody_callFail (fork := fork) (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul
                 hcodePos hcallStele)
           have hdepthNe : (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.depth ≠ 1024 := by
@@ -1431,7 +1433,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
           obtain ⟨σ', z, o, A_in, callGas, _, _, hΘ, rd2095, hosz⟩ :=
             potDripX_postCall hdepth hecs rd2079
           rcases hΘ with ⟨g'', A', hΘ⟩
-          have hΘE : (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
+          have hΘE : (σ', g'', A', z, o) = Ethereum.EVM.Θ fork
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).accountMap
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1442,7 +1444,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ2 I))
-              (toExecute I.fork (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (toExecute fork (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ2 I)))
               callGas (UInt256.ofNat (dripEvmRho (initState σ σ₀
@@ -1462,7 +1464,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
               dripEvmRho_accountMap, hperm] using hΘ
           let σ'_stele := σ'
           let A'_stele := A'
-          have hcallStele : typedCallViaEVM config
+          have hcallStele : typedCallViaEVM fork config
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I))
               (EVM.address (dripVatAddress σ I)) "suck" 0
@@ -1486,7 +1488,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
                 hdepthNe htgt hcd
                 (by simpa only [dripEvmRho_executionEnv, hperm, Bool.true_and] using hΘE))
           have hAccounts' : σ' = σ'_stele := rfl
-          have hcallStele' : typedCallViaEVM config
+          have hcallStele' : typedCallViaEVM fork config
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I))
               (EVM.address (dripVatAddress σ I)) "suck" 0
@@ -1498,7 +1500,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
             hcallStele
           cases z
           · exact RDrev.reEquivExecutionRevert hcode (potDripX_failTail hosz rd2095) hdispatch
-              hdecode (potDripSteleBody_callFail (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul hcodePos
+              hdecode (potDripSteleBody_callFail (fork := fork) (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul hcodePos
                 hcallStele')
           · have hread64 : (potSuckCalldataMem σ2 I (dripPieWord σ2 I * dripChiDeltaVal σ I pow)
                 solcFreePtrMem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
@@ -1509,7 +1511,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
             have rdRet := potDripX_successTail hmemSize hread64 rd2095
             refine (potDripX_successTail hmemSize hread64 rd2095).reEquivExecutionGen
               hcode hdispatch hdecode
-              (potDripSteleBody_callSucc (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul hcodePos
+              (potDripSteleBody_callSucc (fork := fork) (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub hfitMul hcodePos
                 hcallStele' (by rfl)) ?_ ?_
             · simpa [hcallStele'] using hAccounts'
             · exact returnEquiv_of_encode
@@ -1517,7 +1519,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
       · exact RDrev.reEquivExecutionRevert hcode
           (potDripX_mulReverts (by rw [hPie'', Nat.mul_comm]; exact not_lt.mp hfitMul) rd1960)
           hdispatch hdecode
-          (potDripSteleBody_mulReverts (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub (not_lt.mp hfitMul))
+          (potDripSteleBody_mulReverts (fork := fork) (hperm := by assumption) hwv hleStele hrpow hfitRmul hleSub (not_lt.mp hfitMul))
     · exact RDrev.reEquivExecutionRevert hcode
         (potDripX_subReverts (by rw [hchi]; exact not_le.mp hleSub) rd1934) hdispatch hdecode
         (potDripSteleBody_subReverts hwv hleStele hrpow hfitRmul (not_le.mp hleSub))
@@ -1533,18 +1535,18 @@ theorem potDripBodyAfterRpowStatic {σ σ₀ A I} {g pow : UInt256} {rpowLocals 
     (hdecode : config.externalABI.decodeCalldata? (dripTransition.params.map Param.name)
       (transitionSignature dripTransition).paramTypes I.calldata = some ∅)
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (hrpow : ExecFuncBody config
+    (hrpow : ExecFuncBody fork config
       { contract := contract,
         locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
       (.returned { contract := contract, locals := rpowLocals }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [.int (Int.ofNat pow.toNat)])))
-    (rd1926 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd1926 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hfitRmul : pow.toNat * (dripChiWord σ I).toNat < UInt256.size
   · obtain ⟨_, _, rd1934⟩ := potDripX_rmulReturns hfitRmul rd1926
     by_cases hleSub : (dripChiWord σ I).toNat ≤ (dripTmpVal σ I pow).toNat
@@ -1564,7 +1566,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dripTransition := potDispatchDrip hsel
   have hdecode : config.externalABI.decodeCalldata? (dripTransition.params.map Param.name)
@@ -1588,7 +1590,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
         (R := [⟨1934⟩, ⟨0⟩, ⟨341⟩, potSelWord I])
         (by simp only [List.length_cons, List.length_nil]; omega) h2352
       rw [hrho] at rd1926
-      have hrpow : ExecFuncBody config
+      have hrpow : ExecFuncBody fork config
           { contract := contract,
             locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1610,7 +1612,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
         (by simp only [List.length_cons, List.length_nil]; omega) hdsr0 potRay_ne_zero h2352 with
       | inl h =>
         obtain ⟨xFinal, zFinal, localsFinal, k', C', hstore, hbody, rd1926⟩ := h
-        have hrpow : ExecFuncBody config
+        have hrpow : ExecFuncBody fork config
             { contract := contract,
               locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1622,7 +1624,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
           rd1926
       | inr h =>
         obtain ⟨hbody, rdRev⟩ := h
-        have hrpow : ExecFuncBody config
+        have hrpow : ExecFuncBody fork config
             { contract := contract,
               locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body
@@ -1637,7 +1639,7 @@ theorem potDripBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potDripBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm
@@ -1657,7 +1659,7 @@ theorem potDripBodyAnyPerm {σ σ₀ A I} {g : UInt256}
       obtain ⟨_, _, rd1926⟩ := potDripRpowXZeroReturns
         (R := [⟨1934⟩, ⟨0⟩, ⟨341⟩, potSelWord I])
         (by simp only [List.length_cons, List.length_nil]; omega) h2352
-      have hrpow : ExecFuncBody config
+      have hrpow : ExecFuncBody fork config
           { contract := contract,
             locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) rpowFunction.body

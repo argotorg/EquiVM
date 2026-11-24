@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationFrameLaws
 import Benchmarks.UniswapV3.Pool.SwapIterationStepCall
 import Benchmarks.UniswapV3.Pool.SourceFrame
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -21,7 +23,7 @@ theorem swapIterationStepPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p q exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3035⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3035⟩
       (swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hst : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hi : frame.immutables = immStore v)
@@ -33,15 +35,15 @@ theorem swapIterationStepPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 64 ≤ 1024) :
     let d := swapIterationComputedData v a s evm
     let b := swapIterationStepArgs v a s d
-    (ExecBlock config frame evm (swapLoopBody.take 9) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapLoopBody.take 9)
+    (ExecBlock fork config frame evm (swapLoopBody.take 9) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapLoopBody.take 9)
         (.ok (swapIterationComputedFrame frame v a s evm) evm) ∧
       swapStepValid b ∧
       UInt256.land (swapStepRawPrice b s.price (swapIterationTarget a d))
         (UInt256.ofNat (2 ^ 160 - 1)) = swapStepPrice b ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3347⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3347⟩
           (swapStepRawResults b s.price (swapIterationTarget a d) ++
             q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
           mem' aw' rdata σ k' C' ∧

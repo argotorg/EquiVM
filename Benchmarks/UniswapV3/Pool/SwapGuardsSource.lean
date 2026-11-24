@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapPrefixSource
 import Benchmarks.UniswapV3.Pool.StructFieldSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -65,9 +67,9 @@ theorem swapGuardsSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM
     (hn : a.amountSpecified ≠ 0)
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hl : swapLimitValid a evm) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 8)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 8)
       (.ok (swapSlot0Frame v a evm) evm) := by
-  change ExecBlock config _ _ (swapTransition.body.take 6 ++
+  change ExecBlock fork config _ _ (swapTransition.body.take 6 ++
     [.require (.field (.var "slot0Start") "unlocked"), .require swapLimitExpr]) _
   apply execBlock_append_ok (swapSlot0Source v a evm hwv hself hn)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_)
@@ -76,7 +78,7 @@ theorem swapGuardsSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM
   · simpa only [hl, decide_true] using evalSwapLimit v a evm
 
 theorem swapAssignLock (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State) :
-    ExecStmt config (swapSlot0Frame v a evm) evm
+    ExecStmt fork config (swapSlot0Frame v a evm) evm
       (.assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false))
       (if evm.executionEnv.perm then .ok (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false) else .staticViolation) :=
   execStmt_assign_storage (by simp only [evalExpr?, pure])
@@ -88,9 +90,9 @@ theorem swapLockSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.S
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hl : swapLimitValid a evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 9)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 9)
       (.ok (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock config _ _ (swapTransition.body.take 8 ++ [swapTransition.body[8]!]) _
+  change ExecBlock fork config _ _ (swapTransition.body.take 8 ++ [swapTransition.body[8]!]) _
   exact execBlock_append_ok (swapGuardsSource v a evm hwv hself hn hu hl)
     (ExecBlock.consNormal (by simpa only [hperm, if_true] using swapAssignLock v a evm) ExecBlock.nil)
 

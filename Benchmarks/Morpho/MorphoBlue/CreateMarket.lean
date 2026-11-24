@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.CreateMarketFinish
 import Benchmarks.Morpho.MorphoBlue.CreateMarketStatic
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `createMarket((address,address,address,address,uint256))`
 
@@ -20,7 +22,7 @@ theorem morphoCreateMarketXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 16))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 164 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 16) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachCreateMarketBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -48,7 +50,7 @@ theorem morphoCreateMarketXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
 theorem morphoCreateMarketBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hd : selectorDispatchMsg contract I.calldata = some createMarketTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   let p := marketParamsFromCalldata I.calldata
@@ -64,7 +66,7 @@ theorem morphoCreateMarketBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutable
             (σ := σ) (σ₀ := σ₀) (A := A) (g := .ofUInt256 g) v hcode hsize hsel hcv hlen hbound
           obtain ⟨aw1, k1, C1, rd1⟩ := morphoDecodeMarketParamsOk (v := v) (by simp)
             (by rw [morphoPatchedValidJumps v]; jump_dest) hc rd0
-          change RD _ _ _ _ (UInt256.ofNat 4657) [UInt256.ofNat 128, UInt256.ofNat 0]
+          change RD fork _ _ _ _ (UInt256.ofNat 4657) [UInt256.ofNat 128, UInt256.ofNat 0]
             (createMarketDecodedMem p) _ _ _ _ _ at rd1
           by_cases hguards : createMarketIrmByte σ I p ≠ ⟨0⟩ ∧
               createMarketLltvByte σ I p ≠ ⟨0⟩ ∧ marketFieldWord σ I p.id 4 = ⟨0⟩
@@ -77,7 +79,7 @@ theorem morphoCreateMarketBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutable
                 (SourceState.init (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := .ofUInt256 g)) p
               by_cases hi0 : p.irm = ⟨0⟩
               · have hx := morphoCreateMarketNoIrmReturns (v := v) p hc hp hi0 rd4
-                have hb := morphoCreateMarketSourceNoIrm (hperm := by assumption) p hc
+                have hb := morphoCreateMarketSourceNoIrm (fork := fork) (hperm := by assumption) p hc
                   (initState σ σ₀ (.ofUInt256 g) A I) (immStore v) hcv hbound hi hl hn hi0
                 exact reEquivSelectorExecutionGen hcode hx hd hdec hb hs.accounts
                   (.fallthrough rfl rfl (by native_decide))
@@ -85,7 +87,7 @@ theorem morphoCreateMarketBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutable
                   morphoCreateMarketReachCall (v := v) p hc hp hi0 rd4
                 obtain ⟨evm', z, out, hcall, hs', hout, hx⟩ :=
                   morphoCreateMarketCall (v := v) p hc hs hp (by decide) hcd rd5
-                have hb := morphoCreateMarketSourceCall (hperm := by assumption) p hc
+                have hb := morphoCreateMarketSourceCall (fork := fork) (hperm := by assumption) p hc
                   (initState σ σ₀ (.ofUInt256 g) A I) (immStore v) hcv hbound hi hl hn hi0
                   evm' z out (by simpa only [hs.env, ← hs.accounts] using hcall) hout
                 by_cases hgood : z = true ∧ 32 ≤ out.size

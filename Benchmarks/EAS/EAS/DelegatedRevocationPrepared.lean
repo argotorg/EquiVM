@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.DelegatedRevocationAssembleMemory
 import Benchmarks.EAS.EAS.DelegatedRevocationDecodeFacts
 import Benchmarks.EAS.EAS.CopySignatureArrayRun
 import Benchmarks.EAS.EAS.RevocationArrayInvalid
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,7 +15,7 @@ def delegatedRevocationDataPtr (heap : UInt256) : UInt256 := UInt256.ofNat (heap
 def delegatedRevocationSigPtr (heap : UInt256) (rs : List RevocationRequestRecord) : UInt256 :=
   UInt256.ofNat (heap.toNat+160+96*rs.length)
 
-def DelegatedRevocationPrepared (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def DelegatedRevocationPrepared (fork : Ethereum.Fork) (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem : ByteArray) (out : ByteArray) (σ : AccountMap) (heap a b c d : UInt256) (R : List UInt256)
     (r : DelegatedRevocationBatch) : Prop :=
   ∃ mem' aw' k' C',
@@ -23,7 +25,7 @@ def DelegatedRevocationPrepared (v : EASImmutables) (ee : ExecutionEnv) (g : Sat
       (delegatedRevocationSigPtr heap r.data) r (delegatedRevocationNext heap r) ∧
     memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (delegatedRevocationNext heap r) ∧
     memLoad (UInt256.ofNat 64) final = UInt256.ofNat (delegatedRevocationNext heap r) ∧
-    RD (deployedRuntime v) ee g s0 ⟨1521⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨1521⟩
       (UInt256.ofNat r.revoker.val::b::a::d::(heap+UInt256.ofNat 32)::
         (heap+UInt256.ofNat 64)::delegatedRevocationSigPtr heap r.data::c::heap::R)
       mem' aw' out σ k' C'

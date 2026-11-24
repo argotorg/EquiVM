@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.StringReturn
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ theorem symbolReturnEncoding :
 /-- The Stele `symbol()` body returns `"UNI-V2"` as a dynamic string value. -/
 theorem uniswapSymbolBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals symbolTransition.body
+    ExecTransitionBody fork config contract evm locals symbolTransition.body
       (.returned { contract := contract, locals := locals } evm (some [(.bytes symbolBytes)])) := by
   simpa [symbolTransition] using uniswapBytesLiteralBodyReturns evm locals symbolBytes h
 
@@ -59,10 +61,10 @@ private theorem symbolReturnRead :
 
 /-- Runtime-only `symbol()` slice from selector dispatch through dynamic string return. -/
 theorem uniswapX_symbol {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       symbolReturnBytes := by
   obtain ⟨_, _, h1226⟩ := hreach
   have h5027 := evm_run h1226 with [jumpdest, push2 ⟨580⟩, push2 ⟨5027⟩, jump (by jump_dest)]
@@ -146,12 +148,12 @@ theorem uniswapSymbolBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (symbolTransition.params.map Param.name)
         (transitionSignature symbolTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ symbolTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -171,7 +173,7 @@ theorem uniswapSymbolBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some symbolTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩ rfl hsel
   exact uniswapSymbolBodyCore hcode hwv hdispatch (uniswapDecode_symbol hsz)

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleAmountsModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -21,7 +23,7 @@ def modifyPositionMiddleAmountBody (second : Bool) : List Stmt :=
 theorem modifyPositionMiddleSqrtSource (v : UniswapV3PoolImmutables)
     (a : ModifyPositionArgs) (evm evm' : EVM.State) (second : Bool)
     (ha : a.Fits) (ht : validTicks a.lower a.upper) :
-    ExecStmt config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
+    ExecStmt fork config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
       (modifyPositionMiddleSqrtStmt second)
       (.ok (modifyPositionMiddleSqrtFrame v a evm second) evm') := by
   have hp : evalExpr? config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
@@ -31,7 +33,7 @@ theorem modifyPositionMiddleSqrtSource (v : UniswapV3PoolImmutables)
       (.field (.var "params") (if second then "tickLower" else "tickUpper")) =
       .ok (.int (if second then a.lower else a.upper)) :=
     evalExpr_structField hp (by cases second <;> rfl)
-  have hr := tickSqrtInternalSource (if second then a.lower else a.upper)
+  have hr := tickSqrtInternalSource (fork := fork) (if second then a.lower else a.upper)
     (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
     [.field (.var "params") (if second then "tickLower" else "tickUpper")]
     (if second then "__c10" else "__c8") (by cases second <;> rfl)

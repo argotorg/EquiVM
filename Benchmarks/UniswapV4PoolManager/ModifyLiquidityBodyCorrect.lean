@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityHooksCorrect
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityValidationTrace
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityDecodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,13 +23,13 @@ theorem modifyLiquidityBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
     (haw : aw.toNat ≤ 14) (hsrc : src.toNat+len.toNat ≤ I.calldata.size) (hlen : len.toNat ≤ solcMaxU64)
     (hgas : g.toNat < 324518553658429321982441292826060)
-    (h : RD (deployedRuntime v) I g s0 ⟨5394⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5394⟩
       ([len, src, ⟨160⟩, ⟨320⟩, junk] ++ R) (modifyLiquidityDecodeMemory key p) aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (modifyLiquidityTransition.body.drop 7) result ∧
-      abiResultTrace modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (modifyLiquidityTransition.body.drop 7) result ∧
+      abiResultTrace fork modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
   have hkey := modifyLiquidityDecodeMemory_key key p
-  have hs := modifyLiquidityValidationSource (evm := evm) v hf him hc hk
+  have hs := modifyLiquidityValidationSource (fork := fork) (evm := evm) v hf him hc hk
   have ht := modifyLiquidityValidationTrace v (by omega) hI hkey (by decide) haw h
   rw [modifyLiquidityValidationResult, hI] at hs
   rw [modifyLiquidityValidationTraceResult] at ht

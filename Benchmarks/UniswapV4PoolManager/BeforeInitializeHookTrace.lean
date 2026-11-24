@@ -2,21 +2,23 @@ import Benchmarks.UniswapV4PoolManager.BeforeInitializeActiveTrace
 import Benchmarks.UniswapV4PoolManager.HookWrapperSource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def beforeInitializeTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def beforeInitializeTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm evm' : State) (mem rdata : ByteArray) (free keyPtr price fee junk : UInt256)
     (key : PoolKeyWords) (hook : AccountAddress) (z : Bool) (out : ByteArray) (R : List UInt256) : Prop :=
   if hookEnabled I.source hook ⟨8192⟩ then
     if z = true ∧ hookReplyValid (beforeInitializePayload I.source key price) out then
-      poolInitializeEntryTrace v I g s0 evm'
+      poolInitializeEntryTrace fork v I g s0 evm'
         (beforeInitializeReplyMemory mem free I.source key price out) out keyPtr price fee junk R
-    else RDrev (deployedRuntime v) g s0
-  else poolInitializeEntryTrace v I g s0 evm mem rdata keyPtr price fee junk R
+    else RDrev fork (deployedRuntime v) g s0
+  else poolInitializeEntryTrace fork v I g s0 evm mem rdata keyPtr price fee junk R
 
 theorem beforeInitializeHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw free keyPtr price fee junk : UInt256}
@@ -28,16 +30,16 @@ theorem beforeInitializeHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hgas : g.toNat < 324518553658429321982441292826060)
     (haw : aw.toNat ≤ 2048) (hs : free.toNat ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4257⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4257⟩
       (fee :: (keyPtr+⟨32⟩) :: (keyPtr+⟨64⟩) :: (keyPtr+⟨128⟩) :: keyPtr :: price ::
         (keyPtr+⟨96⟩) :: price :: junk :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ evm' z out,
       (hookEnabled I.source hook ⟨8192⟩ →
-        callViaEVM evm hook 0 (beforeInitializePayload I.source key price) (z, evm', out)) ∧
+        callViaEVM fork evm hook 0 (beforeInitializePayload I.source key price) (z, evm', out)) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (z = true → out.size+4096 ≤ solcMaxU64) ∧
-      beforeInitializeTraceResult v I g s0 evm evm' mem rdata free keyPtr price fee junk key hook z out R := by
+      beforeInitializeTraceResult fork v I g s0 evm evm' mem rdata free keyPtr price fee junk key hook z out R := by
   have hload : memLoad (keyPtr+⟨128⟩) mem = accountWord hook :=
     (hv.load (i := 4) (word := key.hooks) rfl).trans hw.symm
   have haw1 : (M aw (keyPtr+⟨128⟩) ⟨32⟩).toNat ≤ 2048 := by

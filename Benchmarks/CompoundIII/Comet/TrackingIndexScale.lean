@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_027
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_028
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `trackingIndexScale()`
 
@@ -25,7 +27,7 @@ theorem trackingIndexScaleX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAs
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 50)) :
-    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    GetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       v.trackingIndexScale.toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachTrackingIndexScaleBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -57,7 +59,7 @@ theorem trackingIndexScaleX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAs
 theorem cometWithExtendedAssetListTrackingIndexScaleBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 50)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 50) rfl hsel
   exact immutableGetter_refines (t := trackingIndexScaleTransition) hcode hsz (cometDecode_empty hsz)

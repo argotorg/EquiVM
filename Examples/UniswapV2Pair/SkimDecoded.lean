@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimCoupling
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -15,20 +17,20 @@ theorem uniswapSkimBodyDecoded
     (hsz36 : 36 ≤ I.calldata.size)
     (hdecode : config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
       (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hlocked :
     (σ.get? I.codeOwner |>.option ⟨0⟩
       (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
     have hRuntime :
-        RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
       have hdecoded :=
-        uniswapSkimX_decoded_masked
+        uniswapSkimX_decoded_masked (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
-          (uniswapReachSkimBody
+          (uniswapReachSkimBody (fork := fork)
             (σ := σ) (σ₀ := σ₀) (A := A)
             (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
       exact uniswapSkimX_locked (g := Sat256.ofUInt256 g)
@@ -47,15 +49,15 @@ theorem uniswapSkimBodyDecoded
             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩
     · have hRuntime :
-          RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+          RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
         have hsz4 : 4 ≤ I.calldata.size :=
           calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
         have hdecoded :=
-          uniswapSkimX_decoded_masked
+          uniswapSkimX_decoded_masked (fork := fork)
             (σ := σ) (σ₀ := σ₀) (A := A)
             (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
-            (uniswapReachSkimBody
+            (uniswapReachSkimBody (fork := fork)
               (σ := σ) (σ₀ := σ₀) (A := A)
               (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
         have hLock :=
@@ -75,11 +77,11 @@ theorem uniswapSkimBodyDecoded
       · have hsz4 : 4 ≤ I.calldata.size :=
           calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
         have hdecoded :=
-          uniswapSkimX_decoded_masked
+          uniswapSkimX_decoded_masked (fork := fork)
             (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g)
             hsz36 hsize
-            (uniswapReachSkimBody
+            (uniswapReachSkimBody (fork := fork)
               (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := Sat256.ofUInt256 g)
               hcode hwv hsz4 hsize hsel)
@@ -121,7 +123,7 @@ theorem uniswapSkimBodyDecoded
         by_cases hz : z = false
         · exact (hrev hz).reEquivExecutionRevert hcode hdispatch
             hdecode (by
-              have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+              have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                   (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                   "balanceOf" 0
                   [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
@@ -132,7 +134,7 @@ theorem uniswapSkimBodyDecoded
                 hunlockedStele hguard0 hcall0)
         · by_cases hshort : o.size < 32
           · have hzTrue : z = true := Bool.eq_true_of_not_eq_false hz
-            have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+            have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                 (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                 "balanceOf" 0 [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
                 (true, evm0S, o) false := by
@@ -143,7 +145,7 @@ theorem uniswapSkimBodyDecoded
                 (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := o)
                   hshort)
             have hbody :
-                ExecTransitionBody config contract evmS (skimStore I) skimTransition.body
+                ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body
                   .reverted := by
               exact uniswapSkimBodyReverts_firstCallDecode (hperm := hperm) evmS evm0S I
                 (by simp only [evmS, initState]; exact hwv)
@@ -153,7 +155,7 @@ theorem uniswapSkimBodyDecoded
           · have hzTrue : z = true := Bool.eq_true_of_not_eq_false hz
             have ho32 : 32 ≤ o.size := not_lt.mp hshort
             let balance0 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
-            have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+            have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                 (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                 "balanceOf" 0
                 [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
@@ -172,7 +174,7 @@ theorem uniswapSkimBodyDecoded
               simpa [reserve0E, reserve112Mask, u256_land_comm] using h
             by_cases hlt0 : balance0.toNat < reserve0E.toNat
             · obtain ⟨k5314, C5314, rd5314⟩ := hrevLong hzTrue ho32
-              have rd5314' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              have rd5314' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5314⟩
                   (balance0 :: reserve0E :: ⟨5325⟩ :: skimToMaskedWord I ::
                     UInt256.land solcAddrMask
@@ -193,7 +195,7 @@ theorem uniswapSkimBodyDecoded
               obtain ⟨k6879, C6879, rd6879⟩ :=
                 RD.uniswapSkimFirstExcessToSub rd5314'
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              have rd6879' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              have rd6879' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6879⟩
                   (reserve0E :: balance0 :: ⟨5325⟩ :: skimToMaskedWord I ::
                     UInt256.land solcAddrMask
@@ -229,7 +231,7 @@ theorem uniswapSkimBodyDecoded
                 rw [hsourceReserve]
                 exact hlt0
               have hbody :
-                  ExecTransitionBody config contract evmS (skimStore I) skimTransition.body
+                  ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body
                     .reverted := by
                 exact uniswapSkimBodyReverts_firstExcessUnderflow (hperm := hperm) evmS evm0S I
                   (by simp only [evmS, initState]; exact hwv)
@@ -238,7 +240,7 @@ theorem uniswapSkimBodyDecoded
                 hdecode hbody
             · have hle0 : reserve0E.toNat ≤ balance0.toNat := not_lt.mp hlt0
               obtain ⟨k5314, C5314, rd5314⟩ := hrevLong hzTrue ho32
-              have rd5314' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              have rd5314' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5314⟩
                   (balance0 :: reserve0E :: ⟨5325⟩ :: skimToMaskedWord I ::
                     UInt256.land solcAddrMask
@@ -259,7 +261,7 @@ theorem uniswapSkimBodyDecoded
               obtain ⟨k6879, C6879, rd6879⟩ :=
                 RD.uniswapSkimFirstExcessToSub rd5314'
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              have rd6879' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              have rd6879' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6879⟩
                   (reserve0E :: balance0 :: ⟨5325⟩ :: skimToMaskedWord I ::
                     UInt256.land solcAddrMask
@@ -309,7 +311,7 @@ theorem uniswapSkimBodyDecoded
                   σ₀ := σ₀
                   executionEnv := I }
               obtain ⟨g1Ret, A1E, hΘsafeEq⟩ := hΘsafe0
-              have hcallE : callViaEVM evm0E
+              have hcallE : callViaEVM fork evm0E
                   (AccountAddress.ofUInt256 (UInt256.land token0CleanE solcAddrMask))
                   0 safeData0
                   (z1,
@@ -340,7 +342,7 @@ theorem uniswapSkimBodyDecoded
                 { evm0S with
                   accountMap := σ1S
                   substate := A1S }
-              have htransfer0Raw' : callViaEVM evm0S
+              have htransfer0Raw' : callViaEVM fork evm0S
                   (AccountAddress.ofUInt256 (UInt256.land token0CleanE solcAddrMask))
                   0 safeData0 (z1, evm1S, out1) := by
                 simpa [evm1S] using htransfer0Raw
@@ -378,12 +380,12 @@ theorem uniswapSkimBodyDecoded
                 rw [hclean, haddr]
                 exact (address_of_val (uniswapAddressAtSlot
                   (uniswapLockEnteredState evmS) ⟨6⟩)).symm
-              have htransfer0 : callViaEVM evm0S
+              have htransfer0 : callViaEVM fork evm0S
                   (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                   0 safeData0 (z1, evm1S, out1) := by
                 simpa [htarget0] using htransfer0Raw'
               by_cases hz1False : z1 = false
-              · have htransferFalse : callViaEVM evm0S
+              · have htransferFalse : callViaEVM fork evm0S
                     (EVM.address
                       (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                     0 safeData0 (false, evm1S, out1) := by
@@ -393,14 +395,14 @@ theorem uniswapSkimBodyDecoded
                   rw [hsourceReserve]
                   exact hle0
                 have hbody :
-                    ExecTransitionBody config contract evmS (skimStore I) skimTransition.body
+                    ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body
                       .reverted := by
                   exact uniswapSkimBodyReverts_firstSafeTransferFailure (hperm := hperm)
                     evmS evm0S evm1S I
                     (by simp only [evmS, initState]; exact hwv)
                     hunlockedStele hguard0 hcall0 hdec0 henoughSource hdata0
                     htransferFalse
-                have rd6595False : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                have rd6595False : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6595⟩
                     (⟨0⟩ :: ⟨360⟩ :: UInt256.land token0CleanE solcAddrMask ::
                       ⟨96⟩ :: ⟨0⟩ :: safeValue0 :: skimToMaskedWord I :: token0CleanE ::
@@ -433,7 +435,7 @@ theorem uniswapSkimBodyDecoded
                     exact rdRev.reEquivExecutionRevert hcode hdispatch
                       hdecode hbody
               · have hz1True : z1 = true := Bool.eq_true_of_not_eq_false hz1False
-                have htransferTrue : callViaEVM evm0S
+                have htransferTrue : callViaEVM fork evm0S
                     (EVM.address
                       (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                     0 safeData0 (true, evm1S, out1) := by
@@ -480,7 +482,7 @@ theorem uniswapSkimBodyDecoded
                         accountAddress_ofUInt256_eq_ofNat_toNat,
                       u256_land_comm]
                   rw [hclean, haddr]
-                have rd6595True : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                have rd6595True : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6595⟩
                     (⟨1⟩ :: ⟨360⟩ :: UInt256.land token0CleanE solcAddrMask ::
                       ⟨96⟩ :: ⟨0⟩ :: safeValue0 :: skimToMaskedWord I :: token0CleanE ::
@@ -493,7 +495,7 @@ theorem uniswapSkimBodyDecoded
                     safeValue0] using rd6595
                 by_cases hout1Empty : out1.size = 0
                 · have hsafe0 :
-                      ExecStmt config
+                      ExecStmt fork config
                         { contract := contract,
                           locals := skimFirstExcessStore evmS evm0S I balance0 } evm0S
                         (.internalCall "_safeTransfer"
@@ -531,7 +533,7 @@ theorem uniswapSkimBodyDecoded
                         (I := I) (balance0 := balance0) (token1 := token1CleanE)
                         hPostTransferAccounts1 htarget1 htoken1NoCode
                     have hbody :
-                        ExecTransitionBody config contract evmS (skimStore I)
+                        ExecTransitionBody fork config contract evmS (skimStore I)
                           skimTransition.body .reverted := by
                       exact uniswapSkimBodyReverts_secondNoCode (hperm := hperm)
                         evmS evm0S evm1S I
@@ -584,21 +586,21 @@ theorem uniswapSkimBodyDecoded
                       exact
                         (address_of_val
                           (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩)).symm
-                    have hcall1 : typedCallViaEVM config evm1S
+                    have hcall1 : typedCallViaEVM fork config evm1S
                         (EVM.address
                           (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩))
                         "balanceOf" 0 [.address evm1S.executionEnv.codeOwner]
                         (z2, evm2S, out2) false := by
                       simpa [htarget1E] using hcall1Raw
                     by_cases hz2False : z2 = false
-                    · have hcall1False : typedCallViaEVM config evm1S
+                    · have hcall1False : typedCallViaEVM fork config evm1S
                           (EVM.address
                             (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩))
                           "balanceOf" 0 [.address evm1S.executionEnv.codeOwner]
                           (false, evm2S, out2) false := by
                         simpa [hz2False] using hcall1
                       have hbody :
-                          ExecTransitionBody config contract evmS (skimStore I)
+                          ExecTransitionBody fork config contract evmS (skimStore I)
                             skimTransition.body .reverted := by
                         exact uniswapSkimBodyReverts_secondCallFailure (hperm := hperm)
                           evmS evm0S evm1S evm2S I
@@ -615,7 +617,7 @@ theorem uniswapSkimBodyDecoded
                       exact rdRev.reEquivExecutionRevert hcode hdispatch
                         hdecode hbody
                     · have hz2True : z2 = true := Bool.eq_true_of_not_eq_false hz2False
-                      have hcall1True : typedCallViaEVM config evm1S
+                      have hcall1True : typedCallViaEVM fork config evm1S
                           (EVM.address
                             (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩))
                           "balanceOf" 0 [.address evm1S.executionEnv.codeOwner]
@@ -636,7 +638,7 @@ theorem uniswapSkimBodyDecoded
                             (decodeReturnValueWithMode_legacy_uint256_none_short
                               (returndata := out2) hshort2)
                         have hbody :
-                            ExecTransitionBody config contract evmS (skimStore I)
+                            ExecTransitionBody fork config contract evmS (skimStore I)
                               skimTransition.body .reverted := by
                           exact uniswapSkimBodyReverts_secondCallDecode (hperm := hperm)
                             evmS evm0S evm1S evm2S I
@@ -669,7 +671,7 @@ theorem uniswapSkimBodyDecoded
                           RD.uniswapSkimSecondBalanceReturnWordDecodeOk
                             rd5291 ho32 hoSize ho32_2 hout2Size
                             (by simp only [List.length_cons, List.length_nil]; omega)
-                        have rd5314' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                        have rd5314' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             ⟨5314⟩
                             (balance1 :: reserve1E :: ⟨5325⟩ :: skimToMaskedWord I ::
@@ -685,7 +687,7 @@ theorem uniswapSkimBodyDecoded
                         · obtain ⟨k6879, C6879, rd6879⟩ :=
                             RD.uniswapSkimFirstExcessToSub rd5314'
                               (by simp only [List.length_cons, List.length_nil]; omega)
-                          have rd6879' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                          have rd6879' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               ⟨6879⟩
                               (reserve1E :: balance1 :: ⟨5325⟩ :: skimToMaskedWord I ::
@@ -721,7 +723,7 @@ theorem uniswapSkimBodyDecoded
                             rw [hsourceReserve1]
                             exact hlt1
                           have hbody :
-                              ExecTransitionBody config contract evmS (skimStore I)
+                              ExecTransitionBody fork config contract evmS (skimStore I)
                                 skimTransition.body .reverted := by
                             exact uniswapSkimBodyReverts_secondExcessUnderflow (hperm := hperm)
                               evmS evm0S evm1S evm2S I
@@ -734,7 +736,7 @@ theorem uniswapSkimBodyDecoded
                           obtain ⟨k6879, C6879, rd6879⟩ :=
                             RD.uniswapSkimFirstExcessToSub rd5314'
                               (by simp only [List.length_cons, List.length_nil]; omega)
-                          have rd6879' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                          have rd6879' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               ⟨6879⟩
                               (reserve1E :: balance1 :: ⟨5325⟩ :: skimToMaskedWord I ::
@@ -766,7 +768,7 @@ theorem uniswapSkimBodyDecoded
                                 (skimToAddress_word_eq_masked I) hsourceReserve1 hle1
                                 ho32 hoSize ho32_2 hout2Size
                             simpa [safeData1, safeValue1] using hencoded
-                          have rd6370' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                          have rd6370' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               ⟨6370⟩
                               (safeValue1 :: skimToMaskedWord I :: token1CleanE :: ⟨5433⟩ ::
@@ -787,7 +789,7 @@ theorem uniswapSkimBodyDecoded
                               σ₀ := σ₀
                               executionEnv := I }
                           obtain ⟨g3Ret, A3E, hΘsafeEq1⟩ := hΘsafe1
-                          have hcallE1 : callViaEVM evm2E
+                          have hcallE1 : callViaEVM fork evm2E
                               (AccountAddress.ofUInt256
                                 (UInt256.land token1CleanE solcAddrMask))
                               0 safeData1
@@ -820,7 +822,7 @@ theorem uniswapSkimBodyDecoded
                             { evm2S with
                               accountMap := σ3S
                               substate := A3S }
-                          have htransfer1Raw' : callViaEVM evm2S
+                          have htransfer1Raw' : callViaEVM fork evm2S
                               (AccountAddress.ofUInt256
                                 (UInt256.land token1CleanE solcAddrMask))
                               0 safeData1 (z3, evm3S, out3) := by
@@ -834,7 +836,7 @@ theorem uniswapSkimBodyDecoded
                             rw [htarget1]
                             exact (address_of_val
                               (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩)).symm
-                          have htransfer1 : callViaEVM evm2S
+                          have htransfer1 : callViaEVM fork evm2S
                               (EVM.address
                                 (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨7⟩))
                               0 safeData1 (z3, evm3S, out3) := by
@@ -850,13 +852,13 @@ theorem uniswapSkimBodyDecoded
                             exact hle1
                           have hfinish :
                               ∀ {mem outRet : ByteArray} {aw : UInt256} {kR CR : ℕ},
-                                RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                                RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                   ⟨5433⟩
                                   (token1CleanE :: token0CleanE :: skimToMaskedWord I ::
                                     ⟨570⟩ :: uniswapSelWord I :: [])
                                   mem aw outRet σ3 kR CR →
-                                ExecStmt config
+                                ExecStmt fork config
                                   { contract := contract,
                                     locals :=
                                       skimSecondExcessStore evmS evm0S evm2S I
@@ -869,13 +871,13 @@ theorem uniswapSkimBodyDecoded
                                         skimSecondSafeTransferStore evmS evm0S evm2S I
                                           balance0 balance1 }
                                     evm3S) →
-                                runtimeRefinementFor config contract σ σ₀
+                                runtimeRefinementFor fork config contract σ σ₀
                                   g A I := by
                             intro mem outRet aw kR CR rd5433 hsafe1
                             have rdRet :=
                               RD.uniswapSkimAfterSecondSafeTransferToReturn rd5433 hperm
                             have hbody :
-                                ExecTransitionBody config contract evmS (skimStore I)
+                                ExecTransitionBody fork config contract evmS (skimStore I)
                                   skimTransition.body
                                   (.returned
                                     { contract := contract,
@@ -899,14 +901,14 @@ theorem uniswapSkimBodyDecoded
                               hdecode hbody hAccountsRet
                               (returnEquiv.fallthrough rfl rfl (by native_decide))
                           by_cases hz3False : z3 = false
-                          · have htransfer1False : callViaEVM evm2S
+                          · have htransfer1False : callViaEVM fork evm2S
                                 (EVM.address
                                   (uniswapAddressAtSlot
                                     (uniswapLockEnteredState evmS) ⟨7⟩))
                                 0 safeData1 (false, evm3S, out3) := by
                               simpa [hz3False] using htransfer1
                             have hbody :
-                                ExecTransitionBody config contract evmS (skimStore I)
+                                ExecTransitionBody fork config contract evmS (skimStore I)
                                   skimTransition.body .reverted := by
                               exact uniswapSkimBodyReverts_secondSafeTransferFailure (hperm := hperm)
                                 evmS evm0S evm1S evm2S evm3S I
@@ -914,7 +916,7 @@ theorem uniswapSkimBodyDecoded
                                 hunlockedStele hguard0 hcall0 hdec0 henoughSource hsafe0
                                 hguard1 hcall1True hdec1 henough1Source hdata1
                                 htransfer1False
-                            have rd6595False : RD uniswapV2PairBytecode I
+                            have rd6595False : RD fork uniswapV2PairBytecode I
                                 (Sat256.ofUInt256 g)
                                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                 ⟨6595⟩
@@ -949,13 +951,13 @@ theorem uniswapSkimBodyDecoded
                                 exact rdRev.reEquivExecutionRevert hcode hdispatch
                                   hdecode hbody
                           · have hz3True : z3 = true := Bool.eq_true_of_not_eq_false hz3False
-                            have htransfer1True : callViaEVM evm2S
+                            have htransfer1True : callViaEVM fork evm2S
                                 (EVM.address
                                   (uniswapAddressAtSlot
                                     (uniswapLockEnteredState evmS) ⟨7⟩))
                                 0 safeData1 (true, evm3S, out3) := by
                               simpa [hz3True] using htransfer1
-                            have rd6595True : RD uniswapV2PairBytecode I
+                            have rd6595True : RD fork uniswapV2PairBytecode I
                                 (Sat256.ofUInt256 g)
                                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                 ⟨6595⟩
@@ -971,7 +973,7 @@ theorem uniswapSkimBodyDecoded
                               simpa [hz3True, safeValue1] using rd6595b
                             by_cases hout3Empty : out3.size = 0
                             · have hsafe1 :
-                                  ExecStmt config
+                                  ExecStmt fork config
                                     { contract := contract,
                                       locals :=
                                         skimSecondExcessStore evmS evm0S evm2S I
@@ -1020,7 +1022,7 @@ theorem uniswapSkimBodyDecoded
                                     exact decodeReturnValueWithMode_legacy_bool_none_short
                                       (returndata := out3) hshort3
                                   have hbody :
-                                      ExecTransitionBody config contract evmS (skimStore I)
+                                      ExecTransitionBody fork config contract evmS (skimStore I)
                                         skimTransition.body .reverted := by
                                     exact uniswapSkimBodyReverts_secondSafeTransferDecode (hperm := hperm)
                                       evmS evm0S evm1S evm2S evm3S I
@@ -1049,7 +1051,7 @@ theorem uniswapSkimBodyDecoded
                                       exact decodeReturnValueWithMode_legacy_bool_false
                                         (returndata := out3) hout332 hout3Sign hword1
                                     have hbody :
-                                        ExecTransitionBody config contract evmS (skimStore I)
+                                        ExecTransitionBody fork config contract evmS (skimStore I)
                                           skimTransition.body .reverted := by
                                       exact uniswapSkimBodyReverts_secondSafeTransferDecodeFalse (hperm := hperm)
                                         evmS evm0S evm1S evm2S evm3S I
@@ -1073,7 +1075,7 @@ theorem uniswapSkimBodyDecoded
                                       exact decodeReturnValueWithMode_legacy_bool_true
                                         (returndata := out3) hout332 hout3Sign hword1
                                     have hsafe1 :
-                                        ExecStmt config
+                                        ExecStmt fork config
                                           { contract := contract,
                                             locals :=
                                               skimSecondExcessStore evmS evm0S evm2S I
@@ -1124,7 +1126,7 @@ theorem uniswapSkimBodyDecoded
                                   exact decodeReturnValueWithMode_legacy_bool_none_huge
                                     (returndata := out3) hhi
                                 have hbody :
-                                    ExecTransitionBody config contract evmS (skimStore I)
+                                    ExecTransitionBody fork config contract evmS (skimStore I)
                                       skimTransition.body .reverted := by
                                   exact uniswapSkimBodyReverts_secondSafeTransferDecode (hperm := hperm)
                                     evmS evm0S evm1S evm2S evm3S I
@@ -1149,7 +1151,7 @@ theorem uniswapSkimBodyDecoded
                         exact decodeReturnValueWithMode_legacy_bool_none_short
                           (returndata := out1) hshort1
                       have hbody :
-                          ExecTransitionBody config contract evmS (skimStore I)
+                          ExecTransitionBody fork config contract evmS (skimStore I)
                             skimTransition.body .reverted := by
                         exact uniswapSkimBodyReverts_firstSafeTransferDecode (hperm := hperm)
                           evmS evm0S evm1S I
@@ -1174,7 +1176,7 @@ theorem uniswapSkimBodyDecoded
                           exact decodeReturnValueWithMode_legacy_bool_false
                             (returndata := out1) hout132 hout1Sign hword0
                         have hbody :
-                            ExecTransitionBody config contract evmS (skimStore I)
+                            ExecTransitionBody fork config contract evmS (skimStore I)
                               skimTransition.body .reverted := by
                           exact uniswapSkimBodyReverts_firstSafeTransferDecodeFalse (hperm := hperm)
                             evmS evm0S evm1S I
@@ -1195,7 +1197,7 @@ theorem uniswapSkimBodyDecoded
                           exact decodeReturnValueWithMode_legacy_bool_true
                             (returndata := out1) hout132 hout1Sign hword0
                         have hsafe0 :
-                            ExecStmt config
+                            ExecStmt fork config
                               { contract := contract,
                                 locals := skimFirstExcessStore evmS evm0S I balance0 } evm0S
                               (.internalCall "_safeTransfer"
@@ -1233,7 +1235,7 @@ theorem uniswapSkimBodyDecoded
                             (o := I.sender)
                             (r := AccountAddress.ofUInt256
                               (UInt256.land token0CleanE solcAddrMask))
-                            (c := toExecute I.fork σ'
+                            (c := toExecute fork σ'
                               (AccountAddress.ofUInt256
                                 (UInt256.land token0CleanE solcAddrMask)))
                             (g := callGas1) (p := UInt256.ofNat I.gasPrice)
@@ -1254,7 +1256,7 @@ theorem uniswapSkimBodyDecoded
                               (I := I) (balance0 := balance0) (token1 := token1CleanE)
                               hPostTransferAccounts1 htarget1 htoken1NoCode
                           have hbody :
-                              ExecTransitionBody config contract evmS (skimStore I)
+                              ExecTransitionBody fork config contract evmS (skimStore I)
                                 skimTransition.body .reverted := by
                             exact uniswapSkimBodyReverts_secondNoCode (hperm := hperm)
                               evmS evm0S evm1S I
@@ -1316,7 +1318,7 @@ theorem uniswapSkimBodyDecoded
                               (address_of_val
                                 (uniswapAddressAtSlot
                                   (uniswapLockEnteredState evmS) ⟨7⟩)).symm
-                          have hcall1 : typedCallViaEVM config evm1S
+                          have hcall1 : typedCallViaEVM fork config evm1S
                               (EVM.address
                                 (uniswapAddressAtSlot
                                   (uniswapLockEnteredState evmS) ⟨7⟩))
@@ -1324,7 +1326,7 @@ theorem uniswapSkimBodyDecoded
                               (z2, evm2S, out2) false := by
                             simpa [htarget1E] using hcall1Raw
                           by_cases hz2False : z2 = false
-                          · have hcall1False : typedCallViaEVM config evm1S
+                          · have hcall1False : typedCallViaEVM fork config evm1S
                                 (EVM.address
                                   (uniswapAddressAtSlot
                                     (uniswapLockEnteredState evmS) ⟨7⟩))
@@ -1332,7 +1334,7 @@ theorem uniswapSkimBodyDecoded
                                 (false, evm2S, out2) false := by
                               simpa [hz2False] using hcall1
                             have hbody :
-                                ExecTransitionBody config contract evmS (skimStore I)
+                                ExecTransitionBody fork config contract evmS (skimStore I)
                                   skimTransition.body .reverted := by
                               exact uniswapSkimBodyReverts_secondCallFailure (hperm := hperm)
                                 evmS evm0S evm1S evm2S I
@@ -1349,7 +1351,7 @@ theorem uniswapSkimBodyDecoded
                             exact rdRev.reEquivExecutionRevert hcode hdispatch
                               hdecode hbody
                           · have hz2True : z2 = true := Bool.eq_true_of_not_eq_false hz2False
-                            have hcall1True : typedCallViaEVM config evm1S
+                            have hcall1True : typedCallViaEVM fork config evm1S
                                 (EVM.address
                                   (uniswapAddressAtSlot
                                     (uniswapLockEnteredState evmS) ⟨7⟩))
@@ -1371,7 +1373,7 @@ theorem uniswapSkimBodyDecoded
                                   (decodeReturnValueWithMode_legacy_uint256_none_short
                                     (returndata := out2) hshort2)
                               have hbody :
-                                  ExecTransitionBody config contract evmS (skimStore I)
+                                  ExecTransitionBody fork config contract evmS (skimStore I)
                                     skimTransition.body .reverted := by
                                 exact uniswapSkimBodyReverts_secondCallDecode (hperm := hperm)
                                   evmS evm0S evm1S evm2S I
@@ -1407,7 +1409,7 @@ theorem uniswapSkimBodyDecoded
                               have hawBalance :=
                                 skimSecondBalanceDynamicStaticcallWords_mload64_ptr_same
                                   out1 hout1Sign
-                              have rd5314' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                              have rd5314' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                   ⟨5314⟩
                                   (balance1 :: reserve1E :: ⟨5325⟩ :: skimToMaskedWord I ::
@@ -1436,7 +1438,7 @@ theorem uniswapSkimBodyDecoded
                                   rw [hsourceReserve1]
                                   exact hlt1
                                 have hbody :
-                                    ExecTransitionBody config contract evmS (skimStore I)
+                                    ExecTransitionBody fork config contract evmS (skimStore I)
                                       skimTransition.body .reverted := by
                                   exact uniswapSkimBodyReverts_secondExcessUnderflow (hperm := hperm)
                                     evmS evm0S evm1S evm2S I
@@ -1449,7 +1451,7 @@ theorem uniswapSkimBodyDecoded
                                 obtain ⟨k6879, C6879, rd6879⟩ :=
                                   RD.uniswapSkimFirstExcessToSub rd5314'
                                     (by simp only [List.length_cons, List.length_nil]; omega)
-                                have rd6879' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                                have rd6879' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                     ⟨6879⟩
                                     (reserve1E :: balance1 :: ⟨5325⟩ :: skimToMaskedWord I ::
@@ -1485,7 +1487,7 @@ theorem uniswapSkimBodyDecoded
                                       hsourceReserve1 hle1 ho32 hoSize hout1Empty
                                       hout1Sign ho32_2 hout2Size
                                   simpa [safeData1, safeValue1] using hencoded
-                                have rd6370' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                                have rd6370' : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                     ⟨6370⟩
                                     (safeValue1 :: skimToMaskedWord I :: token1CleanE :: ⟨5433⟩ ::
@@ -1516,7 +1518,7 @@ theorem uniswapSkimBodyDecoded
                                     (o := I.sender)
                                     (r := AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
-                                    (c := toExecute I.fork σ2
+                                    (c := toExecute fork σ2
                                       (AccountAddress.ofUInt256
                                         (UInt256.land token1CleanE solcAddrMask)))
                                     (g := callGas3) (p := UInt256.ofNat I.gasPrice)
@@ -1531,7 +1533,7 @@ theorem uniswapSkimBodyDecoded
                                         Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
                                           _ _ _ (by norm_num [Ethereum.EVM.maxReturnDataSizeByGas,
                                             Ethereum.EVM.maxReturnDataWordsByGas]))
-                                have hcallE1 : callViaEVM evm2E
+                                have hcallE1 : callViaEVM fork evm2E
                                     (AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
                                     0 safeData1
@@ -1564,7 +1566,7 @@ theorem uniswapSkimBodyDecoded
                                   { evm2S with
                                     accountMap := σ3S
                                     substate := A3S }
-                                have htransfer1Raw' : callViaEVM evm2S
+                                have htransfer1Raw' : callViaEVM fork evm2S
                                     (AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
                                     0 safeData1 (z3, evm3S, out3) := by
@@ -1579,7 +1581,7 @@ theorem uniswapSkimBodyDecoded
                                   exact (address_of_val
                                     (uniswapAddressAtSlot
                                       (uniswapLockEnteredState evmS) ⟨7⟩)).symm
-                                have htransfer1 : callViaEVM evm2S
+                                have htransfer1 : callViaEVM fork evm2S
                                     (EVM.address
                                       (uniswapAddressAtSlot
                                         (uniswapLockEnteredState evmS) ⟨7⟩))
@@ -1596,13 +1598,13 @@ theorem uniswapSkimBodyDecoded
                                   exact hle1
                                 have hfinish :
                                     ∀ {mem outRet : ByteArray} {aw : UInt256} {kR CR : ℕ},
-                                      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+                                      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
                                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                         ⟨5433⟩
                                         (token1CleanE :: token0CleanE :: skimToMaskedWord I ::
                                           ⟨570⟩ :: uniswapSelWord I :: [])
                                         mem aw outRet σ3 kR CR →
-                                      ExecStmt config
+                                      ExecStmt fork config
                                         { contract := contract,
                                           locals :=
                                             skimSecondExcessStore evmS evm0S evm2S I
@@ -1615,13 +1617,13 @@ theorem uniswapSkimBodyDecoded
                                               skimSecondSafeTransferStore evmS evm0S evm2S I
                                                 balance0 balance1 }
                                           evm3S) →
-                                      runtimeRefinementFor config contract σ
+                                      runtimeRefinementFor fork config contract σ
                                         σ₀ g A I := by
                                   intro mem outRet aw kR CR rd5433 hsafe1
                                   have rdRet :=
                                     RD.uniswapSkimAfterSecondSafeTransferToReturn rd5433 hperm
                                   have hbody :
-                                      ExecTransitionBody config contract evmS (skimStore I)
+                                      ExecTransitionBody fork config contract evmS (skimStore I)
                                         skimTransition.body
                                         (.returned
                                           { contract := contract,
@@ -1645,14 +1647,14 @@ theorem uniswapSkimBodyDecoded
                                     hdecode hbody hAccountsRet
                                     (returnEquiv.fallthrough rfl rfl (by native_decide))
                                 by_cases hz3False : z3 = false
-                                · have htransfer1False : callViaEVM evm2S
+                                · have htransfer1False : callViaEVM fork evm2S
                                       (EVM.address
                                         (uniswapAddressAtSlot
                                           (uniswapLockEnteredState evmS) ⟨7⟩))
                                       0 safeData1 (false, evm3S, out3) := by
                                     simpa [hz3False] using htransfer1
                                   have hbody :
-                                      ExecTransitionBody config contract evmS (skimStore I)
+                                      ExecTransitionBody fork config contract evmS (skimStore I)
                                         skimTransition.body .reverted := by
                                     exact uniswapSkimBodyReverts_secondSafeTransferFailure (hperm := hperm)
                                       evmS evm0S evm1S evm2S evm3S I
@@ -1660,7 +1662,7 @@ theorem uniswapSkimBodyDecoded
                                       hunlockedStele hguard0 hcall0 hdec0 henoughSource hsafe0
                                       hguard1 hcall1True hdec1 henough1Source hdata1
                                       htransfer1False
-                                  have rd6595False : RD uniswapV2PairBytecode I
+                                  have rd6595False : RD fork uniswapV2PairBytecode I
                                       (Sat256.ofUInt256 g)
                                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                       ⟨6595⟩
@@ -1692,13 +1694,13 @@ theorem uniswapSkimBodyDecoded
                                         exact lt_trans hout3Small (by norm_num)
                                       exact False.elim (hout3Sign this)
                                 · have hz3True : z3 = true := Bool.eq_true_of_not_eq_false hz3False
-                                  have htransfer1True : callViaEVM evm2S
+                                  have htransfer1True : callViaEVM fork evm2S
                                       (EVM.address
                                         (uniswapAddressAtSlot
                                           (uniswapLockEnteredState evmS) ⟨7⟩))
                                       0 safeData1 (true, evm3S, out3) := by
                                     simpa [hz3True] using htransfer1
-                                  have rd6595True : RD uniswapV2PairBytecode I
+                                  have rd6595True : RD fork uniswapV2PairBytecode I
                                       (Sat256.ofUInt256 g)
                                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                       ⟨6595⟩
@@ -1715,7 +1717,7 @@ theorem uniswapSkimBodyDecoded
                                     simpa [hz3True, safeValue1] using rd6595b
                                   by_cases hout3Empty : out3.size = 0
                                   · have hsafe1 :
-                                        ExecStmt config
+                                        ExecStmt fork config
                                           { contract := contract,
                                             locals :=
                                               skimSecondExcessStore evmS evm0S evm2S I
@@ -1766,7 +1768,7 @@ theorem uniswapSkimBodyDecoded
                                           exact decodeReturnValueWithMode_legacy_bool_none_short
                                             (returndata := out3) hshort3
                                         have hbody :
-                                            ExecTransitionBody config contract evmS (skimStore I)
+                                            ExecTransitionBody fork config contract evmS (skimStore I)
                                               skimTransition.body .reverted := by
                                           exact uniswapSkimBodyReverts_secondSafeTransferDecode (hperm := hperm)
                                             evmS evm0S evm1S evm2S evm3S I
@@ -1796,7 +1798,7 @@ theorem uniswapSkimBodyDecoded
                                             exact decodeReturnValueWithMode_legacy_bool_false
                                               (returndata := out3) hout332 hout3Sign hword1
                                           have hbody :
-                                              ExecTransitionBody config contract evmS (skimStore I)
+                                              ExecTransitionBody fork config contract evmS (skimStore I)
                                                 skimTransition.body .reverted := by
                                             exact uniswapSkimBodyReverts_secondSafeTransferDecodeFalse (hperm := hperm)
                                               evmS evm0S evm1S evm2S evm3S I
@@ -1821,7 +1823,7 @@ theorem uniswapSkimBodyDecoded
                                             exact decodeReturnValueWithMode_legacy_bool_true
                                               (returndata := out3) hout332 hout3Sign hword1
                                           have hsafe1 :
-                                              ExecStmt config
+                                              ExecStmt fork config
                                                 { contract := contract,
                                                   locals :=
                                                     skimSecondExcessStore evmS evm0S evm2S I
@@ -1876,7 +1878,7 @@ theorem uniswapSkimBodyDecoded
                       exact decodeReturnValueWithMode_legacy_bool_none_huge
                         (returndata := out1) hhi
                     have hbody :
-                        ExecTransitionBody config contract evmS (skimStore I)
+                        ExecTransitionBody fork config contract evmS (skimStore I)
                           skimTransition.body .reverted := by
                       exact uniswapSkimBodyReverts_firstSafeTransferDecode (hperm := hperm)
                         evmS evm0S evm1S I
@@ -1892,15 +1894,15 @@ theorem uniswapSkimBodyDecoded
       · rw [not_lt] at hdepth
         have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
         have hRuntime :
-            RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+            RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
           have hsz4 : 4 ≤ I.calldata.size :=
             calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
           have hdecoded :=
-            uniswapSkimX_decoded_masked
+            uniswapSkimX_decoded_masked (fork := fork)
               (σ := σ) (σ₀ := σ₀) (A := A)
               (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
-              (uniswapReachSkimBody
+              (uniswapReachSkimBody (fork := fork)
                 (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := Sat256.ofUInt256 g)
                 hcode hwv hsz4 hsize hsel)

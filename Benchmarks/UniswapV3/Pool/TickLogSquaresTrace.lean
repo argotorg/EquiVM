@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogRunWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,9 +21,9 @@ theorem tickLogSquaresBlock1_eq (r msb : UInt256) (R : List UInt256) :
 theorem tickLogSquares1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw r msb : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14273⟩ (msb :: r :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14273⟩ (msb :: r :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14339⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14339⟩
       (tickLogSquaresStack1 (tickLogSquareAt r) msb R) mem aw rdata σ k' C' := by
   have hs : tickLogCompiledSquareAt r = tickLogSquareAt r :=
     funext (tickLogCompiledSquareAt_eq r)
@@ -44,11 +46,11 @@ theorem tickLogSquaresBlock2_eq (r old5 old4 old3 old2 old1 : UInt256) (R : List
 theorem tickLogSquares2X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw r old5 old4 old3 old2 old1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14339⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14339⟩
       (tickLogSquare r :: tickLogSquare r :: old5 :: old4 :: old3 :: old2 :: old1 ::
         ⟨255⟩ :: ⟨127⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14403⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14403⟩
       (tickLogSquaresStack2 (tickLogRun r) (tickLogSquareAt r)
         old5 old4 old3 old2 old1 R) mem aw rdata σ k' C' := by
   have hr : tickLogCompiledRun r = tickLogRun r := funext (tickLogCompiledRun_eq r)
@@ -66,9 +68,9 @@ def tickLogSquaresStack (r msb : UInt256) (R : List UInt256) : List UInt256 :=
 theorem tickLogSquaresX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw r msb : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14273⟩ (msb :: r :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14273⟩ (msb :: r :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14403⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14403⟩
       (tickLogSquaresStack r msb R) mem aw rdata σ k' C' := by
   obtain ⟨k', C', r1⟩ := tickLogSquares1X rd (by omega)
   unfold tickLogSquaresStack1 at r1

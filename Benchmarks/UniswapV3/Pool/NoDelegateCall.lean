@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -26,7 +28,7 @@ theorem evalNoDelegateCall (v : UniswapV3PoolImmutables) (evm : EVM.State) :
 
 theorem noDelegateCallReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (h : evm.executionEnv.codeOwner = v.original) :
-    ExecFuncBody config (noDelegateCallFrame v) evm noDelegateCallFunction.body
+    ExecFuncBody fork config (noDelegateCallFrame v) evm noDelegateCallFunction.body
       (.returned (noDelegateCallFrame v) evm none) := by
   apply ExecFuncBody.execBlockOK
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil
@@ -34,7 +36,7 @@ theorem noDelegateCallReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem noDelegateCallReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (h : evm.executionEnv.codeOwner ≠ v.original) :
-    ExecFuncBody config (noDelegateCallFrame v) evm noDelegateCallFunction.body .reverted := by
+    ExecFuncBody fork config (noDelegateCallFrame v) evm noDelegateCallFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   simpa only [h, decide_false] using evalNoDelegateCall v evm
@@ -42,11 +44,11 @@ theorem noDelegateCallReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem noDelegateCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11248⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11248⟩ (ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ee.codeOwner ≠ v.original) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ee.codeOwner ≠ v.original) ∨
       (ee.codeOwner = v.original ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C') := by
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C') := by
   have hclean : UInt256.land (wordsOf (immStore v) "original")
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) =
       EVM.word v.original.val := by

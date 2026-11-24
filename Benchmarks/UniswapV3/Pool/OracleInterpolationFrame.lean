@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleInterpolationModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -16,7 +18,7 @@ theorem oracleInterpolationPrefix {frame : Frame} {evm : EVM.State}
     (ht : frame.locals.get? "target" = some (.int (Int.ofNat target.toNat)))
     (hb : frame.locals.get? "beforeOrAt" = some before.value)
     (ha : frame.locals.get? "atOrAfter" = some after.value) :
-    ExecBlock config frame evm (oracleInterpolationBlock.take 2)
+    ExecBlock fork config frame evm (oracleInterpolationBlock.take 2)
       (.ok (oracleInterpolationFrame frame before after target) evm) := by
   have hd := evalOracleDelta (evm := evm) (evalOracleTimestamp after ha) (evalOracleTimestamp before hb)
   let f1 : Frame := { frame with
@@ -27,7 +29,7 @@ theorem oracleInterpolationPrefix {frame : Frame} {evm : EVM.State}
   have hb1 : f1.locals.get? "beforeOrAt" = some before.value := by
     simpa [f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hb
   refine ExecBlock.consNormal (ExecStmt.letDecl hd) ?_
-  change ExecBlock config f1 evm [oracleInterpolationBlock[1]!]
+  change ExecBlock fork config f1 evm [oracleInterpolationBlock[1]!]
     (.ok (oracleInterpolationFrame frame before after target) evm)
   refine ExecBlock.consNormal (ExecStmt.letDecl (value :=
     .int (Int.ofNat (oracleDelta target before.timestamp).toNat)) ?_) ExecBlock.nil
@@ -57,8 +59,8 @@ theorem oracleObserveInterpolationBranchStep {frame : Frame} {evm : EVM.State} {
     (hb : frame.locals.get? "beforeOrAt" = some before.value)
     (ha : frame.locals.get? "atOrAfter" = some after.value)
     (hnb : target ≠ before.timestamp) (hna : target ≠ after.timestamp)
-    (hbody : ExecBlock config frame evm oracleInterpolationBlock result) :
-    ExecStmt config frame evm oracleObserveSingleFunction.body[7]! result := by
+    (hbody : ExecBlock fork config frame evm oracleInterpolationBlock result) :
+    ExecStmt fork config frame evm oracleObserveSingleFunction.body[7]! result := by
   rw [oracleInterpolationBranch]
   refine ExecStmt.iteFalse ?_ (execBlock_singleton ?_)
   · have h := evalExpr_word_eq (evalExpr_var_get (cfg := config) (evm := evm) ht)

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -43,7 +45,7 @@ theorem vowReachDumpBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨810⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨3828548933⟩ :=
@@ -75,12 +77,12 @@ theorem vowDumpBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (dumpTransition.params.map Param.name)
         (transitionSignature dumpTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨810⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ dumpTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -109,7 +111,7 @@ theorem vowDumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩ rfl hsel
   exact vowDumpBodyCore hcode hwv (vowDispatch_dump hsel) (vowDecode_dump hsz)

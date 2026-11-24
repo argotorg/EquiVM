@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.VerifySigner
 import Benchmarks.EAS.EAS.HashTypedRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,8 +10,8 @@ set_option maxRecDepth 10000
 theorem HeapCallPost.forget {post : Prop} {cfg : Config} {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : EVM.State} {caller : Frame} {evm : EVM.State} {name retVar : Ident}
     {args : List Expr} {value : Value} {pc : UInt256} {stack : List UInt256} {mem : ByteArray} {heap : Nat}
-    (h : HeapCallPost post cfg code ee g s0 caller evm name args retVar value pc stack mem heap) :
-    HeapCallRun cfg code ee g s0 caller evm name args retVar value pc stack mem heap := by
+    (h : HeapCallPost fork post cfg code ee g s0 caller evm name args retVar value pc stack mem heap) :
+    HeapCallRun fork cfg code ee g s0 caller evm name args retVar value pc stack mem heap := by
   rcases h with ⟨_,h⟩ | h
   · exact h
   · exact Or.inr h
@@ -36,9 +38,9 @@ theorem verifyDigestRun {L : Store} {field : Ident} {req : Value} {a : AccountAd
     (hstack : R.length+18 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15646⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15646⟩
       (hash::⟨13723⟩::sigPtr::⟨13745⟩::ownerPtr::solcAddrMask::solcAddrMask::⟨13753⟩::ret::R) mem aw rdata σ k C) :
-    HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm (verifyDigestBody field) (.tuple []) ret R mem heap.toNat := by
   have ht := hashTypedCallRun (L := L) (args := [.var "structHash",.var "$EAS.freeMemory"])
     (retVar := "digest$allocation") v
@@ -50,7 +52,7 @@ theorem verifyDigestRun {L : Store} {field : Ident} {req : Value} {a : AccountAd
   rcases ht with ⟨evm1,σ1,mem1,out1,aw1,k1,C1,heap1,hs1,hge1,hbound1,hprefix1,hfree1,hcall1,r1⟩ | ⟨hcall1,hrev⟩
   · let digest := typedDataWord (domainWord v ee.codeOwner) hash
     let L1 := heapResultLocals L "digest$allocation" "digest" "$EAS.freeMemory" (wordBytes32Value digest) heap1
-    have hp1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm verifyHashBody
+    have hp1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm verifyHashBody
         (.ok {contract := contract,locals := L1,immutables := immStore v} evm1) :=
       heapResultBlock_ok hcall1 hf (by decide) (by decide) (by decide)
     have hf1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap1)) := heapResultLocals_heap _ _ _ _ _ _
@@ -74,7 +76,7 @@ theorem verifyDigestRun {L : Store} {field : Ident} {req : Value} {a : AccountAd
     simp only [hn1] at hr
     rcases hr.forget with ⟨evm2,σ2,mem2,out2,aw2,k2,C2,heap2,hs2,hge2,hbound2,hprefix2,hfree2,hcall2,r2⟩ | ⟨hcall2,hrev⟩
     · let L2 := heapResultLocals L1 "__c0$allocation" "__c0" "$EAS.freeMemory" (.address b) heap2
-      have hp2 : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} evm1 verifyRecoverBody
+      have hp2 : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} evm1 verifyRecoverBody
           (.ok {contract := contract,locals := L2,immutables := immStore v} evm2) :=
         heapResultBlock_ok hcall2 hf1 (by decide) (by decide) (by decide)
       have hreq1 : L1.get? "request" = some req :=

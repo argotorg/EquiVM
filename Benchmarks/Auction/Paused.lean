@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -8,7 +10,7 @@ namespace Auction
 
 theorem pausedBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "_paused" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals pausedGetter.body
+    ExecTransitionBody fork auctionConfig auctionContract evm locals pausedGetter.body
       (.returned { contract := auctionContract, locals := locals } evm
         (some [wordToElem .bool
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩) ⟨255⟩)])) := by
@@ -18,8 +20,8 @@ theorem pausedBodyReturns (evm : EVM.State) (locals : Store)
         hbase (by native_decide) rfl, loadBool])
 
 theorem pausedX {σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 5 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
-    RDret auctionBytecode (Sat256.ofUInt256 g)
+    (hreach : EntryReached fork 5 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+    RDret fork auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray
         (UInt256.isZero (UInt256.isZero (UInt256.land (solcSlotWord σ I ⟨51⟩) ⟨255⟩)))) := by
@@ -42,8 +44,8 @@ theorem pausedX {σ σ₀ A I} {g : UInt256}
 theorem pausedBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 5))
-    (hreach : EntryReached 5 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 5 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 5) (entryBytes_size 5) hsel
     have hd := dispatchEntry 5 hsel
@@ -51,7 +53,7 @@ theorem pausedBodyCore {σ σ₀ A I} {g : UInt256}
         (pausedGetter.params.map Param.name)
         (transitionSignature pausedGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pausedGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

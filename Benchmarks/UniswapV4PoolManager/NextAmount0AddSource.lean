@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount0SubSource
 import Benchmarks.UniswapV4PoolManager.NextAmount0FallbackSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -20,7 +22,7 @@ theorem nextAmount0AddAfterProductSource {f : Frame} {evm : EVM.State} {price li
     (hs : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hp : f.locals.get? "product" = some (.int (Int.ofNat (nextAmount0Product price amount).toNat))) :
-    ∃ f', ExecBlock config f evm nextAmount0AddAfterProductStmts
+    ∃ f', ExecBlock fork config f evm nextAmount0AddAfterProductStmts
       (if nextAmount0CoreFits price liquidity amount true then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0CoreWord price liquidity amount true).toNat)])
        else .reverted) := by
@@ -31,7 +33,7 @@ theorem nextAmount0AddAfterProductSource {f : Frame} {evm : EVM.State} {price li
   by_cases hprod : UInt256.div p amount = price
   · rw [decide_eq_true hprod] at hg
     let f1 := wordLocal f "denominator" (n+p)
-    have hd : ExecStmt config f evm (.letDecl "denominator" (some abiUInt256)
+    have hd : ExecStmt fork config f evm (.letDecl "denominator" (some abiUInt256)
         (.cast (.binary .add (.var "numerator1") (.var "product")) (.elem (.int (.uint ⟨256, by decide⟩)))))
         (.ok f1 evm) := ExecStmt.letDecl (evalWordAdd (evalLocalValue hn) (evalLocalValue hp))
     have hn1 : f1.locals.get? "numerator1" = some (.int (Int.ofNat n.toNat)) :=
@@ -82,12 +84,12 @@ theorem nextAmount0AddSource {f : Frame} {evm : EVM.State} {price liquidity amou
     (hn : f.locals.get? "numerator1" = some (.int (Int.ofNat (amount0Numerator1 liquidity).toNat)))
     (hs : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat))) :
-    ∃ f', ExecBlock config f evm nextAmount0AddStmts
+    ∃ f', ExecBlock fork config f evm nextAmount0AddStmts
       (if nextAmount0CoreFits price liquidity amount true then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0CoreWord price liquidity amount true).toNat)])
        else .reverted) := by
   let f1 := wordLocal f "product" (nextAmount0Product price amount)
-  have hp : ExecStmt config f evm (.letDecl "product" (some abiUInt256) nextAmount0ProductExpr) (.ok f1 evm) :=
+  have hp : ExecStmt fork config f evm (.letDecl "product" (some abiUInt256) nextAmount0ProductExpr) (.ok f1 evm) :=
     ExecStmt.letDecl (evalWordMul (evalLocalValue ha) (evalLocalValue hs))
   obtain ⟨f2, hr⟩ := nextAmount0AddAfterProductSource (f := f1) (evm := evm) hf hprice hamount
     ((store_get_ne _ _ (by decide : ("product" == "numerator1") = false)).trans hn)

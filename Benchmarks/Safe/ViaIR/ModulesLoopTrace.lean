@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_013
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_014
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,13 +17,13 @@ set_option maxRecDepth 2000
 
 theorem safeModulesLoopTest {I g s0 σ k C aw mem rdata index current ptr pageSize}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2629⟩
+    (h : RD fork safeBytecode I g s0 ⟨2629⟩
       (current :: ptr :: pageSize :: index :: R) mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hc : current.toNat < EVM.addressModulus) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨2655⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨2655⟩
       ((decide (current ≠ ⟨0⟩ ∧ current ≠ ⟨1⟩ ∧ index.toNat < pageSize.toNat)).toUInt256 ::
         current :: current :: ptr :: pageSize :: index :: R) mem aw rdata σ k' C' := by
-  have hnext : ∃ k' C', RD safeBytecode I g s0 ⟨2649⟩
+  have hnext : ∃ k' C', RD fork safeBytecode I g s0 ⟨2649⟩
       ((decide (current ≠ ⟨0⟩ ∧ current ≠ ⟨1⟩)).toUInt256 ::
         current :: current :: ptr :: pageSize :: index :: R) mem aw rdata σ k' C' := by
     by_cases hz : current = ⟨0⟩
@@ -65,13 +67,13 @@ def modulesStepMemory (mem : ByteArray) (index : Nat) (current : UInt256) : Byte
 
 theorem safeModulesLoopStep {I g s0 σ k C aw mem rdata n words index current}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2629⟩
+    (h : RD fork safeBytecode I g s0 ⟨2629⟩
       (current :: ⟨128⟩ :: UInt256.ofNat n :: UInt256.ofNat index :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) (hm : AddressArrayMemory mem n words)
     (hn : n ≤ 2 ^ 64 - 1) (hi : index < n) (hc : current.toNat < EVM.addressModulus)
     (hz : current ≠ ⟨0⟩) (hs : current ≠ ⟨1⟩) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨2629⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨2629⟩
       (moduleLinkAt σ I current :: ⟨128⟩ :: UInt256.ofNat n ::
         UInt256.ofNat (index + 1) :: ⟨0⟩ :: R)
       (modulesStepMemory mem index current) aw' rdata σ k' C' := by
@@ -110,7 +112,7 @@ theorem safeModulesLoopStep {I g s0 σ k C aw mem rdata n words index current}
     (mem := writeWord mem (160 + 32 * index) current) current ⟨1⟩
     (by rw [writeWord_sparse_size]; have := hm.lower; omega)
   change keccakWord ⟨0⟩ ⟨64⟩ (modulesStepMemory mem index current) = mapSlot current ⟨1⟩ at hh
-  change RD safeBytecode I g s0 ⟨7497⟩
+  change RD fork safeBytecode I g s0 ⟨7497⟩
     (UInt256.ofNat index :: ⟨2704⟩ :: ⟨128⟩ :: UInt256.ofNat n ::
       UInt256.land solcAddrMask (solcSlotWordAt
         (keccakWord ⟨0⟩ ⟨64⟩ (modulesStepMemory mem index current)) σ I) :: ⟨0⟩ :: R)
@@ -128,11 +130,11 @@ theorem safeModulesLoopStep {I g s0 σ k C aw mem rdata n words index current}
 
 theorem safeModulesLoopExit {I g s0 σ k C aw mem rdata index current ptr pageSize}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2629⟩
+    (h : RD fork safeBytecode I g s0 ⟨2629⟩
       (current :: ptr :: pageSize :: index :: R) mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hc : current.toNat < EVM.addressModulus)
     (hstop : current = ⟨0⟩ ∨ current = ⟨1⟩ ∨ pageSize.toNat ≤ index.toNat) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨2710⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨2710⟩
       (current :: current :: ptr :: pageSize :: index :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, h2655⟩ := safeModulesLoopTest h hov hc
   have hf : ¬(current ≠ ⟨0⟩ ∧ current ≠ ⟨1⟩ ∧ index.toNat < pageSize.toNat) := by

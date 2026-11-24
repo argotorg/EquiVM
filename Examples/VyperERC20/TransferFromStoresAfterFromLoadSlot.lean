@@ -1,5 +1,7 @@
 import Examples.VyperERC20.TransferFromStoresAfterFromLoadHashStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -10,14 +12,14 @@ namespace VyperERC20
 
 theorem erc20X_transferFromAfterFromLoadSlot {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨502⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨502⟩
       [transferFromSelectorWord]
       (wordAt0Mem ⟨0⟩
         (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I)))
       (UInt256.ofNat 5) ByteArray.empty
       (transferFromAccountMapAfterAllowanceI σ I
         (transferFromAllowanceDebitI σ σ₀ A I g)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨508⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨508⟩
       [transferFromFromBalanceRawAfterAllowance σ I
           (transferFromAllowanceDebitI σ σ₀ A I g),
         transferFromFromSlot I, transferFromSelectorWord]

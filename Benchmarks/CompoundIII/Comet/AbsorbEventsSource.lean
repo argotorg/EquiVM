@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PrincipalTransferEventSource
 import Benchmarks.CompoundIII.Comet.Unsigned104
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -23,8 +25,8 @@ theorem absorbEvents_source (frame : Frame) (evm : State) (absorber account : Ac
     (hn : frame.locals.get? "newPrincipal" = some (.int principal.toNat))
     (hi : frame.locals.get? "baseSupplyIndex" = none) (hbound : principal.toNat < 2^104)
     (hperm : evm.executionEnv.perm = true) :
-    ∃ frame', ExecBlock config frame evm absorbEventsBlock (.ok frame' evm) := by
-  have hd : ExecStmt config frame evm
+    ∃ frame', ExecBlock fork config frame evm absorbEventsBlock (.ok frame' evm) := by
+  have hd : ExecStmt fork config frame evm
       (.emit "AbsorbDebt" [.var "absorber", .var "account", .var "basePaidOut", .var "valueOfBasePaidOut"])
       (.ok frame evm) := by
     apply ExecStmt.emit (hperm := hperm) (vals := [.address absorber, .address account, .int paid.toNat, .int value.toNat])
@@ -35,7 +37,7 @@ theorem absorbEvents_source (frame : Frame) (evm : State) (absorber account : Ac
       .ok (.bool (decide (0 < principal.toNat))) := by
     simp only [evalExpr?, he, pure, bind, EvalResult.bind, evalBinaryOp?, Int.natCast_pos]
   by_cases hpos : 0 < principal.toNat
-  · have hu := unsigned104_call frame evm principal (.var "newPrincipal") "__c15" hc he hbound
+  · have hu := unsigned104_call (fork := fork) frame evm principal (.var "newPrincipal") "__c15" hc he hbound
     let f1 : Frame := { frame with locals := frame.locals.insert "__c15" (.int principal.toNat) }
     let index := totalsIndexWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) false
     have hi1 : f1.locals.get? "baseSupplyIndex" = none := by
@@ -46,7 +48,7 @@ theorem absorbEvents_source (frame : Frame) (evm : State) (absorber account : Ac
     have hep : evalExpr? config f1 evm (.var "__c15") = .ok (.int principal.toNat) := by
       simp only [evalExpr?, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
         EvalResult.ofOption]; rfl
-    have hcall := presentValue_call f1 evm false index principal
+    have hcall := presentValue_call (fork := fork) f1 evm false index principal
       (.storage ⟨"baseSupplyIndex", []⟩) (.var "__c15") "__c16" hc
       (totalsIndexWord_lt _ false) hbound hei hep
     let f2 : Frame := { f1 with
@@ -55,7 +57,7 @@ theorem absorbEvents_source (frame : Frame) (evm : State) (absorber account : Ac
       simpa only [f2, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hb
     have hv2 : f2.locals.get? "__c16" = some (.int (presentValueWord index principal).toNat) := by
       simp only [f2, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl
-    have hem : ExecStmt config f2 evm
+    have hem : ExecStmt fork config f2 evm
         (.emit "Transfer" [.cast (.intLit 0) (.elem .address), .var "account", .var "__c16"])
         (.ok f2 evm) := by
       apply ExecStmt.emit (hperm := hperm) (vals := [.address ⟨0, by decide⟩, .address account,

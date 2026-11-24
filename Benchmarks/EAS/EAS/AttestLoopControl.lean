@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RecordEventEVM
 import Benchmarks.EAS.EAS.RequestTimeDispatch
 import Benchmarks.EAS.EAS.RuntimeBlocks_029
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,8 +29,8 @@ theorem easAttestLoopTest {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema idx t3 t4 : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+13 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (recordNextPC site) (recordNextStack site schema idx t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordNextPC site) (recordNextStack site schema idx t3 t4 R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if idx.toNat < (attestLoopLength site).toNat then requestReadPC site else attestLoopExitPC site)
       (recordNextStack site schema idx t3 t4 R) mem aw' rdata σ k' C' := by
   by_cases hi : idx.toNat < (attestLoopLength site).toNat
@@ -57,9 +59,9 @@ theorem easAttestRequestRead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+16 ≤ 1024) (hi : i < len)
     (hb : (attestRequestArrayPtr site mem).toNat+32+32*len < UInt256.size)
     (hl : memLoad (attestRequestArrayPtr site mem) mem = UInt256.ofNat len)
-    (rd : RD (deployedRuntime v) ee g s0 (requestReadPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestReadPC site)
       (recordNextStack site schema (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (requestTimePC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (requestTimePC site)
       (requestTimeStack site (UInt256.ofNat ((attestRequestArrayPtr site mem).toNat+32+32*i)) schema (UInt256.ofNat i) t3 t4 R)
       mem aw' rdata σ k' C' := by
   cases site with

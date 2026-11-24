@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BuildDomain
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -74,7 +76,7 @@ theorem domainSource_cached {cfg : Config} {locals : Store} {evm : EVM.State}
     (v : EASImmutables) {heap : Nat}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hc : domainCacheHit v evm.executionEnv.codeOwner) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
       (.returned {contract := contract, locals := locals, immutables := immStore v} evm
         (some [wordBytes32Value v._CACHED_DOMAIN_SEPARATOR, .int (Int.ofNat heap)])) := by
   rw [domain_body]
@@ -97,7 +99,7 @@ theorem domainSource_rebuilt {cfg : Config} {locals : Store} {evm : EVM.State}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hc : ¬ domainCacheHit v evm.executionEnv.codeOwner)
     (hguard : allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
       (.returned {
         contract := contract
         locals := domainRebuiltLocals locals heap v evm.executionEnv.codeOwner
@@ -109,12 +111,12 @@ theorem domainSource_rebuilt {cfg : Config} {locals : Store} {evm : EVM.State}
   apply ExecBlock.consReturn
   apply ExecStmt.iteFalse
   · simpa only [hc, decide_false] using domainGuard_eval (cfg := cfg) (locals := locals) (evm := evm) v
-  · have hcall := internalCallFunctionReturn (retVar := "__c0$allocation") (domainBuildArgs_eval (cfg := cfg) (evm := evm) v hh)
+  · have hcall := internalCallFunctionReturn (fork := fork) (retVar := "__c0$allocation") (domainBuildArgs_eval (cfg := cfg) (evm := evm) v hh)
       buildDomain_lookup (buildDomain_bind _ _ _ heap)
-      (buildDomainSource_ok (buildDomainArgs_type _ _ _ _) (buildDomainArgs_name _ _ _ _)
+      (buildDomainSource_ok (fork := fork) (buildDomainArgs_type _ _ _ _) (buildDomainArgs_name _ _ _ _)
         (buildDomainArgs_version _ _ _ _) (buildDomainArgs_heap _ _ _ _) hguard)
     apply ExecBlock.consNormal hcall
-    have hunpack := unpackHeapResult (cfg := cfg) (evm := evm)
+    have hunpack := unpackHeapResult (fork := fork) (cfg := cfg) (evm := evm)
       (frame := {
         contract := contract
         locals := locals.insert "__c0$allocation" (.tuple [
@@ -136,7 +138,7 @@ theorem domainSource_revert {cfg : Config} {locals : Store} {evm : EVM.State}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hc : ¬ domainCacheHit v evm.executionEnv.codeOwner)
     (hguard : ¬ (allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192)) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
       .reverted := by
   rw [domain_body]
   apply ExecFuncBody.execBlockRevert
@@ -163,7 +165,7 @@ theorem domainSource_ok {cfg : Config} {locals : Store} {evm : EVM.State}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hguard : domainCacheHit v evm.executionEnv.codeOwner ∨
       (allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192)) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := immStore v} evm domainFunction.body
       (.returned {
         contract := contract
         locals := domainFinalLocals locals heap v evm.executionEnv.codeOwner
@@ -187,7 +189,7 @@ theorem domainCall_ok {cfg : Config} {locals : Store} {evm : EVM.State}
       .ok (.int (Int.ofNat heap)))
     (hguard : domainCacheHit v evm.executionEnv.codeOwner ∨
       (allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192)) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := immStore v} evm
       (.internalCall "_domainSeparatorV4" [heapExpr] retVar)
       (.ok {
         contract := contract
@@ -205,7 +207,7 @@ theorem domainCall_revert {cfg : Config} {locals : Store} {evm : EVM.State}
       .ok (.int (Int.ofNat heap)))
     (hc : ¬ domainCacheHit v evm.executionEnv.codeOwner)
     (hguard : ¬ (allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192)) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := immStore v} evm
       (.internalCall "_domainSeparatorV4" [heapExpr] retVar) .reverted := by
   exact internalCallFunctionRevert (by simp only [evalExprs?, he, EvalResult.bind, bind, pure])
     domain_lookup (domain_bind heap) (domainSource_revert v (store_get_self _ _ _) hc hguard)

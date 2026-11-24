@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.Common
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -41,7 +43,7 @@ theorem catReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨499⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : catSelWord I = ⟨2507842956⟩ :=
     catSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨2507842956⟩ (by native_decide) hsel
@@ -65,11 +67,11 @@ theorem catLiveBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩ rfl hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

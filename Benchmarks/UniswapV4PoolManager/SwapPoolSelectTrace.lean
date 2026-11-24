@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapPoolAllocateTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,11 +17,11 @@ theorem swapPoolSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {σ : A
       (wordBytes (swapParamsWordList p)))
     (hf : free.toNat+160 < UInt256.size) (hclean : UInt256.land rawFee (UInt256.ofNat 16777215) = fee)
     (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨1669⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1669⟩
       ([amount, key.tickSpacing, UInt256.fromBool p.zeroForOne, p.priceLimit, rawFee,
         poolSlot id, src, len, before, free, keyPtr, id, keyPtr+UInt256.ofNat 128, paramsPtr, junk]++R)
       (writeWord mem 64 (free+UInt256.ofNat 160)) aw rdata σ k C) :
-    ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨18777⟩
+    ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨18777⟩
       ([poolSlot id, free, ⟨1755⟩, id, UInt256.ofNat 16777215, paramsPtr, accountWord (swapPoolCurrency key p),
         src, len, before, ⟨1935⟩, keyPtr, ⟨1954⟩, keyPtr+UInt256.ofNat 128, UInt256.ofNat 32, junk]++R)
       (swapPoolMemory mem free (swapPoolParams key p amount fee)) aw' rdata σ k' C' := by
@@ -74,7 +76,7 @@ theorem swapPoolSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {σ : A
       rfl
     have rd1 := poolManagerBlocks.poolManager_block_1669_fallthrough (R := junk::R)
       (by simp only [List.length_cons]; omega) hcond h
-    change RD _ _ _ _ _ _ (poolManagerBlocks.poolManager_block_1669_taken_memory
+    change RD fork _ _ _ _ _ _ (poolManagerBlocks.poolManager_block_1669_taken_memory
       (mem := writeWord mem 64 (free+UInt256.ofNat 160)) (x0 := amount) (x1 := key.tickSpacing)
       (x2 := UInt256.fromBool p.zeroForOne) (x3 := p.priceLimit) (x4 := rawFee) (x9 := free)) _ _ _ _ _ at rd1
     rw [hm] at rd1

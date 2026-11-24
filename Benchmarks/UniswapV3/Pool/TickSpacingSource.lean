@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickSpacingModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -61,7 +63,7 @@ theorem evalSpacingCount {frame : Frame} {evm : EVM.State} (spacing : Int)
 
 theorem tickSpacingReadySource (imms : Store) (evm : EVM.State) (spacing : Int)
     (hn : spacing ≠ 0) :
-    ExecBlock config (tickSpacingFrame imms spacing) evm (tickSpacingFunction.body.take 3)
+    ExecBlock fork config (tickSpacingFrame imms spacing) evm (tickSpacingFunction.body.take 3)
       (.ok (tickSpacingReadyFrame imms spacing) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalSpacingMin spacing
     Std.HashMap.getElem?_insert_self hn)) ?_
@@ -82,7 +84,7 @@ theorem tickSpacingReadySource (imms : Store) (evm : EVM.State) (spacing : Int)
 
 theorem tickSpacingReturns (imms : Store) (evm : EVM.State) (spacing : Int)
     (hn : spacing ≠ 0) (hc : spacingCount spacing ≠ 0) :
-    ExecFuncBody config (tickSpacingFrame imms spacing) evm tickSpacingFunction.body
+    ExecFuncBody fork config (tickSpacingFrame imms spacing) evm tickSpacingFunction.body
       (.returned (tickSpacingReadyFrame imms spacing) evm (some [.int (spacingLiquidity spacing)])) := by
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 3 tickSpacingFunction.body]
@@ -93,7 +95,7 @@ theorem tickSpacingReturns (imms : Store) (evm : EVM.State) (spacing : Int)
   simp [evalExprs?, evalExpr?, he, evalBinaryOp?, bind, EvalResult.bind, pure, hc, spacingLiquidity]
 
 theorem tickSpacingRevertsZero (imms : Store) (evm : EVM.State) :
-    ExecFuncBody config (tickSpacingFrame imms 0) evm tickSpacingFunction.body .reverted := by
+    ExecFuncBody fork config (tickSpacingFrame imms 0) evm tickSpacingFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consRevert (ExecStmt.letDeclRevert ?_)
   have he : evalExpr? config (tickSpacingFrame imms 0) evm (.var "tickSpacing") =
@@ -103,7 +105,7 @@ theorem tickSpacingRevertsZero (imms : Store) (evm : EVM.State) :
 
 theorem tickSpacingRevertsCount (imms : Store) (evm : EVM.State) (spacing : Int)
     (hn : spacing ≠ 0) (hc : spacingCount spacing = 0) :
-    ExecFuncBody config (tickSpacingFrame imms spacing) evm tickSpacingFunction.body .reverted := by
+    ExecFuncBody fork config (tickSpacingFrame imms spacing) evm tickSpacingFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 tickSpacingFunction.body]
   apply execBlock_append_ok (tickSpacingReadySource imms evm spacing hn)

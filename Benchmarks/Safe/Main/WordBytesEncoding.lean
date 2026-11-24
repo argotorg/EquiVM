@@ -3,6 +3,8 @@ import Benchmarks.Safe.Main.MemoryBytesDecoded
 import Benchmarks.Safe.Main.Blocks.Runtime_051
 import Benchmarks.Safe.Main.Blocks.Runtime_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -54,7 +56,7 @@ theorem wordBytesArgsMemory_read (mem : ByteArray) (base len : Nat) (word : UInt
 set_option maxRecDepth 100000 in
 theorem safeWordBytesEncode (words : List UInt256)
     {I g s0 σ k C aw mem rdata base src len} {word ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11810⟩
+    (h : RD fork safeBytecode I g s0 ⟨11810⟩
       (UInt256.ofNat base :: UInt256.ofNat src :: word :: ret :: R) mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
     (hw : WordArrayMemory mem (src + 32) words) (hn : words.length = (len + 31) / 32)
@@ -62,7 +64,7 @@ theorem safeWordBytesEncode (words : List UInt256)
     (ha : src + 32 + 32 * words.length ≤ base)
     (hb : base + 128 + 32 * words.length < UInt256.size)
     (hov : R.length + 19 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (base + 96 + 32 * words.length) :: R)
       (wordBytesArgsMemory mem base len word words) aw' rdata σ k' C' := by
   have hadd (n : Nat) (hh : base + n < UInt256.size) :

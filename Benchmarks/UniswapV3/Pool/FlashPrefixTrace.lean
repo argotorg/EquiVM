@@ -5,6 +5,8 @@ import Benchmarks.UniswapV3.Pool.Routines
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_022
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,9 +16,9 @@ set_option maxRecDepth 10000
 theorem flashLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k C)
     (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have rdLoad := evm_run rd with [
     raw jumpdest (by immutable_decode(immutableLayout, uniswapV3PoolBytecode, wordsOf (immStore v),
         (⟨6508⟩ : UInt256), (UInt8.ofNat 91), .JUMPDEST, none,
@@ -58,11 +60,11 @@ theorem flashLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem flashReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6440⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6440⟩ R mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
       (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k' C') := by
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k' C') := by
   have hfield : UInt256.land (UInt256.ofNat 255)
       (UInt256.div (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256)
         (fun ac ↦ ac.storage.getD (UInt256.ofNat 0) (⟨0⟩ : UInt256)))
@@ -79,10 +81,10 @@ theorem flashReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem flashLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6508⟩ R mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true) (hov : R.length + 4 ≤ 1024) :
     SourceState s0 ee (storeSlot0Unlocked evm false).accountMap (storeSlot0Unlocked evm false) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11248⟩ (⟨6529⟩ :: R) mem aw rdata
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11248⟩ (⟨6529⟩ :: R) mem aw rdata
         (storeSlot0Unlocked evm false).accountMap k' C' := by
   have hmap := storeSlot0Unlocked_accountMap evm false
   rw [slot0UnlockedWord_false, hs.env, ← hs.accounts] at hmap
@@ -101,11 +103,11 @@ theorem flashLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem flashReadLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6529⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6529⟩ R mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ (poolLiquidityWord σ ee).toNat = 0) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ (poolLiquidityWord σ ee).toNat = 0) ∨
       (0 < (poolLiquidityWord σ ee).toNat ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨6595⟩ (poolLiquidityWord σ ee :: R)
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨6595⟩ (poolLiquidityWord σ ee :: R)
           mem aw rdata σ k' C') := by
   have hfield : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))

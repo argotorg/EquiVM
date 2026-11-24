@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BurnAuthorization
 import Benchmarks.UniswapV4PoolManager.BalanceBurn
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 /-! Source composition of authorization and the ERC6909 balance burn. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,9 +28,9 @@ def burnFromFinalFrame (f : Frame) (evm : EVM.State) (sender id : UInt256) : Fra
 
 theorem burnFromTailExec {f : Frame} {evm : EVM.State} {sender id amount : UInt256}
     (h : BurnFromArgs f sender id amount) (hcs : sender.toNat < EVM.addressModulus) :
-    ExecFuncBody config f evm (burnFromFunction.body.drop 2)
+    ExecFuncBody fork config f evm (burnFromFunction.body.drop 2)
       (balanceBurnResult {f with locals := f.locals.insert "__c0" .unit} evm sender id amount) := by
-  have hcall := balanceBurnCall (evm := evm) h.contract_eq hcs (evalLocalValue h.from_get)
+  have hcall := balanceBurnCall (fork := fork) (evm := evm) h.contract_eq hcs (evalLocalValue h.from_get)
     (evalLocalValue h.id_get) (evalLocalValue h.amount_get) "__c0"
   have hbody := execFuncBody_singleton hcall
   simpa only [balanceBurnCallResult, finishBlockResult_ite, finishBlockResult_ok,
@@ -36,7 +38,7 @@ theorem burnFromTailExec {f : Frame} {evm : EVM.State} {sender id amount : UInt2
 
 theorem burnFromBodyExec {f : Frame} {evm : EVM.State} {sender id amount : UInt256}
     (h : BurnFromArgs f sender id amount) (hcs : sender.toNat < EVM.addressModulus) :
-    ExecFuncBody config f evm burnFromFunction.body
+    ExecFuncBody fork config f evm burnFromFunction.body
       (burnFromResult (burnFromFinalFrame f evm sender id) evm sender id amount) := by
   let f1 := {f with locals := f.locals.insert "sender" (.address evm.executionEnv.source)}
   have hargs : BurnFromArgs f1 sender id amount := by
@@ -46,9 +48,9 @@ theorem burnFromBodyExec {f : Frame} {evm : EVM.State} {sender id amount : UInt2
     · exact (store_get_ne _ _ (by decide : ("sender" == "amount") = false)).trans h.amount_get
     · exact (store_get_ne _ _ (by decide : ("sender" == "isOperator") = false)).trans h.operator_get
     · exact (store_get_ne _ _ (by decide : ("sender" == "allowance") = false)).trans h.allowance_get
-  have hlet : ExecStmt config f evm burnFromFunction.body[0]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm burnFromFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, envValue, pure])
-  have hauth := burnAuthExec (evm := evm) hargs hcs (store_get_self _ _ _)
+  have hauth := burnAuthExec (fork := fork) (evm := evm) hargs hcs (store_get_self _ _ _)
   rw [burnFromResult, burnFromFinalFrame]
   by_cases hneed : transferFromNeedsAllowance evm sender
   · simp only [if_pos hneed]
@@ -82,7 +84,7 @@ theorem burnFromCall {f : Frame} {evm : EVM.State} {sender id amount : UInt256} 
     (hs : evalExpr? config f evm es = .ok (.address (AccountAddress.ofNat sender.toNat)))
     (hi : evalExpr? config f evm ei = .ok (.int (Int.ofNat id.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "_burnFrom" [es, ei, ea] retVar)
+    ExecStmt fork config f evm (.internalCall "_burnFrom" [es, ei, ea] retVar)
       (burnFromCallResult f evm sender id amount retVar) := by
   let locals := (((∅ : Store).insert "amount" (.int (Int.ofNat amount.toNat))).insert "id" (.int (Int.ofNat id.toNat))).insert
     "from" (.address (AccountAddress.ofNat sender.toNat))
@@ -97,7 +99,7 @@ theorem burnFromCall {f : Frame} {evm : EVM.State} {sender id amount : UInt256} 
     · exact (store_get_ne _ _ (by decide : ("from" == "allowance") = false)).trans
         ((store_get_ne _ _ (by decide : ("id" == "allowance") = false)).trans
           ((store_get_ne _ _ (by decide : ("amount" == "allowance") = false)).trans (store_get_empty _)))
-  have hbody := burnFromBodyExec (evm := evm) hparams hcs
+  have hbody := burnFromBodyExec (fork := fork) (evm := evm) hparams hcs
   have hargs : evalExprs? config f evm [es, ei, ea] = .ok
       [.address (AccountAddress.ofNat sender.toNat), .int (Int.ofNat id.toNat), .int (Int.ofNat amount.toNat)] := by
     simp only [evalExprs?, hs, hi, ha, bind, EvalResult.bind, pure]

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.CollectProtocolBodyTrace
 import Benchmarks.UniswapV3.Pool.CollectProtocolCalldata
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `collectProtocol(address,uint128,uint128)`
 
@@ -22,7 +24,7 @@ theorem uniswapV3PoolCollectProtocolBody {σ σ₀ A I} {g : UInt256} (v : Unisw
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 15) rfl hsel
   have hd : dispatchMsg contract I.calldata = some collectProtocolTransition := by
     apply uniswapV3PoolDispatch_collectProtocol <;>
@@ -51,7 +53,7 @@ theorem uniswapV3PoolCollectProtocolBody {σ σ₀ A I} {g : UInt256} (v : Unisw
               (by unfold ActiveWords; constructor <;> decide) (by simp) with
             ⟨rdRevert, hfactory⟩ | ⟨out, σ', A', aw', _, _, hout, houtsize, ha', hfactory, rdOwner⟩
           · exact rdRevert.reEquivExecutionRevert hcode hd hdec
-              (collectProtocolFactoryReverts (hperm := by assumption) v evm recipient req0 req1 hwv hunlocked hfactory)
+              (collectProtocolFactoryReverts (fork := fork) (hperm := by assumption) v evm recipient req0 req1 hwv hunlocked hfactory)
           · let evm' : EVM.State := { (storeSlot0Unlocked evm false) with accountMap := σ', substate := A' }
             let owner := AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32))
             have henv' : evm'.executionEnv = I := storeSlot0Unlocked_executionEnv evm false
@@ -60,13 +62,13 @@ theorem uniswapV3PoolCollectProtocolBody {σ σ₀ A I} {g : UInt256} (v : Unisw
             rcases collectProtocolOwnerGuardX (v := v) rdOwner hout houtsize ha' (by simp) with
               ⟨rdRevert, howner⟩ | ⟨howner, awAuth, _, _, haAuth, rdAuthorized⟩
             · exact rdRevert.reEquivExecutionRevert hcode hd hdec
-                (collectProtocolRevertsOwner (hperm := by assumption) v evm evm' recipient req0 req1 owner _ hwv hunlocked hfactory
+                (collectProtocolRevertsOwner (fork := fork) (hperm := by assumption) v evm evm' recipient req0 req1 owner _ hwv hunlocked hfactory
                   (by simpa only [henv'] using howner))
             · have howner' : evm'.executionEnv.source = owner := by simpa only [henv'] using howner
               let amount0 := minWord req0 (protocolFeesWord false evm'.accountMap evm'.executionEnv)
               let amount1 := minWord req1 (protocolFeesWord true evm'.accountMap evm'.executionEnv)
               let locals := (collectProtocolAmountsFrame v recipient req0 req1 owner amount0 amount1).locals
-              have hprefix := collectProtocolOwnerAmountsPrefix (hperm := by assumption) v evm evm' recipient req0 req1 owner _
+              have hprefix := collectProtocolOwnerAmountsPrefix (fork := fork) (hperm := by assumption) v evm evm' recipient req0 req1 owner _
                 hwv hunlocked hfactory howner'
               have hvalues := collectProtocolAmounts_values v recipient req0 req1 owner amount0 amount1
               have hfit0 : amount0.toNat < 2 ^ 128 := minWord_lt _ _

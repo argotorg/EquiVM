@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.RepayAmountsSource
 import Benchmarks.CompoundIII.Comet.SupplyBaseTotalsSource
 import Benchmarks.CompoundIII.Comet.TupleLocalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -16,12 +18,12 @@ theorem absorbRepay_source (frame : Frame) (evm : State) (old next : UInt256)
     (hn : frame.locals.get? "newPrincipal" = some (.int (signed104 next)))
     (hST : frame.locals.get? "totalSupplyBase" = none)
     (hBT : frame.locals.get? "totalBorrowBase" = none) :
-    ExecBlock config frame evm absorbRepayBlock (absorbRepayResult frame evm old next) := by
+    ExecBlock fork config frame evm absorbRepayBlock (absorbRepayResult frame evm old next) := by
   have heo : evalExpr? config frame evm (.var "oldPrincipal") = .ok (.int (signed104 old)) := by
     simp only [evalExpr?, ho, EvalResult.ofOption]
   have hen : evalExpr? config frame evm (.var "newPrincipal") = .ok (.int (signed104 next)) := by
     simp only [evalExpr?, hn, EvalResult.ofOption]
-  have hr := repayAmounts_call frame evm old next _ _ "__c12" hc heo hen
+  have hr := repayAmounts_call (fork := fork) frame evm old next _ _ "__c12" hc heo hen
   by_cases hf : RepayAmountsFits old next
   · rw [if_pos hf] at hr
     let f : Frame := { frame with
@@ -30,7 +32,7 @@ theorem absorbRepay_source (frame : Frame) (evm : State) (old next : UInt256)
     have ht : f.locals.get? "__c12" = some
         (.tuple [.int (repayAmount old next).toNat, .int (supplyAmount old next).toNat]) := by
       simp only [f, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl
-    have hl := tuplePairLets_source config f evm "__c12" "repayAmount" "supplyAmount"
+    have hl := tuplePairLets_source (fork := fork) config f evm "__c12" "repayAmount" "supplyAmount"
       (some (.elem (.int (.uint ⟨104, by decide⟩))))
       (some (.elem (.int (.uint ⟨104, by decide⟩)))) _ _ (by decide) ht
     have hS : (absorbRepayFrame frame old next).locals.get? "supplyAmount" =
@@ -45,7 +47,7 @@ theorem absorbRepay_source (frame : Frame) (evm : State) (old next : UInt256)
     have hBT' : (absorbRepayFrame frame old next).locals.get? "totalBorrowBase" = none := by
       simpa only [absorbRepayFrame, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert] using hBT
-    have hb := supplyBaseTotals_source (absorbRepayFrame frame old next) evm
+    have hb := supplyBaseTotals_source (fork := fork) (absorbRepayFrame frame old next) evm
       (supplyAmount old next) (repayAmount old next) hc hS hB hST' hBT'
     rw [absorbRepayResult, if_pos hf]
     exact ExecBlock.consNormal hr (execBlock_append hl hb)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.RawCallBridge
 import Benchmarks.UniswapV4PoolManager.UnitResultTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -24,10 +26,10 @@ theorem currencyTransferMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
       P (currencyTransferCleanMemory (callOutputMem
         (twoWordCallMemory mem ptr.toNat transferSelectorWord (accountWord recipient) amount) out ⟨0⟩ ⟨32⟩) ptr))
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12792⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12792⟩
       (accountWord currency :: accountWord recipient :: amount :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm currencyTransferFunction.body result ∧
-      unitContinuationTraceWithMemory P (deployedRuntime v) I g s0 ret R result := by
+    ∃ result, ExecFuncBody fork config f evm currencyTransferFunction.body result ∧
+      unitContinuationTraceWithMemory fork P (deployedRuntime v) I g s0 ret R result := by
   have hclean := solcAddrMask_clean (accountWord_canonical currency)
   by_cases hn : currency = AccountAddress.ofNat 0
   · subst currency
@@ -40,9 +42,9 @@ theorem currencyTransferMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     by_cases hp : I.perm = true ∨ amount = ⟨0⟩
     · obtain ⟨evm', z, out, k3, C3, hcall, _, _, rd3, ho⟩ := rawCallBridge hI hσ0 hp rd2 hdecode
         (byteArray_readWithPadding_zero mem 0) (by decide) (by simp; omega)
-      have hcall' : callViaEVM evm recipient (Int.ofNat amount.toNat) .empty (z, evm', out) := by
+      have hcall' : callViaEVM fork evm recipient (Int.ofNat amount.toNat) .empty (z, evm', out) := by
         simpa only [accountWord, accountAddress_roundtrip] using hcall
-      obtain ⟨f', hb⟩ := currencyTransferNativeBody (hperm := by simpa only [hI, or_comm] using hp) hc ht ha hcall'
+      obtain ⟨f', hb⟩ := currencyTransferNativeBody (fork := fork) (hperm := by simpa only [hI, or_comm] using hp) hc ht ha hcall'
       cases z with
       | false =>
         have rd4 := poolManagerBlocks.poolManager_block_12835_taken (by simp; omega) (by decide)
@@ -63,7 +65,7 @@ theorem currencyTransferMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     have rd1 := poolManagerBlocks.poolManager_block_12792_taken (by simp; omega)
       (by change UInt256.land (accountWord currency) solcAddrMask ≠ ⟨0⟩; rw [hclean]; exact hnword)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ _ (accountWord currency :: UInt256.land (accountWord currency) solcAddrMask ::
+    change RD fork _ _ _ _ _ (accountWord currency :: UInt256.land (accountWord currency) solcAddrMask ::
       amount :: accountWord recipient :: ret :: R) _ _ _ _ _ _ at rd1
     rw [hclean] at rd1
     obtain ⟨aw2, k2, C2, rd2⟩ := poolManagerBlocks.poolManager_block_13034_packed (by simp; omega) rd1
@@ -75,13 +77,13 @@ theorem currencyTransferMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     simp only [poolManagerBlocks.poolManager_block_13034_stack, poolManagerBlocks.poolManager_block_13034_memory,
       hfree', h4, h36, htoClean] at rd2
     let requestMem := twoWordCallMemory mem ptr.toNat transferSelectorWord (accountWord recipient) amount
-    change RD _ _ _ _ ⟨13121⟩ (_ :: accountWord currency :: ⟨0⟩ :: ptr :: ⟨68⟩ :: ⟨0⟩ :: ⟨32⟩ ::
+    change RD fork _ _ _ _ ⟨13121⟩ (_ :: accountWord currency :: ⟨0⟩ :: ptr :: ⟨68⟩ :: ⟨0⟩ :: ⟨32⟩ ::
       ⟨64⟩ :: ⟨0⟩ :: ptr :: accountWord currency :: ret :: R) requestMem aw2 rdata evm.accountMap k2 C2 at rd2
     obtain ⟨evm', z, out, k3, C3, hcall, _, _, rd3, ho⟩ := rawCallBridge hI hσ0 (Or.inr rfl) rd2
       (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨13121⟩ : UInt256),
         UInt8.ofNat 241, .CALL, none, poolManagerBlocks.immutableLayout_inBounds, poolManagerBlocks.immutableTemplate_size64))
       (transferCallMemory_read _ _ _ _ hgap) (by rw [transferPayload_size]; decide) (by simp; omega)
-    have hcall' : callViaEVM evm currency 0 (transferPayload recipient amount) (z, evm', out) := by
+    have hcall' : callViaEVM fork evm currency 0 (transferPayload recipient amount) (z, evm', out) := by
       simpa only [accountWord, accountAddress_roundtrip] using hcall
     have ho256 := lt_trans ho (show 2^138 < UInt256.size from by decide)
     have hmsize : requestMem.size = max mem.size (ptr.toNat+68) := twoWordCallMemory_size _ _ _ _ _ hgap
@@ -112,10 +114,10 @@ theorem currencyTransferTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hfit : ptr.toNat+67 < UInt256.size) (hgap : ptr.toNat-mem.size < USize.size)
     (hfree : memLoad ⟨64⟩ mem = ptr) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12792⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12792⟩
       (accountWord currency :: accountWord recipient :: amount :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm currencyTransferFunction.body result ∧
-      unitContinuationTrace (deployedRuntime v) I g s0 ret R result := by
+    ∃ result, ExecFuncBody fork config f evm currencyTransferFunction.body result ∧
+      unitContinuationTrace fork (deployedRuntime v) I g s0 ret R result := by
   obtain ⟨result, hb, hr⟩ := currencyTransferMemoryTrace (fun _ => True) v hstack hI hσ0 hc ht ha
     trivial hfit hgap hfree (fun _ _ => trivial) hret h
   exact ⟨result, hb, unitContinuationTraceWithMemory_forget hr⟩

@@ -2,13 +2,15 @@ import Benchmarks.CurveVault.Dispatch
 import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.AllowanceAdjustInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
 theorem vaultIncreaseAllowanceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 16) rfl hsel
   have hd : dispatchMsg contract I.calldata = some increaseAllowanceTransition := by
     apply vaultDispatch_increaseAllowance
@@ -43,7 +45,7 @@ theorem vaultIncreaseAllowanceBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _; rw [hlocked]; decide +kernel)
       (by native_decide) rdLock
     have hrev := vaultBlocks.vault_block_8284 (by simp [vaultBlocks.vault_block_6024_taken_stack]) rdRevert
-    have hsource := vaultLockedBodyReverts evm locals (increaseAllowanceTransition.body.drop 2) hvalue
+    have hsource := vaultLockedBodyReverts (fork := fork) evm locals (increaseAllowanceTransition.body.drop 2) hvalue
       (by rw [hload]; exact hlocked)
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   have rdStart := vaultBlocks.vault_block_6024_fallthrough (by simp)
@@ -52,7 +54,7 @@ theorem vaultIncreaseAllowanceBodyCore {σ σ₀ A I} {g : UInt256}
   swap
   · have hp : I.perm = false := by simpa using hperm
     have hstatic := vaultAdjustStatic true hp (by simp [vaultBlocks.vault_block_6024_fallthrough_stack]) rdStart
-    have hsource := vaultMutatingBodyStatic evm locals (increaseAllowanceTransition.body.drop 3) hvalue
+    have hsource := vaultMutatingBodyStatic (fork := fork) evm locals (increaseAllowanceTransition.body.drop 3) hvalue
       (by rw [hload]; exact hlocked) hp
     exact hstatic.reEquivStaticHalt hcode hd hdec hsource
   let mem := spender.toByteArray.write 0 (vaultDispatchMemory ⟨961581905⟩) 192 32
@@ -82,6 +84,6 @@ theorem vaultIncreaseAllowanceBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultIncreaseAllowanceBodyCore hcode hsize hsel
 end Benchmarks.CurveVault

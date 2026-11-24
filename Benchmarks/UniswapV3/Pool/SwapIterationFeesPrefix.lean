@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationAccountedFrame
 import Benchmarks.UniswapV3.Pool.SwapFees
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -23,7 +25,7 @@ theorem swapIterationFeesPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p q cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3035⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3035⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hst : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -38,13 +40,13 @@ theorem swapIterationFeesPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hcl : 96 ≤ cache.toNat) (hcachep : cache.toNat + 192 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 64 ≤ 1024) :
-    (ExecBlock config frame evm (swapLoopBody.take 16) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapLoopBody.take 16)
+    (ExecBlock fork config frame evm (swapLoopBody.take 16) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapLoopBody.take 16)
         (.ok (swapIterationFeesFrame frame v a c s evm) evm) ∧
       (swapIterationFeesState v a c s evm).Fits ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3637⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3637⟩
           (q :: swapLoopWords a p (swapExactInput a).toUInt256 cache snap
             dataStart dataLength ret R)
           mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' (q + ⟨224⟩) ∧

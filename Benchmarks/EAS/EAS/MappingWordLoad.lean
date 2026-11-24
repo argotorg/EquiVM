@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Storage
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -20,8 +22,8 @@ theorem mappingWordLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {pc slot key : UInt256} {R : List UInt256}
     (hstack : R.length+3 ≤ 1024) (hwf : mappingWordLoadWf code pc slot)
-    (rd : RD code ee g s0 pc (key::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD code ee g s0 (pc+⟨15⟩) (solcSlotWord σ ee (solcMappingSlot slot key)::key::R)
+    (rd : RD fork code ee g s0 pc (key::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork code ee g s0 (pc+⟨15⟩) (solcSlotWord σ ee (solcMappingSlot slot key)::key::R)
       (twoWordHashMem key slot mem) aw' rdata σ k' C' := by
   obtain ⟨hd0,hd1,hd3,hd4,hd6,hd8,hd9,hd11,hd13,hd14⟩ := hwf
   have r1 := RD.dup1 rd hd0 (by omega)
@@ -35,7 +37,7 @@ theorem mappingWordLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
   have r9 := RD.genKeccak256 r8 (by simpa only [u256_add_assoc] using hd13) (by simp only [List.length_cons]; omega)
   have hk : keccakWord (⟨0⟩ : UInt256) ⟨64⟩ (twoWordHashMem key slot mem) = solcMappingSlot slot key :=
     twoWordHashMem_solcMappingSlot_any slot key mem
-  change RD code ee g s0 _ (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem key slot mem)::key::R)
+  change RD fork code ee g s0 _ (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem key slot mem)::key::R)
     (twoWordHashMem key slot mem) _ rdata σ _ _ at r9
   rw [hk] at r9
   obtain ⟨k',C',r10⟩ := RD.sload r9 (by simpa only [u256_add_assoc] using hd14) (by simp only [List.length_cons]; omega)

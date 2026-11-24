@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.SafeMulTrace
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_036
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,14 +15,14 @@ set_option maxRecDepth 2000
 
 theorem safeSignatureBoundsTrace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src} {executor ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7531⟩
+    (h : RD fork safeBytecode I g s0 ⟨7531⟩
       (executor :: p.hash :: UInt256.ofNat src :: p.required :: ret :: R) mem aw rdata σ k C)
     (hm : BytesMemory mem src p.signatures) (hn : p.signatures.size < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body .reverted) ∨
     ∃ aw' k' C', p.requiredBytes ≤ p.signatures.size ∧
-      RD safeBytecode I g s0 ⟨7553⟩
+      RD fork safeBytecode I g s0 ⟨7553⟩
         (⟨0⟩ :: UInt256.ofNat src :: p.hash :: ⟨0⟩ :: executor :: p.required :: ret :: R)
         mem aw' rdata σ k' C' := by
   have h₁ := safeRuntime_block_7531 (by simp; omega) (by jump_dest) h

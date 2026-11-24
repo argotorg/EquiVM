@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeLayout
 import Benchmarks.EAS.EAS.AttestationAlias
 import Benchmarks.EAS.EAS.RevokeStatic
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -24,10 +26,10 @@ theorem easRevokeStore_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {request idx word : UInt256} {R : List UInt256} (v : EASImmutables) (site : RevokeSite)
     (hstack : R.length+31 ≤ 1024) (hperm : ee.perm = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.writePC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.writePC
       (revokeWriteStack site.kind request idx (dbSlot word) site.schema (UInt256.ofNat site.revoker.val)
         (revokeGuardRest site ee R)) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨6501⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨6501⟩
       (dbSlot word::site.kind.copyReturnPC::revokeCopySaved site ee request idx word R) mem aw' rdata
       ((revokeTimeField word (easTimeWord ee)).accounts σ ee) k' C' := by
   cases hk : site.kind with
@@ -60,9 +62,9 @@ theorem easRevokeStore_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {request idx word : UInt256} {R : List UInt256} (v : EASImmutables) (site : RevokeSite)
     (hstack : R.length+31 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.writePC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.writePC
       (revokeWriteStack site.kind request idx (dbSlot word) site.schema (UInt256.ofNat site.revoker.val)
-        (revokeGuardRest site ee R)) mem aw rdata σ k C) : RDstatic (deployedRuntime v) g s0 := by
+        (revokeGuardRest site ee R)) mem aw rdata σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
   cases hk : site.kind with
   | single =>
     simp only [revokeWriteStack,revokeGuardRest,hk,List.cons_append,List.nil_append] at rd

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionPrefix
 import Benchmarks.UniswapV3.Pool.UpdatePositionInternal
 import Benchmarks.UniswapV3.Pool.UpdatePositionMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -34,7 +36,7 @@ macro "modify_position_updated_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; modify_position_prefix_get))
 
 theorem modifyPositionAssignKeySource (imms : Store) (a : ModifyPositionArgs) (evm evm' : EVM.State) :
-    ExecStmt config (modifyPositionUpdateFrame imms a evm) evm'
+    ExecStmt fork config (modifyPositionUpdateFrame imms a evm) evm'
       (.assign .localVar ⟨"position", []⟩ (.var "__c2"))
       (.ok (modifyPositionUpdatedFrame imms a evm) evm') := by
   exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get (by modify_position_updated_get))

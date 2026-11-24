@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionFeeModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -29,7 +31,7 @@ theorem evalUpdatePositionFeeExprs (v : UniswapV3PoolImmutables) (a : UpdatePosi
 
 theorem updatePositionFeeCallSource (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm : EVM.State) :
-    ExecStmt config (updatePositionChangedFrame v a evm) (updatePositionChangedState v a evm)
+    ExecStmt fork config (updatePositionChangedFrame v a evm) (updatePositionChangedState v a evm)
       (.internalCall "Tick_getFeeGrowthInside" updatePositionFeeExprs "__c7")
       (.ok (updatePositionFeeFrame v a evm) (updatePositionChangedState v a evm)) := by
   have hf : {updatePositionChangedFrame v a evm with
@@ -54,7 +56,7 @@ theorem updatePositionFeeCallSource (v : UniswapV3PoolImmutables) (a : UpdatePos
 
 theorem updatePositionFeeSource (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm : EVM.State) :
-    ExecBlock config (updatePositionChangedFrame v a evm) (updatePositionChangedState v a evm)
+    ExecBlock fork config (updatePositionChangedFrame v a evm) (updatePositionChangedState v a evm)
       updatePositionFeeBody (.ok (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)) := by
   refine ExecBlock.consNormal (updatePositionFeeCallSource v a evm) ?_
   refine ExecBlock.consNormal (stele' := updatePositionFee0Frame v a evm)

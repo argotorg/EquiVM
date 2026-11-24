@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickFeeModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -37,7 +39,7 @@ theorem tickFeeBind (a : TickFeeArgs) :
       some (tickFeeLocals a) := rfl
 
 theorem tickFeePrefix (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
-    ExecBlock config (tickFeeFrame imms a) evm (tickFeeFunction.body.take 6)
+    ExecBlock fork config (tickFeeFrame imms a) evm (tickFeeFunction.body.take 6)
       (.ok (tickFeeBelowZeroFrame imms a) evm) := by
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_

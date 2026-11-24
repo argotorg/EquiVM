@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.AllocationTrace
 import Benchmarks.UniswapV4PoolManager.PoolKeyEncodeGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,9 +20,9 @@ theorem beforeInitializeEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+291 ≤ solcMaxU64)
     (haw : aw.toNat ≤ 2048) (hs : free.toNat ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4847⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4847⟩
       (hook :: a :: b :: c :: d :: keyPtr :: price :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', aw'.toNat ≤ 2048 ∧ RD (deployedRuntime v) I g s0 ⟨16165⟩
+    ∃ aw' k' C', aw'.toNat ≤ 2048 ∧ RD fork (deployedRuntime v) I g s0 ⟨16165⟩
       (hook :: free :: ⟨5008⟩ :: a :: b :: c :: d :: keyPtr :: price :: R)
       (beforeInitializeMemory mem free I.source key price) aw' rdata σ k' C' := by
   have hfit : free.toNat+291 < UInt256.size := lt_of_le_of_lt hf (by decide)

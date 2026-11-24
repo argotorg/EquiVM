@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapCallerCorrect
 import Benchmarks.UniswapV4PoolManager.TickPriceSelectSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,11 +17,11 @@ theorem swapAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hd : f.locals.get? "swapDelta" = some (.int (EVM.signed delta)))
     (hh : f.locals.get? "hookDelta" = some (.int (EVM.signed hookDelta)))
     (hkey : PoolKeyView mem keyPtr key) (hkl : 64 ≤ keyPtr.toNat)
-    (h : RD (deployedRuntime v) I g s0 ⟨1935⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1935⟩
       ([hookDelta, delta, keyPtr, ⟨1954⟩, keyPtr+UInt256.ofNat 128, UInt256.ofNat 32, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecBlock config f evm (swapTransition.body.drop 29) result ∧
-      abiResultTrace swapTransition.returnType (deployedRuntime v) g s0 result := by
+    ∃ result, ExecBlock fork config f evm (swapTransition.body.drop 29) result ∧
+      abiResultTrace fork swapTransition.returnType (deployedRuntime v) g s0 result := by
   have hcond := evalNeSignedWords (cfg := config) (evm := evm) (evalLocalValue hh)
     (show evalExpr? config f evm (.intLit 0) = .ok (.int (EVM.signed (⟨0⟩ : UInt256))) by
       simp only [evalExpr?, pure]; rfl)
@@ -27,7 +29,7 @@ theorem swapAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   · have rd := poolManagerBlocks.poolManager_block_1935_fallthrough
       (R := [UInt256.ofNat 32, junk] ++ R)
       (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hz h
-    have hs : ExecStmt config f evm swapTransition.body[29]! (.ok f evm) :=
+    have hs : ExecStmt fork config f evm swapTransition.body[29]! (.ok f evm) :=
       ExecStmt.iteFalse (by simpa only [hz, ne_eq, not_true_eq_false, decide_false] using hcond) ExecBlock.nil
     obtain ⟨result, hbody, ht⟩ := swapCallerCorrect v (by omega) hI hf hk hd hkey hkl rd
     exact ⟨result, ExecBlock.consNormal hs hbody, ht⟩
@@ -40,7 +42,7 @@ theorem swapAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
     let hook := AccountAddress.ofNat key.hooks.toNat
-    change RD (deployedRuntime v) I g s0 ⟨13906⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨13906⟩
       ([keyPtr, hookDelta, UInt256.land (memLoad (keyPtr+UInt256.ofNat 128) mem) solcAddrMask,
         ⟨1996⟩, keyPtr, ⟨1954⟩, delta, UInt256.ofNat 32, junk] ++ R) _ _ _ _ _ _ at rd2
     rw [hkey.load (i := 4) rfl, ← accountWord_fromId] at rd2
@@ -49,9 +51,9 @@ theorem swapAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hI hkey hkl
       (by rw [deployedRuntime_jumps]; jump_dest) rd2
     have hkexpr := evalLocalValue (cfg := config) (evm := evm) hk
-    have hcall := accountPoolCall hf hkexpr (evalLocalValue hh)
+    have hcall := accountPoolCall (fork := fork) hf hkexpr (evalLocalValue hh)
       (evalStructField hkexpr (field := "hooks") rfl) "ignored"
-    have hs : ExecStmt config f evm swapTransition.body[29]!
+    have hs : ExecStmt fork config f evm swapTransition.body[29]!
         (resumeCallResult f "ignored" (accountPoolResult (accountPoolCalleeFrame f key hookDelta hook) evm key hookDelta hook)) :=
       ExecStmt.iteTrue (by simpa only [decide_eq_true hz] using hcond) (execBlock_singleton hcall)
     generalize hx : resumeCallResult f "ignored"

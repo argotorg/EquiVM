@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Jug.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor Stele source semantics
 -/
@@ -118,7 +120,7 @@ theorem jugCtorBodySuccess
       (Sat256.ofUInt256 g) A I
     let evm1 := jugCtorAfterWardsState evm0
     let evm2 := jugCtorAfterVatState evm1 vat
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm2) := by
   intro locals evm0 evm1 evm2
   have hassignWards :
@@ -136,8 +138,8 @@ theorem jugCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, jugCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, jugCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ExecBlock.nil
   · simpa [locals] using evalExpr_jugCtorLocalVat (evm := evm1) vat
 
 theorem jugSteleCtorExecSuccess
@@ -145,7 +147,7 @@ theorem jugSteleCtorExecSuccess
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I
       (.returned { contract := contract, locals := jugCtorLocals vat }
         (jugCtorAfterVatState
           (jugCtorAfterWardsState
@@ -162,14 +164,14 @@ theorem jugSteleCtorExecSuccess
   · simp [jugCtorLocals, contract, constructorDecl]
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (jugCtorBodySuccess (hperm := hperm)
+        (jugCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem jugSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

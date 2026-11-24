@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SenderAuthorizedSource
 import Benchmarks.Morpho.MorphoBlue.AccrueMemoryAdvance
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,8 +19,8 @@ theorem morphoSenderAuthorized {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13096) (account :: ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (senderAuthorizedWord σ ee account :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13096) (account :: ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (senderAuthorizedWord σ ee account :: R)
       (senderAuthorizedMem ee account mem) aw' out σ k' C' := by
   have hm : UInt256.land (UInt256.ofNat 1461501637330902918203684832716283019655932542975) account = account := by
     rw [u256_land_comm]
@@ -48,7 +50,7 @@ theorem morphoSenderAuthorized {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem account (UInt256.ofNat 6) mem) = solcMappingSlot (UInt256.ofNat 6) account :=
       twoWordHashMem_solcMappingSlot_any _ _ _
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem (solcSourceWord ee) (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
           (twoWordHashMem account (UInt256.ofNat 6) mem)) (twoWordHashMem account (UInt256.ofNat 6) mem)))

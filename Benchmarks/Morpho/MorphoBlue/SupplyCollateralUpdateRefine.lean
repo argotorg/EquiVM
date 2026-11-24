@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCollateralSourceStart
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralUpdateReach
 import Benchmarks.Morpho.MorphoBlue.StateBlock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -22,7 +24,7 @@ theorem morphoSupplyCollateralAssign (p : MarketParamsWords) (assets account : U
     (ha : account.toNat < EVM.addressModulus)
     (hi : locals.get? "__c1" = some (.int (Int.ofNat assets.toNat)))
     (hf : (positionFieldWord evm.accountMap evm.executionEnv p.id account 2).toNat + assets.toNat < 2 ^ 128) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       supplyCollateralTransition.body[8]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms }
         (storePositionPacked evm p.id account true (positionFieldWord evm.accountMap evm.executionEnv p.id account 2 + assets)) else .staticViolation) := by
@@ -41,38 +43,38 @@ theorem morphoSupplyCollateralAssignReverts (p : MarketParamsWords) (assets acco
     (ha : account.toNat < EVM.addressModulus)
     (hi : locals.get? "__c1" = some (.int (Int.ofNat assets.toNat)))
     (hf : 2 ^ 128 ≤ (positionFieldWord evm.accountMap evm.executionEnv p.id account 2).toNat + assets.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       supplyCollateralTransition.body[8]! .reverted := by
   have he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm (.var "__c1") =
       .ok (.int (Int.ofNat assets.toNat)) := by simp only [evalExpr?, hi, EvalResult.ofOption]
   exact ExecStmt.assignExprRevert (evalCheckedUint128AddReverts (hl.evalCollateral imms evm ha) he hf)
 
-inductive SupplyCollateralUpdateRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive SupplyCollateralUpdateRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets account srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
-      (supplyCollateralTransition.body.drop 7) .reverted → RDrev (deployedRuntime v) g s0 →
-      SupplyCollateralUpdateRefines v ee g s0 p assets account srcOff len data locals imms evm R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
-      (supplyCollateralTransition.body.drop 7) .staticViolation → RDstatic (deployedRuntime v) g s0 →
-      SupplyCollateralUpdateRefines v ee g s0 p assets account srcOff len data locals imms evm R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
+      (supplyCollateralTransition.body.drop 7) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      SupplyCollateralUpdateRefines fork v ee g s0 p assets account srcOff len data locals imms evm R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
+      (supplyCollateralTransition.body.drop 7) .staticViolation → RDstatic fork (deployedRuntime v) g s0 →
+      SupplyCollateralUpdateRefines fork v ee g s0 p assets account srcOff len data locals imms evm R
   | ok {evm' σ' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
         (supplyCollateralTransition.body.drop 7)
         { contract := contract, locals := locals.insert "__c1" (.int (Int.ofNat assets.toNat)), immutables := imms } evm'
         (supplyCollateralTransition.body.drop 9) → SourceState s0 ee σ' evm' → ee.perm = true →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10235)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10235)
         (supplyCollateralUpdateTail p.id assets account srcOff len R) (supplyCollateralPositionMem p account) aw' out' σ' k' C' →
-      SupplyCollateralUpdateRefines v ee g s0 p assets account srcOff len data locals imms evm R
+      SupplyCollateralUpdateRefines fork v ee g s0 p assets account srcOff len data locals imms evm R
 
 theorem morphoSupplyCollateralUpdateRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {aw assets account srcOff len : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (p : MarketParamsWords) (data : ByteArray) (locals imms : Store)
     (hstack : R.length + 28 ≤ 1024) (ha : account.toNat < EVM.addressModulus)
     (hl : SupplyCollateralLocals p assets account data locals) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
       (supplyCollateralUpdateTail p.id assets account srcOff len R) (supplyCollateralGuardMem p) aw out σ k C) :
-    SupplyCollateralUpdateRefines v ee g s0 p assets account srcOff len data locals imms evm R := by
+    SupplyCollateralUpdateRefines fork v ee g s0 p assets account srcOff len data locals imms evm R := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoSupplyCollateralReachCast p hstack h
   have hm := createMarketHeap_morpho (supplyCollateralGuardHeap p).1 (by decide) 64 (by decide) (lt_usize _ (by decide))
   by_cases hc : assets.toNat < 2 ^ 128
@@ -82,10 +84,10 @@ theorem morphoSupplyCollateralUpdateRefine {v : MorphoImmutables} {ee : Executio
       (morphoToUint128Reverts (v := v) (by change R.length + 9 + 16 ≤ 1024; omega)
         (hm.alloc64Guard (by decide)) hm.size (by rw [hm.free]; exact hm.lower)
         hm.errorGap hm.errorHi (Nat.le_of_not_gt hc) rd1)
-  have hn := morphoToUint128CallOk assets evm locals imms (.var "assets") "__c1" (hl.evalAssets imms evm) hc
+  have hn := morphoToUint128CallOk (fork := fork) assets evm locals imms (.var "assets") "__c1" (hl.evalAssets imms evm) hc
   let l1 := locals.insert "__c1" (.int (Int.ofNat assets.toNat))
   have hl1 : SupplyCollateralLocals p assets account data l1 := hl.insert "__c1" _ (by decide) (by decide)
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (supplyCollateralTransition.body.drop 7) { contract := contract, locals := l1, immutables := imms } evm
       (supplyCollateralTransition.body.drop 8) := StateBlock.start.step hn
   obtain ⟨a2, k2, C2, rd2⟩ := morphoToUint128Ok (v := v) (by change R.length + 9 + 16 ≤ 1024; omega)
@@ -99,7 +101,7 @@ theorem morphoSupplyCollateralUpdateRefine {v : MorphoImmutables} {ee : Executio
       simpa only [hs.env, ← hs.accounts] using Nat.le_of_not_gt hf
     · exact morphoCheckedAdd128Reverts (v := v) (a := positionFieldWord σ ee p.id account 2) (by change R.length + 10 + 6 ≤ 1024; omega)
         (by change (halfWord true _).toNat < 2 ^ 128; exact halfWord_bound _ _) hc (Nat.le_of_not_gt hf) rd3
-  have hass := morphoSupplyCollateralAssign p assets account data l1 imms evm hl1 ha (store_get_self _ _ _)
+  have hass := morphoSupplyCollateralAssign (fork := fork) p assets account data l1 imms evm hl1 ha (store_get_self _ _ _)
     (by simpa only [hs.env, ← hs.accounts] using hf)
   obtain ⟨k4, C4, rd4⟩ := morphoCheckedAdd128Ok (v := v) (a := positionFieldWord σ ee p.id account 2) (by change R.length + 10 + 6 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumps v]; jump_dest) (by change (halfWord true _).toNat < 2 ^ 128; exact halfWord_bound _ _) hc hf rd3

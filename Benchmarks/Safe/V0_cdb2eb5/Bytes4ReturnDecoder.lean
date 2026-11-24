@@ -4,6 +4,8 @@ import Reasoning.ABIViews
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_031
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -123,10 +125,10 @@ theorem decodeBytes4ReturnShort {out : ByteArray} (hl : out.size < 32) :
 
 theorem safeBytes4DecoderHead {I g s0 σ k C aw mem rdata} {start ret : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11600⟩
+    (h : RD fork safeBytecode I g s0 ⟨11600⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨11616⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨11616⟩
       (⟨0⟩ :: start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k' C' := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨0⟩ := by
     apply slt_lit_zero (by decide)
@@ -137,9 +139,9 @@ theorem safeBytes4DecoderHead {I g s0 σ k C aw mem rdata} {start ret : UInt256}
 
 theorem safeBytes4DecoderShort {I g s0 σ k C aw mem rdata} {start ret : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11600⟩
+    (h : RD fork safeBytecode I g s0 ⟨11600⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev fork safeBytecode g s0 := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨1⟩ := by
     apply slt_lit_one_low (by decide)
     rw [ulit_toNat' len (by change len < 2 ^ 256; omega)]; exact hl
@@ -149,12 +151,12 @@ theorem safeBytes4DecoderShort {I g s0 σ k C aw mem rdata} {start ret : UInt256
 
 theorem safeBytes4DecoderValid {I g s0 σ k C aw mem rdata} {start ret word : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11600⟩
+    (h : RD fork safeBytecode I g s0 ⟨11600⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255)
     (hm : memLoad start mem = word) (hw : word = UInt256.land word bytes4Mask)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (word :: R) mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (word :: R) mem aw' rdata σ k' C' := by
   obtain ⟨_, _, hd⟩ := safeBytes4DecoderHead h (by omega) hl hb
   have hr := safeRuntime_block_11616_taken (by simp; omega)
     (by rw [hm]; change UInt256.eq word (UInt256.land word bytes4Mask) ≠ ⟨0⟩
@@ -165,11 +167,11 @@ theorem safeBytes4DecoderValid {I g s0 σ k C aw mem rdata} {start ret word : UI
 
 theorem safeBytes4DecoderNoncanon {I g s0 σ k C aw mem rdata} {start ret word : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11600⟩
+    (h : RD fork safeBytecode I g s0 ⟨11600⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255)
     (hm : memLoad start mem = word) (hw : word ≠ UInt256.land word bytes4Mask) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, hd⟩ := safeBytes4DecoderHead h (by omega) hl hb
   have hr := safeRuntime_block_11616_fallthrough (by simp; omega)
     (by

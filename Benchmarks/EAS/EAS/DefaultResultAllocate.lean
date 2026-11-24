@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.WordSequence
 import Benchmarks.EAS.EAS.RuntimeBlocks_027
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,10 +16,10 @@ theorem easDefaultResultAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+7 ≤ 1024)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7214⟩ (ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7214⟩ (ret::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat 64 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 64 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R) (defaultResultMemory mem heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R) (defaultResultMemory mem heap) aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_7214_packed (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_7214_stack,hheap] at r1

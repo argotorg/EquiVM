@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationBitmapSource
 import Benchmarks.UniswapV3.Pool.SwapIterationStartTrace
 import Benchmarks.UniswapV3.Pool.HashMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem swapIterationPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3035⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3035⟩
       (swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hst : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hi : frame.immutables = immStore v)
@@ -21,14 +23,14 @@ theorem swapIterationPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw q) (hs : SwapStateMemory mem p s) (hfit : s.Fits)
     (hpl : 96 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 34 ≤ 1024) :
-    (ExecBlock config frame evm (swapLoopBody.take 3) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapLoopBody.take 3)
+    (ExecBlock fork config frame evm (swapLoopBody.take 3) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapLoopBody.take 3)
         (.ok (swapIterationBitmapFrame frame v a s evm) evm) ∧
       UInt256.signextend (UInt256.ofNat 2) (swapIterationRawNext v a s evm) =
         EVM.wordOfInt (swapIterationNextTick v a s evm) ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3109⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3109⟩
           ([bitmapNextFlag (swapIterationMask v a s evm), swapIterationRawNext v a s evm, q] ++
             swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
           mem' aw' rdata σ k' C' ∧
@@ -62,14 +64,14 @@ theorem swapIterationPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (Int.ofNat (wordsOf (immStore v) "tickSpacing").toNat) = positionTick v.tickSpacing := by
     rw [wordsOf_immStore_tickSpacing, wordOfInt_ofNat_toNat]
     rfl
-  have rb' : RD (deployedRuntime v) ee g s0 ⟨11307⟩
+  have rb' : RD fork (deployedRuntime v) ee g s0 ⟨11307⟩
       ((if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: wordsOf (immStore v) "tickSpacing" ::
         EVM.wordOfInt s.tick :: ⟨6⟩ :: ⟨3109⟩ :: q ::
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       (writeWord (wordArrayAllocMem mem q swapIterationZeroWords) q.toNat s.price)
       ab rdata σ kb Cb := by
     simpa only [Bool.toUInt256] using rb
-  have hinit := swapIterationInitSource (evm := evm) s hstate
+  have hinit := swapIterationInitSource (fork := fork) (evm := evm) s hstate
   have hbody : swapLoopBody.take 3 = swapLoopBody.take 2 ++
       [.internalCall "TickBitmap_nextInitializedTickWithinOneWord"
         swapIterationBitmapArgs "__c2"] := rfl

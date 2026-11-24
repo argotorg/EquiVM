@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Dispatch
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `balanceOf(address,uint256)`
 
@@ -25,7 +27,7 @@ theorem balanceOfBodyReturns (evm : EVM.State) (locals imms : Store) (w id : UIn
     (harg0 : locals.get? "arg0" = some (.address (AccountAddress.ofNat w.toNat)))
     (harg1 : locals.get? "arg1" = some (.int (Int.ofNat id.toNat)))
     (hbase : locals.get? "balanceOf" = none) :
-    ExecTransitionBody config contract evm locals balanceOfTransition.body
+    ExecTransitionBody fork config contract evm locals balanceOfTransition.body
       (.returned (calldataFrame contract locals imms evm) evm
         (some [.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -44,14 +46,14 @@ theorem balanceOfTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {w : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 5 ≤ 1024) (hcanon : w.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨11556⟩ (w :: solcAddrMask :: ⟨160⟩ :: ⟨32⟩ :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11556⟩ (w :: solcAddrMask :: ⟨160⟩ :: ⟨32⟩ :: R)
       entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (solcSlotWordAt (mappingSlotWord (calldataWord I.calldata 36) (mappingSlotWord w ⟨4⟩)) σ I).toByteArray := by
   have hret := poolManagerBlocks.poolManager_block_11556 hstack h
   let m1 := twoWordHashMem (UInt256.land w solcAddrMask) ⟨4⟩ entryMemory
   let m2 := twoWordHashMem (calldataWord I.calldata 36) (keccakWord ⟨0⟩ ⟨64⟩ m1) m1
-  change RDret (deployedRuntime v) g s0 σ
+  change RDret fork (deployedRuntime v) g s0 σ
     (((solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ m2) σ I).toByteArray.write 0 m2 160 32).readWithPadding 160 32) at hret
   have hs1 : m1.size = 96 := twoWordHashMem_size_96 _ _ entryMemory_size
   have hs2 : m2.size = 96 := twoWordHashMem_size_96 _ _ hs1
@@ -64,17 +66,17 @@ theorem balanceOfTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (solcSlotWordAt (mappingSlotWord (calldataWord I.calldata 36) (mappingSlotWord w ⟨4⟩)) σ I).toByteArray := by
     rw [returnWordAt160 hs2]
     exact congrArg (fun slot => (solcSlotWordAt slot σ I).toByteArray) hslot2
-  exact (congrArg (fun bytes => RDret (deployedRuntime v) g s0 σ bytes) hout).mp hret
+  exact (congrArg (fun bytes => RDret fork (deployedRuntime v) g s0 σ bytes) hout).mp hret
 
 theorem poolManagerBalanceOfBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 0) rfl hsel
   have hd : dispatchMsg contract I.calldata = some balanceOfTransition := poolManagerDispatch_balanceOf hsel
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachBalanceOfBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachBalanceOfBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨11477⟩ [⟨160⟩, solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
@@ -104,7 +106,7 @@ theorem poolManagerBalanceOfBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManag
           have hbase : args.get? "balanceOf" = none :=
             (store_get_ne _ _ (by decide : ("arg1" == "balanceOf") = false)).trans
               ((store_get_ne _ _ (by decide : ("arg0" == "balanceOf") = false)).trans (store_get_empty _))
-          have hbody := balanceOfBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
+          have hbody := balanceOfBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
             (immStore v) (calldataWord I.calldata 4) (calldataWord I.calldata 36) hwv hhi hcanon
             harg0 (store_get_self _ _ _) hbase
           exact hret.reEquivExecution hcode hd hdec hbody (returnEquiv_of_encode (uint256ReturnEncoding _))
@@ -130,7 +132,7 @@ theorem poolManagerBalanceOfBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerIm
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerBalanceOfBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

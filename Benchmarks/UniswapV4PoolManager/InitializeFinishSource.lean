@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.InitializeHookCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,14 +23,14 @@ theorem initializeFinishSource {f : Frame} {evm evm' : EVM.State} {key : PoolKey
     (hp : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)))
     (ht : f.locals.get? "tick" = some (.int (EVM.signed tick)))
     (hcall : hookEnabled evm.executionEnv.source (AccountAddress.ofNat key.hooks.toNat) ⟨4096⟩ →
-      callViaEVM evm (AccountAddress.ofNat key.hooks.toNat) 0
+      callViaEVM fork evm (AccountAddress.ofNat key.hooks.toNat) 0
         (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out)) :
-    ExecFuncBody config f evm (initializeTransition.body.drop 18)
+    ExecFuncBody fork config f evm (initializeTransition.body.drop 18)
       (initializeFinishResult f evm evm' key price tick z out) := by
   have hkey := evalLocalValue (cfg := config) (evm := evm) hk
   have hs := afterInitializeCall hf (evalStructField hkey (field := "hooks") rfl)
     hkey (evalLocalValue hp) (evalLocalValue ht) hc hprice htick hcall "__c6"
-  have hreturn (state : EVM.State) : ExecFuncBody config
+  have hreturn (state : EVM.State) : ExecFuncBody fork config
       {f with locals := f.locals.insert "__c6" .unit} state (initializeTransition.body.drop 19)
       (.returned {f with locals := f.locals.insert "__c6" .unit} state (some [.int (EVM.signed tick)])) :=
     .execBlockRet (ABlock.start.returns (evalLocalValue
@@ -47,7 +49,7 @@ theorem initializeEmitSource {f : Frame} {evm : EVM.State} {key : PoolKeyWords} 
     (ht : f.locals.get? "tick" = some (.int (EVM.signed tick)))
     (hi : f.locals.get? "id" = some (wordBytes32Value id))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config f evm initializeTransition.body[17]! (.ok f evm) := by
+    ExecStmt fork config f evm initializeTransition.body[17]! (.ok f evm) := by
   have hkey := evalLocalValue (cfg := config) (evm := evm) hk
   apply ExecStmt.emit (hperm := hperm) (vals := [wordBytes32Value id,
     .address (AccountAddress.ofNat key.currency0.toNat), .address (AccountAddress.ofNat key.currency1.toNat),
@@ -73,10 +75,10 @@ theorem initializeAfterPoolSource {f : Frame} {evm evm' : EVM.State} {key : Pool
     (ht : f.locals.get? "__c5" = some (.int (EVM.signed tick)))
     (hi : f.locals.get? "id" = some (wordBytes32Value id)) (hold : f.locals.get? "tick" = some old)
     (hcall : hookEnabled evm.executionEnv.source (AccountAddress.ofNat key.hooks.toNat) ⟨4096⟩ →
-      callViaEVM evm (AccountAddress.ofNat key.hooks.toNat) 0
+      callViaEVM fork evm (AccountAddress.ofNat key.hooks.toNat) 0
         (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config f evm (initializeTransition.body.drop 16)
+    ExecFuncBody fork config f evm (initializeTransition.body.drop 16)
       (initializeFinishResult {f with locals := f.locals.insert "tick" (.int (EVM.signed tick))}
         evm evm' key price tick z out) := by
   let f1 : Frame := {f with locals := f.locals.insert "tick" (.int (EVM.signed tick))}
@@ -87,9 +89,9 @@ theorem initializeAfterPoolSource {f : Frame} {evm evm' : EVM.State} {key : Pool
   have hi1 : f1.locals.get? "id" = some (wordBytes32Value id) :=
     (store_get_ne _ _ (by decide : ("tick" == "id") = false)).trans hi
   have ht1 : f1.locals.get? "tick" = some (.int (EVM.signed tick)) := store_get_self _ _ _
-  have hs : ExecBlock config f evm ((initializeTransition.body.drop 16).take 2) (.ok f1 evm) :=
-    ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalLocalValue ht) (assignLocalValue hold))
-      (ExecBlock.consNormal (initializeEmitSource (hperm := by assumption) hk1 hp1 ht1 hi1) ExecBlock.nil)
+  have hs : ExecBlock fork config f evm ((initializeTransition.body.drop 16).take 2) (.ok f1 evm) :=
+    ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalLocalValue ht) (assignLocalValue hold))
+      (ExecBlock.consNormal (initializeEmitSource (fork := fork) (hperm := by assumption) hk1 hp1 ht1 hi1) ExecBlock.nil)
   exact execFuncBody_prepend hs (initializeFinishSource hf hc hprice htick hk1 hp1 ht1 hcall)
 
 end Benchmarks.UniswapV4PoolManager

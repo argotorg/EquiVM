@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ArithmeticSource
 import Benchmarks.CompoundIII.Comet.CheckedDivEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -52,7 +54,7 @@ def mulPriceEntry (imms : Store) (n p scale : UInt256) : Frame :=
       |>.insert "n" (.int n.toNat) }
 
 theorem mulPrice_source (evm : EVM.State) (imms : Store) (n p scale : UInt256) :
-    ExecFuncBody config (mulPriceEntry imms n p scale) evm mulPriceCallable.body
+    ExecFuncBody fork config (mulPriceEntry imms n p scale) evm mulPriceCallable.body
       (if MulPriceValid n p scale then .returned (mulPriceEntry imms n p scale) evm
         (some [.int (mulPriceWord n p scale).toNat]) else .reverted) := by
   let frame := mulPriceEntry imms n p scale
@@ -83,11 +85,11 @@ theorem mulPrice_call (frame : Frame) (evm : EVM.State) (n p scale : UInt256)
     (hn : evalExpr? config frame evm nExpr = .ok (.int n.toNat))
     (hp : evalExpr? config frame evm pExpr = .ok (.int p.toNat))
     (hs : evalExpr? config frame evm scaleExpr = .ok (.int scale.toNat)) :
-    ExecStmt config frame evm (.internalCall "mulPrice" [nExpr, pExpr, scaleExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "mulPrice" [nExpr, pExpr, scaleExpr] ret)
       (if MulPriceValid n p scale then .ok { frame with
         locals := frame.locals.insert ret (.int (mulPriceWord n p scale).toNat) } evm
       else .reverted) := by
-  have hb := mulPrice_source evm frame.immutables n p scale
+  have hb := mulPrice_source (fork := fork) evm frame.immutables n p scale
   by_cases hv : MulPriceValid n p scale
   · rw [if_pos hv] at hb ⊢
     exact ExecStmt.internalCallReturn (cfg := config) (stele := frame) (evm := evm)
@@ -107,12 +109,12 @@ theorem cometMulPrice {v : CometWithExtendedAssetListImmutables}
     {aw n p scale ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hs : scale.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11194⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11194⟩
       (n :: p :: scale :: ret :: R) mem aw rdata σ k C) :
     if MulPriceValid n p scale then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (mulPriceWord n p scale :: R)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (mulPriceWord n p scale :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_11194 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

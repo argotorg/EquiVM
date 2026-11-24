@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -35,12 +37,12 @@ theorem safeEthSignMemory {mem : ByteArray} {ptr : Nat} {hash : UInt256}
 
 theorem safeEthSignPrepare {I g s0 σ k C aw mem rdata ptr}
     {s r v last src hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8539⟩ (r :: s :: v :: last :: src :: hash :: R)
+    (h : RD fork safeBytecode I g s0 ⟨8539⟩ (r :: s :: v :: last :: src :: hash :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 96 ≤ ptr)
     (hb : ptr + 96 < UInt256.size) (hv : 4 ≤ v.toNat) (hov : R.length + 17 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8619⟩
+    RDrev fork safeBytecode g s0 ∨
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8619⟩
       (UInt256.sub v ⟨4⟩ :: r :: s :: ethSignWord hash :: last :: src :: hash :: R)
       (ethSignMemory mem ptr hash) aw' rdata σ k' C' ∧ ptr + 96 < 2 ^ 64 := by
   have hadd (j : Nat) (hj : j ≤ 96) :
@@ -76,7 +78,7 @@ theorem safeEthSignPrepare {I g s0 σ k C aw mem rdata ptr}
     (by jump_dest) h₂
   simp only [safeRuntime_block_7157_memory, safeRuntime_block_7157_stack] at h₃
   rw [hr, hadd 96 (by decide)] at h₃
-  change RD safeBytecode I g s0 ⟨8602⟩
+  change RD fork safeBytecode I g s0 ⟨8602⟩
     (UInt256.ofNat ptr :: UInt256.ofNat (ptr + 32) :: r :: s :: v :: last :: src :: hash :: R)
     (ethSignMemory mem ptr hash) aw₃ rdata σ k₃ C₃ at h₃
   have hvword : UInt256.ofNat v.toNat = v := by

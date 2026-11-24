@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationMemory
 import Benchmarks.UniswapV3.Pool.SwapIterationStartTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem swapIterationBitmapStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     {s0 : EVM.State} {k C : Nat} {aw p free tickRaw hitRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (d : SwapIterationData) (tick : Int) (hit : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3109⟩ (hitRaw :: tickRaw :: p :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3109⟩ (hitRaw :: tickRaw :: p :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem p d)
     (ht : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
@@ -19,7 +21,7 @@ theorem swapIterationBitmapStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     (htb : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hp : 96 ≤ p.toNat) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 5 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if tick < -887272 then ⟨3144⟩ else ⟨3158⟩)
+      RD fork (deployedRuntime v) ee g s0 (if tick < -887272 then ⟨3144⟩ else ⟨3158⟩)
         (p :: R) (swapIterationBitmapMem mem p tick hit) aw' rdata σ k' C' ∧
       HeapMemory (swapIterationBitmapMem mem p tick hit) aw' free ∧
       SwapIterationMemory (swapIterationBitmapMem mem p tick hit) p
@@ -36,7 +38,7 @@ theorem swapIterationBitmapStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     rw [ht, hc, hc,
       show UInt256.lnot (UInt256.ofNat 887271) = EVM.wordOfInt (-887272) by decide +kernel]
     exact slt_wordOfInt _ _ (by omega) (by omega) (by decide) (by decide)
-  have rout : RD (deployedRuntime v) ee g s0
+  have rout : RD fork (deployedRuntime v) ee g s0
       (if tick < -887272 then ⟨3144⟩ else ⟨3158⟩) (p :: R)
       (swapIterationBitmapMem mem p tick hit)
       (M (M aw (p + UInt256.ofNat 64) ⟨32⟩) (p + UInt256.ofNat 32) ⟨32⟩)

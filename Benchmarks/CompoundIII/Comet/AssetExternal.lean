@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AssetSource
 import Benchmarks.CompoundIII.Comet.UintFunction
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -30,11 +32,11 @@ theorem assetPublicExpr_eval {frame : Frame} {evm : EVM.State} {out : ByteArray}
 theorem getAssetInfo_returns {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       v.assetList 0 (assetPayload (calldataWord I.calldata 4))
         (true, evm', out) false)
     (hsize : out.size < 2^255) (hvalid : AssetValid out) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (uintFunctionArgs "i" I) getAssetInfoTransition.body
       (.returned frame evm' (some [assetTuple out])) (immStore v) := by
   let i := calldataWord I.calldata 4
@@ -58,11 +60,11 @@ theorem getAssetInfo_returns {σ σ₀ A I} {g : Sat256}
 theorem getAssetInfo_reverts {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray) (z : Bool)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       v.assetList 0 (assetPayload (calldataWord I.calldata 4))
         (z, evm', out) false)
     (hsize : out.size < 2^255) (hvalid : ¬ (z = true ∧ AssetValid out)) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (uintFunctionArgs "i" I) getAssetInfoTransition.body .reverted (immStore v) := by
   let i := calldataWord I.calldata 4
   let frame := calldataLocalFrame

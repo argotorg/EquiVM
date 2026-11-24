@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BoundedActiveWords
 import Benchmarks.UniswapV3.Pool.SwapCacheHeadTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -35,7 +37,7 @@ theorem swapStateTailMemory_eq (mem : ByteArray) (cursor growth liquidity cache 
 theorem swapStateTailBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw cursor growth liquidity cache state x3 exact : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2950⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2950⟩
       (growth :: cursor :: state :: x3 :: exact :: cache :: R) mem aw rdata σ k C)
     (hl : UInt256.land (UInt256.ofNat (2 ^ 128 - 1))
       (memLoad (UInt256.ofNat 32 + cache)
@@ -43,7 +45,7 @@ theorem swapStateTailBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv
           (UInt256.ofNat 32 + cursor).toNat ⟨0⟩)) = liquidity)
     (ha : BoundedActiveWords aw limit) (hb : cursor.toNat + 96 ≤ limit)
     (hc : cache.toNat + 64 ≤ limit) (hov : R.length + 9 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2991⟩ (state :: exact :: cache :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2991⟩ (state :: exact :: cache :: R)
       (swapStateTailMem mem cursor growth liquidity) aw' rdata σ k' C' ∧
       BoundedActiveWords aw' limit ∧
       cursor.toNat + 96 ≤ aw'.toNat * 32 + 32 := by
@@ -71,7 +73,7 @@ theorem swapStateTailBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv
 theorem swapStateTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw cursor growth liquidity cache state x3 exact : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2950⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2950⟩
       (growth :: cursor :: state :: x3 :: exact :: cache :: R) mem aw rdata σ k C)
     (hl : UInt256.land (UInt256.ofNat (2 ^ 128 - 1))
       (memLoad (UInt256.ofNat 32 + cache)
@@ -79,7 +81,7 @@ theorem swapStateTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (UInt256.ofNat 32 + cursor).toNat ⟨0⟩)) = liquidity)
     (ha : ActiveWords aw) (hb : cursor.toNat + 96 ≤ 2 ^ 200)
     (hc : cache.toNat + 64 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2991⟩ (state :: exact :: cache :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2991⟩ (state :: exact :: cache :: R)
       (swapStateTailMem mem cursor growth liquidity) aw' rdata σ k' C' ∧ ActiveWords aw' := by
   obtain ⟨aw', k', C', rd', ha', _⟩ := swapStateTailBoundedX (v := v)
     rd hl (BoundedActiveWords.of_active ha) hb hc hov

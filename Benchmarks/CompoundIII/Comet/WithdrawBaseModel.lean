@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseTailModel
 import Benchmarks.CompoundIII.Comet.UpdateBaseModel
 import Benchmarks.CompoundIII.Comet.AccrueInternalModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -19,53 +21,53 @@ def withdrawBaseSupplied (evm : EVM.State) (src : AccountAddress) (amount : UInt
 def withdrawBaseBorrowed (evm : EVM.State) (src : AccountAddress) (amount : UInt256) : UInt256 :=
   withdrawBorrowAmount (withdrawBaseBasic evm src).principal (withdrawBaseNext evm src amount)
 
-inductive WithdrawBaseAfterAccrue (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawBaseAfterAccrue (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src recipient : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | mathFailed (hf : ¬ WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount) :
-      WithdrawBaseAfterAccrue v src recipient amount evm .reverted
+      WithdrawBaseAfterAccrue fork v src recipient amount evm .reverted
   | totalsReverted (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
       (ht : withdrawBaseTotalsOutcome evm (withdrawBaseSupplied evm src amount)
         (withdrawBaseBorrowed evm src amount) = .reverted) :
-      WithdrawBaseAfterAccrue v src recipient amount evm .reverted
+      WithdrawBaseAfterAccrue fork v src recipient amount evm .reverted
   | totalsStatic (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
       (ht : withdrawBaseTotalsOutcome evm (withdrawBaseSupplied evm src amount)
         (withdrawBaseBorrowed evm src amount) = .staticViolation) :
-      WithdrawBaseAfterAccrue v src recipient amount evm .staticViolation
+      WithdrawBaseAfterAccrue fork v src recipient amount evm .staticViolation
   | updateReverted {evm'}
       (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
       (ht : withdrawBaseTotalsOutcome evm (withdrawBaseSupplied evm src amount)
         (withdrawBaseBorrowed evm src amount) = .ok evm')
       (hu : updateBaseOutcome v evm' src (withdrawBaseBasic evm src)
         (withdrawBaseNext evm src amount) = .reverted) :
-      WithdrawBaseAfterAccrue v src recipient amount evm .reverted
+      WithdrawBaseAfterAccrue fork v src recipient amount evm .reverted
   | updateStatic {evm'}
       (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
       (ht : withdrawBaseTotalsOutcome evm (withdrawBaseSupplied evm src amount)
         (withdrawBaseBorrowed evm src amount) = .ok evm')
       (hu : updateBaseOutcome v evm' src (withdrawBaseBasic evm src)
         (withdrawBaseNext evm src amount) = .staticViolation) :
-      WithdrawBaseAfterAccrue v src recipient amount evm .staticViolation
+      WithdrawBaseAfterAccrue fork v src recipient amount evm .staticViolation
   | done {evm' evm'' result}
       (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
       (ht : withdrawBaseTotalsOutcome evm (withdrawBaseSupplied evm src amount)
         (withdrawBaseBorrowed evm src amount) = .ok evm')
       (hu : updateBaseOutcome v evm' src (withdrawBaseBasic evm src)
         (withdrawBaseNext evm src amount) = .ok evm'')
-      (tail : WithdrawBaseTailTrace v src recipient amount
+      (tail : WithdrawBaseTailTrace fork v src recipient amount
         (withdrawBaseBalance evm (withdrawBaseBasic evm src).principal amount) evm'' result) :
-      WithdrawBaseAfterAccrue v src recipient amount evm result
+      WithdrawBaseAfterAccrue fork v src recipient amount evm result
 
-inductive WithdrawBaseTrace (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawBaseTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src recipient : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | reverted (ha : accrueOutcome v evm = .reverted) :
-      WithdrawBaseTrace v src recipient amount evm .reverted
+      WithdrawBaseTrace fork v src recipient amount evm .reverted
   | staticViolation (ha : accrueOutcome v evm = .staticViolation) :
-      WithdrawBaseTrace v src recipient amount evm .staticViolation
+      WithdrawBaseTrace fork v src recipient amount evm .staticViolation
   | done {evm' result} (ha : accrueOutcome v evm = .ok evm')
-      (tail : WithdrawBaseAfterAccrue v src recipient amount evm' result) :
-      WithdrawBaseTrace v src recipient amount evm result
+      (tail : WithdrawBaseAfterAccrue fork v src recipient amount evm' result) :
+      WithdrawBaseTrace fork v src recipient amount evm result
 
 def withdrawBaseReadBlock : List Stmt :=
   [.letDecl "srcUser" (some (.tuple

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0ChoiceSource
 import Benchmarks.UniswapV3.Pool.NextSqrt0SubtractSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -13,7 +15,7 @@ noncomputable def nextSqrt0FinalFrame (imms : Store) (a : NextSqrtArgs) : Frame 
 
 theorem nextSqrt0BranchReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hn : a.amount.toNat ≠ 0) (hv : nextSqrt0Valid a) :
-    ExecBlock config (nextSqrt0NumeratorFrame imms a) evm (nextSqrt0Branch a.add)
+    ExecBlock fork config (nextSqrt0NumeratorFrame imms a) evm (nextSqrt0Branch a.add)
       (.returned (nextSqrt0FinalFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt0Result a).toNat)])) := by
   rw [← List.take_append_drop 2 (nextSqrt0Branch a.add)]
@@ -38,7 +40,7 @@ theorem nextSqrt0BranchReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArg
 
 theorem nextSqrt0BranchReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hn : a.amount.toNat ≠ 0) (hv : ¬nextSqrt0Valid a) :
-    ExecBlock config (nextSqrt0NumeratorFrame imms a) evm (nextSqrt0Branch a.add) .reverted := by
+    ExecBlock fork config (nextSqrt0NumeratorFrame imms a) evm (nextSqrt0Branch a.add) .reverted := by
   rw [← List.take_append_drop 2 (nextSqrt0Branch a.add)]
   apply execBlock_append_ok (nextSqrt0ProductSource imms evm a)
   cases ha : a.add
@@ -53,7 +55,7 @@ theorem nextSqrt0BranchReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArg
 
 theorem nextSqrt0Returns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt0Valid a) :
-    ExecFuncBody config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body
+    ExecFuncBody fork config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body
       (.returned (nextSqrt0FinalFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt0Result a).toNat)])) := by
   by_cases hn : a.amount.toNat = 0
@@ -67,14 +69,14 @@ theorem nextSqrt0Returns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
         .ok (.bool a.add) := evalExpr_var_get (by
       simpa only [nextSqrt0NumeratorFrame, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert] using (nextSqrtGet imms a).2.2.2)
-    have hb := nextSqrt0BranchReturns imms evm a hn hv
+    have hb := nextSqrt0BranchReturns (fork := fork) imms evm a hn hv
     cases ha : a.add
     · exact ExecStmt.iteFalse (by simpa only [ha] using he) (by simpa only [ha] using hb)
     · exact ExecStmt.iteTrue (by simpa only [ha] using he) (by simpa only [ha] using hb)
 
 theorem nextSqrt0Reverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt0Valid a) :
-    ExecFuncBody config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body .reverted := by
+    ExecFuncBody fork config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body .reverted := by
   have hn : a.amount.toNat ≠ 0 := fun h ↦ hv (by simp only [nextSqrt0Valid, if_pos h])
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 (nextSqrtFunction false).body]
@@ -84,7 +86,7 @@ theorem nextSqrt0Reverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
       .ok (.bool a.add) := evalExpr_var_get (by
     simpa only [nextSqrt0NumeratorFrame, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using (nextSqrtGet imms a).2.2.2)
-  have hb := nextSqrt0BranchReverts imms evm a hn hv
+  have hb := nextSqrt0BranchReverts (fork := fork) imms evm a hn hv
   cases ha : a.add
   · exact ExecStmt.iteFalse (by simpa only [ha] using he) (by simpa only [ha] using hb)
   · exact ExecStmt.iteTrue (by simpa only [ha] using he) (by simpa only [ha] using hb)

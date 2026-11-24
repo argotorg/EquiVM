@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.Common
 import Benchmarks.EAS.EAS.RuntimeBlocks_025
 import Benchmarks.EAS.EAS.RuntimeBlocks_026
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -45,8 +47,8 @@ theorem easStoredLength_prepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {header ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 5 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6418⟩ (header :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨6433⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6418⟩ (header :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨6433⟩
       (UInt256.land header ⟨1⟩ :: ret :: storedBytesLengthWord header :: R) mem aw rdata σ k' C' := by
   by_cases hf : UInt256.land header ⟨1⟩ = ⟨0⟩
   · have rd1 := easBlocks.eas_block_6418_taken (immWords := wordsOf (immStore v)) hstack
@@ -68,10 +70,10 @@ theorem easStoredLength {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {header ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6418⟩ (header :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6418⟩ (header :: ret :: R) mem aw rdata σ k C) :
     if storedBytesValid header then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (storedBytesLengthWord header :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (storedBytesLengthWord header :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, rd1⟩ := easStoredLength_prepare v hstack rd
   by_cases hv : storedBytesValid header
   · rw [if_pos hv]

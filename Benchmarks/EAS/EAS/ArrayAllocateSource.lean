@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AllocateBlock
 import Benchmarks.EAS.Attester.LocalArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -23,17 +25,17 @@ theorem arrayAllocateExprSource {cfg : Config} {L imms : Store} {evm : EVM.State
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) (width : Nat) :
     if n ≤ 2^64-1 then
       if allocateNext heap (32+width*n) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (32+width*n) then
-        ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width)
+        ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width)
           (.ok {contract := contract,locals := allocateBlockLocals L (allocateNext heap (32+width*n)),immutables := imms} evm)
-      else ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width) .reverted
-    else ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width) .reverted := by
+      else ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width) .reverted
+    else ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateExprBlock length width) .reverted := by
   have he := naturalLeSource (cfg := cfg) (evm := evm)
     (frame := {contract := contract,locals := L,immutables := imms}) hn
     (by simp only [evalExpr?,pure]; rfl : evalExpr? cfg _ evm (.intLit (2^64-1)) = .ok (.int (Int.ofNat (2^64-1))))
   have hsize := arrayAllocationExpr_eval hn width
   by_cases hl : n ≤ 2^64-1
   · rw [if_pos hl]
-    have hg : ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm
+    have hg : ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm
         (.require (.binary .le length (.intLit (2^64-1))))
         (.ok {contract := contract,locals := L,immutables := imms} evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hl] using he)
@@ -53,10 +55,10 @@ theorem arrayAllocateSource {cfg : Config} {L imms : Store} {evm : EVM.State} {n
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) (width : Nat) :
     if n ≤ 2^64-1 then
       if allocateNext heap (32+width*n) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (32+width*n) then
-        ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width)
+        ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width)
           (.ok {contract := contract,locals := allocateBlockLocals L (allocateNext heap (32+width*n)),immutables := imms} evm)
-      else ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width) .reverted
-    else ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width) .reverted :=
+      else ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width) .reverted
+    else ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (arrayAllocateBlock width) .reverted :=
   arrayAllocateExprSource (evalLocalValue hn) hh width
 
 end Benchmarks.EAS.EAS

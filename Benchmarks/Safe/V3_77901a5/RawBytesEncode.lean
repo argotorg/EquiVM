@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.WordBufferCopy
 import Benchmarks.Safe.V3_77901a5.RawBytesCopyMemory
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -12,13 +14,13 @@ set_option maxHeartbeats 1000000
 
 theorem safeRawBytesEncode {I g s0 σ k C aw mem rdata src dst n}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11834⟩
+    (h : RD fork safeBytecode I g s0 ⟨11834⟩
       (UInt256.ofNat dst :: UInt256.ofNat src :: ret :: R) mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat (32 * n + 4))
     (hd : dst ≤ mem.size) (ha : src + 32 + 32 * n + 4 ≤ dst)
     (hb : dst + 32 * n + 64 < UInt256.size)
     (hov : R.length + 13 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (dst + 32 * n + 4) :: R)
       (rawBytesCopyMemory mem src dst n) aw' rdata σ k' C' := by
   have hs32 : UInt256.ofNat src + UInt256.ofNat 32 = UInt256.ofNat (src + 32) := by

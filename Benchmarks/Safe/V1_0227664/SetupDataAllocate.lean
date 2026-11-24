@@ -3,6 +3,8 @@ import Benchmarks.Safe.V1_0227664.CalldataBufferMemory
 import Benchmarks.Safe.V1_0227664.SetupDecodeScalars
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -10,12 +12,12 @@ namespace Benchmarks.Safe.V1_0227664
 
 set_option maxRecDepth 100000 in
 theorem safeSetupModulesAllocate {I g s0 σ k C aw mem rdata n len ptr} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4533⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨4533⟩ (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hf : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
     (hp : ptr + 64 + len < UInt256.size) (hov : R.length + 24 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8154⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8154⟩
       (UInt256.ofNat ptr :: calldataWord I.calldata 68 :: ⟨4596⟩ ::
         setupDecodedStack I.calldata n len R)
       (calldataBufferMemory I.calldata mem (setupDataStart I.calldata) ptr len len

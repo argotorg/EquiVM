@@ -1,13 +1,15 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionModel
 import Benchmarks.UniswapV3.Pool.StructFieldSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
 
 theorem modifyPositionZerosSource (imms : Store) (evm : EVM.State) (a : ModifyPositionArgs) :
-    ExecBlock config (modifyPositionFrame imms a) evm (modifyPositionFunction.body.take 3)
+    ExecBlock fork config (modifyPositionFrame imms a) evm (modifyPositionFunction.body.take 3)
       (.ok (modifyPositionZeroFrame imms a) evm) := by
   refine ExecBlock.consNormal (stele' := modifyPositionPositionZeroFrame imms a) (evm' := evm)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)) ?_
@@ -17,7 +19,7 @@ theorem modifyPositionZerosSource (imms : Store) (evm : EVM.State) (a : ModifyPo
 
 theorem modifyPositionDelegateCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (a : ModifyPositionArgs) (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecStmt config (modifyPositionZeroFrame (immStore v) a) evm
+    ExecStmt fork config (modifyPositionZeroFrame (immStore v) a) evm
       (.internalCall "checkNotDelegateCall" [] "__c0")
       (.ok (modifyPositionDelegateFrame (immStore v) a) evm) :=
   internalCallFunctionReturn (callee := noDelegateCallFunction) (argVals := []) (locals := ∅)
@@ -26,9 +28,9 @@ theorem modifyPositionDelegateCall (v : UniswapV3PoolImmutables) (evm : EVM.Stat
 
 theorem modifyPositionDelegateSource (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (a : ModifyPositionArgs) (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecBlock config (modifyPositionFrame (immStore v) a) evm (modifyPositionFunction.body.take 4)
+    ExecBlock fork config (modifyPositionFrame (immStore v) a) evm (modifyPositionFunction.body.take 4)
       (.ok (modifyPositionDelegateFrame (immStore v) a) evm) := by
-  change ExecBlock config _ _ (modifyPositionFunction.body.take 3 ++
+  change ExecBlock fork config _ _ (modifyPositionFunction.body.take 3 ++
     [.internalCall "checkNotDelegateCall" [] "__c0"]) _
   exact execBlock_append_ok (modifyPositionZerosSource (immStore v) evm a)
     (ExecBlock.consNormal (modifyPositionDelegateCall v evm a hself) ExecBlock.nil)
@@ -44,7 +46,7 @@ theorem evalModifyPositionCheckExprs (imms : Store) (evm : EVM.State) (a : Modif
 
 theorem modifyPositionCheckCall (imms : Store) (evm : EVM.State) (a : ModifyPositionArgs)
     (hticks : validTicks a.lower a.upper) :
-    ExecStmt config (modifyPositionDelegateFrame imms a) evm
+    ExecStmt fork config (modifyPositionDelegateFrame imms a) evm
       (.internalCall "checkTicks" modifyPositionCheckExprs "__c1")
       (.ok (modifyPositionCheckedFrame imms a) evm) :=
   internalCallFunctionReturn (callee := checkTicksFunction)
@@ -56,9 +58,9 @@ theorem modifyPositionCheckCall (imms : Store) (evm : EVM.State) (a : ModifyPosi
 theorem modifyPositionPrefixSource (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (a : ModifyPositionArgs) (hself : evm.executionEnv.codeOwner = v.original)
     (hticks : validTicks a.lower a.upper) :
-    ExecBlock config (modifyPositionFrame (immStore v) a) evm (modifyPositionFunction.body.take 6)
+    ExecBlock fork config (modifyPositionFrame (immStore v) a) evm (modifyPositionFunction.body.take 6)
       (.ok (modifyPositionSlotFrame (immStore v) a evm) evm) := by
-  change ExecBlock config _ _ (modifyPositionFunction.body.take 4 ++
+  change ExecBlock fork config _ _ (modifyPositionFunction.body.take 4 ++
     [modifyPositionFunction.body[4]!, modifyPositionFunction.body[5]!]) _
   apply execBlock_append_ok (modifyPositionDelegateSource v evm a hself)
   exact ExecBlock.consNormal (modifyPositionCheckCall (immStore v) evm a hticks)
@@ -67,7 +69,7 @@ theorem modifyPositionPrefixSource (v : UniswapV3PoolImmutables) (evm : EVM.Stat
 
 theorem modifyPositionDelegateReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (a : ModifyPositionArgs) (hself : evm.executionEnv.codeOwner ≠ v.original) :
-    ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted := by
+    ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 modifyPositionFunction.body]
   apply execBlock_append_ok (modifyPositionZerosSource (immStore v) evm a)
@@ -78,7 +80,7 @@ theorem modifyPositionDelegateReverts (v : UniswapV3PoolImmutables) (evm : EVM.S
 theorem modifyPositionTicksReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (a : ModifyPositionArgs) (hself : evm.executionEnv.codeOwner = v.original)
     (hticks : ¬validTicks a.lower a.upper) :
-    ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted := by
+    ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 modifyPositionFunction.body]
   apply execBlock_append_ok (modifyPositionDelegateSource v evm a hself)

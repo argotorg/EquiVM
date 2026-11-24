@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapBalancesCases
 import Examples.UniswapV2Pair.SwapCallbackCases
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -25,10 +27,10 @@ theorem swapAfterTransfersFrame_contract (caller : Frame) (amount0Out amount1Out
 abbrev swapBalancesPrefix : List Stmt := swapCallbackPrefix ++ swapBalanceStmts
 
 theorem uniswapSwapBodyReverts_balances (evm evmB : EVM.State) (I : ExecutionEnv) (caller : Frame)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapCallbackPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapCallbackPrefix
       (.ok caller evmB))
-    (hbalances : ExecBlock config caller evmB swapBalanceStmts .reverted) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    (hbalances : ExecBlock fork config caller evmB swapBalanceStmts .reverted) :
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapCallbackPrefix, swapTransferPrefix, swapRecipientGuardPrefix,
       swapTokenPrefix, swapReserveGuardPrefix, swapReservePrefix, swapOutputPrefix,

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.ProtocolFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,7 +17,7 @@ def poolSetProtocolAlias : Ident := "__stele_storage_ref._@.Benchmarks.UniswapV4
 theorem poolGetBody {f : Frame} {evm : EVM.State} {id : UInt256}
     (hf : f.contract = contract) (hi : f.locals.get? "id" = some (wordBytes32Value id))
     (hb : f.locals.get? "_pools" = none) :
-    ExecFuncBody config f evm poolGetFunction.body
+    ExecFuncBody fork config f evm poolGetFunction.body
       (.returned {f with locals := f.locals.insert poolGetAlias (poolRefValue id)} evm (some [poolRefValue id])) := by
   apply ExecFuncBody.execBlockRet
   exact ExecBlock.consNormal (ExecStmt.letStorage (poolMappingResolve hf hb (evalLocalValue hi)))
@@ -23,7 +25,7 @@ theorem poolGetBody {f : Frame} {evm : EVM.State} {id : UInt256}
 
 theorem poolGetCall {f : Frame} {evm : EVM.State} {e : Expr} {id : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (wordBytes32Value id)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "_getPool" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "_getPool" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (poolRefValue id)} evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value id]) (value := some [poolRefValue id])
     (evalExprs?_singleton he) (by rw [hf]; exact poolGet_lookup) rfl
@@ -40,7 +42,7 @@ def poolSetProtocolResult (f : Frame) (evm : EVM.State) (id fee : UInt256) : Exe
 theorem poolSetProtocolBody {f : Frame} {evm : EVM.State} {id fee : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id))
     (he : f.locals.get? "protocolFee" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm poolSetProtocolFunction.body
+    ExecFuncBody fork config f evm poolSetProtocolFunction.body
       (poolSetProtocolResult (poolSetProtocolFrame f evm id fee) evm id fee) := by
   exact poolSetSlot0BodyExec poolSetProtocolAlias "protocolFee" "Slot0Library_setProtocolFee"
     (by decide) (by decide) (by decide) hf hs he
@@ -53,9 +55,9 @@ theorem poolSetProtocolCall {f : Frame} {evm : EVM.State} {ep ef : Expr} {id fee
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (hp : evalExpr? config f evm ep = .ok (poolRefValue id))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_setProtocolFee" [ep, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Pool_setProtocolFee" [ep, ef] retVar)
       (poolSetProtocolCallResult f evm id fee retVar) := by
-  have hb := poolSetProtocolBody (f := {f with locals := ((∅ : Store).insert "protocolFee" (.int (Int.ofNat fee.toNat))).insert "self" (poolRefValue id)})
+  have hb := poolSetProtocolBody (fork := fork) (f := {f with locals := ((∅ : Store).insert "protocolFee" (.int (Int.ofNat fee.toNat))).insert "self" (poolRefValue id)})
     (evm := evm) hf (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("self" == "protocolFee") = false)).trans (store_get_self _ _ _)) hc
   have hcall := internalCallFunctionExec (caller := f) (name := "Pool_setProtocolFee") (retVar := retVar)

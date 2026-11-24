@@ -3,6 +3,8 @@ import Benchmarks.Dss.Flapper.ConstructorBase
 import Benchmarks.Dss.Flapper.File
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flapper constructor Stele source semantics
 -/
@@ -269,7 +271,7 @@ theorem flapperCtorBodySuccess
     let evm6 := flapperCtorAfterVatState evm5 vat
     let evm7 := flapperCtorAfterGemState evm6 gem
     let evm8 := flapperCtorAfterLiveState evm7
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm8) := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5 evm6 evm7 evm8
   have hp0 : evm0.executionEnv.perm = true := hperm
@@ -339,16 +341,16 @@ theorem flapperCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp0) (by simp [evalExpr?, pure, defaultBeg]) hassignBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp1) (by simp [evalExpr?, pure, defaultTtl]) hassignTtl) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp2) (by simp [evalExpr?, pure, defaultTau]) hassignTau) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp3) (by simp [evalExpr?, pure]) hassignKicks) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp4) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp5) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp0) (by simp [evalExpr?, pure, defaultBeg]) hassignBeg) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp1) (by simp [evalExpr?, pure, defaultTtl]) hassignTtl) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp2) (by simp [evalExpr?, pure, defaultTau]) hassignTau) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp3) (by simp [evalExpr?, pure]) hassignKicks) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp4) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp5) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_flapperCtorLocalVat (evm := evm5) vat gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp6) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp6) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_flapperCtorLocalGem (evm := evm6) vat gem
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp7) (by simp [evalExpr?, pure]) hassignLive)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp7) (by simp [evalExpr?, pure]) hassignLive)
     ExecBlock.nil
 
 theorem flapperSteleCtorExecSuccess
@@ -356,7 +358,7 @@ theorem flapperSteleCtorExecSuccess
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat, .address gem] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat, .address gem] σ σ₀ g A I
       (.returned { contract := contract, locals := flapperCtorLocals vat gem }
         (flapperCtorAfterLiveState
           (flapperCtorAfterGemState
@@ -380,7 +382,7 @@ theorem flapperSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (flapperCtorBodySuccess (hperm := hperm)
+        (flapperCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat gem hwv)
 
@@ -388,7 +390,7 @@ theorem flapperSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat, .address gem] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat, .address gem] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

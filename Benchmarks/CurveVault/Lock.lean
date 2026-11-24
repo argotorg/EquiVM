@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Common
 import Reasoning.TransientStorage
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -39,7 +41,7 @@ theorem vaultLockEval_fail (evm : EVM.State) (locals : Store)
 theorem vaultLockedBodyReverts (evm : EVM.State) (locals : Store) (rest : List Stmt)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hlock : Stele.EVM.transientLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨1⟩) :
-    ExecTransitionBody config contract evm locals
+    ExecTransitionBody fork config contract evm locals
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: .require vaultLockExpr :: rest)
       .reverted :=
   ExecFuncBody.execBlockRevert <|
@@ -53,9 +55,9 @@ theorem vaultViewBodyReturns {evm calleeEvm : EVM.State} {locals calleeLocals : 
     (hargs : evalExprs? config {contract := contract, locals := locals} evm args = .ok argVals)
     (hlookup : lookupCallable? contract fn.name = some fn.toCallable)
     (hbind : bindParams? fn.params argVals = some calleeLocals)
-    (hbody : ExecFuncBody config {contract := contract, locals := calleeLocals} evm fn.body
+    (hbody : ExecFuncBody fork config {contract := contract, locals := calleeLocals} evm fn.body
       (.returned calleeStele calleeEvm (some [value]))) :
-    ExecTransitionBody config contract evm locals
+    ExecTransitionBody fork config contract evm locals
       [.require (.binary .eq (.env .callvalue) (.intLit 0)), .require vaultLockExpr,
         .internalCall fn.name args "__r", .return [.var "__r"]]
       (.returned {contract := contract, locals := locals.insert "__r" value} calleeEvm (some [value])) := by
@@ -75,8 +77,8 @@ theorem vaultViewBodyReverts {evm : EVM.State} {locals calleeLocals : Store}
     (hargs : evalExprs? config {contract := contract, locals := locals} evm args = .ok argVals)
     (hlookup : lookupCallable? contract fn.name = some fn.toCallable)
     (hbind : bindParams? fn.params argVals = some calleeLocals)
-    (hbody : ExecFuncBody config {contract := contract, locals := calleeLocals} evm fn.body .reverted) :
-    ExecTransitionBody config contract evm locals
+    (hbody : ExecFuncBody fork config {contract := contract, locals := calleeLocals} evm fn.body .reverted) :
+    ExecTransitionBody fork config contract evm locals
       [.require (.binary .eq (.env .callvalue) (.intLit 0)), .require vaultLockExpr,
         .internalCall fn.name args "__r", .return [.var "__r"]] .reverted :=
   ExecFuncBody.execBlockRevert <|

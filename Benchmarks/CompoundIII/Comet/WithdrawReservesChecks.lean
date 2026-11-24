@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Unsigned256
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,11 +20,11 @@ theorem cometWithdrawReservesChecks {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {n mask recipient amount : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6208⟩ (n :: mask :: recipient :: amount :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6208⟩ (n :: mask :: recipient :: amount :: R)
       mem aw rdata σ k C) :
-    (WithdrawReservesAllowed n amount ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨6226⟩
+    (WithdrawReservesAllowed n amount ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨6226⟩
       (mask :: recipient :: amount :: R) mem aw rdata σ k' C') ∨
-    (¬ WithdrawReservesAllowed n amount ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ WithdrawReservesAllowed n amount ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hn : n.toNat < 2^255
   · have hslt : UInt256.slt n (UInt256.ofNat 0) = ⟨0⟩ :=
       slt_lit_zero (by decide) (Nat.zero_le _) hn

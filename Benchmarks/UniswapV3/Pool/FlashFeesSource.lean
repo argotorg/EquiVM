@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashPrefix
 import Benchmarks.UniswapV3.Pool.FullMathRoundSource
 import Benchmarks.UniswapV3.Pool.PoolTokenTransfer
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -41,7 +43,7 @@ theorem flashFeeReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm : EV
     (second : Bool) (amount : UInt256)
     (ha : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hv : fullMathRoundValid amount (poolFeeWord v) ⟨1000000⟩) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashFeeStmt second)
       (.ok { contract := contract
              locals := locals.insert (flashFeeName second)
@@ -59,7 +61,7 @@ theorem flashFeeReverts (v : UniswapV3PoolImmutables) (locals : Store) (evm : EV
     (second : Bool) (amount : UInt256)
     (ha : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hv : ¬ fullMathRoundValid amount (poolFeeWord v) ⟨1000000⟩) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashFeeStmt second) .reverted :=
   internalCallFunctionRevert (callee := fullMathRoundFunction)
     (locals := fullMathLocals amount (poolFeeWord v) ⟨1000000⟩)
@@ -80,7 +82,7 @@ theorem flashFeesSource (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : Fla
     (liquidity : UInt256)
     (hv0 : fullMathRoundValid a.amount0 (poolFeeWord v) ⟨1000000⟩)
     (hv1 : fullMathRoundValid a.amount1 (poolFeeWord v) ⟨1000000⟩) :
-    ExecBlock config (flashReadyFrame v a liquidity) evm ((flashTransition.body.drop 6).take 2)
+    ExecBlock fork config (flashReadyFrame v a liquidity) evm ((flashTransition.body.drop 6).take 2)
       (.ok (flashFeesFrame v a liquidity
         (fullMathRoundResult a.amount0 (poolFeeWord v) ⟨1000000⟩)
         (fullMathRoundResult a.amount1 (poolFeeWord v) ⟨1000000⟩)) evm) := by
@@ -95,7 +97,7 @@ theorem flashFeesSourceReverts (v : UniswapV3PoolImmutables) (evm : EVM.State) (
     (liquidity : UInt256)
     (hv : ¬ (fullMathRoundValid a.amount0 (poolFeeWord v) ⟨1000000⟩ ∧
       fullMathRoundValid a.amount1 (poolFeeWord v) ⟨1000000⟩)) :
-    ExecBlock config (flashReadyFrame v a liquidity) evm ((flashTransition.body.drop 6).take 2)
+    ExecBlock fork config (flashReadyFrame v a liquidity) evm ((flashTransition.body.drop 6).take 2)
       .reverted := by
   have h0 : (flashReadyFrame v a liquidity).locals.get? (poolAmountName false) =
       some (.int (Int.ofNat a.amount0.toNat)) := by

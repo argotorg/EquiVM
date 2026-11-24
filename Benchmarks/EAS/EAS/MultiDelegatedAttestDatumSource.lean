@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestSource
 import Benchmarks.EAS.EAS.DelegatedAttestBuildMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -14,7 +16,7 @@ theorem multiDelegatedAttestDatumReadSource {L imms : Store} {evm : EVM.State} {
     (hjd : j<data.length) (hjs : j<sigs.length) (hdatum : data[j]=datum) (hsig : sigs[j]=signature)
     (hatt : row[3]?=some attester) (hnd : normalizeRawBoolWord? datum=.ok datum)
     (hns : normalizeRawBoolWord? signature=.ok signature) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumRead
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumRead
       (.ok {contract := contract,locals := multiDelegatedAttestDatumLocals L datum signature attester,immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (evalArrayIndex (evalLocalValue hd) (evalLocalValue hj) hjd hdatum hnd))
   apply ExecBlock.consNormal (ExecStmt.letDecl (evalArrayIndex
@@ -25,7 +27,7 @@ theorem multiDelegatedAttestDatumReadSource {L imms : Store} {evm : EVM.State} {
 
 theorem multiDelegatedAttestCheck_tuple {L imms : Store} {evm : EVM.State} {name : Ident} {xs : List Value}
     (h : L.get? name=some (.tuple xs)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
       (.ok {contract := contract,locals := L,immutables := imms} evm) := by
   apply ExecStmt.requireTrue
   simp only [multiDelegatedAttestCheck,evalExpr?,h,evalStructFields?,EvalResult.ofOption,bind,EvalResult.bind,pure]
@@ -33,7 +35,7 @@ theorem multiDelegatedAttestCheck_tuple {L imms : Store} {evm : EVM.State} {name
 
 theorem multiDelegatedAttestCheck_array {L imms : Store} {evm : EVM.State} {name : Ident} {xs : List Value}
     (h : L.get? name=some (.array xs)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
       (.ok {contract := contract,locals := L,immutables := imms} evm) := by
   apply ExecStmt.requireTrue
   simp only [multiDelegatedAttestCheck,evalExpr?,h,evalStructFields?,EvalResult.ofOption,bind,EvalResult.bind,pure]
@@ -41,7 +43,7 @@ theorem multiDelegatedAttestCheck_array {L imms : Store} {evm : EVM.State} {name
 
 theorem multiDelegatedAttestCheck_address {L imms : Store} {evm : EVM.State} {name : Ident} {addr : AccountAddress}
     (h : L.get? name=some (.address addr)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name)
       (.ok {contract := contract,locals := L,immutables := imms} evm) := by
   apply ExecStmt.requireTrue
   simp only [multiDelegatedAttestCheck,evalExpr?,h,evalStructFields?,EvalResult.ofOption,bind,EvalResult.bind,pure]
@@ -49,7 +51,7 @@ theorem multiDelegatedAttestCheck_address {L imms : Store} {evm : EVM.State} {na
 
 theorem multiDelegatedAttestCheck_bad {L imms : Store} {evm : EVM.State} {name : Ident}
     (h : L.get? name=some decodeFailure) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name) .reverted := by
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (multiDelegatedAttestCheck name) .reverted := by
   apply ExecStmt.requireFalse
   simp only [multiDelegatedAttestCheck,evalExpr?,h,evalStructFields?,EvalResult.ofOption,bind,EvalResult.bind,pure]
   rfl
@@ -61,9 +63,9 @@ theorem multiDelegatedAttestDatumChecksSource {L imms : Store} {evm : EVM.State}
     (ha : L.get? "attester"=some (if va then .address addr else decodeFailure))
     (hs : L.get? "signature"=some (if vs then s.tuple else decodeFailure)) :
     if vd ∧ va ∧ vs then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumChecks
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumChecks
         (.ok {contract := contract,locals := L,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumChecks .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestDatumChecks .reverted := by
   by_cases hdv : vd
   · rw [if_pos hdv] at hd
     by_cases hav : va

@@ -8,6 +8,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_027
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -46,10 +48,10 @@ theorem safeEvalValidOwner (evm : EVM.State) (frame : Frame) (expr : Expr) (key 
 -- The owner validity check is inlined into this entrypoint.
 theorem safeValidOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner σ I key) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨1797⟩ (top :: key :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨1797⟩ (top :: key :: R) mem aw rdata σ k' C' := by
   have hz := isZero_eq_zero_of_ne hv.1
   have hs : UInt256.eq (UInt256.ofNat 1) key = ⟨0⟩ :=
     uInt256_eq_zero_of_ne (fun he ↦ hv.2 (uInt256_eq_one_eq he).symm)
@@ -62,10 +64,10 @@ theorem safeValidOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
 
 theorem safeInvalidOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
-  have hbad : ∃ k' C', RD safeBytecode I g s0 ⟨1775⟩
+    (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
+  have hbad : ∃ k' C', RD fork safeBytecode I g s0 ⟨1775⟩
       (⟨1⟩ :: top :: key :: R) mem aw rdata σ k' C' := by
     by_cases hz : key = ⟨0⟩
     · have h₁ := safeRuntime_block_1744_taken (by omega)
@@ -90,10 +92,10 @@ theorem safeInvalidOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
 -- The owner validity check is inlined into this entrypoint.
 theorem safeValidRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner σ I key) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6782⟩ (top :: key :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6782⟩ (top :: key :: R) mem aw rdata σ k' C' := by
   have hz := isZero_eq_zero_of_ne hv.1
   have hs : UInt256.eq (UInt256.ofNat 1) key = ⟨0⟩ :=
     uInt256_eq_zero_of_ne (fun he ↦ hv.2 (uInt256_eq_one_eq he).symm)
@@ -106,10 +108,10 @@ theorem safeValidRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt25
 
 theorem safeInvalidRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
-  have hbad : ∃ k' C', RD safeBytecode I g s0 ⟨6760⟩
+    (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
+  have hbad : ∃ k' C', RD fork safeBytecode I g s0 ⟨6760⟩
       (⟨1⟩ :: top :: key :: R) mem aw rdata σ k' C' := by
     by_cases hz : key = ⟨0⟩
     · have h₁ := safeRuntime_block_6729_taken (by omega)
@@ -134,10 +136,10 @@ theorem safeInvalidRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt
 -- The owner validity check is inlined into this entrypoint.
 theorem safeValidSwapOldOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner σ I key) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6335⟩ (top :: key :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6335⟩ (top :: key :: R) mem aw rdata σ k' C' := by
   have hz := isZero_eq_zero_of_ne hv.1
   have hs : UInt256.eq (UInt256.ofNat 1) key = ⟨0⟩ :=
     uInt256_eq_zero_of_ne (fun he ↦ hv.2 (uInt256_eq_one_eq he).symm)
@@ -150,10 +152,10 @@ theorem safeValidSwapOldOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt2
 
 theorem safeInvalidSwapOldOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
-  have hbad : ∃ k' C', RD safeBytecode I g s0 ⟨6313⟩
+    (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
+  have hbad : ∃ k' C', RD fork safeBytecode I g s0 ⟨6313⟩
       (⟨1⟩ :: top :: key :: R) mem aw rdata σ k' C' := by
     by_cases hz : key = ⟨0⟩
     · have h₁ := safeRuntime_block_6282_taken (by omega)
@@ -177,10 +179,10 @@ theorem safeInvalidSwapOldOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UIn
 
 theorem safeValidSwapNewOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner σ I key) (hself : key ≠ UInt256.ofNat I.codeOwner.val) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6234⟩ (key :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6234⟩ (key :: R) mem aw rdata σ k' C' := by
   have hs : UInt256.eq (UInt256.ofNat 1) key = ⟨0⟩ :=
     uInt256_eq_zero_of_ne (fun he ↦ hv.2 (uInt256_eq_one_eq he).symm)
   have ht : UInt256.eq (UInt256.ofNat I.codeOwner.val) key = ⟨0⟩ :=
@@ -196,11 +198,11 @@ theorem safeValidSwapNewOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
 
 theorem safeInvalidSwapNewOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : ¬(validOwner σ I key ∧ key ≠ UInt256.ofNat I.codeOwner.val)) :
-    RDrev safeBytecode g s0 := by
-  have hbad : ∃ k' C', RD safeBytecode I g s0 ⟨6212⟩
+    RDrev fork safeBytecode g s0 := by
+  have hbad : ∃ k' C', RD fork safeBytecode I g s0 ⟨6212⟩
       (⟨1⟩ :: key :: R) mem aw rdata σ k' C' := by
     by_cases hz : key = ⟨0⟩
     · have h₁ := safeRuntime_block_6162_taken (by omega)

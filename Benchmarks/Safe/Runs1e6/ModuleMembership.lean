@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.ModuleStorage
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -9,11 +11,11 @@ namespace Benchmarks.Safe.Runs1e6
 set_option maxRecDepth 100000
 
 theorem safeModuleMembership {I g s0 σ k C aw mem rdata key ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3148⟩ (key :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3148⟩ (key :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ mem' aw' k' C', RD safeBytecode I g s0 ret
+    ∃ mem' aw' k' C', RD fork safeBytecode I g s0 ret
         ((addressMembership key (moduleLinkAt σ I key)).toUInt256 :: R) mem' aw' rdata σ k' C' ∧
       mem'.size = 96 ∧ mem'.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray := by
   by_cases hs : key = ⟨1⟩
@@ -30,7 +32,7 @@ theorem safeModuleMembership {I g s0 σ k C aw mem rdata key ret} {R : List UInt
     have h₃ := safeRuntime_block_3225 (by omega) hret h₂
     simp only [safeRuntime_block_3225_stack, safeRuntime_block_3183_memory,
       safeAddressMaskLiteral, solcAddrMask_clean_left hc] at h₃
-    change RD safeBytecode I g s0 ret
+    change RD fork safeBytecode I g s0 ret
       (UInt256.isZero (UInt256.isZero (UInt256.land (solcSlotWordAt
         (keccakWord ⟨0⟩ (UInt256.ofNat 64) (twoWordHashMem key ⟨1⟩ mem)) σ I)
         solcAddrMask)) :: R) (twoWordHashMem key ⟨1⟩ mem) aw₂ rdata σ _ _ at h₃

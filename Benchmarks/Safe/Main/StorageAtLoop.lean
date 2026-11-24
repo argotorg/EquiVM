@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Main.StorageAtSource
 import Benchmarks.Safe.Main.StorageAtAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -18,11 +20,11 @@ theorem safeStorageAtIndexAddress (i : Nat) (hi : i ≤ 2 ^ 64 - 1) :
 set_option maxHeartbeats 800000 in
 theorem safeStorageAtLoopNext (evm : EVM.State) {g s0 k C aw mem rdata i n offset}
     {R : List UInt256}
-    (h : RD safeBytecode evm.executionEnv g s0 ⟨3131⟩
+    (h : RD fork safeBytecode evm.executionEnv g s0 ⟨3131⟩
       (UInt256.ofNat i :: ⟨128⟩ :: ⟨96⟩ :: UInt256.ofNat n :: offset :: R)
       mem aw rdata evm.accountMap k C)
     (hov : R.length + 9 ≤ 1024) (hn : n ≤ 2 ^ 64 - 1) (hi : i < n) :
-    ∃ aw' k' C', RD safeBytecode evm.executionEnv g s0 ⟨3131⟩
+    ∃ aw' k' C', RD fork safeBytecode evm.executionEnv g s0 ⟨3131⟩
       (UInt256.ofNat (i + 1) :: ⟨128⟩ :: ⟨96⟩ :: UInt256.ofNat n :: offset :: R)
       (writeWord mem (160 + 32 * i) (storageAtWord evm offset i))
       aw' rdata evm.accountMap k' C' := by
@@ -46,11 +48,11 @@ theorem safeStorageAtLoopNext (evm : EVM.State) {g s0 k C aw mem rdata i n offse
 
 theorem safeStorageAtLoopExit {I g s0 σ k C aw mem rdata n offset ret}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3131⟩
+    (h : RD fork safeBytecode I g s0 ⟨3131⟩
       (UInt256.ofNat n :: ⟨128⟩ :: ⟨96⟩ :: UInt256.ofNat n :: offset :: ret :: R)
       mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (⟨128⟩ :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret (⟨128⟩ :: R) mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_3131_taken (by simp; omega)
     (by rw [ult_zero (by omega)]; decide) (by jump_dest) h
   have h₂ := safeRuntime_block_3160 (by omega) hret h₁
@@ -58,7 +60,7 @@ theorem safeStorageAtLoopExit {I g s0 σ k C aw mem rdata n offset ret}
 
 theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset locals}
     {doneWords : List UInt256} {fuel : Nat} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode evm.executionEnv g s0 ⟨3131⟩
+    (h : RD fork safeBytecode evm.executionEnv g s0 ⟨3131⟩
       (UInt256.ofNat doneWords.length :: ⟨128⟩ :: ⟨96⟩ :: UInt256.ofNat n :: offset :: ret :: R)
       mem aw rdata evm.accountMap k C)
     (hov : R.length + 10 ≤ 1024)
@@ -68,11 +70,11 @@ theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset loca
     (hn : n ≤ 2 ^ 64 - 1) (hf : doneWords.length + fuel = n)
     (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ words' locals' mem' aw' k' C',
-      ExecStmt config { contract := contract, locals := locals } evm storageAtLoop
+      ExecStmt fork config { contract := contract, locals := locals } evm storageAtLoop
         (.ok { contract := contract, locals := locals' } evm) ∧
       StorageAtLocals locals' offset (UInt256.ofNat n) words' ∧
       AddressArrayMemory mem' n words' (UInt256.ofNat (32 * n)) ∧
-      RD safeBytecode evm.executionEnv g s0 ret (⟨128⟩ :: R)
+      RD fork safeBytecode evm.executionEnv g s0 ret (⟨128⟩ :: R)
         mem' aw' rdata evm.accountMap k' C' := by
   induction fuel generalizing doneWords locals mem aw k C with
   | zero =>
@@ -87,7 +89,7 @@ theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset loca
       have hi : doneWords.length < n := by omega
       have hcond := safeStorageAtCondition evm hl
       rw [ulit_toNat' n (by change n < 2 ^ 256; omega)] at hcond
-      have hsrc := safeStorageAtStep evm hl (by change doneWords.length + 1 < 2 ^ 256; omega)
+      have hsrc := safeStorageAtStep (fork := fork) evm hl (by change doneWords.length + 1 < 2 ^ 256; omega)
       obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeStorageAtLoopNext evm h (by simp; omega) hn hi
       have hm₁ := hm.write doneWords.length (storageAtWord evm offset doneWords.length) hi
       have hset : (doneWords ++ List.replicate (fuel + 1) (⟨0⟩ : UInt256)).set

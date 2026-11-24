@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flapper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flapper
@@ -19,7 +21,7 @@ theorem flapperReachGemBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 7)) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
         ⟨638⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flapperSelWord I = ⟨0x7bd2bea7⟩ := by
@@ -58,11 +60,11 @@ theorem flapperGemBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 7) rfl hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ gemTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

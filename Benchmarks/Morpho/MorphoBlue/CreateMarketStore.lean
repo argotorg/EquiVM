@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.CreateMarketGuards
 import Benchmarks.Morpho.MorphoBlue.MarketStorageBridge
 import Benchmarks.Morpho.MorphoBlue.BorrowRateEncode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -50,11 +52,11 @@ def createMarketAddressPrefix (σ : AccountMap) (I : ExecutionEnv) (p : MarketPa
 theorem morphoCreateMarketStoreFirst {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords) (hperm : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
       [uint128Mask, UInt256.ofNat 256, UInt256.ofNat 224, solcAddrMask, p.id,
        UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketUnusedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5087)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5087)
       [UInt256.ofNat 64, solcAddrMask, marketParamsFieldSlot p.id 2, UInt256.lnot solcAddrMask,
        UInt256.ofNat 256, UInt256.ofNat 4, solcMappingSlot ⟨8⟩ p.id,
        UInt256.ofNat 224, solcAddrMask, p.id, UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
@@ -74,7 +76,7 @@ theorem morphoCreateMarketStoreFirst {v : MorphoImmutables} {ee : ExecutionEnv} 
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_4950_packed
     (immWords := wordsOf (immStore v)) (by simp) hperm h
   simp only [morphoBlocks.morpho_block_4950_stack, morphoBlocks.morpho_block_4950_memory] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.ofNat 64, solcAddrMask,
      keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (createMarketStoreMem p) + UInt256.ofNat 2,
      UInt256.lnot solcAddrMask, UInt256.ofNat 256, UInt256.ofNat 4,
@@ -123,12 +125,12 @@ theorem createMarketEventMemory (p : MarketParamsWords) :
 theorem morphoCreateMarketStoreRest {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords) (hc : p.Canonical) (hperm : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5087)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5087)
       [UInt256.ofNat 64, solcAddrMask, marketParamsFieldSlot p.id 2, UInt256.lnot solcAddrMask,
        UInt256.ofNat 256, UInt256.ofNat 4, solcMappingSlot ⟨8⟩ p.id,
        UInt256.ofNat 224, solcAddrMask, p.id, UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketStoreMem p) aw rdata (createMarketAddressPrefix σ ee p) k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
       (createMarketLogStack p) (createMarketEventMem p) aw' rdata (createMarketAccounts σ ee p) k' C' := by
   have hp := createMarketStoreHeap p
   let m1 := writeWord (createMarketStoreMem p) (UInt256.ofNat 480).toNat p.loanToken
@@ -158,7 +160,7 @@ theorem morphoCreateMarketStoreRest {v : MorphoImmutables} {ee : ExecutionEnv} {
     hp.freePtr, show UInt256.ofNat 1461501637330902918203684832716283019655932542975 = solcAddrMask from rfl,
     h0, solcAddrMask_clean hc.1, h1, solcAddrMask_clean hc.2.1,
     h2, solcAddrMask_clean hc.2.2.1, ho, hi, hl] at rd1
-  have rd1' : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5212)
+  have rd1' : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5212)
       ([p.oracle, solcAddrMask, UInt256.ofNat 128, UInt256.ofNat 128, UInt256.ofNat 128,
         UInt256.ofNat 480, UInt256.ofNat 5234] ++ createMarketLogStack p)
       m2 aw1 rdata (createMarketAccounts σ ee p) k1 C1 := by

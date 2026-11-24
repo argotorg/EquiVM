@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SwapAdjustmentRuntime
 import Examples.UniswapV2Pair.WordArithmeticSource
 import Examples.UniswapV2Pair.Spec
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -47,7 +49,7 @@ theorem uniswapSwapAdjustmentsSource {caller : Frame} (evm : EVM.State)
     (hi1 : caller.locals.get? "amount1In" = some (uniswapUint256Value amount1In))
     (hle0 : amount0In.toNat ≤ balance0.toNat) (hle1 : amount1In.toNat ≤ balance1.toNat)
     (hfit0 : balance0.toNat * 1000 < UInt256.size) (hfit1 : balance1.toNat * 1000 < UInt256.size) :
-    ExecBlock config caller evm swapAdjustmentStmts
+    ExecBlock fork config caller evm swapAdjustmentStmts
       (.ok (swapAfterAdjustmentsFrame caller (swapAdjustedWord balance0 amount0In)
         (swapAdjustedWord balance1 amount1In)) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl
@@ -60,7 +62,7 @@ theorem uniswapSwapAdjustmentsSource {caller : Frame} (evm : EVM.State)
 theorem uniswapSwapAdjustmentsRevert0 {caller : Frame} (evm : EVM.State) (balance0 : UInt256)
     (hb0 : caller.locals.get? "balance0" = some (uniswapUint256Value balance0))
     (hover : UInt256.size ≤ balance0.toNat * 1000) :
-    ExecBlock config caller evm swapAdjustmentStmts .reverted :=
+    ExecBlock fork config caller evm swapAdjustmentStmts .reverted :=
   ExecBlock.consRevert (ExecStmt.letDeclRevert
     (evalExpr_swap_adjusted_overflow evm "balance0" "amount0In" balance0 hb0 hover))
 
@@ -71,7 +73,7 @@ theorem uniswapSwapAdjustmentsRevert1 {caller : Frame} (evm : EVM.State)
     (hi0 : caller.locals.get? "amount0In" = some (uniswapUint256Value amount0In))
     (hle0 : amount0In.toNat ≤ balance0.toNat)
     (hfit0 : balance0.toNat * 1000 < UInt256.size) (hover1 : UInt256.size ≤ balance1.toNat * 1000) :
-    ExecBlock config caller evm swapAdjustmentStmts .reverted := by
+    ExecBlock fork config caller evm swapAdjustmentStmts .reverted := by
   refine ExecBlock.consNormal (ExecStmt.letDecl
     (evalExpr_swap_adjusted evm "balance0" "amount0In" balance0 amount0In hb0 hi0 hle0 hfit0)) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert

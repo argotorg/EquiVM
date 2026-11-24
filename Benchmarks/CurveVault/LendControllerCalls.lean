@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_005
 import Benchmarks.CurveVault.RuntimeBlocks_006
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -11,8 +13,8 @@ theorem vaultLendDebtCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1117) R mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_total_debt" "debt" "total_debt"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1117) R mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_total_debt" "debt" "total_debt"
       (UInt256.ofNat 1162) (codeOwnerStorageWord I σ ⟨3⟩ :: R)
       (vaultBlocks.vault_block_1117_memory (mem := mem)) (UInt256.ofNat 288) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_1117 hstack h
@@ -56,8 +58,8 @@ theorem vaultLendAdminCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {numerator total : UInt256} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1313) (total :: numerator :: R) mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_admin_percentage" "admin_pct" "admin_percentage"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1313) (total :: numerator :: R) mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_admin_percentage" "admin_pct" "admin_percentage"
       (UInt256.ofNat 1369) (codeOwnerStorageWord I σ ⟨3⟩ :: R)
       (vaultBlocks.vault_block_1313_memory (mem := mem) (x0 := total) (x1 := numerator)) (UInt256.ofNat 352) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_1313 hstack h

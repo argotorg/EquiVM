@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_046
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -30,8 +32,8 @@ def tickSqrtFirstStage (absTick : UInt256) : UInt256 :=
 theorem tickSqrtStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret absTick tick : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 7 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨16751⟩ (absTick :: ret :: tick :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨16809⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16751⟩ (absTick :: ret :: tick :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨16809⟩
       (absTick :: tick :: tickSqrtFirstStage absTick :: UInt256.ofNat 4294967295 :: ret :: R)
       mem aw rdata σ k' C' := by
   apply tickSqrtConditionalTrace (fun p => absTick :: tick :: p :: UInt256.ofNat 4294967295 :: ret :: R)
@@ -45,7 +47,7 @@ theorem tickSqrtStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [poolManagerBlocks.poolManager_block_16751_taken_stack, tickSqrtInitialEncoded] at rd1
     have rd2 := poolManagerBlocks.poolManager_block_17538 (by simp only [List.length_cons]; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-    change RD (deployedRuntime v) I g s0 ⟨16809⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨16809⟩
       (absTick :: tick :: UInt256.shiftRight
         (UInt256.mul (UInt256.ofNat 340248342086729790484326174814286782778) (tickSqrtInitial absTick))
         (UInt256.ofNat 128) :: UInt256.ofNat 4294967295 :: ret :: R) mem aw rdata σ _ _ at rd2

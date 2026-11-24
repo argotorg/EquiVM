@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickPriceSelectSource
 import Benchmarks.UniswapV4PoolManager.TickPriceArithmeticSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -9,7 +11,7 @@ theorem tickPriceFinishPrefix {f : Frame} {evm : EVM.State} {sqrtPrice log2 : UI
     (hs : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat)))
     (hl : f.locals.get? "log_2" = some (.int (EVM.signed log2)))
     (ht : f.locals.get? "tick" = some oldTick) :
-    ∃ f', ExecBlock config f evm ((tickPriceFunction.body.drop 49).take 4) (.ok f' evm) ∧
+    ∃ f', ExecBlock fork config f evm ((tickPriceFunction.body.drop 49).take 4) (.ok f' evm) ∧
       f'.contract = f.contract ∧
       f'.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat)) ∧
       f'.locals.get? "tickLow" = some (.int (EVM.signed (tickPriceLow log2))) ∧
@@ -29,11 +31,11 @@ theorem tickPriceFinishPrefix {f : Frame} {evm : EVM.State} {sqrtPrice log2 : UI
   have ht3 : f3.locals.get? "tick" = some oldTick :=
     (store_get_ne3 _ _ _ _ (by decide : ("log_sqrt10001" == "tick") = false)
       (by decide : ("tickLow" == "tick") = false) (by decide : ("tickHi" == "tick") = false)).trans ht
-  have hp : ExecBlock config f evm ((tickPriceFunction.body.drop 49).take 4) (.ok f4 evm) :=
+  have hp : ExecBlock fork config f evm ((tickPriceFunction.body.drop 49).take 4) (.ok f4 evm) :=
     ExecBlock.consNormal (tickPriceScaleSource (log2 := log2) hl)
       (ExecBlock.consNormal (tickPriceLowSource (scaled := tickPriceScaled log2) hl1)
       (ExecBlock.consNormal (tickPriceHighSource (scaled := tickPriceScaled log2) hl2) (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue hlow3) (assignLocalValue ht3)) ExecBlock.nil)))
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue hlow3) (assignLocalValue ht3)) ExecBlock.nil)))
   have hlow4 : f4.locals.get? "tickLow" = some (.int (EVM.signed low)) :=
     (store_get_ne _ _ (by decide : ("tick" == "tickLow") = false)).trans hlow3
   have hhigh4 : f4.locals.get? "tickHi" = some (.int (EVM.signed high)) :=
@@ -52,7 +54,7 @@ theorem tickPriceFinishSourceAux {f : Frame} {evm : EVM.State} {sqrtPrice log2 l
     (hs : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat)))
     (hl : f.locals.get? "log_2" = some (.int (EVM.signed log2)))
     (ht : f.locals.get? "tick" = some oldTick) :
-    ∃ f', ExecBlock config f evm (tickPriceFunction.body.drop 49)
+    ∃ f', ExecBlock fork config f evm (tickPriceFunction.body.drop 49)
       (signedWordResult f' evm (tickPriceChoose sqrtPrice low high)) := by
   obtain ⟨f1, hp, hc, hs1, hl1, hh1, ht1⟩ := tickPriceFinishPrefix (sqrtPrice := sqrtPrice) (log2 := log2) hs hl ht
   rw [hlo] at hl1 ht1
@@ -72,7 +74,7 @@ theorem tickPriceFinishSource {f : Frame} {evm : EVM.State} {sqrtPrice log2 : UI
     (hs : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat)))
     (hl : f.locals.get? "log_2" = some (.int (EVM.signed log2)))
     (ht : f.locals.get? "tick" = some oldTick) :
-    ∃ f', ExecBlock config f evm (tickPriceFunction.body.drop 49)
+    ∃ f', ExecBlock fork config f evm (tickPriceFunction.body.drop 49)
       (signedWordResult f' evm (tickPriceFinish sqrtPrice log2)) := by
   simp only [tickPriceFinish_eq]
   generalize hlo : tickPriceLow log2 = low

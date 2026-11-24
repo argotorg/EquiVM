@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleOracleTrace
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleStoresTrace
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleFinalTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,7 +15,7 @@ theorem modifyPositionMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (modifyPositionUpdatedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16536⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16536⟩
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (ht : validTicks a.lower a.upper)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
@@ -21,19 +23,19 @@ theorem modifyPositionMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hplo : 96 ≤ p.toNat) (hqlo : 96 ≤ q.toNat)
     (hphi : p.toNat + 224 ≤ free.toNat) (hqhi : q.toNat + 128 ≤ free.toNat)
     (hb : free.toNat + 384 ≤ 2 ^ 200) (hperm : ee.perm = true) (hov : R.length + 42 ≤ 1024) :
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) modifyPositionMiddleBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) modifyPositionMiddleBody .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) modifyPositionMiddleBody
       (.ok (modifyPositionMiddleFinalFrame v a evm) (modifyPositionMiddleFinalState v a evm)) ∧
       signedAmountDeltaValid false (modifyPositionMiddleAmountArgs a evm false) ∧
       signedAmountDeltaValid true (modifyPositionMiddleAmountArgs a evm true) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (modifyPositionMiddleFinalState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨16801⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
         (p :: EVM.wordOfInt (signedAmountDeltaResult true (modifyPositionMiddleAmountArgs a evm true)) ::
           EVM.wordOfInt (signedAmountDeltaResult false (modifyPositionMiddleAmountArgs a evm false)) ::
           key :: q :: R) (modifyPositionMiddleMemory mem free v a evm) aw' rdata σ' k' C' ∧
@@ -48,19 +50,19 @@ theorem modifyPositionMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     exact execBlock_append_term hsrc (by intro _ _ h; cases h)
   · obtain ⟨σ2, aw2, k2, C2, hs2, r2, hm2⟩ := modifyPositionMiddleStoresX (v := v) a evm hs1 r1
       hm1 hq1 hp1 (by omega) (by omega) hperm (by omega)
-    have hs5 : ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+    have hs5 : ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
         (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 5)
         (.ok (modifyPositionMiddleOracleFrame v a evm) (modifyPositionMiddleStoresState v a evm)) :=
-      execBlock_append_ok hsrc (modifyPositionMiddleStoresSource (hperm := (congrArg ExecutionEnv.perm hs1.env).trans hperm) v a evm)
+      execBlock_append_ok hsrc (modifyPositionMiddleStoresSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs1.env).trans hperm) v a evm)
     rcases modifyPositionMiddleAmountX (v := v) a evm (modifyPositionMiddleStoresState v a evm) false
       r2 ha ht hm2 hq1 hp1 (by omega) (by omega) hov with
         ⟨hsrc0, rr⟩ | ⟨hsrc0, hv0, aw3, k3, C3, r3, hm3⟩
     · refine Or.inl ⟨?_, Or.inl rr⟩
       rw [← List.take_append_drop 5 modifyPositionMiddleBody]
       apply execBlock_append_ok hs5
-      change ExecBlock config _ _ (modifyPositionMiddleAmountBody false ++ modifyPositionMiddleBody.drop 8) _
+      change ExecBlock fork config _ _ (modifyPositionMiddleAmountBody false ++ modifyPositionMiddleBody.drop 8) _
       exact execBlock_append_term hsrc0 (by intro _ _ h; cases h)
-    · have hs8 : ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+    · have hs8 : ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
           (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 8)
           (.ok (modifyPositionMiddleAssigned0Frame v a evm) (modifyPositionMiddleStoresState v a evm)) :=
         execBlock_append_ok hs5 hsrc0
@@ -72,9 +74,9 @@ theorem modifyPositionMiddleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       · refine Or.inl ⟨?_, Or.inl rr⟩
         rw [← List.take_append_drop 8 modifyPositionMiddleBody]
         apply execBlock_append_ok hs8
-        change ExecBlock config _ _ (modifyPositionMiddleAmountBody true ++ modifyPositionMiddleBody.drop 11) _
+        change ExecBlock fork config _ _ (modifyPositionMiddleAmountBody true ++ modifyPositionMiddleBody.drop 11) _
         exact execBlock_append_term hsrc1 (by intro _ _ h; cases h)
-      · have hs11 : ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+      · have hs11 : ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
             (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 11)
             (.ok (modifyPositionMiddleAssigned1Frame v a evm) (modifyPositionMiddleStoresState v a evm)) :=
           execBlock_append_ok hs8 hsrc1

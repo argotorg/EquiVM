@@ -1,5 +1,7 @@
 import Reasoning.Reach
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -8,7 +10,7 @@ theorem smod_xstep {s : State} {code : ByteArray} {pc a b : UInt256} {R : List U
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pc)
     (hdec : decode code pc = some (.SMOD, .none))
     (hstack : s.machineState.stack = a :: b :: R) (hov : R.length+1 ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
       else .ok (stBinop5 s (UInt256.smod a b) R, .none) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.SMOD, .none) := by
@@ -24,9 +26,9 @@ theorem smod_xstep {s : State} {code : ByteArray} {pc a b : UInt256} {R : List U
 theorem rdSmod {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {a b : UInt256} {R : List UInt256}
-    (h : RD code I g s0 pc (a :: b :: R) mem aw rdata σ k C)
+    (h : RD fork code I g s0 pc (a :: b :: R) mem aw rdata σ k C)
     (hdec : decode code pc = some (.SMOD, .none)) (hov : R.length+1 ≤ 1024) :
-    RD code I g s0 (pc+⟨1⟩) (UInt256.smod a b :: R) mem aw rdata σ (k+1) (C+5) :=
+    RD fork code I g s0 (pc+⟨1⟩) (UInt256.smod a b :: R) mem aw rdata σ (k+1) (C+5) :=
   h.stepBinop5 (fun _ hc hp hs => smod_xstep hc hp hdec hs hov)
 
 end Benchmarks.UniswapV4PoolManager

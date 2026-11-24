@@ -5,6 +5,8 @@ import Benchmarks.Dss.Clipper.GetStatusBody
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -736,11 +738,11 @@ theorem RD.clipperGetStatusToStatus {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {id ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 ⟨3185⟩ (id :: ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork code ee g s0 ⟨3185⟩ (id :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hmem : mem.size = 96)
     (hov : R.length + 64 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8460⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8460⟩
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩) ::
         clipperSalesPackedTicWord
           (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)) ::
@@ -831,11 +833,11 @@ theorem RD.clipperStatusAgeForPrice {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {top tic ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata σ k C)
     (hle : (UInt256.land tic clipperSalesUint96Mask).toNat ≤
       (UInt256.ofNat ee.header.timestamp).toNat)
     (hov : R.length + 80 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8502⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8502⟩
       (UInt256.sub (UInt256.ofNat ee.header.timestamp)
           (UInt256.land tic clipperSalesUint96Mask) ::
         top :: clipperStatusPriceSelectorWord ::
@@ -886,7 +888,7 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {age top calcAddr tic ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 ⟨8502⟩
+    (h : RD fork code ee g s0 ⟨8502⟩
       (age :: top :: clipperStatusPriceSelectorWord :: calcAddr ::
         ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
@@ -898,7 +900,7 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 90 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8549⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) rdata
@@ -965,7 +967,7 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g age top calcAddr tic ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code I (Sat256.ofUInt256 g)
+    (h : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
@@ -977,13 +979,13 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
     (hov : R.length + 100 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code I (Sat256.ofUInt256 g)
+      RD fork code I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8565⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperStatusPriceSelectorWord ::
           calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
         (clipperStatusPricePostCallMem top age mem o)
         (UInt256.ofNat 7) o σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofUInt256 calcAddr)) "price" 0
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
@@ -1037,10 +1039,10 @@ theorem RD.clipperStatusPriceCallFailure
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd : RD code ee g s0 ⟨8565⟩ (⟨0⟩ :: R) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨8565⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨8565⟩) (okPc := ⟨8581⟩)
     rd (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1057,9 +1059,9 @@ theorem RD.clipperStatusPriceCallSuccessToDecode
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd : RD code ee g s0 ⟨8565⟩ (⟨1⟩ :: R) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨8565⟩ (⟨1⟩ :: R) mem aw o acc k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8583⟩ R mem aw o acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ⟨8583⟩ R mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨8565⟩) (okPc := ⟨8581⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1075,13 +1077,13 @@ theorem RD.clipperStatusPriceReturnDecodeShortReverts
     {acc : AccountMap}
     {top age d0 d1 d2 : UInt256} {baseMem out : ByteArray} {k C : ℕ}
     {R : List UInt256}
-    (rd8583 : RD code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
+    (rd8583 : RD fork code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
       (clipperStatusPricePostCallMem top age baseMem out) (UInt256.ofNat 7) out acc k C)
     (hmem : baseMem.size = 96)
     (hread64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hshort : out.size < 32) (hout : out.size < UInt256.size)
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts
     (pc := ⟨8583⟩) (okPc := ⟨8603⟩) rd8583 hshort hout
     (by native_decide)
@@ -1103,13 +1105,13 @@ theorem RD.clipperStatusPriceReturnDecodeOk
     {acc : AccountMap}
     {top age d0 d1 d2 : UInt256} {baseMem out : ByteArray} {k C : ℕ}
     {R : List UInt256}
-    (rd8583 : RD code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
+    (rd8583 : RD fork code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
       (clipperStatusPricePostCallMem top age baseMem out) (UInt256.ofNat 7) out acc k C)
     (hmem : baseMem.size = 96)
     (hread64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlo : 32 ≤ out.size) (hout : out.size < UInt256.size)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8606⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8606⟩
       (clipperStatusPriceWord out :: R)
       (clipperStatusPricePostCallMem top age baseMem out) (UInt256.ofNat 7) out acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk
@@ -1137,7 +1139,7 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
     {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
+    (rd8606 : RD fork code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
       mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
@@ -1148,7 +1150,7 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
           (UInt256.land tic clipperSalesUint96Mask)).toNat)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 80 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (price :: (⟨1⟩ : UInt256) :: R)
+    ∃ k' C', RD fork code ee g s0 ret (price :: (⟨1⟩ : UInt256) :: R)
       mem aw rdata σ k' C' := by
   let ageForDone : UInt256 :=
     UInt256.sub (UInt256.ofNat ee.header.timestamp) (UInt256.land tic clipperSalesUint96Mask)
@@ -1209,7 +1211,7 @@ theorem RD.clipperStatusAfterPriceRdivBranch
     {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
+    (rd8606 : RD fork code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
       mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
@@ -1222,7 +1224,7 @@ theorem RD.clipperStatusAfterPriceRdivBranch
     (htop : top ≠ ⟨0⟩)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (price ::
         UInt256.lt (UInt256.div (UInt256.mul price clipperRayWord) top)
           (solcSlotWord σ ee ⟨7⟩) :: R)
@@ -1297,13 +1299,13 @@ theorem RD.clipperGetStatusReturnLoadsFrom3283
     {σ : AccountMap}
     {needs done tic usr b0 c0 price e0 id ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd3283 : RD code ee g s0 ⟨3283⟩
+    (rd3283 : RD fork code ee g s0 ⟨3283⟩
       (needs :: done :: tic :: usr :: b0 :: c0 :: price :: e0 :: id :: ret :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : 64 ≤ mem.size)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 80 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩) ::
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩) ::
         price :: needs :: R)
@@ -1366,13 +1368,13 @@ theorem RD.clipperGetStatusAfterStatusToReturnEncoder
     {σ : AccountMap}
     {price done a0 tic usr b0 c0 d0 e0 id ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd3258 : RD code ee g s0 ⟨3258⟩
+    (rd3258 : RD fork code ee g s0 ⟨3258⟩
       (price :: done :: a0 :: tic :: usr :: b0 :: c0 :: d0 :: e0 :: id :: ret :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : 64 ≤ mem.size)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩) ::
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩) ::
         price :: clipperGetStatusNeedsRedoWord usr done :: R)
@@ -1434,7 +1436,7 @@ theorem RD.clipperGetStatusReturnEncode
     {acc : AccountMap}
     {tab lot price needs : UInt256} {R : List UInt256}
     {mem memBool memPrice memLot memTab retBytes rdata : ByteArray} {k C : ℕ}
-    (rd789 : RD code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
+    (rd789 : RD fork code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
       mem (UInt256.ofNat 7) rdata acc k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -1462,7 +1464,7 @@ theorem RD.clipperGetStatusReturnEncode
       memTab.readWithPadding (⟨128⟩ : UInt256).toNat
         (((⟨128⟩ : UInt256) - ⟨128⟩) + ⟨128⟩).toNat = retBytes)
     (hov : R.length + 16 ≤ 1024) :
-    RDret code g s0 acc retBytes := by
+    RDret fork code g s0 acc retBytes := by
   exact evm_run rd789 with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1514,12 +1516,12 @@ theorem RD.clipperGetStatusReturnEncodeConcrete
     {acc : AccountMap}
     {tab lot price needs : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd789 : RD code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
+    (rd789 : RD fork code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
       mem (UInt256.ofNat 7) rdata acc k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 16 ≤ 1024) :
-    RDret code g s0 acc (clipperGetStatusReturnBytes needs price lot tab) := by
+    RDret fork code g s0 acc (clipperGetStatusReturnBytes needs price lot tab) := by
   exact RD.clipperGetStatusReturnEncode v hpatch rd789
     (memBool := writeWord mem 128 (UInt256.isZero (UInt256.isZero needs)))
     (memPrice := writeWord

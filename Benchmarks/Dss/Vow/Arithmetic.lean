@@ -1,6 +1,8 @@
 import Reasoning.SteleArithmetic
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -134,7 +136,7 @@ theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
 
 theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y sum } evm
         (some [.int (Int.ofNat sum.toNat)])) := by
@@ -171,7 +173,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
         (.binary .ge (.var "z") (.var "x")) = .ok (.bool true) :=
     evalExpr_ge_uint256_true hz hxZ (by rw [hsumNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -184,7 +186,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
 
 theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat + y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -202,7 +204,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
         (add256 (.var "x") (.var "y")) = .revert :=
     evalExpr_add256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -212,7 +214,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
 
 theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
     (hdiff : diff = UInt256.sub x y) (hle : y.toNat ≤ x.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       subFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y diff } evm
         (some [.int (Int.ofNat diff.toNat)])) := by
@@ -249,7 +251,7 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
         (.binary .le (.var "z") (.var "x")) = .ok (.bool true) :=
     evalExpr_le_uint256_true hz hxZ (by rw [hdiffNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (sub256 (.var "x") (.var "y")),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -262,7 +264,7 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
 
 theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hlt : x.toNat < y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       subFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -280,7 +282,7 @@ theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
         (sub256 (.var "x") (.var "y")) = .revert :=
     evalExpr_sub256_revert hx hy hlt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (sub256 (.var "x") (.var "y")),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -290,7 +292,7 @@ theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
 
 theorem execMinFunctionReturnLeft (evm : EVM.State) {x y : UInt256}
     (hle : x.toNat ≤ y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       minFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y x } evm
         (some [.int (Int.ofNat x.toNat)])) := by
@@ -321,7 +323,7 @@ theorem execMinFunctionReturnLeft (evm : EVM.State) {x y : UInt256}
     simpa [localsZ] using evalExpr_varUInt256 (evm := evm)
       (locals := localsZ) (name := "z") (value := x) (uintBinaryLocalsZ_get_z x y x)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")),
           .return [.var "z"] ]
@@ -333,7 +335,7 @@ theorem execMinFunctionReturnLeft (evm : EVM.State) {x y : UInt256}
 
 theorem execMinFunctionReturnRight (evm : EVM.State) {x y : UInt256}
     (hlt : y.toNat < x.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       minFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y y } evm
         (some [.int (Int.ofNat y.toNat)])) := by
@@ -364,7 +366,7 @@ theorem execMinFunctionReturnRight (evm : EVM.State) {x y : UInt256}
     simpa [localsZ] using evalExpr_varUInt256 (evm := evm)
       (locals := localsZ) (name := "z") (value := y) (uintBinaryLocalsZ_get_z x y y)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")),
           .return [.var "z"] ]

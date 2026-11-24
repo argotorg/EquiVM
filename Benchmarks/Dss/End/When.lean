@@ -1,5 +1,7 @@
 import Benchmarks.Dss.End.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -36,7 +38,7 @@ theorem endReachWhenBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endWhenConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork endBytecode I g (initState σ σ₀ g A I)
         endWhenEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0xe2b0caef⟩ :=
@@ -70,12 +72,12 @@ theorem endWhenBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (whenTransition.params.map Param.name)
         (transitionSignature whenTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endWhenEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ whenTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -109,7 +111,7 @@ theorem endWhenBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf whenTransition)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsel' : selIs I endWhenConcreteSelector := by
     simpa [endWhenSelectorBytes, endWhenConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=

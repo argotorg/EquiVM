@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingFirst
 import Benchmarks.UniswapV3.Pool.OracleSurroundingCompare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem oracleSurroundingOldCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : 
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret time target : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19052⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19052⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (htime : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
@@ -20,7 +22,7 @@ theorem oracleSurroundingOldCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : 
     (hbefore : ObservationMemory mem beforePtr (oracleSurroundingOldest index card σ ee))
     (hend : beforePtr.toNat + 128 ≤ p.toNat) (hcover : p.toNat ≤ aw.toNat * 32 + 32)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ⟨19067⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ⟨19067⟩
       ((if oracleSurroundingOldEnough time target index card σ ee then ⟨1⟩ else ⟨0⟩) ::
         oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k' C' := by
@@ -52,8 +54,8 @@ theorem oracleSurroundingOldCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : 
 theorem oracleSurroundingOldRevertX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19067⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 5 ≤ 1024) : RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19067⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 5 ≤ 1024) : RDrev fork (deployedRuntime v) g s0 := by
   have r1 := uniswapV3Pool_block_19067_fallthrough (immWords := wordsOf (immStore v))
     (by evm_ov) rfl rd
   simp only [uniswapV3Pool_block_19067_fallthrough_stack] at r1
@@ -63,10 +65,10 @@ theorem oracleSurroundingZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C : Nat} {aw afterPtr beforePtr liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18832⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18832⟩
       (oracleSurroundingStack afterPtr beforePtr ⟨0⟩ liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C) (hov : R.length + 26 ≤ 1024) :
-    RDinvalid (deployedRuntime v) g s0 := by
+    RDinvalid fork (deployedRuntime v) g s0 := by
   have r1 := uniswapV3Pool_block_18832_fallthrough (immWords := wordsOf (immStore v))
     (by evm_ov) (by decide) rd
   exact uniswapV3Pool_block_18852 (immWords := wordsOf (immStore v)) r1
@@ -75,10 +77,10 @@ theorem oracleSurroundingIndexX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18658⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18658⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C) (hidx : index.toNat < 2 ^ 16) (hin : ¬ index.toNat < 65535)
-    (hov : R.length + 26 ≤ 1024) : RDinvalid (deployedRuntime v) g s0 := by
+    (hov : R.length + 26 ≤ 1024) : RDinvalid fork (deployedRuntime v) g s0 := by
   have hindex : UInt256.land (UInt256.ofNat 65535) index = index := by
     rw [u256_land_comm]
     exact u256LandMaskCleanOfToNat (bits := 16) _ _ (by decide) hidx

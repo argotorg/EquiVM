@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.WithdrawInternalSource
 import Benchmarks.CompoundIII.Comet.VoidCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -17,10 +19,10 @@ theorem withdrawFromTransition_body : withdrawFromTransition.body = calldataProl
       .var "amount"] "__c0", .return []] := rfl
 
 theorem withdrawFrom_source {v src recipient asset amount evm result}
-    (ht : WithdrawInternalTrace v evm.executionEnv.source src
+    (ht : WithdrawInternalTrace fork v evm.executionEnv.source src
       recipient asset amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    explicitVoidSourceResult config
+    explicitVoidSourceResult fork config
       { contract := contract, locals := withdrawFromArgs src recipient asset amount, immutables := immStore v }
       evm withdrawFromTransition.body result := by
   rw [withdrawFromTransition_body]

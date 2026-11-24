@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ abbrev factoryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem uniswapFactoryBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "factory" = none) :
-    ExecTransitionBody config contract evm locals factoryTransition.body
+    ExecTransitionBody fork config contract evm locals factoryTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
@@ -33,10 +35,10 @@ theorem uniswapFactoryBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `factory()`'s external body entry (pc 1324), the bytecode returns slot 5 as an address. -/
 theorem uniswapX_factory {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1324⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (factoryReturnWord σ I)) := by
   exact RD.addressGetterExternal (entry := ⟨1324⟩) (routine := ⟨5443⟩)
     (slot := ⟨5⟩) hreach uniswap_address_getter_entry_wf uniswap_address_slot_getter_wf
@@ -56,12 +58,12 @@ theorem uniswapFactoryBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (factoryTransition.params.map Param.name)
         (transitionSignature factoryTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1324⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ factoryTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -80,7 +82,7 @@ theorem uniswapFactoryBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some factoryTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩ rfl hsel
   exact uniswapFactoryBodyCore hcode hwv hdispatch (uniswapDecode_factory hsz)

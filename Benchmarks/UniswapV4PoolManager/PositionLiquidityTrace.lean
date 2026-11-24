@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.LiquidityAddTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -38,12 +40,12 @@ theorem positionLiquidityTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id key fee0 upper x0 x1 x2 x3 x4 x5 lower x9 fee1 : UInt256} {delta : Int}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables) (hstack : R.length+25 ≤ 1024)
     (hI : evm.executionEnv = I) (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨5915⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionUpdateInputStack evm id key delta fee0 upper x0 x1 x2 x3 x4 x5 lower x9 fee1 R)
       mem aw rdata evm.accountMap k C) :
-    if positionChangeReverts (positionLiquidityWord evm id key) delta then RDrev (deployedRuntime v) g s0 else
-      if delta ≠ 0 ∧ evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0 else
-        ∃ k' C', RD (deployedRuntime v) I g s0 ⟨5950⟩
+    if positionChangeReverts (positionLiquidityWord evm id key) delta then RDrev fork (deployedRuntime v) g s0 else
+      if delta ≠ 0 ∧ evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+        ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨5950⟩
           (positionLiquidityWord evm id key :: fee1 :: positionSlot id key :: ⟨5993⟩ :: ⟨5999⟩ :: fee0 ::
             positionUpdateContinuation delta upper x0 x1 x2 x3 x4 x5 lower x9 R)
           mem aw rdata (positionChangeState evm id key (positionLiquidityWord evm id key) delta).accountMap k' C' := by

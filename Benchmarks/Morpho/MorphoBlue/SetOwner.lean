@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Benchmarks.Morpho.MorphoBlue.AdminCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `setOwner(address)`
 
@@ -31,14 +33,14 @@ theorem morphoSetOwnerBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv)
     (hne : calldataWord evm.executionEnv.calldata 4 ≠
       solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (setOwnerArgs evm.executionEnv.calldata)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (setOwnerArgs evm.executionEnv.calldata)
       setOwnerTransition.body
       (.returned (setOwnerFrame v evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
           (setAddressOffset0Word (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
             (calldataWord evm.executionEnv.calldata 4))) none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm (setOwnerArgs evm.executionEnv.calldata)
+      ExecTransitionBody fork config contract evm (setOwnerArgs evm.executionEnv.calldata)
         setOwnerTransition.body .staticViolation (immStore v)) := by
   exact addressAdminBodySplit v evm (setOwnerArgs evm.executionEnv.calldata)
     "owner" "newOwner" "SetOwner" ⟨0⟩ (calldataWord evm.executionEnv.calldata 4)
@@ -53,7 +55,7 @@ theorem morphoSetOwnerBodyRejects (v : MorphoImmutables) (evm : EVM.State)
     (hbad : solcSourceWord evm.executionEnv ≠ solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv ∨
       calldataWord evm.executionEnv.calldata 4 =
         solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv) :
-    ExecTransitionBody config contract evm (setOwnerArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (setOwnerArgs evm.executionEnv.calldata)
       setOwnerTransition.body .reverted (immStore v) := by
   exact addressAdminBodyRejects v evm (setOwnerArgs evm.executionEnv.calldata)
     "owner" "newOwner" "SetOwner" ⟨0⟩ (calldataWord evm.executionEnv.calldata 4)
@@ -67,7 +69,7 @@ theorem morphoSetOwnerReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImmutab
     (hsel : selIs I (morphoSelBytes 0))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
       [UInt256.ofNat 11211, UInt256.ofNat 11311, ⟨0⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachSetOwnerBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -90,7 +92,7 @@ theorem morphoSetOwnerReachOwnerCheck {σ σ₀ A I} {g : Sat256} (v : MorphoImm
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.eq (solcSourceWord I) (solcAddressSlotWord ⟨0⟩ σ I),
        UInt256.ofNat 128, UInt256.ofNat 11290, calldataWord I.calldata 4,
        solcAddrMask, solcSlotWordAt ⟨0⟩ σ I,
@@ -120,7 +122,7 @@ theorem morphoSetOwnerReachChangedCheck {σ σ₀ A I} {g : Sat256} (v : MorphoI
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.isZero (UInt256.eq (calldataWord I.calldata 4) (solcAddressSlotWord ⟨0⟩ σ I)),
        UInt256.ofNat 192, UInt256.ofNat 11311, solcSlotWordAt ⟨0⟩ σ I,
        UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960,
@@ -139,7 +141,7 @@ theorem morphoSetOwnerReachChangedCheck {σ σ₀ A I} {g : Sat256} (v : MorphoI
   have rdRequire := morphoBlocks.morpho_block_11302
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons, List.length_nil]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdCheck
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.isZero (UInt256.eq (UInt256.land (calldataWord I.calldata 4) solcAddrMask)
       (solcAddressSlotWord ⟨0⟩ σ I)), _, _, _, _,
       UInt256.land (calldataWord I.calldata 4) solcAddrMask,
@@ -158,7 +160,7 @@ theorem morphoSetOwnerXRejects {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbad : solcSourceWord I ≠ solcAddressSlotWord ⟨0⟩ σ I ∨
       calldataWord I.calldata 4 = solcAddressSlotWord ⟨0⟩ σ I) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I
   · obtain ⟨aw, k, C, rd⟩ := morphoSetOwnerReachChangedCheck (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho
@@ -179,7 +181,7 @@ theorem morphoSetOwnerReachStore {σ σ₀ A I} {g : Sat256} (v : MorphoImmutabl
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hne : calldataWord I.calldata 4 ≠ solcAddressSlotWord ⟨0⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11311)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11311)
       [solcSlotWordAt ⟨0⟩ σ I,
        UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960,
        calldataWord I.calldata 4, calldataWord I.calldata 4, ⟨0⟩]
@@ -200,10 +202,10 @@ theorem morphoSetOwnerXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hne : calldataWord I.calldata 4 ≠ solcAddressSlotWord ⟨0⟩ σ I) :
-    (I.perm = true ∧ RDret (deployedRuntime v) g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork (deployedRuntime v) g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩
         (setAddressOffset0Word (solcSlotWordAt ⟨0⟩ σ I) (calldataWord I.calldata 4))) ByteArray.empty) ∨
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g (initState σ σ₀ g A I)) := by
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g (initState σ σ₀ g A I)) := by
   obtain ⟨aw, k, C, rd⟩ := morphoSetOwnerReachStore (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho hne
   by_cases hperm : I.perm = true
@@ -241,7 +243,7 @@ theorem morphoSetOwnerXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 0))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 0) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachSetOwnerBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -270,7 +272,7 @@ theorem morphoSetOwnerXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (hsel : selIs I (morphoSelBytes 0)) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoSetOwnerReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -281,7 +283,7 @@ theorem morphoSetOwnerXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
 theorem morphoSetOwnerBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 0) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some setOwnerTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
@@ -298,7 +300,7 @@ theorem morphoSetOwnerBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
             · exact reEquivSelectorRevert hcode
                 (morphoSetOwnerXRejects v hcode hsize hsel hcv hlen hbound hcanon (.inr heq)) hd hdec
                 (morphoSetOwnerBodyRejects v _ hcv hbound hcanon (.inr heq))
-            · have hbody := morphoSetOwnerBodySplit v (initState σ σ₀ (.ofUInt256 g) A I)
+            · have hbody := morphoSetOwnerBodySplit (fork := fork) v (initState σ σ₀ (.ofUInt256 g) A I)
                 hcv hbound hcanon ho heq
               rcases morphoSetOwnerXSplit (g := .ofUInt256 g) (σ₀ := σ₀) (A := A)
                 v hcode hsize hsel hcv hlen hbound hcanon ho heq with ⟨hp, hx⟩ | ⟨hp, hx⟩

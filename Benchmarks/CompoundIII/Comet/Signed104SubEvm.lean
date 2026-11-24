@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.SignedDebtWords
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_039
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,12 +17,12 @@ theorem cometSigned104SubNonneg {v : CometWithExtendedAssetListImmutables}
     {aw a b ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hle : signed104 b ≤ signed104 a)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13082⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13082⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
     (signed104 a - signed104 b < (2^103 : Int) ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ret
+      RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.sub (UInt256.signextend (UInt256.ofNat 12) a)
           (UInt256.signextend (UInt256.ofNat 12) b) :: R) mem aw rdata σ k' C') ∨
-    (¬ signed104 a - signed104 b < (2^103 : Int) ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ signed104 a - signed104 b < (2^103 : Int) ∧ RDrev fork (deployedRuntime v) g s0) := by
   have ha := signed104_bounds a
   have hb := signed104_bounds b
   let maxWord := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 103))

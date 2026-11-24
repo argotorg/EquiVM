@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_014
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,8 +18,8 @@ theorem cometAssetCallFailed {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7265⟩ (⟨0⟩ :: ⟨256⟩ :: ptr :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7265⟩ (⟨0⟩ :: ⟨256⟩ :: ptr :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7265_taken
     (immWords := wordsOf (immStore v)) (by dsimp only [List.length_cons]; omega)
     (by decide) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -32,9 +34,9 @@ theorem cometAssetResponseStart {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7265⟩ (⟨1⟩ :: ⟨256⟩ :: ptr :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7265⟩ (⟨1⟩ :: ⟨256⟩ :: ptr :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
       mem aw out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7265_fallthrough
     (immWords := wordsOf (immStore v)) (by dsimp only [List.length_cons]; omega)
@@ -49,8 +51,8 @@ theorem cometAssetResponseShort {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hptr : ptr.toNat + 256 < 2^64)
     (hshort : out.size < 256)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hsize : out.size < UInt256.size := by change out.size < 2^256; omega
   have r1 := cometWithExtendedAssetList_block_7284_taken
     (immWords := wordsOf (immStore v)) (by dsimp only [List.length_cons]; omega)
@@ -80,9 +82,9 @@ theorem cometAssetResponseFull {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hptr : ptr.toNat + 256 < 2^64)
     (hout : 256 ≤ out.size) (hhi : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7284⟩ (ptr :: ⟨256⟩ :: ⟨0⟩ :: ret :: R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7316⟩ (⟨0⟩ :: ptr :: ⟨256⟩ :: ret :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7316⟩ (⟨0⟩ :: ptr :: ⟨256⟩ :: ret :: R)
       (writeWord mem 64 (ptr + ⟨256⟩)) aw' out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7284_fallthrough
     (immWords := wordsOf (immStore v)) (by dsimp only [List.length_cons]; omega)
@@ -103,9 +105,9 @@ theorem cometAssetResponseAllocate {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hptr : ptr.toNat + 512 < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7316⟩ (⟨0⟩ :: ptr :: ⟨256⟩ :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7316⟩ (⟨0⟩ :: ptr :: ⟨256⟩ :: ret :: R)
       (assetReserveMemory mem ptr out) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7335⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7335⟩
       (ptr :: ⟨224⟩ :: ⟨7454⟩ :: (ptr + ⟨256⟩) :: ret :: R)
       (assetDecodeMemory mem ptr out) aw' out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7316
@@ -130,13 +132,13 @@ theorem cometAssetResponse {v : CometWithExtendedAssetListImmutables}
     (hin : ptr.toNat ≤ mem.size) (hptr : ptr.toNat + 512 < 2^64)
     (hhi : out.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7265⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7265⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨256⟩ :: ptr :: ret :: R)
       (assetCopyMemory mem ptr out) aw out σ k C) :
     if z = true ∧ AssetValid out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret ((ptr + ⟨256⟩) :: R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret ((ptr + ⟨256⟩) :: R)
         (assetStore (assetDecodeMemory mem ptr out) (ptr + ⟨256⟩) out 8) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases z with
   | false =>
       rw [if_neg (by simp)]

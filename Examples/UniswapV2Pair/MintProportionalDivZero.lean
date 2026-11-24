@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintProportionalRuntimeCalls
 import Examples.UniswapV2Pair.MintSourceReturns
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -28,7 +30,7 @@ theorem uniswapMintProportionalLiquidity0DivZeroReverts
     (hamount0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
     (hreserve0 : locals.get? "_reserve0" = some (.int 0))
     (hfit0 : mintAmountProductNat amount0 totalSupply < UInt256.size) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       mintLiquidityBranchStmt .reverted := by
   refine ExecStmt.iteFalse
     (evalExpr_mint_totalSupply_eq_zero_false evm totalSupply htotal htotalNonzero) ?_
@@ -47,7 +49,7 @@ theorem uniswapMintProportionalLiquidity1DivZeroReverts
     (hfit0 : mintAmountProductNat amount0 totalSupply < UInt256.size)
     (hfit1 : mintAmountProductNat amount1 totalSupply < UInt256.size)
     (hreserve0Nonzero : reserve0 ≠ ⟨0⟩) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       mintLiquidityBranchStmt .reverted := by
   have hliq0 := evalExpr_mint_proportionalLiquidity_of_get evm "amount0" "_reserve0"
     amount0 totalSupply reserve0 hamount0 htotal hreserve0 hfit0 hreserve0Nonzero
@@ -69,9 +71,9 @@ theorem RD.uniswapMintProportionalDiv0Zero
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product : UInt256}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨3791⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨3791⟩
       (product :: ⟨0⟩ :: R) mem aw rdata acc k C)
-    (hov : R.length + 4 ≤ 1024) : RDinvalid uniswapV2PairBytecode g s0 := by
+    (hov : R.length + 4 ≤ 1024) : RDinvalid fork uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rdGuard⟩ := RD.uniswapMintProportionalDiv0Guard rd hov
   have rdInvalid := evm_run rdGuard with [jumpiNT (by native_decide)]
   exact RD.invalidHalt rdInvalid (by native_decide)
@@ -82,9 +84,9 @@ theorem RD.uniswapMintProportionalDiv1Zero
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product : UInt256}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨3825⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨3825⟩
       (product :: ⟨0⟩ :: R) mem aw rdata acc k C)
-    (hov : R.length + 4 ≤ 1024) : RDinvalid uniswapV2PairBytecode g s0 := by
+    (hov : R.length + 4 ≤ 1024) : RDinvalid fork uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rdGuard⟩ := RD.uniswapMintProportionalDiv1Guard rd hov
   have rdInvalid := evm_run rdGuard with [jumpiNT (by native_decide)]
   exact RD.invalidHalt rdInvalid (by native_decide)

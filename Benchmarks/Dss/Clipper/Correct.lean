@@ -31,6 +31,8 @@ import Benchmarks.Dss.Clipper.Wards
 import Benchmarks.Dss.Clipper.Yank
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper benchmark correctness
 
@@ -48,8 +50,8 @@ namespace Benchmarks.Dss.Clipper
 theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
     (hcode : patchRuntime clipperBytecode (patches v) = some code) :
     runtimeRefinementWithWF clipperStorageWF noGasBound config code contract (immStore v) := by
-  refine runtimeRefinementWithWF.intro ?_
-  intro σ σ₀ g A I hIcode hsize hStorageWF _
+  refine runtimeRefinementWithWFOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hIcode hsize hStorageWF _
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hactive : selIs I (clipperSelBytes 0)
     · exact clipperActiveBody v hcode hIcode hsize hwv hactive

@@ -2,6 +2,8 @@ import Benchmarks.Auction.MintPrefix
 import Benchmarks.Auction.CallOutput
 import Benchmarks.Auction.MemoryGrowth
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -13,16 +15,16 @@ def mintCallWords (aw ptr : UInt256) : UInt256 :=
   callActiveWords (expandedWords aw ptr ⟨32⟩) ptr ⟨4⟩ ptr ⟨32⟩
 
 theorem mintCall {I g s0 ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 13 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         mintSelector (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨3071⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨3071⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ret :: R)
         (mintCallMem mem out ptr) (mintCallWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd3066⟩ := mintPrefix h hm hb hov
@@ -68,9 +70,9 @@ theorem mintCallWords_mono {aw ptr} (ha : ActiveWords aw)
   exact le_trans h0 h1
 
 theorem mintAfterFailure {I g s0 ret R mem aw out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3071⟩ (⟨0⟩ :: ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3071⟩ (⟨0⟩ :: ret :: R) mem aw out acc k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [dup1, iszero, push2 ⟨3111⟩,
     jumpiT (by decide) (by jump_dest), jumpdest, push2 ⟨3172⟩, jumpiNT (by decide)]⟩
 

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapProtocolSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapGrowthSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,11 +35,11 @@ theorem poolSwapFeeSource {f : Frame} {evm : State}
     (hfee : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hp : f.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)))
     (ha : f.locals.get? "amountToProtocol" = some (.int (Int.ofNat amount.toNat))) :
-    ExecBlock config f evm ((poolSwapLoopBody.drop 16).take 2)
+    ExecBlock fork config f evm ((poolSwapLoopBody.drop 16).take 2)
       (.ok (poolSwapGrowthFrame (poolSwapProtocolFrame f s fee protocol amount)
         (poolSwapProtocolStep s fee protocol) r.liquidity) evm) := by
-  have hfirst := poolSwapProtocolSource (evm := evm) hs hfee hp ha
-  have hsecond := poolSwapGrowthSource (evm := evm) ((poolSwapProtocolFrame_contract ..).trans hf)
+  have hfirst := poolSwapProtocolSource (fork := fork) (evm := evm) hs hfee hp ha
+  have hsecond := poolSwapGrowthSource (fork := fork) (evm := evm) ((poolSwapProtocolFrame_contract ..).trans hf)
     (poolSwapProtocolFrame_step hs fee protocol amount)
     ((poolSwapProtocolFrame_get f s fee protocol amount "result" (by decide) (by decide) (by decide)).trans hr)
   exact ExecBlock.consNormal hfirst (execBlock_singleton hsecond)

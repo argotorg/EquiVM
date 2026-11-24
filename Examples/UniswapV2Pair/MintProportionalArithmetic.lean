@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintProportionalProductOverflow
 import Examples.UniswapV2Pair.MintProportionalDivZero
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -12,7 +14,7 @@ theorem uniswapMintProportionalArithmeticCases
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     {locals : Store} (evm : EVM.State)
-    (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3762 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
@@ -30,15 +32,15 @@ theorem uniswapMintProportionalArithmeticCases
     (mintAmountProductNat amount0 totalSupply < UInt256.size ∧
       reserve0 ≠ ⟨0⟩ ∧ mintAmountProductNat amount1 totalSupply < UInt256.size ∧
       reserve1 ≠ ⟨0⟩) ∨
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
       mintLiquidityBranchStmt .reverted ∧
-      (RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      (RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∨
-        RDinvalid uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        RDinvalid fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) := by
   by_cases hfit0 : mintAmountProductNat amount0 totalSupply < UInt256.size
   · by_cases hz0 : reserve0 = ⟨0⟩
-    · have hsource := uniswapMintProportionalLiquidity0DivZeroReverts evm amount0
+    · have hsource := uniswapMintProportionalLiquidity0DivZeroReverts (fork := fork) evm amount0
         totalSupply htotal htotalNonzero hamount0 (by simpa only [hz0] using hreserve0) hfit0
       obtain ⟨_, _, rdMul⟩ := RD.uniswapMintProportionalMul0Entry rd3762 hclean0
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -50,7 +52,7 @@ theorem uniswapMintProportionalArithmeticCases
         (by simp only [List.length_cons, List.length_nil]; omega))⟩
     · by_cases hfit1 : mintAmountProductNat amount1 totalSupply < UInt256.size
       · by_cases hz1 : reserve1 = ⟨0⟩
-        · have hsource := uniswapMintProportionalLiquidity1DivZeroReverts evm amount0
+        · have hsource := uniswapMintProportionalLiquidity1DivZeroReverts (fork := fork) evm amount0
             amount1 totalSupply reserve0 htotal htotalNonzero hamount0 hamount1 hreserve0
             (by simpa only [hz1] using hreserve1) hfit0 hfit1 hz0
           obtain ⟨_, _, rd3800⟩ := uniswapMintRuntimeProportionalLiquidity0Entry rd3762

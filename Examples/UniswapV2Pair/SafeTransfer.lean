@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -180,12 +182,12 @@ theorem safeTransferFunctionBodyReverts_callFailure
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (false, evm', out)) :
-    ExecFuncBody config
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (false, evm', out)) :
+    ExecFuncBody fork config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config
+  change ExecBlock fork config
     { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -207,14 +209,14 @@ theorem safeTransferFunctionBodyReverts_decode
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec : config.externalABI.decodeValue? boolTy out = none) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config
+  change ExecBlock fork config
     { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -236,14 +238,14 @@ theorem safeTransferFunctionBodyReverts_decodeFalse
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec : config.externalABI.decodeValue? boolTy out = some (.bool false)) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config
+  change ExecBlock fork config
     { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -265,16 +267,16 @@ theorem safeTransferFunctionBodyReturns_empty
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hout : out.size = 0) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body
       (.returned
         { contract := contract, locals := safeTransferCallStore token recipient value true out }
         evm' none) := by
   refine ExecFuncBody.execBlockOK ?_
-  change ExecBlock config
+  change ExecBlock fork config
     { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -298,17 +300,17 @@ theorem safeTransferFunctionBodyReturns_decodeTrue
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec : config.externalABI.decodeValue? boolTy out = some (.bool true)) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body
       (.returned
         { contract := contract, locals := safeTransferCallStore token recipient value true out }
         evm' none) := by
   refine ExecFuncBody.execBlockOK ?_
-  change ExecBlock config
+  change ExecBlock fork config
     { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -337,9 +339,9 @@ theorem safeTransferInternalCallReverts_callFailure
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (false, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (false, evm', out))
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm) (name := "_safeTransfer")
@@ -361,11 +363,11 @@ theorem safeTransferInternalCallReverts_decode
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec : config.externalABI.decodeValue? boolTy out = none)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm) (name := "_safeTransfer")
@@ -388,12 +390,12 @@ theorem safeTransferInternalCallReverts_decodeFalse
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec :
       config.externalABI.decodeValue? boolTy out = some (.bool false))
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm) (name := "_safeTransfer")
@@ -416,10 +418,10 @@ theorem safeTransferInternalCallReturns_empty
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hout : out.size = 0)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
       (.ok (resumeAfterInternalCall caller retVar none) evm') := by
   exact internalCallFunctionReturn
@@ -446,11 +448,11 @@ theorem safeTransferInternalCallReturns_decodeTrue
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some calldata)
-    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
     (hdec : config.externalABI.decodeValue? boolTy out = some (.bool true))
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
       (.ok (resumeAfterInternalCall caller retVar none) evm') := by
   exact internalCallFunctionReturn

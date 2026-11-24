@@ -3,6 +3,8 @@ import Stele.Semantics.Calls
 import Ethereum.Theory.GasLemmas
 import Ethereum.Theory.PrecompileLemmas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.Safe.ViaIR
@@ -11,7 +13,7 @@ set_option maxRecDepth 5000
 
 private theorem emptyStackHaltIsStop {validJumps : Array UInt256} {state state' : State}
     {cause : HaltCause} {out : ByteArray} (hs : state.machineState.stack = [])
-    (h : Xstep validJumps state = .ok (state', some (cause, out))) :
+    (h : Xstep fork validJumps state = .ok (state', some (cause, out))) :
     ((decode state.executionEnv.code state.machineState.pc).getD (.STOP, none)).1 =
       .STOP := by
   unfold Xstep at h
@@ -42,13 +44,13 @@ private theorem emptyStackHaltIsStop {validJumps : Array UInt256} {state state' 
 
 private theorem xiZeroGasFailure (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv)
     (hn : ((decode I.code ⟨0⟩).getD (.STOP, none)).1 ≠ .STOP) :
-    (match Ξ σ σ₀ ⟨0⟩ A I with
+    (match Ξ fork σ σ₀ ⟨0⟩ A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).1 = ∅ := by
   unfold Ξ
   simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.zero_add, X, bind, Except.bind]
-  generalize hstep : Xstep (D_J I.code 0) _ = stepResult
+  generalize hstep : Xstep fork (D_J I.code 0) _ = stepResult
   cases stepResult with
   | error _ => rfl
   | ok pair =>
@@ -63,7 +65,7 @@ private theorem stopDefaultStep {state : State} {jumps : Array UInt256}
     (hs : state.machineState.stack = [])
     (hd : ((decode state.executionEnv.code state.machineState.pc).getD (.STOP, none)).1 =
       .STOP) :
-    Xstep jumps state = .ok (stStop state, some (.success, ByteArray.empty)) := by
+    Xstep fork jumps state = .ok (stStop state, some (.success, ByteArray.empty)) := by
   generalize hi : (decode state.executionEnv.code state.machineState.pc).getD (.STOP, none) =
     instr at hd
   rcases instr with ⟨op, arg⟩
@@ -77,7 +79,7 @@ private theorem stopDefaultStep {state : State} {jumps : Array UInt256}
 private theorem xiStopOutput (σ σ₀ : AccountMap) (g : UInt256) (A : Substate)
     (I : ExecutionEnv)
     (hd : ((decode I.code ⟨0⟩).getD (.STOP, none)).1 = .STOP) :
-    (match Ξ σ σ₀ g A I with
+    (match Ξ fork σ σ₀ g A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).2.2.2 = .empty := by
@@ -88,8 +90,8 @@ private theorem xiStopOutput (σ σ₀ : AccountMap) (g : UInt256) (A : Substate
 
 private theorem precompileZeroGasFailure (pc : AccountAddress) (σ : AccountMap) (A : Substate)
     (I : ExecutionEnv) (hinput : I.calldata.size ≠ 213) :
-    (Ξ_PRECOMPILE pc σ ⟨0⟩ A I).1 = ∅ := by
-  apply Ξ_PRECOMPILE_induction (fun r ↦ r.1 = ∅)
+    (Ξ_PRECOMPILE fork pc σ ⟨0⟩ A I).1 = ∅ := by
+  apply Ξ_PRECOMPILE_induction fork (fun r ↦ r.1 = ∅)
   · rfl
   · simp [Ξ_SHA256]
   · simp [Ξ_RIP160]
@@ -151,16 +153,16 @@ private theorem thetaZeroGasFailureOfNonempty {fork : Ethereum.Fork} (σ σ₀ :
 The input-size condition excludes the zero-round BLAKE2 precompile exception. -/
 theorem callNonemptyCanReject {evm : State} {target : EVM.Address} {value : Int}
     {data out : ByteArray} {z : Bool} {evm' : State} {perm : Bool}
-    (hc : callViaEVM evm target value data (z, evm', out) perm)
+    (hc : callViaEVM fork evm target value data (z, evm', out) perm)
     (hinput : data.size ≠ 213) (hout : out ≠ .empty) :
-    ∃ evm'' out', callViaEVM evm target value data (false, evm'', out') perm := by
+    ∃ evm'' out', callViaEVM fork evm target value data (false, evm'', out') perm := by
   cases hc with
   | callNotMade _ _ _ => exact False.elim (hout rfl)
   | callMade hw hr he hb hd =>
     rw [hw] at hr hb
     obtain ⟨gas, A, hr⟩ := hr
-    let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
-      evm.executionEnv.sender target (toExecute evm.executionEnv.fork evm.accountMap target) ⟨0⟩
+    let result := Θ fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
+      evm.executionEnv.sender target (toExecute fork evm.accountMap target) ⟨0⟩
       (UInt256.ofNat evm.executionEnv.gasPrice) (EVM.wordOfInt value) (EVM.wordOfInt value) data
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks (perm && evm.executionEnv.perm)

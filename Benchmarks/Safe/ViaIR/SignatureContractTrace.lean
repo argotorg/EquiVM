@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_036
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_038
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,7 +17,7 @@ set_option maxRecDepth 2000
 theorem safeSignatureContractTrace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {i s r last executor : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨7607⟩
+    (h : RD fork safeBytecode I g s0 ⟨7607⟩
       (⟨0⟩ :: r :: s :: r :: last :: s :: UInt256.ofNat src :: p.hash ::
         i :: executor :: p.required :: R)
       mem aw rdata σ k C)
@@ -28,12 +30,12 @@ theorem safeSignatureContractTrace (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hov : R.length + 42 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config f evm signatureContractBody .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config f evm signatureContractBody .reverted) ∨
     ∃ evm' σ' mem' ptr' aw' out k' C',
-      ExecBlock config f evm signatureContractBody
+      ExecBlock fork config f evm signatureContractBody
         (.ok (signatureSet (signatureContractFrame f r s) "_contractSigOk" .unit) evm') ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨7803⟩
+      RD fork safeBytecode I g s0 ⟨7803⟩
         (last :: UInt256.land solcAddrMask r :: UInt256.ofNat src :: p.hash ::
           i :: executor :: p.required :: R)
         mem' aw' out σ' k' C' ∧

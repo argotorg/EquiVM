@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MergeUIDInner
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,15 +15,15 @@ theorem mergeUIDOuterLoop {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g :
     (hf : MergeUIDLocals L groups words heap.toNat c i)
     (hm : WordArrayPrefixView mem out words c heap.toNat) (hs : WordArrayArrayMemoryView mem lists groups out.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11990⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11990⟩
       (out::UInt256.ofNat c::UInt256.ofNat i::lists::ret::R) mem aw rdata σ k C) :
     ∃ L' mem' aw' k' C' words', words'.length = words.length ∧ MemoryPrefix mem mem' out.toNat ∧
       MergeUIDLocals L' groups words' heap.toNat words'.length groups.length ∧
       WordArrayMemoryView mem' out words' heap.toNat ∧ memLoad (UInt256.ofNat 64) mem' = heap ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
         (.while (localArrayGuard "i" "uidLists") mergeUIDOuterIteration)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (out::R) mem' aw' rdata σ k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ret (out::R) mem' aw' rdata σ k' C' := by
   induction n generalizing L mem aw k C i c words with
   | zero =>
     have hi0 : i = groups.length := by omega
@@ -48,11 +50,11 @@ theorem mergeUIDOuterLoop {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g :
     obtain ⟨L2,m2,a2,k2,C2,words2,hlen2,hp2,hf2,hm2,hfree2,hsol2,r2⟩ := mergeUIDInnerLoop v hstack hh
       groups[i].length (by omega) (by omega) hf0 hm hptr hfree r1
     let L3 := L2.insert "i" (.int (Int.ofNat (i+1)))
-    have hsol3 : ExecStmt config {contract := contract,locals := L2,immutables := immStore v} evm (localCastIncrement "i")
+    have hsol3 : ExecStmt fork config {contract := contract,locals := L2,immutables := immStore v} evm (localCastIncrement "i")
         (.ok {contract := contract,locals := L3,immutables := immStore v} evm) := execLocalCastIncrement hf2.outer.index hib
     have hf3 : MergeUIDLocals L3 groups words2 heap.toNat (c+groups[i].length) (i+1) := hf2.outer.increment
     have hs2 : WordArrayArrayMemoryView m2 lists groups out.toNat := hs.preserve hp2 out.val.isLt
-    have hstep : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDOuterIteration
+    have hstep : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDOuterIteration
         (.ok {contract := contract,locals := L3,immutables := immStore v} evm) :=
       execBlock_append hsol0 (ExecBlock.consNormal hsol2 (ExecBlock.consNormal hsol3 ExecBlock.nil))
     obtain ⟨L4,m4,a4,k4,C4,words4,hlen4,hp4,hf4,hm4,hfree4,hsol4,r4⟩ := ih

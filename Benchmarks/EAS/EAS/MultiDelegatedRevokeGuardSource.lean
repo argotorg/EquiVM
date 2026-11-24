@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiDelegatedRevokeSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -33,9 +35,9 @@ theorem multiDelegatedRevokeGuardSource {L imms : Store} {evm : EVM.State} {r : 
     (hd : L.get? "data" = some (.array (r.data.map RevocationRequestRecord.tuple)))
     (hs : L.get? "signatures" = some (.array (r.signatures.map SignatureRecord.tuple))) :
     if 0<r.data.length ∧ r.data.length=r.signatures.length then
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeGuard
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeGuard
         (.ok {contract := contract,locals := L,immutables := imms} evm)
-    else ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeGuard .reverted := by
+    else ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeGuard .reverted := by
   have he := multiDelegatedRevokeGuard_eval (imms := imms) (evm := evm) hd hs
   split <;> rename_i h
   · exact ExecStmt.requireTrue (by simpa only [decide_eq_true h] using he)

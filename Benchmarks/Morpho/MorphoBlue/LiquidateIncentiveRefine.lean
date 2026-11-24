@@ -2,20 +2,22 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveSource
 import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveReach
 import Benchmarks.Morpho.MorphoBlue.LiquidateHealthGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive LiquidateIncentiveRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateIncentiveRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account seized shares price srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 13) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateIncentiveRefines v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 13) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateIncentiveRefines fork v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R
   | ok {locals' mem' fp' aw' out' σ' k' C'} :
-      ABlock config evm { contract := contract, locals := locals, immutables := imms }
+      ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (liquidateTransition.body.drop 13) { contract := contract, locals := locals', immutables := imms }
         (liquidateTransition.body.drop 17) → LiquidateLocals p account seized shares data locals' →
       locals'.get? "__memory" = some (.int (Int.ofNat (fp'.toNat + 256))) →
@@ -23,10 +25,10 @@ inductive LiquidateIncentiveRefines (v : MorphoImmutables) (ee : ExecutionEnv) (
       locals'.get? "liquidationIncentiveFactor" = some (.int (Int.ofNat (liquidationFactor p.lltv).toNat)) →
       p.lltv.toNat ≤ wad.toNat → SourceState s0 ee σ' evm → MorphoHeap mem' fp' 832 →
       HeapAdvance mem fp mem' fp' 64 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
         (liquidateMathStack p.id seized shares price (liquidationDenom p.lltv) srcOff len R)
         mem' aw' out' σ' k' C' →
-      LiquidateIncentiveRefines v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R
+      LiquidateIncentiveRefines fork v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R
 
 theorem morphoLiquidateIncentiveRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {mem out data : ByteArray} {aw fp account seized shares price srcOff len : UInt256} {σ : AccountMap}
@@ -37,17 +39,17 @@ theorem morphoLiquidateIncentiveRefine {v : MorphoImmutables} {ee : ExecutionEnv
     (hprice : locals.get? "collateralPrice" = some (.int (Int.ofNat price.toNat)))
     (hz : locals.get? "__c4" = some (.bool z))
     (hparams : p.InMemory (UInt256.ofNat 128) mem) (hsize : 288 ≤ mem.size) (hbefore : 288 ≤ fp.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1577)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1577)
       ([if z then UInt256.ofNat 1 else UInt256.ofNat 0, UInt256.ofNat 1638, price] ++
         liquidateGuardTail p.id seized shares srcOff len R) mem aw out σ k C) :
-    LiquidateIncentiveRefines v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R := by
+    LiquidateIncentiveRefines fork v ee g s0 p account seized shares price srcOff len data locals imms evm mem fp R := by
   have hez : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.unary .not (.var "__c4")) = .ok (.bool (!z)) := by
     simp only [evalExpr?, hz, EvalResult.ofOption, evalUnaryOp?, bind, EvalResult.bind]
   have hg := morphoLiquidateHealthGuard (v := v) z (by change R.length + 8 + 20 ≤ 1024; omega) hm h
   cases z
   · obtain ⟨a1, k1, C1, rd1, hm1, had1⟩ := hg
-    have ab : ABlock config evm { contract := contract, locals := locals, immutables := imms }
+    have ab : ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (liquidateTransition.body.drop 13) { contract := contract, locals := locals, immutables := imms }
         (liquidateTransition.body.drop 14) := ABlock.start.requireStep hez
     have hlltv : memLoad (UInt256.ofNat 256) mem = p.lltv := by

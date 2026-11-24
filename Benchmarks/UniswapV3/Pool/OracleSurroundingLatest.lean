@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -18,14 +20,14 @@ theorem oracleSurroundingLatestBranchReturns (imms : Store) (evm : EVM.State)
     (time target : UInt256) (tick : Int) (index liquidity cardinality : UInt256)
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23) :
     let last := oracleStoredObservation index evm.accountMap evm.executionEnv
-    ∃ frame, ExecBlock config
+    ∃ frame, ExecBlock fork config
       (oracleSurroundingFirstFrame imms evm time target tick index liquidity cardinality) evm
       oracleSurroundingLatestBranch (.returned frame evm
         (some [last.value, (oracleSurroundingLatestAfter last target tick liquidity).value])) := by
   dsimp only
   let last := oracleStoredObservation index evm.accountMap evm.executionEnv
   let f := oracleSurroundingFirstFrame imms evm time target tick index liquidity cardinality
-  change ∃ frame, ExecBlock config f evm oracleSurroundingLatestBranch
+  change ∃ frame, ExecBlock fork config f evm oracleSurroundingLatestBranch
     (.returned frame evm
       (some [last.value, (oracleSurroundingLatestAfter last target tick liquidity).value]))
   have hb : f.locals.get? "beforeOrAt" = some last.value := by
@@ -64,10 +66,10 @@ theorem oracleSurroundingLatestBranchReturns (imms : Store) (evm : EVM.State)
         simp [f, oracleSurroundingFirstFrame, oracleSurroundingReadFrame,
           oracleSurroundingZeroFrame, oracleSurroundingLocals, Std.HashMap.getElem_insert])
       simp only [evalExprs?, ebv, et, ek, el, bind, EvalResult.bind, pure]
-    have hcall := internalCallFunctionReturn (cfg := config) (caller := f) (evm := evm)
+    have hcall := internalCallFunctionReturn (fork := fork) (cfg := config) (caller := f) (evm := evm)
       (retVar := "__c1") (callee := oracleTransformFunction)
       hargs oracleTransformLookup (oracleTransformBind last target tick liquidity)
-      (oracleTransformReturns imms evm last target tick liquidity htick)
+      (oracleTransformReturns (fork := fork) imms evm last target tick liquidity htick)
     refine ⟨ft, ?_⟩
     simp only [oracleSurroundingLatestAfter, if_neg h]
     refine ExecBlock.consReturn (ExecStmt.iteFalse ?_ ?_)
@@ -91,7 +93,7 @@ theorem oracleSurroundingLatestReturns (imms : Store) (evm : EVM.State)
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hfirst : oracleSurroundingFirst time target index evm.accountMap evm.executionEnv = true) :
     let last := oracleStoredObservation index evm.accountMap evm.executionEnv
-    ∃ frame, ExecFuncBody config
+    ∃ frame, ExecFuncBody fork config
       (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       oracleSurroundingFunction.body (.returned frame evm
         (some [last.value, (oracleSurroundingLatestAfter last target tick liquidity).value])) := by

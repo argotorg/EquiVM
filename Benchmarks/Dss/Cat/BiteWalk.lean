@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.BiteBody
 import Benchmarks.Dss.Cat.BiteRevertBranch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -89,12 +91,12 @@ theorem catBiteRevertUrnsDecode {σ σ₀ A I} {g : UInt256}
     (hUrnsVatCode :
       ¬ Reasoning.Theory.extCodeSizeWord σ' ((solcSlotWordAt ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                   accountMap := σ', substate := A' }, o') false)
     (hUrnsCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ' }
         (AccountAddress.ofUInt256 ((solcSlotWordAt ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
@@ -103,14 +105,14 @@ theorem catBiteRevertUrnsDecode {σ σ₀ A I} {g : UInt256}
                   accountMap := σu, substate := Au }, ou) false)
     (hilkslen : 160 ≤ o'.size) (hurnsShort : ou.size < 64)
     (hosz : o'.size < UInt256.size) (hoszu : ou.size < UInt256.size)
-    (rd1399 : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd1399 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (⟨1⟩ :: ⟨196⟩ :: ⟨606387804⟩ :: UInt256.land (solcSlotWordAt ⟨3⟩ σ' I) biteAddrMaskWord ::
         ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
       (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨9⟩ ou σu ku Cu) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨σs, As, σus, Aus, hIlksStele, hUrnsStele, _hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
@@ -140,7 +142,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 68
@@ -1386,7 +1388,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
           simpa [biteIlkVal] using
             catBiteIlksEncode_eq (biteIlkWord I) (biteIlkBytes I) solcFreePtrMem_size hbytes
         have hIlksFailCall :
-            typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
               (false, _, ByteArray.empty) false :=
           callNotMade_depthLimit hencode (by simpa [initState] using hdepth1024)

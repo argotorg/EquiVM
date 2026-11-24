@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.VerifyDigest
 import Benchmarks.EAS.EAS.NonceSource
 import Benchmarks.EAS.EAS.RequestMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -62,9 +64,9 @@ def verifyAttestReadLocals (L : Store) (r : DelegatedAttestationRecord) (nonce :
 theorem verifyAttestReadSource {L imms : Store} {evm : EVM.State} {r : DelegatedAttestationRecord} {heap : Nat}
     (hreq : L.get? "request" = some r.struct) (hn : L.get? "_nonces" = none)
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm verifyAttestRead
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm verifyAttestRead
       (.ok {contract := contract,locals := verifyAttestReadLocals L r (nonceWord evm r.attester) heap,immutables := imms} evm) := by
-  have hdata := decodeAttestationDataCall (retVar := "data$allocation") (r := r.data) (heap := heap)
+  have hdata := decodeAttestationDataCall (fork := fork) (retVar := "data$allocation") (r := r.data) (heap := heap)
     (show evalExprs? config {contract := contract,locals := L,immutables := imms} evm
       [.field (.var "request") "data",.var "$EAS.freeMemory"] = .ok [r.data.tuple,.int (Int.ofNat heap)] by
       simp only [evalExprs?,delegatedAttestField (frame := {contract := contract,locals := L,immutables := imms}) hreq "data" _ rfl,evalExpr?,hf,EvalResult.ofOption,EvalResult.bind,bind,pure])
@@ -73,7 +75,7 @@ theorem verifyAttestReadSource {L imms : Store} {evm : EVM.State} {r : Delegated
     (heapResultLocals_get _ _ _ _ _ _ _ (by decide) (by decide) (by decide)).trans hreq
   have hf1 : (verifyAttestDataLocals L r heap).get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) :=
     heapResultLocals_heap _ _ _ _ _ _
-  have hsig := decodeSignatureCall (retVar := "signature$allocation") (s := r.signature) (heap := heap)
+  have hsig := decodeSignatureCall (fork := fork) (retVar := "signature$allocation") (s := r.signature) (heap := heap)
     (show evalExprs? config {contract := contract,locals := verifyAttestDataLocals L r heap,immutables := imms} evm
       [.field (.var "request") "signature",.var "$EAS.freeMemory"] = .ok [r.signature.tuple,.int (Int.ofNat heap)] by
       simp only [evalExprs?,delegatedAttestField (frame := {contract := contract,locals := verifyAttestDataLocals L r heap,immutables := imms}) hreq1 "signature" _ rfl,evalExpr?,hf1,EvalResult.ofOption,EvalResult.bind,bind,pure])
@@ -82,7 +84,7 @@ theorem verifyAttestReadSource {L imms : Store} {evm : EVM.State} {r : Delegated
     simpa (disch := decide) only [verifyAttestDecodeLocals,verifyAttestDataLocals,heapResultLocals,unpackHeapLocals,store_get_ne] using hn
   have hreq2 : ((verifyAttestDecodeLocals L r heap).insert "nonce" (.int 0)).get? "request" = some r.struct := by
     simpa (disch := decide) only [verifyAttestDecodeLocals,verifyAttestDataLocals,heapResultLocals,unpackHeapLocals,store_get_ne] using hreq
-  have hp3 := nonceReadSource hn2 (delegatedAttestField (evm := evm) (frame := {contract := contract,locals := (verifyAttestDecodeLocals L r heap).insert "nonce" (.int 0),immutables := imms}) hreq2 "attester" _ rfl)
+  have hp3 := nonceReadSource (fork := fork) hn2 (delegatedAttestField (evm := evm) (frame := {contract := contract,locals := (verifyAttestDecodeLocals L r heap).insert "nonce" (.int 0),immutables := imms}) hreq2 "attester" _ rfl)
   exact execBlock_append (execBlock_append hp1 hp2) hp3
 
 theorem verifyAttestReadLocals_facts {L : Store} {r : DelegatedAttestationRecord} {nonce : UInt256} {heap : Nat}
@@ -124,7 +126,7 @@ def verifyAttestHashLocals (L : Store) (r : DelegatedAttestationRecord) (nonce :
 theorem verifyAttestHashSource {L imms : Store} {evm : EVM.State} {r : DelegatedAttestationRecord} {nonce : UInt256}
     (hreq : L.get? "request" = some r.struct) (hd : L.get? "data" = some r.data.struct)
     (hn : L.get? "nonce" = some (.int (Int.ofNat nonce.toNat))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm verifyAttestHashBody
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm verifyAttestHashBody
       (.ok {contract := contract,locals := verifyAttestHashLocals L r nonce,immutables := imms} evm) := by
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm (.field (.var "data") "data") = .ok (.bytes r.data.data) :=
     evalRecordField (record := r.data.struct) (by simp only [evalExpr?,hd,EvalResult.ofOption]) (by rfl)

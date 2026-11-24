@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_053
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_063
 import Benchmarks.UniswapV4PoolManager.Values
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,13 +14,13 @@ theorem poolSwapZeroTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hm : memLoad params mem = specified) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨18970⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18970⟩
       ([state, fee, price, ret, params, specified, calculated, fee, protocol, amount, inv, packed, pool, state]++R)
       mem aw rdata σ k C) :
     if specified = ⟨0⟩ then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret ([state, fee, ⟨0⟩, ⟨0⟩]++R)
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret ([state, fee, ⟨0⟩, ⟨0⟩]++R)
         mem (M aw params ⟨32⟩) rdata σ k' C'
-    else ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨18978⟩
+    else ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨18978⟩
       ([state, fee, price, ret, params, specified, calculated, fee, protocol, amount, inv, packed, pool, state]++R)
       mem (M aw params ⟨32⟩) rdata σ k' C' := by
   by_cases hz : specified = ⟨0⟩

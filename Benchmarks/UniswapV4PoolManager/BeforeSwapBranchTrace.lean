@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapActiveTrace
 import Benchmarks.UniswapV4PoolManager.BeforeSwapReplyTrace
 import Benchmarks.UniswapV4PoolManager.BeforeSwapReplyMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -23,17 +25,17 @@ theorem beforeSwapBranchTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15230⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15230⟩
       (src :: len :: paramsPtr :: accountWord hook :: keyPtr :: ret :: ⟨0⟩ :: ⟨0⟩ :: p.amountSpecified :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
-      callViaEVM evm hook 0 (beforeSwapPayload I.source key p
+      callViaEVM fork evm hook 0 (beforeSwapPayload I.source key p
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧
-      blockResultTrace (deployedRuntime v) g s0 (fun _ next => next = post ∧
+      blockResultTrace fork (deployedRuntime v) g s0 (fun _ next => next = post ∧
         (beforeSwapFree free len).toNat+out.size+4096 ≤ solcMaxU64 ∧
-        ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ret
+        ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret
           (beforeSwapRawFee key out :: beforeSwapReplyHook hook out :: beforeSwapReplyAmount hook p.amountSpecified out :: R)
           (beforeSwapReplyMemory I.calldata mem src.toNat free len I.source key p out) aw' out next.accountMap k' C')
         (fun _ _ => False)

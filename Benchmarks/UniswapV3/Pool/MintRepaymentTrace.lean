@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.MintRepaySideTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,20 +12,20 @@ theorem mintRepaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p before0 before1 amount0 amount1 junk0 junk1 junk2 junk3 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : MintArgs) (locals : Store) (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6116⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6116⟩
       (junk0 :: junk1 :: junk2 :: junk3 :: mintRepayWords before0 before1 amount0 amount1 R)
       mem aw rdata σ k C) (hv : MintCallValues locals a amount0 amount1 before0 before1)
     (hm : HeapMemory mem aw p) (hsize : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 140 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
-    (ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
-        (mintTransition.body.drop 19 |>.take 2) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
+        (mintTransition.body.drop 19 |>.take 2) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ evm' σ' out mem' aw' free locals' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (mintTransition.body.drop 19 |>.take 2)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       MintCallValues locals' a amount0 amount1 before0 before1 ∧
-      RD (deployedRuntime v) ee g s0 ⟨6283⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨6283⟩
         (mintRepayWords before0 before1 amount0 amount1 R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' free ∧ free.toNat ≤ p.toNat + 2 ^ 139 + 262) := by
   rcases mintRepaySideX (v := v) false a locals hs rd hv hm hsize hzero (by omega) hov with

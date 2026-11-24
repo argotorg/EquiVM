@@ -1,6 +1,8 @@
 import Reasoning.Solc
 import Benchmarks.Dss.Cure.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -266,7 +268,7 @@ theorem cureTellSourceBodyOk {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := ∅ }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
           .ok (.bool true)) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
       (.returned { contract := contract, locals := ∅ }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -279,7 +281,7 @@ theorem cureTellSourceBodyOk {σ σ₀ A I} {g : UInt256}
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (locals := ∅) (by simp)
   have hblock :
-      ExecBlock config { contract := contract, locals := ∅ } evm0
+      ExecBlock fork config { contract := contract, locals := ∅ } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require tellGuardExpr,
           .return [.storage sayRef] ]
@@ -298,12 +300,12 @@ theorem cureTellSourceBodyReverts {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := ∅ }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
           .ok (.bool false)) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
       .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hblock :
-      ExecBlock config { contract := contract, locals := ∅ } evm0
+      ExecBlock fork config { contract := contract, locals := ∅ } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require tellGuardExpr,
           .return [.storage sayRef] ]
@@ -410,7 +412,7 @@ theorem cureTellSourceBodyReverts {σ σ₀ A I} {g : UInt256}
 theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureTellCountSuccessWf code pc guardPc successPc)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ = solcSlotWord σ ee ⟨2⟩)
@@ -418,7 +420,7 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
     (hsuccess : (D_J code 0).contains successPc = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -477,12 +479,12 @@ theorem RD.cureTellRoutineCountFalseToTimeTail {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureTellCountSuccessWf code pc guardPc successPc)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ ≠ solcSlotWord σ ee ⟨2⟩)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (cureTellCountTimeTailPc pc)
+    ∃ k' C', RD fork code ee g s0 (cureTellCountTimeTailPc pc)
       (⟨0⟩ :: ⟨0⟩ :: ret :: R) mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, hd15, hd16,
@@ -569,14 +571,14 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret junk keep : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork code ee g s0 pc (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hwf : cureTellTimeTailSuccessWf code pc guardPc successPc)
     (htime : (solcSlotWord σ ee ⟨4⟩).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
     (hsuccess : (D_J code 0).contains successPc = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -623,7 +625,7 @@ theorem cureTellTimeTailSuccessWf_concrete :
 theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ ≠ solcSlotWord σ ee ⟨2⟩)
@@ -631,7 +633,7 @@ theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     (hsuccess : (D_J cureBytecode 0).contains ⟨2326⟩ = true)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret
+    ∃ k' C', RD fork cureBytecode ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, htail⟩ := RD.cureTellRoutineCountFalseToTimeTail
@@ -647,11 +649,11 @@ theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret junk keep : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 (cureTellCountTimeTailPc ⟨2232⟩)
+    (h : RD fork cureBytecode ee g s0 (cureTellCountTimeTailPc ⟨2232⟩)
       (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (htime : (UInt256.ofNat ee.header.timestamp).toNat < (solcSlotWord σ ee ⟨4⟩).toNat)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨2272⟩ (keep :: ret :: R)
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨2272⟩ (keep :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases cureTellTimeTailSuccessWf_concrete with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hguardPc, hdg0, hdg1, hdg4, _hds0,
@@ -681,11 +683,11 @@ theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
 theorem RD.cureTellRoutineLiveNonzeroToRevertConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ ≠ ⟨0⟩)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨2272⟩ (⟨0⟩ :: ret :: R)
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨2272⟩ (⟨0⟩ :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases cureTellCountSuccessWf_concrete with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, _hd15, _hd16,
@@ -749,7 +751,7 @@ theorem cureReachTellBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 16)) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨570⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨570⟩
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x53d700e5⟩ :=
     cureSelWord_eq_of_beq I hsz 0x53 0xd7 0x00 0xe5 ⟨0x53d700e5⟩
@@ -768,12 +770,12 @@ theorem cureTellReturn_count {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (cureSelBytes 16))
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I = tellSrcsLenWord σ I) :
-    RDret cureBytecode (Sat256.ofUInt256 g)
+    RDret fork cureBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (tellSayWord σ I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
-  have hreach := cureReachTellBody (σ := σ)
+  have hreach := cureReachTellBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
@@ -809,12 +811,12 @@ theorem cureTellReturn_time {σ σ₀ A I} {g : UInt256}
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I ≠ tellSrcsLenWord σ I)
     (htime : (tellWhenWord σ I).toNat ≤ (tellTimestampWord I).toNat) :
-    RDret cureBytecode (Sat256.ofUInt256 g)
+    RDret fork cureBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (tellSayWord σ I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
-  have hreach := cureReachTellBody (σ := σ)
+  have hreach := cureReachTellBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
@@ -880,9 +882,9 @@ theorem cureTellRevertLiteralMem_mload64 :
 theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {stk : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2272⟩ stk solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork cureBytecode ee g s0 ⟨2272⟩ stk solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : stk.length + 8 ≤ 1024) :
-    RDrev cureBytecode g s0 := by
+    RDrev fork cureBytecode g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -946,7 +948,7 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
   have hdispatch := cureDispatchTell hsel
@@ -958,7 +960,7 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
     rw [show tellTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (tellSayWord σ I))
-  have hreach := cureReachTellBody (σ := σ)
+  have hreach := cureReachTellBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
@@ -974,10 +976,10 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
       have hguard := cureTellGuardEval_countTrue
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hliveStele hcountStele
-      have hbody := cureTellSourceBodyOk
+      have hbody := cureTellSourceBodyOk (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
         (by simpa [tellGuardExpr] using hguard)
-      have hret := cureTellReturn_count
+      have hret := cureTellReturn_count (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsize hsel hliveEvm hcountEvm
       exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
@@ -990,10 +992,10 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
         have hguard := cureTellGuardEval_timeTrue
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           hliveStele hcountStele htimeStele
-        have hbody := cureTellSourceBodyOk
+        have hbody := cureTellSourceBodyOk (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
           (by simpa [tellGuardExpr] using hguard)
-        have hret := cureTellReturn_time
+        have hret := cureTellReturn_time (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsize hsel hliveEvm hcountEvm htimeEvm
         exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
@@ -1002,7 +1004,7 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
         have hguard := cureTellGuardEval_false
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           hliveStele hcountStele htimeStele
-        have hbody := cureTellSourceBodyReverts
+        have hbody := cureTellSourceBodyReverts (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
           (by simpa [tellGuardExpr] using hguard)
         obtain ⟨_, _, htail⟩ := RD.cureTellRoutineCountFalseToTimeTail
@@ -1030,7 +1032,7 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
     have hguard := cureTellGuardEval_liveFalse
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hliveStele
-    have hbody := cureTellSourceBodyReverts
+    have hbody := cureTellSourceBodyReverts (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
       (by simpa [tellGuardExpr] using hguard)
     obtain ⟨_, _, hrevPc⟩ := RD.cureTellRoutineLiveNonzeroToRevertConcrete

@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawAuthorization
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,12 +12,12 @@ theorem morphoWithdrawBasicGuards {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     {s0 : State} {aw assets shares account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (ha : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
       ([receiver, account, shares, assets, UInt256.ofNat 128, UInt256.ofNat 0, UInt256.ofNat 64] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    (¬ SupplyGuards σ ee p assets shares receiver ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ SupplyGuards σ ee p assets shares receiver ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (SupplyGuards σ ee p assets shares receiver ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7629)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7629)
         (withdrawAccrueTail p.id assets shares account receiver R) (supplyGuardMem p) aw' out σ k' C') := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoWithdrawCreated p hstack h
   by_cases hc : marketFieldWord σ ee p.id 4 ≠ ⟨0⟩
@@ -52,12 +54,12 @@ theorem morphoWithdrawGuards {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {aw assets shares account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (ha : account.toNat < EVM.addressModulus) (hr : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
       ([receiver, account, shares, assets, UInt256.ofNat 128, UInt256.ofNat 0, UInt256.ofNat 64] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    (¬ WithdrawGuards σ ee p assets shares account receiver ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ WithdrawGuards σ ee p assets shares account receiver ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (WithdrawGuards σ ee p assets shares account receiver ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7641)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7641)
         (withdrawAccrueTail p.id assets shares account receiver R) (withdrawGuardMem p ee account) aw' out σ k' C') := by
   rcases morphoWithdrawBasicGuards p hstack hr h with ⟨hb, hrev⟩ | ⟨hb, a1, k1, C1, rd1⟩
   · exact .inl ⟨fun hg => hb hg.1, hrev⟩

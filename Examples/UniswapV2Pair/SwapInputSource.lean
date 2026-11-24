@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapInputRuntime
 import Examples.UniswapV2Pair.SwapBalanceSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -61,7 +63,7 @@ theorem uniswapSwapInputsSource {caller : Frame} (evm : EVM.State)
     (ho0 : caller.locals.get? "amount0Out" = some (uniswapUint256Value amount0Out))
     (ho1 : caller.locals.get? "amount1Out" = some (uniswapUint256Value amount1Out))
     (hle0 : amount0Out.toNat ≤ reserve0.toNat) (hle1 : amount1Out.toNat ≤ reserve1.toNat) :
-    ExecBlock config caller evm swapInputStmts
+    ExecBlock fork config caller evm swapInputStmts
       (.ok (swapAfterInputsFrame caller (swapAmountInWord balance0 reserve0 amount0Out)
         (swapAmountInWord balance1 reserve1 amount1Out)) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl

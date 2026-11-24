@@ -5,6 +5,8 @@ import Benchmarks.Safe.V1_0227664.TripleCalldata
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_012
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -18,10 +20,10 @@ theorem safeSwapownerBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some swapownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xe3 0x18 0xb5 0x2b ⟨0xe318b52b⟩
     hdispatch swapownerSelectorBytes (by decide)
-  obtain ⟨k, C, h1470⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1470⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xe318b52b⟩ 1 ⟨1470⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -52,7 +54,7 @@ theorem safeSwapownerBodyCore
                 let prev := calldataWord I.calldata 4
                 let old := calldataWord I.calldata 36
                 let new := calldataWord I.calldata 68
-                change RD safeBytecode I (.ofUInt256 g) evm ⟨6070⟩
+                change RD fork safeBytecode I (.ofUInt256 g) evm ⟨6070⟩
                   [new, old, prev, ⟨664⟩, selWord I] _ _ _ σ _ _ at h6256
                 by_cases hvn : validOwner σ I new
                 · by_cases he : ownerLinkAt σ I new = ⟨0⟩
@@ -67,13 +69,13 @@ theorem safeSwapownerBodyCore
                         cases hperm : I.perm with
                         | false =>
                             have hstatic := safeSwapOwnerTraceStatic h6275 (by simp) hperm
-                            have hbody := safeSwapOwnerSourceStatic evm prev old new hc0 hc1 hc2
+                            have hbody := safeSwapOwnerSourceStatic (fork := fork) evm prev old new hc0 hc1 hc2
                               hvalue hauth hvn he' hvo hl' hperm
                             exact RDstatic.reEquivElim hcode hstatic fun hΞ ↦
                               reEquivSelectorExecution hdispatch hdec hbody (.staticHalt hΞ rfl)
                         | true =>
                             have hret := safeSwapOwnerTrace h6275 (by simp) hm₂ hc0 hc1 hc2 hperm
-                            have hbody := safeSwapOwnerSource (hperm := hperm) evm prev old new hc0 hc1 hc2
+                            have hbody := safeSwapOwnerSource (fork := fork) (hperm := hperm) evm prev old new hc0 hc1 hc2
                               hvalue hauth hvn he' hvo hl'
                             refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
                             exact reEquivSelectorExecution hdispatch hdec hbody
@@ -81,27 +83,27 @@ theorem safeSwapownerBodyCore
                                 (.abi (.fallthrough rfl rfl encodeReturnValues_nil)))
                       · have hrev := safeSwapCanRemoveOwnerTraceUnlinked h6265 (by simp)
                           hc0 hc1 hm₁ hvo hl
-                        have hbody := safeSwapOwnerSourceRemoveRevert evm prev old new hc2 hvalue
-                          hauth hvn he' (safeCanRemoveOwnerSourceUnlinked evm prev old hc0 hc1
+                        have hbody := safeSwapOwnerSourceRemoveRevert (fork := fork) evm prev old new hc2 hvalue
+                          hauth hvn he' (safeCanRemoveOwnerSourceUnlinked (fork := fork) evm prev old hc0 hc1
                             hvo (by rwa [ownerLink_eq_at]))
                         exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                           reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
                     · have hrev := safeSwapCanRemoveOwnerTraceInvalid h6265 (by simp) hc1
                         (by omega) hvo
-                      have hbody := safeSwapOwnerSourceRemoveRevert evm prev old new hc2 hvalue
-                        hauth hvn he' (safeCanRemoveOwnerSourceInvalid evm prev old hc1 hvo)
+                      have hbody := safeSwapOwnerSourceRemoveRevert (fork := fork) evm prev old new hc2 hvalue
+                        hauth hvn he' (safeCanRemoveOwnerSourceInvalid (fork := fork) evm prev old hc1 hvo)
                       exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                         reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
                   · have hrev := safeSwapCanAddOwnerTraceExisting h6256 (by simp) hc2
                       (by native_decide) hvn he
-                    have hbody := safeSwapOwnerSourceAddRevert evm prev old new hvalue hauth
-                      (safeCanAddOwnerSourceExisting evm new hc2 hvn (by rwa [ownerLink_eq_at]))
+                    have hbody := safeSwapOwnerSourceAddRevert (fork := fork) evm prev old new hvalue hauth
+                      (safeCanAddOwnerSourceExisting (fork := fork) evm new hc2 hvn (by rwa [ownerLink_eq_at]))
                     exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                       reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
                 · have hrev := safeInvalidSwapNewOwnerTrace h6256 (by simp) hc2
                     (by native_decide) hvn
-                  have hbody := safeSwapOwnerSourceAddRevert evm prev old new hvalue hauth
-                    (safeCanAddOwnerSourceInvalid evm new hc2 hvn)
+                  have hbody := safeSwapOwnerSourceAddRevert (fork := fork) evm prev old new hvalue hauth
+                    (safeCanAddOwnerSourceInvalid (fork := fork) evm new hc2 hvn)
                   exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                     reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
               · have hrev := safeUnauthorizedTrace h6757
@@ -141,7 +143,7 @@ theorem safeSwapownerRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some swapownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSwapownerBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V1_0227664

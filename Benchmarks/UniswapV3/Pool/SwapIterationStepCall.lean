@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationStepLoad
 import Benchmarks.UniswapV3.Pool.SwapStepCostInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -15,7 +17,7 @@ theorem swapIterationStepCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
       (swapIterationCompareWords a s.price ⟨3347⟩ q p exactWord cache snap
         dataStart dataLength ret R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -28,16 +30,16 @@ theorem swapIterationStepCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     (ha : a.Fits) (hsfit : s.Fits) (hdfit : d.priceNext.toNat < 2 ^ 160)
     (hpb : p.toNat + 224 ≤ 2 ^ 200) (hqb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 64 ≤ 1024) :
-    (ExecStmt config frame evm swapLoopBody[8]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config frame evm swapLoopBody[8]!
+    (ExecStmt fork config frame evm swapLoopBody[8]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config frame evm swapLoopBody[8]!
         (.ok (swapIterationStepFrame frame v a s d) evm) ∧
       swapStepValid (swapIterationStepArgs v a s d) ∧
       UInt256.land
           (swapStepRawPrice (swapIterationStepArgs v a s d) s.price (swapIterationTarget a d))
           (UInt256.ofNat (2 ^ 160 - 1)) = swapStepPrice (swapIterationStepArgs v a s d) ∧
       ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3347⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3347⟩
           (swapStepRawResults (swapIterationStepArgs v a s d) s.price (swapIterationTarget a d) ++
             q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
           mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat) := by

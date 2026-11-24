@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.Negate104Evm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_051
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,8 +20,8 @@ theorem cometNegate256Nonneg {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {value ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hb : value.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10671⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10671⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.sub (UInt256.ofNat 0) value :: R) mem aw rdata σ k' C' := by
   have hne : value ≠ UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 255) := by
     intro he
@@ -37,12 +39,12 @@ theorem cometSignedPresentValue {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {principal ret : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10688⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10688⟩
       (UInt256.signextend (UInt256.ofNat 12) principal :: ret :: R) mem aw rdata σ k C) :
     (-(2^103 : Int) < signed104 principal ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (signedPresentValueWord evm principal :: R) mem aw rdata σ k' C') ∨
-    (¬ -(2^103 : Int) < signed104 principal ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ -(2^103 : Int) < signed104 principal ∧ RDrev fork (deployedRuntime v) g s0) := by
   let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
   have hw0 : solcSlotWordAt (UInt256.ofNat 0) σ ee = w0 := by
     simpa only [w0, hs.env] using (hs.storageRead ⟨0⟩).symm
@@ -66,7 +68,7 @@ theorem cometSignedPresentValue {v : CometWithExtendedAssetListImmutables}
         (lt_trans (positivePrincipal_lt _) (by decide))
     dsimp only [cometWithExtendedAssetList_block_10701_stack] at r2
     rw [hpclean] at r2
-    change RD _ _ _ _ _ (positivePrincipal principal ::
+    change RD fork _ _ _ _ _ (positivePrincipal principal ::
       UInt256.land (solcSlotWordAt (UInt256.ofNat 0) σ ee)
         (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
           (UInt256.ofNat 1)) :: _) _ _ _ _ _ _ at r2
@@ -114,7 +116,7 @@ theorem cometSignedPresentValue {v : CometWithExtendedAssetListImmutables}
         exact u256LandMaskCleanOfToNat _ _ (bits := 104) rfl
           (lt_trans (negativePrincipal_lt hmin) (by decide))
       rw [hclean] at r4
-      change RD _ _ _ _ _ (UInt256.land
+      change RD fork _ _ _ _ _ (UInt256.land
         (UInt256.shiftRight (solcSlotWordAt (UInt256.ofNat 0) σ ee) (UInt256.ofNat 64))
         (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
           (UInt256.ofNat 1)) :: _) _ _ _ _ _ _ at r4

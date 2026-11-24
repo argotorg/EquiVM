@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.MappingMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `allowance(address,address,uint256)`
 
@@ -27,7 +29,7 @@ theorem allowanceBodyReturns (evm : EVM.State) (locals imms : Store) (a b id : U
     (harg1 : locals.get? "arg1" = some (.address (AccountAddress.ofNat b.toNat)))
     (harg2 : locals.get? "arg2" = some (.int (Int.ofNat id.toNat)))
     (hbase : locals.get? "allowance" = none) :
-    ExecTransitionBody config contract evm locals allowanceTransition.body
+    ExecTransitionBody fork config contract evm locals allowanceTransition.body
       (.returned (calldataFrame contract locals imms evm) evm
         (some [.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -49,9 +51,9 @@ theorem allowanceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hca : a.toNat < EVM.addressModulus) (hcb : b.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨8247⟩ (b :: solcAddrMask :: a :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8247⟩ (b :: solcAddrMask :: a :: R)
       entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (solcSlotWordAt (mappingSlotWord (calldataWord I.calldata 68)
         (mappingSlotWord b (mappingSlotWord a ⟨5⟩))) σ I).toByteArray := by
   have hret := poolManagerBlocks.poolManager_block_8247 hstack h
@@ -59,7 +61,7 @@ theorem allowanceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   let m2 := twoWordHashMem (UInt256.land b solcAddrMask) (keccakWord ⟨0⟩ ⟨64⟩ m1) m1
   let m3 := twoWordHashMem (calldataWord I.calldata 68) (keccakWord ⟨0⟩ ⟨64⟩ m2) m2
   let outWord := solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ m3) σ I
-  change RDret (deployedRuntime v) g s0 σ
+  change RDret fork (deployedRuntime v) g s0 σ
     ((outWord.toByteArray.write 0 m3 (memLoad ⟨64⟩ m3).toNat 32).readWithPadding (memLoad ⟨64⟩ m3).toNat 32) at hret
   have hs1 : m1.size = 96 := twoWordHashMem_size_96 _ _ entryMemory_size
   have hs2 : m2.size = 96 := twoWordHashMem_size_96 _ _ hs1
@@ -82,20 +84,20 @@ theorem allowanceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     change (outWord.toByteArray.write 0 m3 160 32).readWithPadding 160 32 = _
     rw [returnWordAt160 hs3]
     exact congrArg (fun slot => (solcSlotWordAt slot σ I).toByteArray) hslot3
-  exact (congrArg (fun bytes => RDret (deployedRuntime v) g s0 σ bytes) hout).mp hret
+  exact (congrArg (fun bytes => RDret fork (deployedRuntime v) g s0 σ bytes) hout).mp hret
 
 theorem poolManagerAllowanceBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 17) rfl hsel
   have hd : dispatchMsg contract I.calldata = some allowanceTransition := by
     apply poolManagerDispatch_allowance <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachAllowanceBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachAllowanceBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8163⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
@@ -135,7 +137,7 @@ theorem poolManagerAllowanceBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManag
               (store_get_ne _ _ (by decide : ("arg2" == "allowance") = false)).trans
                 ((store_get_ne _ _ (by decide : ("arg1" == "allowance") = false)).trans
                   ((store_get_ne _ _ (by decide : ("arg0" == "allowance") = false)).trans (store_get_empty _)))
-            have hbody := allowanceBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
+            have hbody := allowanceBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
               (immStore v) (calldataWord I.calldata 4) (calldataWord I.calldata 36) (calldataWord I.calldata 68)
               hwv hhi hcanon hcanon1 harg0 harg1 (store_get_self _ _ _) hbase
             exact hret.reEquivExecution hcode hd hdec hbody (returnEquiv_of_encode (uint256ReturnEncoding _))
@@ -163,7 +165,7 @@ theorem poolManagerAllowanceBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerIm
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerAllowanceBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

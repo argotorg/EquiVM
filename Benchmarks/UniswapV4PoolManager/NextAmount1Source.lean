@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount1QuotientSource
 import Benchmarks.UniswapV4PoolManager.NextAmount1TailSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -20,12 +22,12 @@ theorem nextAmount1Body {f : Frame} {evm : EVM.State} {price liquidity amount : 
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "add" = some (.bool add)) :
-    ∃ f', ExecFuncBody config f evm nextAmount1Function.body
+    ∃ f', ExecFuncBody fork config f evm nextAmount1Function.body
       (if nextAmount1Fits price liquidity amount add then
         .returned f' evm (some [.int (Int.ofNat (nextAmount1Word price liquidity amount add).toNat)])
        else .reverted) := by
   let f0 := wordLocal f "quotient" ⟨0⟩
-  have h0 : ExecStmt config f evm (.letDecl "quotient" (some abiUInt256) (.intLit 0)) (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm (.letDecl "quotient" (some abiUInt256) (.intLit 0)) (.ok f0 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have hs0 : f0.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)) :=
     (store_get_ne _ _ (by decide : ("quotient" == "sqrtPX96") = false)).trans hs
@@ -35,7 +37,7 @@ theorem nextAmount1Body {f : Frame} {evm : EVM.State} {price liquidity amount : 
     (store_get_ne _ _ (by decide : ("quotient" == "amount") = false)).trans ha
   have hb0 : f0.locals.get? "add" = some (.bool add) :=
     (store_get_ne _ _ (by decide : ("quotient" == "add") = false)).trans hb
-  have hquot := nextAmount1QuotientSource (f := f0) (evm := evm) add hf hn hl0 ha0 (store_get_self _ _ _)
+  have hquot := nextAmount1QuotientSource (fork := fork) (f := f0) (evm := evm) add hf hn hl0 ha0 (store_get_self _ _ _)
   rw [nextAmount1_body_eq]
   by_cases hqfit : nextAmount1QuotientFits liquidity amount add
   · rw [if_pos hqfit] at hquot
@@ -81,7 +83,7 @@ theorem nextAmount1Call {f : Frame} {evm : EVM.State} {price liquidity amount : 
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.bool add)) (ret : Ident) :
-    ExecStmt config f evm
+    ExecStmt fork config f evm
       (.internalCall "SqrtPriceMath_getNextSqrtPriceFromAmount1RoundingDown" [es, el, ea, eb] ret)
       (if nextAmount1Fits price liquidity amount add then
         .ok (wordLocal f ret (nextAmount1Word price liquidity amount add)) evm else .reverted) := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.DonateAccountingCorrect
 import Benchmarks.UniswapV4PoolManager.DonatePoolSource
 import Benchmarks.UniswapV4PoolManager.PoolDonateTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -24,14 +26,14 @@ theorem donatePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfit : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10191⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10191⟩
       (j0 :: j1 :: (keyPtr+UInt256.ofNat 128) :: keyPtr :: src :: amount1 :: amount0 :: len :: poolSlot id :: id :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 14) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 14) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   let pre := donatePoolAliasFrame f id
-  have halias := donatePoolAliasSource (evm := evm) hs
+  have halias := donatePoolAliasSource (fork := fork) (evm := evm) hs
   have hfpre : pre.contract = contract := by dsimp only [pre, donatePoolAliasFrame]; exact hf
   have hkpre := (store_get_ne _ (poolRefValue id) (by decide : (donatePoolAlias == "key") = false)).trans hk
   have h0pre := (store_get_ne _ (poolRefValue id) (by decide : (donatePoolAlias == "amount0") = false)).trans h0
@@ -47,8 +49,8 @@ theorem donatePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   | returned cf post values =>
     obtain ⟨hIp, hσp, rfl, j0', j1', k1, C1, hp1, rd1⟩ := ht
     let delta := poolDonateDelta amount0 amount1
-    change ExecStmt config pre evm donateTransition.body[15]! (.ok (donatePoolCallFrame pre delta) post) at hcall
-    have hassign := donatePoolDeltaSource (f := pre) (evm := post) (delta := delta) hdpre
+    change ExecStmt fork config pre evm donateTransition.body[15]! (.ok (donatePoolCallFrame pre delta) post) at hcall
+    have hassign := donatePoolDeltaSource (fork := fork) (f := pre) (evm := post) (delta := delta) hdpre
     let ff := donatePoolDeltaFrame pre delta
     have hfff : ff.contract = contract := by dsimp only [ff, donatePoolDeltaFrame, donatePoolCallFrame]; exact hfpre
     have hkff : ff.locals.get? "key" = some (poolKeyValue key) :=

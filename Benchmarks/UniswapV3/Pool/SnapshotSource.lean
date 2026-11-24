@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SnapshotInside
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,10 +15,10 @@ theorem snapshotSourceReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hin : lower ≤ slot0TickValue evm.accountMap evm.executionEnv →
       slot0TickValue evm.accountMap evm.executionEnv < upper →
       (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ∃ frame, ExecTransitionBody config contract evm (snapshotLocals lower upper) snapshotTransition.body
+    ∃ frame, ExecTransitionBody fork config contract evm (snapshotLocals lower upper) snapshotTransition.body
       (.returned frame evm (some (snapshotResult lower upper evm.accountMap evm.executionEnv).values))
       (immStore v) := by
-  have hp := snapshotReadyPrefix v evm lower upper hwv hself hticks hl hu
+  have hp := snapshotReadyPrefix (fork := fork) v evm lower upper hwv hself hticks hl hu
   by_cases hbelow : slot0TickValue evm.accountMap evm.executionEnv < lower
   · refine ⟨snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv, ExecFuncBody.execBlockRet ?_⟩
     rw [← List.take_append_drop 35 snapshotTransition.body]
@@ -51,7 +53,7 @@ theorem snapshotRevertsIndex (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hbelow : lower ≤ slot0TickValue evm.accountMap evm.executionEnv)
     (habove : slot0TickValue evm.accountMap evm.executionEnv < upper)
     (hin : ¬ (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecTransitionBody config contract evm (snapshotLocals lower upper)
+    ExecTransitionBody fork config contract evm (snapshotLocals lower upper)
       snapshotTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 35 snapshotTransition.body]

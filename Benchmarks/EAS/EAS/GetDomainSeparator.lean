@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DomainEVM
 import Benchmarks.EAS.EAS.ReturnWord
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS `getDomainSeparator()` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,7 +30,7 @@ private theorem getDomainSource_ok {cfg : Config} {evm : EVM.State} {locals : St
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hs : evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecTransitionBody cfg contract evm locals getDomainSeparatorTransition.body
+    ExecTransitionBody fork cfg contract evm locals getDomainSeparatorTransition.body
       (.returned {
         contract := contract
         locals := getDomainLocals locals evm.executionEnv.calldata v evm.executionEnv.codeOwner
@@ -39,7 +41,7 @@ private theorem getDomainSource_ok {cfg : Config} {evm : EVM.State} {locals : St
   have hh : (easEntryLocals locals evm.executionEnv.calldata).get? "$EAS.freeMemory" = some (.int (Int.ofNat (224 : Nat))) := by
     simp only [easEntryLocals, store_get_ne _ _ (by decide : ("__calldata" == "$EAS.freeMemory") = false), store_get_self]
     rfl
-  have hcall := domainCall_ok (cfg := cfg) (evm := evm) v
+  have hcall := domainCall_ok (fork := fork) (cfg := cfg) (evm := evm) v
     (retVar := "__c0$allocation") (locals := easEntryLocals locals evm.executionEnv.calldata)
     (show evalExpr? cfg {
       contract := contract
@@ -47,7 +49,7 @@ private theorem getDomainSource_ok {cfg : Config} {evm : EVM.State} {locals : St
       immutables := immStore v} evm (.var "$EAS.freeMemory") = .ok (.int (Int.ofNat (224 : Nat))) from
       by simp only [evalExpr?, hh, EvalResult.ofOption]) (Or.inr (by decide))
   apply ExecBlock.consNormal hcall
-  have hunpack := unpackHeapResult (cfg := cfg) (evm := evm)
+  have hunpack := unpackHeapResult (fork := fork) (cfg := cfg) (evm := evm)
     (frame := {
       contract := contract
       locals := (easEntryLocals locals evm.executionEnv.calldata).insert "__c0$allocation"
@@ -69,11 +71,11 @@ private def getDomainInitialMemory : ByteArray := Reasoning.Theory.writeWord Byt
 private theorem getDomainEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 9 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨762⟩ R getDomainInitialMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (domainWord v ee.codeOwner).toByteArray := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨762⟩ R getDomainInitialMemory aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ (domainWord v ee.codeOwner).toByteArray := by
   have rd1 := easBlocks.eas_block_762 (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
-  change RD _ _ _ _ ⟨13959⟩ (⟨771⟩ :: ⟨32⟩ :: R) getDomainInitialMemory _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ ⟨13959⟩ (⟨771⟩ :: ⟨32⟩ :: R) getDomainInitialMemory _ _ _ _ _ at rd1
   obtain ⟨aw2, k2, C2, rd2⟩ := easDomain_ok (heap := ⟨224⟩) v (by simp only [List.length_cons]; omega) (by native_decide) (by decide)
     (Or.inr (by decide)) (by rw [easPatchedValidJumps v]; jump_dest) rd1
   exact easReturnWord v (by omega) rd2
@@ -81,7 +83,7 @@ private theorem getDomainEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easGetDomainSeparatorBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 18) rfl hsel
   have hd : dispatchMsg contract I.calldata = some getDomainSeparatorTransition := by
     apply easDispatch_getDomainSeparator (hsel := hsel)
@@ -95,7 +97,7 @@ theorem easGetDomainSeparatorBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
     by
       change decodeCalldataWithMode Syntax.abiDecodeMode [] [] I.calldata = some (∅ : Store)
       exact decodeCalldataWithMode_empty_ok hsz
-  obtain ⟨k, C, rd⟩ := easReachGetDomainSeparatorBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachGetDomainSeparatorBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_714_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

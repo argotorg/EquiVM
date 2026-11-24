@@ -29,6 +29,8 @@ import Benchmarks.Dss.Vat.Vice
 import Benchmarks.Dss.Vat.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Vat benchmark correctness stub
 
@@ -46,7 +48,7 @@ namespace Benchmarks.Dss.Vat
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem vatNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (vatX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -70,7 +72,7 @@ theorem vatNonPayable {σ σ₀ A I} {g : UInt256}
 theorem vatShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (vatX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (vatDispatch_none_short hsz)
@@ -81,7 +83,7 @@ theorem vatNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 28 → (vatSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (vatX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (vatDispatch_none_nomatch hnm)
@@ -150,8 +152,8 @@ theorem vatNoSelectorMatches {I : ExecutionEnv}
 
 theorem vatCorrect :
     runtimeRefinement config vatBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hLine : selIs I (vatSelBytes 0)
     · exact vatLineBodyCore hcode hsize hwv hLine

@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceFeeCalc
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -25,20 +27,20 @@ theorem morphoAccrueFeeWritesSourceOk (p : MarketParamsWords) (locals imms : Sto
       (.var "feeShares") = .ok (.int (Int.ofNat shares.toNat)))
     (hf : AccrueFeeWritesFit evm p.id shares)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm (accrueFeeBody.drop 3)
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm (accrueFeeBody.drop 3)
       (.ok { contract := contract, locals := locals.insert "__c7" (.int (Int.ofNat shares.toNat)), immutables := imms }
         (accrueFeeSharesState evm p.id shares)) := by
   let e1 := accrueFeePositionState evm p.id shares
-  have hs := morphoAccrueFeePositionAssign p locals imms evm shares hl he hf.1
+  have hs := morphoAccrueFeePositionAssign (fork := fork) p locals imms evm shares hl he hf.1
   simp only [hperm, if_true] at hs
   have he1 : evalExpr? config { contract := contract, locals := locals, immutables := imms } e1
       (.var "feeShares") = .ok (.int (Int.ofNat shares.toNat)) := by simpa only [evalExpr?] using he
-  have hn := morphoToUint128CallOk shares e1 locals imms (.var "feeShares") "__c7" he1 hf.2.1
+  have hn := morphoToUint128CallOk (fork := fork) shares e1 locals imms (.var "feeShares") "__c7" he1 hf.2.1
   have hl1 := hl.insert "__c7" (.int (Int.ofNat shares.toNat)) (by decide)
   have he2 : evalExpr? config { contract := contract, locals := locals.insert "__c7" (.int (Int.ofNat shares.toNat)), immutables := imms } e1
       (.var "__c7") = .ok (.int (Int.ofNat shares.toNat)) := by
     simp only [evalExpr?, store_get_self, EvalResult.ofOption]
-  have hu := morphoAccrueAssetsAssign p _ imms e1 ⟨1, by decide⟩ "__c7" shares hl1 he2 hf.2.2
+  have hu := morphoAccrueAssetsAssign (fork := fork) p _ imms e1 ⟨1, by decide⟩ "__c7" shares hl1 he2 hf.2.2
   have hp1 : e1.executionEnv.perm = true := by
     simpa only [e1, accrueFeePositionState, storePositionSupplyShares_executionEnv] using hperm
   simp only [hp1, if_true] at hu
@@ -50,7 +52,7 @@ theorem morphoAccrueFeeWritesSourceReverts (p : MarketParamsWords) (locals imms 
       (.var "feeShares") = .ok (.int (Int.ofNat shares.toNat)))
     (hbad : ¬ AccrueFeeWritesFit evm p.id shares)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (accrueFeeBody.drop 3) .reverted := by
   by_cases hp : (solcSlotWordAt (accrueFeePositionSlot evm.accountMap evm.executionEnv p.id)
       evm.accountMap evm.executionEnv).toNat + shares.toNat < UInt256.size

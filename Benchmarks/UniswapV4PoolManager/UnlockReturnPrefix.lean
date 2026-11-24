@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AllocationCostTrace
 import Benchmarks.UniswapV4PoolManager.BytesReturnHeadTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,17 +18,17 @@ theorem unlockReturnPrefix {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw saved : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hout : out.size < 2^138) (hmem : 160 ≤ mem.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9242⟩ (⟨160⟩ :: saved :: R) mem aw out σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9242⟩ (⟨160⟩ :: saved :: R) mem aw out σ k C) :
     (¬AllocationBounds ⟨160⟩ (UInt256.ofNat out.size) ∧ ∃ k' C',
       C+98+3*((out.size+31)/32)+Cₘ (M aw ⟨160⟩ (UInt256.ofNat out.size)) ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨7857⟩
+      RD fork (deployedRuntime v) I g s0 ⟨7857⟩
         (unlockRawEnd out :: ⟨9259⟩ :: UInt256.ofNat out.size :: ⟨160⟩ :: R)
         (out.write 0 mem 160 out.size) (M aw ⟨160⟩ (UInt256.ofNat out.size)) out σ k' C') ∨
-    (¬BytesReturnBounds out ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬BytesReturnBounds out ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (AllocationBounds ⟨160⟩ (UInt256.ofNat out.size) ∧ BytesReturnHeadBounds out ∧ ∃ aw' k' C',
       C+293+3*((out.size+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
       (M aw ⟨160⟩ (UInt256.ofNat out.size)).toNat ≤ aw'.toNat ∧
-      RD (deployedRuntime v) I g s0 ⟨11822⟩
+      RD fork (deployedRuntime v) I g s0 ⟨11822⟩
         (unlockRawEnd out :: bytesAllocationSize (unlockReturnLength out) :: ⟨9374⟩ ::
           (⟨160⟩+UInt256.ofNat out.size) :: (⟨160⟩+calldataWord out 0) ::
           unlockReturnLength out :: unlockRawEnd out :: R)
@@ -43,7 +45,7 @@ theorem unlockReturnPrefix {I : ExecutionEnv} {g : Sat256} {s0 : State}
   · refine .inl ⟨hbad, _, _, ?_, rd⟩
     dsimp only [memExpansionCost]
     omega
-  · change RD _ _ _ _ ⟨9259⟩ (UInt256.ofNat out.size :: ⟨160⟩ :: R)
+  · change RD fork _ _ _ _ ⟨9259⟩ (UInt256.ofNat out.size :: ⟨160⟩ :: R)
       (copiedReturnMemory out mem 160 (unlockRawEnd out)) _ _ _ _ _ at rd2
     rcases bytesReturnHeadTrace (ptr := ⟨160⟩) (mem := mem) v (by omega) hout (by decide) (by decide) hmem rd2 with
       ⟨hbad, hr⟩ | ⟨hh, aw', k', C', hc, ha, rd3⟩

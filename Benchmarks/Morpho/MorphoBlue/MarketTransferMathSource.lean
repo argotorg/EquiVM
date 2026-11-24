@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.SharesUpSource
 import Benchmarks.Morpho.MorphoBlue.AssetsDownSource
 import Benchmarks.Morpho.MorphoBlue.StateBlock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -27,7 +29,7 @@ include hl
 theorem marketTransferMath_assetsOk (hz : assets = ⟨0⟩)
     (hf : AssetsDownFits shares (marketFieldWord evm.accountMap evm.executionEnv p.id a)
       (marketFieldWord evm.accountMap evm.executionEnv p.id q)) :
-    ∃ locals', ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ∃ locals', ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (marketTransferMathStmt a q) (.ok { contract := contract, locals := locals', immutables := imms } evm) ∧
       MarketTransferLocals p (assetsDownWord shares (marketFieldWord evm.accountMap evm.executionEnv p.id a)
         (marketFieldWord evm.accountMap evm.executionEnv p.id q)) shares account receiver locals' ∧
@@ -39,10 +41,10 @@ theorem marketTransferMath_assetsOk (hz : assets = ⟨0⟩)
     simpa only [hz, Nat.lt_irrefl, decide_false] using hcond
   let value := assetsDownWord shares (marketFieldWord evm.accountMap evm.executionEnv p.id a)
     (marketFieldWord evm.accountMap evm.executionEnv p.id q)
-  have hcall := morphoAssetsDownCallOk _ _ _ evm locals imms _ _ _ "__c5"
+  have hcall := morphoAssetsDownCallOk (fork := fork) _ _ _ evm locals imms _ _ _ "__c5"
     (hl.evalShares imms evm) (hl.evalField imms evm a) (hl.evalField imms evm q) hf
   have hl1 := hl.insert "__c5" (.int (Int.ofNat value.toNat)) (by decide) (by decide)
-  have hass : ExecStmt config
+  have hass : ExecStmt fork config
       { contract := contract, locals := locals.insert "__c5" (.int (Int.ofNat value.toNat)), immutables := imms }
       evm (.assign .localVar ⟨"assets", []⟩ (.var "__c5"))
       (.ok { contract := contract, immutables := imms,
@@ -54,7 +56,7 @@ theorem marketTransferMath_assetsOk (hz : assets = ⟨0⟩)
 theorem marketTransferMath_assetsReverts (hz : assets = ⟨0⟩)
     (hf : ¬ AssetsDownFits shares (marketFieldWord evm.accountMap evm.executionEnv p.id a)
       (marketFieldWord evm.accountMap evm.executionEnv p.id q)) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (marketTransferMathStmt a q) .reverted := by
   have hcond := evalExpr_uint256_var_positive (cfg := config)
     (frame := { contract := contract, locals := locals, immutables := imms }) evm "assets" assets hl.assets_eq
@@ -67,7 +69,7 @@ theorem marketTransferMath_assetsReverts (hz : assets = ⟨0⟩)
 theorem marketTransferMath_sharesOk (hn : assets ≠ ⟨0⟩)
     (hf : SharesUpFits assets (marketFieldWord evm.accountMap evm.executionEnv p.id a)
       (marketFieldWord evm.accountMap evm.executionEnv p.id q)) :
-    ∃ locals', ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ∃ locals', ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (marketTransferMathStmt a q) (.ok { contract := contract, locals := locals', immutables := imms } evm) ∧
       MarketTransferLocals p assets (sharesUpWord assets (marketFieldWord evm.accountMap evm.executionEnv p.id a)
         (marketFieldWord evm.accountMap evm.executionEnv p.id q)) account receiver locals' ∧
@@ -80,10 +82,10 @@ theorem marketTransferMath_sharesOk (hn : assets ≠ ⟨0⟩)
     simpa only [decide_eq_true hp] using hcond
   let value := sharesUpWord assets (marketFieldWord evm.accountMap evm.executionEnv p.id a)
     (marketFieldWord evm.accountMap evm.executionEnv p.id q)
-  have hcall := morphoSharesUpCallOk _ _ _ evm locals imms _ _ _ "__c4"
+  have hcall := morphoSharesUpCallOk (fork := fork) _ _ _ evm locals imms _ _ _ "__c4"
     (hl.evalAssets imms evm) (hl.evalField imms evm a) (hl.evalField imms evm q) hf
   have hl1 := hl.insert "__c4" (.int (Int.ofNat value.toNat)) (by decide) (by decide)
-  have hass : ExecStmt config
+  have hass : ExecStmt fork config
       { contract := contract, locals := locals.insert "__c4" (.int (Int.ofNat value.toNat)), immutables := imms }
       evm (.assign .localVar ⟨"shares", []⟩ (.var "__c4"))
       (.ok { contract := contract, immutables := imms,
@@ -95,7 +97,7 @@ theorem marketTransferMath_sharesOk (hn : assets ≠ ⟨0⟩)
 theorem marketTransferMath_sharesReverts (hn : assets ≠ ⟨0⟩)
     (hf : ¬ SharesUpFits assets (marketFieldWord evm.accountMap evm.executionEnv p.id a)
       (marketFieldWord evm.accountMap evm.executionEnv p.id q)) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (marketTransferMathStmt a q) .reverted := by
   have hcond := evalExpr_uint256_var_positive (cfg := config)
     (frame := { contract := contract, locals := locals, immutables := imms }) evm "assets" assets hl.assets_eq

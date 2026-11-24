@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedRevocationMemory
 import Benchmarks.EAS.EAS.RuntimeBlocks_008
 import Benchmarks.EAS.EAS.RuntimeBlocks_009
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,14 +14,14 @@ theorem easDelegatedRevocationGuard {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {r : DelegatedRevocationBatch} {heap : Nat}
     (v : EASImmutables) (hstack : R.length+16 ≤ 1024) (hh : heap < UInt256.size)
     (hv : DelegatedRevocationBatchMemoryView (delegatedRevocationSetRevoker mem row (UInt256.ofNat r.revoker.val)) row data sig r heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1521⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1521⟩
       (UInt256.ofNat r.revoker.val::base::n::available::(row+UInt256.ofNat 32)::
         (row+UInt256.ofNat 64)::sig::last::row::i::tag::R) mem aw rdata σ k C) :
     if 0<r.data.length ∧ r.data.length=r.signatures.length then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨1552⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨1552⟩
         (⟨0⟩::base::n::available::(row+UInt256.ofNat 96)::(row+UInt256.ofNat 64)::data::last::row::i::tag::R)
         (delegatedRevocationSetRevoker mem row (UInt256.ofNat r.revoker.val)) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hd := hv.data.span
   have hs := hv.signatures.span
   have hnd : (UInt256.ofNat r.data.length).toNat = r.data.length := ulit_toNat' _ (by omega)

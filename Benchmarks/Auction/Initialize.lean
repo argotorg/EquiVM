@@ -2,6 +2,8 @@ import Benchmarks.Auction.InitializeBody
 import Benchmarks.Auction.InitializeDecoder
 import Benchmarks.Auction.InitializerError
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -11,8 +13,8 @@ namespace Auction
 theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 11))
-    (hreach : EntryReached 11 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 11 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 11 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 11) (entryBytes_size 11) hsel
@@ -28,7 +30,7 @@ theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
         · rw [if_pos hc] at hdec
           obtain ⟨_, _, rd731⟩ := initializeDecoderOk rd5400 hlen hhi hsize hc
             (by jump_dest) (by evm_ov)
-          change RD _ _ _ _ _
+          change RD fork _ _ _ _ _
             ((initializeArgs I.calldata).duration :: (initializeArgs I.calldata).minBidIncrement ::
               (initializeArgs I.calldata).reservePrice :: (initializeArgs I.calldata).timeBuffer ::
               (initializeArgs I.calldata).weth :: (initializeArgs I.calldata).nouns ::
@@ -42,7 +44,7 @@ theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
             · exact hstatic.reEquivStaticHalt hcode hd hdec
                 (initializeBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (initializeArgs I.calldata) hwv hg hperm)
-            have hbody := initializeBody (hperm := _hperm)
+            have hbody := initializeBody (fork := fork) (hperm := _hperm)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (initializeArgs I.calldata) hwv hc hg
             exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
@@ -53,7 +55,7 @@ theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
           · have hi : initializingWord σ I = ⟨0⟩ := by
               by_contra h; exact hg (Or.inl h)
             have hz : initializedWord σ I ≠ ⟨0⟩ := fun h => hg (Or.inr h)
-            have hbody := initializeBodyReverts
+            have hbody := initializeBodyReverts (fork := fork)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (initializeArgs I.calldata) hwv hi hz
             exact (initializeGuardRevert rd2130 hi hz (by evm_ov)).reEquivExecutionRevert

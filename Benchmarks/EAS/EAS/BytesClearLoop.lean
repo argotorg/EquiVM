@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RecordBytesEntry
 import Benchmarks.EAS.EAS.RuntimeBlocks_033
 import Benchmarks.EAS.EAS.RuntimeBlocks_037
 import Reasoning.StorageLoops
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,8 +23,8 @@ theorem easBytesClearStep {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {idx base first old : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+7 ≤ 1024) (hp : ee.perm = true)
     (hc : UInt256.lt idx (bytesClearLimit old first) ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesClearPC site) (idx::base::first::old::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesClearPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesClearPC site) (idx::base::first::old::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesClearPC site)
       (((⟨1⟩ : UInt256)+idx)::base::first::old::R) mem aw' rdata
       (sstoreAccountMap ee.codeOwner σ ((base+first)+idx) ⟨0⟩) k' C' := by
   have hslot : idx+(first+base) = (base+first)+idx := by
@@ -45,8 +47,8 @@ theorem easBytesClearDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {idx base first old : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+7 ≤ 1024) (hc : UInt256.lt idx (bytesClearLimit old first) = ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesClearPC site) (idx::base::first::old::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesClearEndPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesClearPC site) (idx::base::first::old::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesClearEndPC site)
       (idx::base::first::old::R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>
@@ -59,9 +61,9 @@ theorem easBytesClearLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {base first old : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+7 ≤ 1024) (hp : ee.perm = true) (idx fuel : Nat)
     (hbound : (bytesClearLimit old first).toNat = idx+fuel)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesClearPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesClearPC site)
       (UInt256.ofNat idx::base::first::old::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesClearEndPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesClearEndPC site)
       (bytesClearLimit old first::base::first::old::R) mem aw' rdata
       (clearDataWordsForwardFrom ee.codeOwner σ (base+first) (UInt256.ofNat idx) fuel) k' C' := by
   induction fuel generalizing idx aw σ k C with

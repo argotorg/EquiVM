@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleSqrtSource
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleAmountEntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -26,14 +28,14 @@ theorem modifyPositionMiddleAmountCallEntryX {σ : AccountMap} {ee : ExecutionEn
     {s0 : EVM.State} {k C : Nat} {aw p q key free : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11629⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11629⟩
       (modifyPositionMiddleSqrtWords v a evm p q key second ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (ht : validTicks a.lower a.upper)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hp : Slot0Memory mem p evm.accountMap evm.executionEnv)
     (hpb : p.toNat + 224 ≤ 2 ^ 200) (hqb : q.toNat + 128 ≤ 2 ^ 200)
     (hov : R.length + 17 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (signedAmountDeltaEntryWords (modifyPositionMiddleAmountArgs a evm second) ++
         modifyPositionMiddleAmountReturn second :: modifyPositionMiddleLiquidity v a evm ::
           p :: ⟨0⟩ :: modifyPositionMiddleOldAmount0 a evm second :: key :: q :: R)
@@ -60,27 +62,27 @@ theorem modifyPositionMiddleAmountX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {s0 : EVM.State} {k C : Nat} {aw p q key free : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm evm' : EVM.State)
     (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11629⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11629⟩
       (modifyPositionMiddleSqrtWords v a evm p q key second ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (ht : validTicks a.lower a.upper)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hp : Slot0Memory mem p evm.accountMap evm.executionEnv)
     (hpb : p.toNat + 224 ≤ 2 ^ 200) (hqb : q.toNat + 128 ≤ 2 ^ 200)
     (hov : R.length + 42 ≤ 1024) :
-    (ExecBlock config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
-      (modifyPositionMiddleAmountBody second) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
+    (ExecBlock fork config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
+      (modifyPositionMiddleAmountBody second) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionMiddleBeforeSqrtFrame v a evm second) evm'
       (modifyPositionMiddleAmountBody second)
       (.ok (modifyPositionMiddleAssignedFrame v a evm second) evm') ∧
       signedAmountDeltaValid second (modifyPositionMiddleAmountArgs a evm second) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (modifyPositionMiddleAmountReturn second)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (modifyPositionMiddleAmountReturn second)
         (EVM.wordOfInt (signedAmountDeltaResult second (modifyPositionMiddleAmountArgs a evm second)) ::
           modifyPositionMiddleLiquidity v a evm :: p :: ⟨0⟩ ::
             modifyPositionMiddleOldAmount0 a evm second :: key :: q :: R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free) := by
   obtain ⟨aw1, k1, C1, r1, hm1⟩ := modifyPositionMiddleAmountCallEntryX (v := v) a evm second rd
     ha ht hm hq hp hpb hqb (by omega)
-  have hsqrt := modifyPositionMiddleSqrtSource v a evm evm' second ha ht
+  have hsqrt := modifyPositionMiddleSqrtSource (fork := fork) v a evm evm' second ha ht
   rcases signedAmountDeltaInternalX (v := v) second (modifyPositionMiddleAmountArgs a evm second)
     (modifyPositionMiddleSqrtFrame v a evm second) evm' (modifyPositionMiddleAmountExprs second)
     (modifyPositionMiddleAmountName second) (modifyPositionMiddleSqrtFrame_eq v a evm second)

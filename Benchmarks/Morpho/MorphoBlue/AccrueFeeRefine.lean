@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AccrueFeePreservation
 import Benchmarks.Morpho.MorphoBlue.AccrueFeeWrites
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -53,25 +55,25 @@ theorem morphoAccrueFeeRefineWithFee (p : MarketParamsWords) (locals imms : Stor
     (hstack : R.length + 40 ≤ 1024) (hp : ee.perm = true)
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp spare) (hb : 64 ≤ spare)
     (hl : AccrueLocals p locals rate interest ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, p.id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee p.id 5] ++
         accrueMathTail p.id rate ret R) mem aw rdata σ k C) :
-    (ExecBlock config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     (∃ shares locals' evm' σ' aw' k' C',
-      ExecBlock config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody
+      ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody
         (.ok { contract := contract, locals := locals', immutables := imms } evm') ∧
       AccrueLocals p locals' rate interest shares ∧ SourceState s0 ee σ' evm' ∧
       MorphoHeap (accrueFeeMem σ ee p.id mem) (fp + UInt256.ofNat 64) (spare - 64) ∧
       (marketFieldWord evm.accountMap evm.executionEnv p.id 5 ≠ UInt256.ofNat 0 →
         marketFieldWord evm'.accountMap evm'.executionEnv p.id 5 ≠ UInt256.ofNat 0) ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
         ([interest, shares] ++ accrueMathTail p.id rate ret R) (accrueFeeMem σ ee p.id mem) aw' rdata σ' k' C') := by
   by_cases hf : AccrueFeeFits σ ee p.id interest
   · have hf' : AccrueFeeFits evm.accountMap evm.executionEnv p.id interest := by
       simpa only [hs.env, ← hs.accounts] using hf
-    have ab := morphoAccrueFeeCalcSource p locals imms evm interest _ hl.toMarketLocals
+    have ab := morphoAccrueFeeCalcSource (fork := fork) p locals imms evm interest _ hl.toMarketLocals
       (hl.evalInterest imms evm) hl.shares hf'
     let l := accrueFeeCalcLocals locals σ ee p.id interest
     let shares := accrueFeeShares σ ee p.id interest
@@ -83,9 +85,9 @@ theorem morphoAccrueFeeRefineWithFee (p : MarketParamsWords) (locals imms : Stor
     have hm1 := (hm.hash p.id (UInt256.ofNat 3)).hash p.id (UInt256.ofNat 3)
     by_cases hw : AccrueFeeWritesFit evm p.id shares
     · obtain ⟨σ2, aw2, k2, C2, hs2, rd2⟩ := morphoAccrueFeeWritesOk (v := v) (by omega) hp hs hm1 hb hw rd1
-      have hsource := morphoAccrueFeeWritesSourceOk
+      have hsource := morphoAccrueFeeWritesSourceOk (fork := fork)
         (hperm := (congrArg ExecutionEnv.perm hs.env).trans hp) p l imms evm shares hml hes hw
-      have hab : ABlock config evm { contract := contract, locals := locals, immutables := imms } accrueFeeBody
+      have hab : ABlock fork config evm { contract := contract, locals := locals, immutables := imms } accrueFeeBody
           { contract := contract, locals := l, immutables := imms } (accrueFeeBody.drop 3) := by
         simpa only [hs.env, ← hs.accounts] using ab
       exact Or.inr ⟨shares, accrueFeeFinalLocals locals σ ee p.id interest, _, σ2, aw2, k2, C2,
@@ -103,18 +105,18 @@ theorem morphoAccrueFeeRefine (p : MarketParamsWords) (locals imms : Store)
     (hstack : R.length + 40 ≤ 1024) (hp : ee.perm = true)
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp spare) (hb : 64 ≤ spare)
     (hl : AccrueLocals p locals rate interest ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, p.id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee p.id 5] ++
         accrueMathTail p.id rate ret R) mem aw rdata σ k C) :
-    (ExecBlock config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     (∃ shares locals' evm' σ' aw' k' C',
-      ExecBlock config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody
+      ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody
         (.ok { contract := contract, locals := locals', immutables := imms } evm') ∧
       AccrueLocals p locals' rate interest shares ∧ SourceState s0 ee σ' evm' ∧
       MorphoHeap (accrueFeeMem σ ee p.id mem) (fp + UInt256.ofNat 64) (spare - 64) ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
         ([interest, shares] ++ accrueMathTail p.id rate ret R) (accrueFeeMem σ ee p.id mem) aw' rdata σ' k' C') := by
   rcases morphoAccrueFeeRefineWithFee p locals imms hstack hp hs hm hb hl h with hr | hok
   · exact Or.inl hr

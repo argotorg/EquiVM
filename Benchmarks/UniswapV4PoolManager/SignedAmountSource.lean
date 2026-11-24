@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.LiquidityMagnitude
 import Benchmarks.UniswapV4PoolManager.CheckedAmountPath
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -20,10 +22,10 @@ theorem signedAmountBody {f : Frame} {evm : EVM.State} {delta : Int} {name : Ide
     (hdlo : -(2^127 : Int) ≤ delta) (hdhi : delta < 2^127)
     (hed : f.locals.get? "liquidity" = some (.int delta))
     (hpath : ∀ el roundUp, evalExpr? config f evm el = .ok (.int (Int.ofNat (liquidityMagnitude delta).toNat)) →
-      ∃ f', ExecBlock config f evm (signedAmountBranch name el roundUp)
+      ∃ f', ExecBlock fork config f evm (signedAmountBranch name el roundUp)
         (if fits roundUp ∧ (word roundUp).toNat < 2^255 then
           .returned f' evm (some [.int (EVM.signed (checkedAmountReturnWord (word roundUp) roundUp))]) else .reverted)) :
-    ∃ f', ExecFuncBody config f evm (signedAmountBodyStmts name)
+    ∃ f', ExecFuncBody fork config f evm (signedAmountBodyStmts name)
       (if fits (signedAmountRound delta) ∧ (word (signedAmountRound delta)).toNat < 2^255 then
         .returned f' evm (some [.int (EVM.signed (checkedAmountReturnWord (word (signedAmountRound delta)) (signedAmountRound delta)))])
        else .reverted) := by

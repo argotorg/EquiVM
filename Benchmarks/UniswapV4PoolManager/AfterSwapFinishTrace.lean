@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapFinishSelectTrace
 import Benchmarks.UniswapV4PoolManager.FunctionTraceMono
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -20,13 +22,13 @@ theorem afterSwapFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfit : ptr.toNat+96 < UInt256.size)
     (hs : signedFits ⟨128, by decide⟩ specified) (hu : signedFits ⟨128, by decide⟩ unspecified)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15800⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15800⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: EVM.wordOfInt unspecified :: EVM.wordOfInt specified :: delta :: ret :: ptr :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values => post = evm ∧
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values => post = evm ∧
       values = some [.int (EVM.signed (afterSwapFinishDelta p delta specified unspecified)),
         .int (EVM.signed (afterSwapFinishHook p specified unspecified))] ∧
-      ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+      ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
         (afterSwapFinishHook p specified unspecified :: afterSwapFinishDelta p delta specified unspecified :: R)
         mem aw' rdata post.accountMap k' C')
       (afterSwapFinishResult f evm p delta specified unspecified) := by

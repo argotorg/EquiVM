@@ -7,6 +7,8 @@ import Benchmarks.Dss.LinearDecrease.Tau
 import Benchmarks.Dss.LinearDecrease.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS LinearDecrease benchmark correctness
 
@@ -20,8 +22,8 @@ namespace Benchmarks.Dss.LinearDecrease
 
 theorem linearDecreaseCorrect :
     runtimeRefinement config linearDecreaseBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hdeny : selIs I (stairstepSelBytes 0)
     · exact stairstepDenyBodyAnyPerm hcode hsize hwv hdeny

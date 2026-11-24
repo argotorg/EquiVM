@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.SupplyCollateralAfterSource
 import Benchmarks.CompoundIII.Comet.SafeUintSource
 import Benchmarks.CompoundIII.Comet.IndexAccrual
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -24,17 +26,17 @@ def supplyCollateralPrepare : List Stmt :=
 
 theorem supplyCollateralPrepare_source (imms : Store) (sender dst asset : AccountAddress)
     (requested received : UInt256) (evm : EVM.State) :
-    ExecBlock config (supplyCollateralTransferredFrame imms sender dst asset requested received)
+    ExecBlock fork config (supplyCollateralTransferredFrame imms sender dst asset requested received)
       evm supplyCollateralPrepare
       (if received.toNat < 2^128 then
         .ok (supplyCollateralPreparedFrame imms sender dst asset requested received) evm
         else .reverted) := by
   let frame := supplyCollateralTransferredFrame imms sender dst asset requested received
-  have hc := safeUint_call ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm received
+  have hc := safeUint_call (fork := fork) ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm received
     (.var "__c0") "__c1" rfl (by
       simp only [evalExpr?, frame, supplyCollateralTransferredFrame, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl)
-  change ExecStmt _ _ _ _ (if received.toNat < 2^128 then _ else _) at hc
+  change ExecStmt fork _ _ _ _ (if received.toNat < 2^128 then _ else _) at hc
   by_cases hw : received.toNat < 2^128
   · rw [if_pos hw] at hc ⊢
     apply ExecBlock.consNormal hc
@@ -43,7 +45,7 @@ theorem supplyCollateralPrepare_source (imms : Store) (sender dst asset : Accoun
         evm (.var "__c1") = .ok (.int received.toNat) := by
       simp only [evalExpr?, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
         EvalResult.ofOption]; rfl
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he ?_) .nil
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he ?_) .nil
     apply assignLocalFrame (old := .int requested.toNat)
     simp only [frame, supplyCollateralTransferredFrame, supplyCollateralEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl

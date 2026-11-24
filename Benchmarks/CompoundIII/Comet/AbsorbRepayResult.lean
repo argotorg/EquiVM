@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbRepayModel
 import Benchmarks.CompoundIII.Comet.InternalFrameResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -22,9 +24,9 @@ theorem absorbRepayResult_eq (frame : Frame) (evm : EVM.State) (old next : UInt2
   · rfl
 
 theorem absorbRepay_result {frame evm old next result}
-    (hb : ExecBlock config frame evm absorbRepayBlock (absorbRepayResult frame evm old next))
+    (hb : ExecBlock fork config frame evm absorbRepayBlock (absorbRepayResult frame evm old next))
     (he : absorbRepayOutcome evm old next = result) :
-    ExecBlock config frame evm absorbRepayBlock
+    ExecBlock fork config frame evm absorbRepayBlock
       (internalFrameResult (absorbRepayFrame frame old next) result) := by
   rw [absorbRepayResult_eq, he] at hb
   exact hb

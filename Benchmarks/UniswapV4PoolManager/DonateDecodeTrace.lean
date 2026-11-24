@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolKeyDecodeBounds
 import Benchmarks.UniswapV4PoolManager.BytesSliceTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_028
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem donateDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hlen : 260 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit)
     (hsize : I.calldata.size < UInt256.size) (haw : aw.toNat ≤ 10)
-    (h : RD (deployedRuntime v) I g s0 ⟨10029⟩ R entryMemory aw rdata σ k C) :
-    (¬DonateCalldataBounds I.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10029⟩ R entryMemory aw rdata σ k C) :
+    (¬DonateCalldataBounds I.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (DonateCalldataBounds I.calldata ∧ ∃ aw' k' C', aw'.toNat ≤ 10 ∧ Cₘ aw' ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨10076⟩
+      RD fork (deployedRuntime v) I g s0 ⟨10076⟩
         ([calldataWord I.calldata (donateDataStart I.calldata),
           UInt256.ofNat (donateDataStart I.calldata+32), calldataWord I.calldata 164, ⟨160⟩, calldataWord I.calldata 196] ++ R)
         (poolKeyMemory (poolKeyOfCalldata I.calldata))

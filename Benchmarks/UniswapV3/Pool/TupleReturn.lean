@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Routines
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 
@@ -8,9 +10,9 @@ namespace Benchmarks.UniswapV3.Pool
 
 -- LIBRARY CANDIDATE: Reasoning.SteleBody, return several evaluated expressions.
 theorem ABlock.returnsMany {cfg evm stele₀ stmts₀ stele rest} {exprs values}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.return exprs :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.return exprs :: rest))
     (heval : evalExprs? cfg stele evm exprs = .ok values) :
-    ExecBlock cfg stele₀ evm stmts₀ (.returned stele evm (some values)) :=
+    ExecBlock fork cfg stele₀ evm stmts₀ (.returned stele evm (some values)) :=
   prev.run (ExecBlock.consReturn (ExecStmt.return heval))
 
 -- GENERALIZES Reasoning.ABI.encodeABIValue_uint256 to any unsigned ABI width.
@@ -76,10 +78,10 @@ theorem returnMem_mload64 (ws : List UInt256) :
 theorem RD.poolReturnUint128Pair {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {a b aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨690⟩ (b :: a :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨690⟩ (b :: a :: R)
       solcFreePtrMem aw rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc
+    RDret fork (deployedRuntime v) g s0 acc
       ((UInt256.land (UInt256.ofNat (2 ^ 128 - 1)) a).toByteArray ++
         (UInt256.land (UInt256.ofNat (2 ^ 128 - 1)) b).toByteArray) := by
   have hret := uniswapV3PoolBlocks.uniswapV3Pool_block_690
@@ -92,7 +94,7 @@ theorem RD.poolReturnUint128Pair {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     unfold Reasoning.Theory.writeWord
     rw [returnMem_single]
     exact returnMem_write [a'] b'
-  change RDret (deployedRuntime v) g s0 acc
+  change RDret fork (deployedRuntime v) g s0 acc
     ((Reasoning.Theory.writeWord (solcReturnMem a') 160 b').readWithPadding
       (memLoad (UInt256.ofNat 64) (Reasoning.Theory.writeWord (solcReturnMem a') 160 b')).toNat
       (UInt256.sub (UInt256.ofNat 192)

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.EntrySource
 
+variable {fork : Ethereum.Fork}
+
 /-! Composing source bodies across normal prefixes and state changes. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -7,9 +9,9 @@ namespace Benchmarks.UniswapV4PoolManager
 -- LIBRARY CANDIDATE: prefix composition also preserves function fallthrough.
 theorem execFuncBody_prepend {cfg : Config} {f f' : Frame} {evm evm' : EVM.State}
     {pre body : List Stmt} {result : ExecResult}
-    (hp : ExecBlock cfg f evm pre (.ok f' evm'))
-    (hb : ExecFuncBody cfg f' evm' body result) :
-    ExecFuncBody cfg f evm (pre ++ body) result := by
+    (hp : ExecBlock fork cfg f evm pre (.ok f' evm'))
+    (hb : ExecFuncBody fork cfg f' evm' body result) :
+    ExecFuncBody fork cfg f evm (pre ++ body) result := by
   cases hb with
   | execBlockOK h => exact .execBlockOK (execBlock_append hp h)
   | execBlockRet h => exact .execBlockRet (execBlock_append hp h)
@@ -22,8 +24,8 @@ theorem nonpayableCalldataBody {cfg : Config} {C : ContractDecl} {locals imms : 
     {evm : EVM.State} {body : List Stmt} {result : ExecResult}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hb : ExecFuncBody cfg (calldataFrame C locals imms evm) evm body result) :
-    ExecTransitionBody cfg C evm locals (nonpayableCalldataPrefix ++ body) result imms := by
+    (hb : ExecFuncBody fork cfg (calldataFrame C locals imms evm) evm body result) :
+    ExecTransitionBody fork cfg C evm locals (nonpayableCalldataPrefix ++ body) result imms := by
   apply execFuncBody_prepend (pre := nonpayableCalldataPrefix) ?_ hb
   simpa only [List.append_nil] using nonpayableCalldataBlock hwv hhi (ExecBlock.nil (cfg := cfg))
 
@@ -33,8 +35,8 @@ def calldataPrefix : List Stmt :=
 theorem calldataBlock {cfg : Config} {C : ContractDecl} {locals imms : Store}
     {evm : EVM.State} {rest : List Stmt} {result : ExecResult}
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hrest : ExecBlock cfg (calldataFrame C locals imms evm) evm rest result) :
-    ExecBlock cfg {contract := C, locals := locals, immutables := imms} evm
+    (hrest : ExecBlock fork cfg (calldataFrame C locals imms evm) evm rest result) :
+    ExecBlock fork cfg {contract := C, locals := locals, immutables := imms} evm
       (calldataPrefix ++ rest) result := by
   apply (ABlock.start.letStep (value := .bytes evm.executionEnv.calldata)
     (by simp only [evalExpr?, envValue, pure]) |>.requireStep ?_).run hrest
@@ -44,14 +46,14 @@ theorem calldataBlock {cfg : Config} {C : ContractDecl} {locals imms : Store}
 theorem calldataBody {cfg : Config} {C : ContractDecl} {locals imms : Store}
     {evm : EVM.State} {body : List Stmt} {result : ExecResult}
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hb : ExecFuncBody cfg (calldataFrame C locals imms evm) evm body result) :
-    ExecTransitionBody cfg C evm locals (calldataPrefix ++ body) result imms := by
+    (hb : ExecFuncBody fork cfg (calldataFrame C locals imms evm) evm body result) :
+    ExecTransitionBody fork cfg C evm locals (calldataPrefix ++ body) result imms := by
   apply execFuncBody_prepend (pre := calldataPrefix) ?_ hb
   simpa only [List.append_nil] using calldataBlock hhi (ExecBlock.nil (cfg := cfg))
 
 theorem calldataBodyReverts {cfg : Config} {C : ContractDecl} {locals imms : Store}
     {evm : EVM.State} {rest : List Stmt} (hhi : ¬ evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm locals (calldataPrefix ++ rest) .reverted imms := by
+    ExecTransitionBody fork cfg C evm locals (calldataPrefix ++ rest) .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   refine (ABlock.start.letStep (value := .bytes evm.executionEnv.calldata)
     (by simp only [evalExpr?, envValue, pure])).requireRevert ?_

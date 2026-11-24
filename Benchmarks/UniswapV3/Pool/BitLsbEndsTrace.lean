@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.RuntimeBlocks_034
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_058
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_059
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,9 +14,9 @@ set_option maxRecDepth 10000
 theorem bitLsbFirstX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw junk : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (x : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17782⟩ (junk :: x :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17782⟩ (junk :: x :: R) mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨17817⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨17817⟩
       (UInt256.ofNat (bitLsbStep (255, x) 128).1 :: (bitLsbStep (255, x) 128).2 :: R)
         mem aw rdata σ k' C' := by
   by_cases h : 0 < (bitLsbLow x 128).toNat
@@ -43,10 +45,10 @@ theorem bitLsbLastX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (state : Nat × UInt256)
     (hb : state.1 < 256) (hle : 1 ≤ state.1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17984⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17984⟩
       (UInt256.ofNat state.1 :: state.2 :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (bitLsbStep state 1).1 :: R) mem aw rdata σ k' C' := by
   by_cases h : 0 < (bitLsbLow state.2 1).toNat
   · have hc : UInt256.isZero (bitLsbLow state.2 1) = ⟨0⟩ := by

@@ -3,6 +3,8 @@ import Reasoning.VyperBounded
 import Reasoning.ExternalCall
 import Reasoning.Immutables
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper proof helpers
 
@@ -25,11 +27,11 @@ canonical address word.  `wrap` re-reads `hook` after `TOKEN.transferFrom`, so t
 view of the slot must agree with the raw word after the callee ran; the contract's own `setHook`
 only stores validated words, which this clause records for arbitrary (possibly re-entrant)
 callees. -/
-def hookStableAcrossCalls (σ : AccountMap) (I : ExecutionEnv) : Prop :=
+def hookStableAcrossCalls (fork : Ethereum.Fork) (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   ∀ (σ₀ : AccountMap) (A_in : Substate) (r : AccountAddress) (c : ToExecute) (callGas p v v' : UInt256)
     (d : ByteArray) (e : Fin 1025) (H : BlockHeader) (blob : List ByteArray) (blocks : ProcessedBlocks) (w : Bool)
     (σ' : AccountMap) (g' : UInt256) (A' : Substate) (z : Bool) (out : ByteArray),
-    (σ', g', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ A_in (AccountAddress.ofUInt256 (UInt256.ofNat
+    (σ', g', A', z, out) = Ethereum.EVM.Θ fork σ σ₀ A_in (AccountAddress.ofUInt256 (UInt256.ofNat
       I.codeOwner)) I.sender
       r c callGas p v v' d e H blob blocks w →
     (solcSlotWordAt ⟨0⟩ σ' I).toNat < EVM.addressModulus
@@ -38,11 +40,11 @@ def hookStableAcrossCalls (σ : AccountMap) (I : ExecutionEnv) : Prop :=
 returns the raw word; the spec's `address` view agrees only for canonical words, and `setHook`,
 the only writer, stores a validated word); the caller's `shares` slot is not slot 0 (hash
 non-collision, so `wrap`'s `shares` store leaves `hook` alone); and `hook` stays canonical across
-the external calls `wrap` makes (`hookStableAcrossCalls`). -/
+the external calls `wrap` makes, under every fork (`hookStableAcrossCalls`). -/
 def storageWF : StorageWF := fun σ I =>
   (solcSlotWordAt ⟨0⟩ σ I).toNat < EVM.addressModulus ∧
   vyperMappingSlot (UInt256.ofNat 1) (.address I.source) ≠ ⟨0⟩ ∧
-  hookStableAcrossCalls σ I
+  ∀ fork, hookStableAcrossCalls fork σ I
 
 /-- The frame of a transition body run with the deployed immutables. -/
 abbrev frame (imms locals : Store) : Frame :=

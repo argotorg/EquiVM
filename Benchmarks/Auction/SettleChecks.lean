@@ -1,11 +1,13 @@
 import Benchmarks.Auction.SettleAfter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem settleChecks {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4162⟩ (snap :: Snapshot.startTime s :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨4162⟩ (snap :: Snapshot.startTime s :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 141 ≤ 2 ^ 200)
@@ -14,16 +16,16 @@ theorem settleChecks {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         (settleGuardStmts ++ settleAfterStmts)
         (.returned { contract := auctionContract, locals := locals' } evm'
           (some [.int (Int.ofNat ptr'.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' ptr' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 140 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      (settleGuardStmts ++ settleAfterStmts) .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      (settleGuardStmts ++ settleAfterStmts) .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have he0 := settleStartGuardSource (evm := evm) hv.snapshot
   by_cases hz0 : s.startTime = ⟨0⟩
   · rw [decide_eq_false (not_not_intro hz0)] at he0

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.NextPricePrefix
 import Benchmarks.UniswapV3.Pool.NextSqrt0Source
 import Benchmarks.UniswapV3.Pool.NextSqrt1Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -34,32 +36,32 @@ theorem evalNextPriceCallArgs (imms : Store) (evm : EVM.State) (input : Bool)
 
 theorem nextPriceCallReturns (imms : Store) (evm : EVM.State) (input : Bool)
     (a : NextPriceArgs) (ha : a.Fits) (hv : nextPriceCalleeValid input a) :
-    ExecStmt config (nextPriceReadyFrame imms input a) evm
+    ExecStmt fork config (nextPriceReadyFrame imms input a) evm
       (.internalCall (nextSqrtName (nextPriceOne input a)) (nextPriceCallArgs input)
         (nextPriceCallName a)) (.ok (nextPriceCallFrame imms input a) evm) := by
   cases ho : nextPriceOne input a
   · have hh : nextSqrt0Valid (a.sqrtArgs input) := by
       simpa only [nextPriceCalleeValid, ho, Bool.false_eq_true, if_false] using hv
-    have hc := internalCallFunctionReturn (callee := nextSqrtFunction false)
+    have hc := internalCallFunctionReturn (fork := fork) (callee := nextSqrtFunction false)
       (retVar := nextPriceCallName a) (locals := nextSqrtLocals (a.sqrtArgs input))
       (calleeStele := nextSqrt0FinalFrame imms (a.sqrtArgs input))
       (value := some [.int (Int.ofNat (nextSqrt0Result (a.sqrtArgs input)).toNat)])
       (evalNextPriceCallArgs imms evm input a) (nextSqrtLookup false)
-      (nextSqrtBind false _) (nextSqrt0Returns imms evm _ hh)
+      (nextSqrtBind false _) (nextSqrt0Returns (fork := fork) imms evm _ hh)
     simpa only [nextPriceCallFrame, nextPriceResult, ho, Bool.false_eq_true, if_false] using hc
   · have hh : nextSqrt1Valid (a.sqrtArgs input) := by
       simpa only [nextPriceCalleeValid, ho, if_true] using hv
-    have hc := internalCallFunctionReturn (callee := nextSqrtFunction true)
+    have hc := internalCallFunctionReturn (fork := fork) (callee := nextSqrtFunction true)
       (retVar := nextPriceCallName a) (locals := nextSqrtLocals (a.sqrtArgs input))
       (calleeStele := nextSqrt1OutputFrame imms (a.sqrtArgs input))
       (value := some [.int (Int.ofNat (nextSqrt1Result (a.sqrtArgs input)).toNat)])
       (evalNextPriceCallArgs imms evm input a) (nextSqrtLookup true)
-      (nextSqrtBind true _) (nextSqrt1Returns imms evm _ ha hh)
+      (nextSqrtBind true _) (nextSqrt1Returns (fork := fork) imms evm _ ha hh)
     simpa only [nextPriceCallFrame, nextPriceResult, ho, if_true] using hc
 
 theorem nextPriceCallReverts (imms : Store) (evm : EVM.State) (input : Bool)
     (a : NextPriceArgs) (hv : ¬nextPriceCalleeValid input a) :
-    ExecStmt config (nextPriceReadyFrame imms input a) evm
+    ExecStmt fork config (nextPriceReadyFrame imms input a) evm
       (.internalCall (nextSqrtName (nextPriceOne input a)) (nextPriceCallArgs input)
         (nextPriceCallName a)) .reverted := by
   cases ho : nextPriceOne input a
@@ -76,7 +78,7 @@ theorem nextPriceCallReverts (imms : Store) (evm : EVM.State) (input : Bool)
 
 theorem nextPriceCallAssign (imms : Store) (evm : EVM.State) (input : Bool)
     (a : NextPriceArgs) :
-    ExecStmt config (nextPriceCallFrame imms input a) evm
+    ExecStmt fork config (nextPriceCallFrame imms input a) evm
       (.assign .localVar ⟨"__cond2", []⟩ (.var (nextPriceCallName a)))
       (.ok (nextPriceResultFrame imms input a) evm) := by
   apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get Std.HashMap.getElem?_insert_self)

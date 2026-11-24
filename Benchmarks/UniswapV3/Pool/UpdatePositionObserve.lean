@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionPrefix
 import Benchmarks.UniswapV3.Pool.SnapshotInside
 import Benchmarks.UniswapV3.Pool.OracleObservationTypes
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -40,7 +42,7 @@ def updatePositionObserveBody : List Stmt :=
       (.tupleGet (.var "__c2") 1)]
 
 theorem updatePositionTimestampSource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs) :
-    ExecStmt config (updatePositionReadyFrame imms a evm) evm
+    ExecStmt fork config (updatePositionReadyFrame imms a evm) evm
       (.internalCall "_blockTimestamp" [] "time") (.ok (updatePositionTimeFrame imms a evm) evm) := by
   exact internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)
     (calleeStele := {contract := contract, locals := ∅, immutables := imms})
@@ -77,7 +79,7 @@ theorem evalUpdatePositionObserveArgs (imms : Store) (evm : EVM.State) (a : Upda
 
 theorem updatePositionObserveCall (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hin : (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecStmt config (updatePositionTimeFrame imms a evm) evm
+    ExecStmt fork config (updatePositionTimeFrame imms a evm) evm
       (.internalCall "Oracle_observeSingle" updatePositionObserveArgs "__c2")
       (.ok (updatePositionObservedFrame imms a evm) evm) := by
   obtain ⟨frame, hb⟩ := oracleObserveSingleZeroReturns imms evm
@@ -94,7 +96,7 @@ theorem updatePositionObserveCall (imms : Store) (evm : EVM.State) (a : UpdatePo
 
 theorem updatePositionObserveSource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hin : (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecBlock config (updatePositionReadyFrame imms a evm) evm updatePositionObserveBody
+    ExecBlock fork config (updatePositionReadyFrame imms a evm) evm updatePositionObserveBody
       (.ok (updatePositionOracleFrame imms a evm) evm) := by
   refine ExecBlock.consNormal (updatePositionTimestampSource imms evm a) ?_
   refine ExecBlock.consNormal (updatePositionObserveCall imms evm a hin) ?_
@@ -111,7 +113,7 @@ theorem updatePositionObserveSource (imms : Store) (evm : EVM.State) (a : Update
 
 theorem updatePositionObserveReverts (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hin : ¬(slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecBlock config (updatePositionReadyFrame imms a evm) evm updatePositionObserveBody .reverted := by
+    ExecBlock fork config (updatePositionReadyFrame imms a evm) evm updatePositionObserveBody .reverted := by
   refine ExecBlock.consNormal (updatePositionTimestampSource imms evm a) (ExecBlock.consRevert ?_)
   exact internalCallFunctionRevert (callee := oracleObserveSingleFunction)
     (locals := oracleObserveSingleLocals (blockTimestampWord evm.executionEnv) ⟨0⟩

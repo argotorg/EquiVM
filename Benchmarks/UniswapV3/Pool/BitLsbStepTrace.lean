@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitLsbModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_058
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_059
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -21,10 +23,10 @@ theorem bitLsbStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (state : Nat × UInt256)
     (i : Fin 6) (hb : state.1 < 256) (hle : 2 ^ (6 - i.val) ≤ state.1)
-    (rd : RD (deployedRuntime v) ee g s0 (bitLsbPC i.val)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bitLsbPC i.val)
       (UInt256.ofNat state.1 :: state.2 :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (bitLsbPC (i.val + 1))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (bitLsbPC (i.val + 1))
       (UInt256.ofNat (bitLsbStep state (2 ^ (6 - i.val))).1 ::
         (bitLsbStep state (2 ^ (6 - i.val))).2 :: R) mem aw rdata σ k' C' := by
   by_cases h : 0 < (bitLsbLow state.2 (2 ^ (6 - i.val))).toNat

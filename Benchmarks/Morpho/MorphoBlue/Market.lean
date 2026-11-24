@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.ReturnCommon
 import Benchmarks.Morpho.MorphoBlue.MarketStateCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `market(bytes32)`
 
@@ -24,7 +26,7 @@ def marketArgs (cd : ByteArray) : Store :=
 theorem morphoMarketBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm (marketArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (marketArgs evm.executionEnv.calldata)
       marketTransition.body
       (.returned
         { contract := contract,
@@ -75,7 +77,7 @@ theorem morphoMarketXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hsel : selIs I (morphoSelBytes 23))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (returnWordBytes ((marketReturnEntries σ I (calldataWord I.calldata 4)).map
         (fun e => e.2.2))) := by
   obtain ⟨k, C, rd⟩ := morphoReachMarketBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -102,7 +104,7 @@ theorem morphoMarketXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
         (UInt256.ofNat 0).toNat 32) (UInt256.ofNat 32).toNat 32 = mem := rfl
   rw [hmemdef, hload, hslot] at ret
   let words := (marketReturnEntries σ I (calldataWord I.calldata 4)).map (fun e => e.2.2)
-  have hwrite : RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+  have hwrite : RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       ((writeCascade mem (returnWordWrites 128 words)).readWithPadding 128 (32 * words.length)) := by
     simpa only [words, marketReturnEntries, marketFieldWord, marketFieldSlot, halfWord, uint128Mask,
       List.map_cons, List.map_nil, returnWordWrites, writeCascade, Reasoning.Theory.writeWord,
@@ -118,7 +120,7 @@ theorem morphoMarketXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 23))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 23) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachMarketBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -145,7 +147,7 @@ theorem morphoMarketXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
 theorem morphoMarketBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 23)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 23) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some marketTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

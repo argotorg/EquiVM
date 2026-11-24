@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.AttestResultMemory
 import Benchmarks.EAS.EAS.RuntimeBlocks_013
 import Benchmarks.EAS.EAS.RuntimeBlocks_016
 import Benchmarks.EAS.EAS.RuntimeBlocks_022
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,8 +14,8 @@ theorem easCheckedSub {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {a b ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+4 ≤ 1024)
     (hb : b.toNat ≤ a.toNat) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5652⟩ (a::b::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b::R) mem aw' rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5652⟩ (a::b::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b::R) mem aw' rdata σ k' C' := by
   obtain ⟨a1,j1,D1,h1⟩ := easBlocks.eas_block_5652_fallthrough_packed (immWords := wordsOf (immStore v))
     hstack (ugt_zero (by rw [usub_toNat hb]; omega)) rd
   exact easBlocks.eas_block_5664_packed (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega) hret h1
@@ -25,8 +27,8 @@ theorem easMultiAttestUpdate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (ht : table.toNat+32+32*n ≤ result.toNat) (hb : heap < UInt256.size)
     (hm : AttestResultMemoryView mem result uid words used heap)
     (hl : memLoad table mem = UInt256.ofNat n) (hused : used.toNat ≤ available.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3131⟩ (result::multiAttestSaved n i base table available count R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨3767⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3131⟩ (result::multiAttestSaved n i base table available count R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨3767⟩
       (multiAttestLoopStack n (i+1) base table (UInt256.sub available used) (UInt256.ofNat words.length+count) R)
       (Reasoning.Theory.writeWord mem (table.toNat+32+32*i) uid) aw' rdata σ k' C' := by
   have hrspan := hm.span

@@ -4,6 +4,8 @@ import Benchmarks.Auction.Common
 import Reasoning.Constructor
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Auction constructor correctness
 
@@ -18,7 +20,7 @@ set_option maxRecDepth 100000
 theorem auctionConstructorBodyCore :
     typedConstructorRefinement auctionConfig auctionCreationBytecode Auction.auctionContract
       (fun _ => auctionBytecode) := by
-  intro σ σ₀ g A I args deployed hdeploy hcode _hcalldata _hperm
+  intro fork _hfork σ σ₀ g A I args deployed hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode
     (cfg := auctionConfig) (contract := Auction.auctionContract) rfl rfl hdeploy
   rw [hdeployed] at hcode
@@ -26,7 +28,7 @@ theorem auctionConstructorBodyCore :
     (cfg := auctionConfig) (contract := Auction.auctionContract) rfl rfl hdeploy
   have hargs : args = [] := List.eq_nil_of_length_eq_zero hlen
   subst args
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := Sat256.ofUInt256 g) hcode
   have rd5 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -45,7 +47,7 @@ theorem auctionConstructorBodyCore :
         (by native_decide) (by evm_ov) ]
     rcases hr.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
     · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
-    · have hstele : steleCtorExec auctionConfig Auction.auctionContract [] σ σ₀ g A I
+    · have hstele : steleCtorExec fork auctionConfig Auction.auctionContract [] σ σ₀ g A I
           (.returned { contract := Auction.auctionContract, locals := ∅ }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) none) :=
         steleCtorExec.intro

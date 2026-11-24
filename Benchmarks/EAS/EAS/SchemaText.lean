@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.SchemaHead
 import Benchmarks.EAS.EAS.BytesAllocationEVM
 import Benchmarks.EAS.EAS.CopyPreserve
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -22,13 +24,13 @@ theorem easSchemaText {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+12 ≤ 1024) (htext : text.toNat < 2^140) (hheap : heap.toNat ≤ 2^64-1)
     (hl : memLoad text mem = len) (hh : memLoad (UInt256.ofNat 64) mem = heap)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7479⟩ (text::ending::record::ret::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7479⟩ (text::ending::record::ret::R) mem aw out σ k C) :
     if len.toNat ≤ 2^64-1 ∧
         (allocateNext heap.toNat (bytesAllocation len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (bytesAllocation len.toNat)) ∧
         text.toNat+len.toNat+32 ≤ ending.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (record::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (record::R)
         (schemaTextMemory mem text heap record len) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_7479_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_7479_stack,hl] at rd1

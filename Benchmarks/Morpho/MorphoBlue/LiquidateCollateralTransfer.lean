@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateEvent
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,23 +23,23 @@ theorem liquidateCollateralTransfer_args {p assets seized shares account badAsse
   simp only [evalExprs?, ht, hl.evalSeized, evalExpr?, envValue, hg, EvalResult.ofOption, pure, bind, EvalResult.bind]
   rfl
 
-inductive LiquidateCollateralTransferRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateCollateralTransferRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets seized srcOff len : UInt256)
     (locals imms : Store) (evm : EVM.State) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 31) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateCollateralTransferRefines v ee g s0 p assets seized srcOff len locals imms evm R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 31) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateCollateralTransferRefines fork v ee g s0 p assets seized srcOff len locals imms evm R
   | ok {evm' σ' mem' fp' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (liquidateTransition.body.drop 31)
         { contract := contract, locals := locals.insert "__c21" (.int (Int.ofNat fp'.toNat)), immutables := imms }
         evm' (liquidateTransition.body.drop 33) →
       SourceState s0 ee σ' evm' → MorphoHeap mem' fp' 0 → 192 ≤ mem'.size → 192 ≤ fp'.toNat →
       memLoad (UInt256.ofNat 96) mem' = UInt256.ofNat 0 →
       memLoad (UInt256.ofNat 128) mem' = p.loanToken →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2704)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2704)
         (liquidateTransferTail assets seized srcOff len R) mem' aw' out' σ' k' C' →
-      LiquidateCollateralTransferRefines v ee g s0 p assets seized srcOff len locals imms evm R
+      LiquidateCollateralTransferRefines fork v ee g s0 p assets seized srcOff len locals imms evm R
 
 theorem morphoLiquidateCollateralTransfer {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp trash assets seized shares account badAssets badShares srcOff len : UInt256} {out mem data : ByteArray}
@@ -49,10 +51,10 @@ theorem morphoLiquidateCollateralTransfer {v : MorphoImmutables} {ee : Execution
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hloan : memLoad (UInt256.ofNat 128) mem = p.loanToken)
     (htoken : memLoad (UInt256.ofNat 160) mem = p.collateralToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
       (liquidateEventTail trash p.id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C) :
-    LiquidateCollateralTransferRefines v ee g s0 p assets seized srcOff len locals imms evm R := by
-  have hab : StateBlock config { contract := contract, locals := locals, immutables := imms }
+    LiquidateCollateralTransferRefines fork v ee g s0 p assets seized srcOff len locals imms evm R := by
+  have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (liquidateTransition.body.drop 31) { contract := contract, locals := locals, immutables := imms }
       evm (liquidateTransition.body.drop 32) := StateBlock.start.step (liquidateEmit p _ _ _ _ _ _ data locals imms evm hl
         ((congrArg ExecutionEnv.perm hs.env).trans hperm))

@@ -1,5 +1,7 @@
 import Benchmarks.Auction.CreateStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -45,11 +47,11 @@ theorem SourceState.createdAuction {s0 I σ evm} (hs : SourceState s0 I σ evm)
   SourceState.clearAuctionPacked (SourceState.createdScalars hs noun start finish)
 
 theorem createStorePrefix {I g s0 noun start finish ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3240⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3240⟩
       (⟨0⟩ :: ⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3274⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3274⟩
       (⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
       mem aw rdata (createdAuctionAccounts σ I noun start finish) k' C' := by
   have rd3244 := evm_run h with [push1 ⟨207⟩, dup8, swap1]

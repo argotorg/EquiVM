@@ -2,6 +2,8 @@ import Reasoning.ExternalCall
 import Examples.UniswapV2Pair.BurnCommon
 import Examples.UniswapV2Pair.MintCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -25,11 +27,11 @@ theorem uniswapBurnCachePrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := burnStore I } evm burnCachePrefix
+    ExecBlock fork config { contract := contract, locals := burnStore I } evm burnCachePrefix
       (.ok { contract := contract, locals := burnCacheStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   let evmL := uniswapLockEnteredState evm
-  have hres := uniswapMintReservePrefix (hperm := by assumption) evm I hwv hunlocked
+  have hres := uniswapMintReservePrefix (fork := fork) (hperm := by assumption) evm I hwv hunlocked
   have htok0 : evalExpr? config { contract := contract, locals := burnReserveStore evmL I }
       evmL (.storage token0Ref) = .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
     exact evalExpr_uniswap_storage_address evmL (burnReserveStore evmL I)
@@ -46,7 +48,7 @@ theorem uniswapBurnCachePrefix (evm : EVM.State) (I : ExecutionEnv)
       (by simp [burnReserveStore, burnStore, token1Ref])
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) rfl
-  have htokens : ExecBlock config { contract := contract, locals := burnReserveStore evmL I }
+  have htokens : ExecBlock fork config { contract := contract, locals := burnReserveStore evmL I }
       evmL [.letDecl "_token0" (some addr) (.storage token0Ref),
         .letDecl "_token1" (some addr) (.storage token1Ref)]
       (.ok { contract := contract, locals := burnCacheStore evmL I } evmL) :=
@@ -90,9 +92,9 @@ theorem uniswapBurnBodyReverts_firstNoCode (evm : EVM.State) (I : ExecutionEnv)
       (uniswapLockEnteredState evm)
       (.binary .gt (.extCodeSize (.var "_token0")) (.intLit 0)) = .ok (.bool false))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
-  have hprefix := uniswapBurnCachePrefix (hperm := by assumption) evm I hwv hunlocked
-  have hcall : ExecBlock config
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
+  have hprefix := uniswapBurnCachePrefix (fork := fork) (hperm := by assumption) evm I hwv hunlocked
+  have hcall : ExecBlock fork config
       { contract := contract, locals := burnCacheStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) (balanceOfThisStmts (.var "_token0") "balance0") .reverted := by
     exact checkedExternalCallVarNoCode hguard
@@ -103,15 +105,15 @@ theorem uniswapBurnBodyReverts_firstNoCode (evm : EVM.State) (I : ExecutionEnv)
 theorem uniswapBurnBodyReverts_firstBalanceBlock (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hfirst : ExecBlock config
+    (hfirst : ExecBlock fork config
       { contract := contract, locals := burnCacheStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) (balanceOfThisStmts (.var "_token0") "balance0") .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [burnTransition, burnCachePrefix, List.append_assoc] using
       execBlock_append_term
-        (execBlock_append (uniswapBurnCachePrefix (hperm := by assumption) evm I hwv hunlocked) hfirst)
+        (execBlock_append (uniswapBurnCachePrefix (fork := fork) (hperm := by assumption) evm I hwv hunlocked) hfirst)
         (by intro f e h; cases h))
 
 abbrev burnBalance0Store (evm : EVM.State) (I : ExecutionEnv) (balance0 : UInt256) : Store :=
@@ -121,20 +123,20 @@ theorem uniswapBurnBodyReverts_secondBalanceBlock
     (evm evm0 : EVM.State) (I : ExecutionEnv) (balance0 : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hfirst : ExecBlock config
+    (hfirst : ExecBlock fork config
       { contract := contract, locals := burnCacheStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) (balanceOfThisStmts (.var "_token0") "balance0")
       (.ok { contract := contract, locals :=
         burnBalance0Store (uniswapLockEnteredState evm) I balance0 } evm0))
-    (hsecond : ExecBlock config
+    (hsecond : ExecBlock fork config
       { contract := contract, locals := burnBalance0Store (uniswapLockEnteredState evm) I balance0 }
       evm0 (balanceOfThisStmts (.var "_token1") "balance1") .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [burnTransition, burnCachePrefix, List.append_assoc] using
       execBlock_append_term
-        (execBlock_append (execBlock_append (uniswapBurnCachePrefix (hperm := by assumption) evm I hwv hunlocked) hfirst) hsecond)
+        (execBlock_append (execBlock_append (uniswapBurnCachePrefix (fork := fork) (hperm := by assumption) evm I hwv hunlocked) hfirst) hsecond)
         (by intro f e h; cases h))
 
 end UniswapV2Pair

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.LinearDecrease.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.LinearDecrease
@@ -19,7 +21,7 @@ theorem stairstepReachTauBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (stairstepSelBytes 4)) :
-    ∃ k C, RD linearDecreaseBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork linearDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepTauEntryPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hword : stairstepSelWord I = ⟨0xcfc4af55⟩ :=
@@ -50,12 +52,12 @@ theorem stairstepTauBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (tauTransition.params.map Param.name)
         (transitionSignature tauTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork linearDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepTauEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tauTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -90,7 +92,7 @@ theorem stairstepTauBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 4) rfl hsel
   exact stairstepTauBodyCore hcode hwv (stairstepDispatchTau hsel) (stairstepDecode_tau hsz)

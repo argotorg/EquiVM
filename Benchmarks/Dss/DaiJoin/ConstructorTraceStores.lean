@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.ConstructorTraceWards
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor live/vat/dai storage traces
 -/
@@ -15,12 +17,12 @@ theorem daiJoinCtorLiveStoreReach
     (vat dai : AccountAddress) {k C : Nat}
     (hperm : I.perm = true)
     (rd82 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨82⟩
         [⟨1⟩, EVM.word vat.val, EVM.word dai.val]
         (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨87⟩
       [⟨1⟩, EVM.word vat.val, EVM.word dai.val]
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
@@ -35,12 +37,12 @@ theorem daiJoinCtorVatStoreReach
     (vat dai : AccountAddress) {k C : Nat}
     (hperm : I.perm = true)
     (rd87 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨87⟩
         [⟨1⟩, EVM.word vat.val, EVM.word dai.val]
         (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
         σLive k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨116⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dai.val]
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
@@ -69,12 +71,12 @@ theorem daiJoinCtorDaiStoreReach
     (vat dai : AccountAddress) {k C : Nat}
     (hperm : I.perm = true)
     (rd116 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨116⟩
         [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dai.val]
         (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨129⟩
       [] (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
       (sstoreAccountMap I.codeOwner σVat ⟨2⟩ (daiJoinCtorDaiStored σVat I dai))
@@ -98,12 +100,12 @@ theorem daiJoinCtorStoresReach
     (vat dai : AccountAddress) {k C : Nat}
     (hperm : I.perm = true)
     (rd82 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨82⟩
         [⟨1⟩, EVM.word vat.val, EVM.word dai.val]
         (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨129⟩
       [] (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
       (sstoreAccountMap I.codeOwner

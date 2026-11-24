@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.StaticCallBridge
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -63,7 +65,7 @@ theorem ecrecoverOutput_theta {fork : Ethereum.Fork}
 
 -- LIBRARY CANDIDATE: retain precompile output facts through the source call relation's same Θ witness.
 theorem ecrecoverOutput_call {evm evm' : EVM.State} {data out : ByteArray} {z perm : Bool} {value : Int}
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value data (z,evm',out) perm) :
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value data (z,evm',out) perm) :
     EcrecoverOutput out := by
   cases hc with
   | callMade hv hΘ he hbal hd =>

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.LPFeeTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_041
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -26,9 +28,9 @@ theorem initialLPFeeWord_bound {fee : UInt256} (h : initialLPFeeAllowed fee) :
 
 theorem initialLPFeeBody {f : Frame} {evm : EVM.State} {fee : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) :
-    ∃ f', ExecFuncBody config f evm initialLPFeeFunction.body (initialLPFeeResult f' evm fee) := by
+    ∃ f', ExecFuncBody fork config f evm initialLPFeeFunction.body (initialLPFeeResult f' evm fee) := by
   let f1 : Frame := {f with locals := f.locals.insert "__c0" (.bool (decide (fee.toNat = 8388608)))}
-  have hcall := lpFeeDynamicCall (evm := evm) hf (evalLocalValue hs) "__c0"
+  have hcall := lpFeeDynamicCall (fork := fork) (evm := evm) hf (evalLocalValue hs) "__c0"
   have hcond := evalLocalValue (cfg := config) (f := f1) (evm := evm) (store_get_self _ _ _)
   by_cases hd : fee.toNat = 8388608
   · simp only [hd, decide_true] at hcond
@@ -38,7 +40,7 @@ theorem initialLPFeeBody {f : Frame} {evm : EVM.State} {fee : UInt256}
   · simp only [hd, decide_false] at hcond
     have hs1 : f1.locals.get? "self" = some (.int (Int.ofNat fee.toNat)) :=
       (store_get_ne _ _ (by decide : ("__c0" == "self") = false)).trans hs
-    have hvalidate := lpFeeValidateCall (f := f1) (evm := evm) hf (evalLocalValue hs1) "__c1"
+    have hvalidate := lpFeeValidateCall (fork := fork) (f := f1) (evm := evm) hf (evalLocalValue hs1) "__c1"
     by_cases hv : fee.toNat ≤ 1000000
     · simp only [if_pos hv] at hvalidate
       simp only [initialLPFeeResult, initialLPFeeAllowed, hd, hv, false_or, if_true, initialLPFeeWord, if_neg hd]
@@ -53,7 +55,7 @@ theorem initialLPFeeBody {f : Frame} {evm : EVM.State} {fee : UInt256}
 
 theorem initialLPFeeCall {f : Frame} {evm : EVM.State} {e : Expr} {fee : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_getInitialLPFee" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_getInitialLPFee" [e] retVar)
       (if initialLPFeeAllowed fee then
         .ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (initialLPFeeWord fee).toNat))} evm else .reverted) := by
   obtain ⟨f', hb⟩ := initialLPFeeBody
@@ -70,9 +72,9 @@ theorem initialLPFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw fee ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hc : fee.toNat < 2^24)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14965⟩ (fee :: ret :: R) mem aw rdata σ k C) :
-    if initialLPFeeAllowed fee then ∃ k' C', RD (deployedRuntime v) I g s0 ret
-      (initialLPFeeWord fee :: R) mem aw rdata σ k' C' else RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14965⟩ (fee :: ret :: R) mem aw rdata σ k C) :
+    if initialLPFeeAllowed fee then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
+      (initialLPFeeWord fee :: R) mem aw rdata σ k' C' else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land fee (UInt256.ofNat 16777215) = fee := u256LandMaskCleanOfToNat _ _ rfl hc
   by_cases hd : fee.toNat = 8388608
   · simp only [initialLPFeeAllowed, hd, true_or, if_true, initialLPFeeWord, if_pos hd]

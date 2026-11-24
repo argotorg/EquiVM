@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SourceSignedBits
 import Benchmarks.UniswapV3.Pool.CheckedCastSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -30,7 +32,7 @@ theorem safeCast128Bind (y : Int) :
 def safeCast128Valid (y : Int) : Prop := normalizeInt (.sint ⟨128, by decide⟩) y = y
 
 theorem safeCast128ReadySource (imms : Store) (evm : EVM.State) (y : Int) :
-    ExecBlock config (safeCast128Frame imms y) evm (safeCast128Function.body.take 2)
+    ExecBlock fork config (safeCast128Frame imms y) evm (safeCast128Function.body.take 2)
       (.ok (safeCast128ReadyFrame imms y) evm) :=
   checkedCastReadySource (safeCast128Frame imms y) evm "y" "z" (.sint ⟨128, by decide⟩) y
     (by decide) Std.HashMap.getElem?_insert_self
@@ -47,13 +49,13 @@ theorem evalSafeCast128Guard (imms : Store) (evm : EVM.State) (y : Int) :
   simp only [decide_eq_true_eq, safeCast128Valid]
 
 theorem safeCast128Returns (imms : Store) (evm : EVM.State) (y : Int) (hy : safeCast128Valid y) :
-    ExecFuncBody config (safeCast128Frame imms y) evm safeCast128Function.body
+    ExecFuncBody fork config (safeCast128Frame imms y) evm safeCast128Function.body
       (.returned (safeCast128ReadyFrame imms y) evm (some [.int y])) :=
   checkedCastReturns (safeCast128Frame imms y) evm "y" "z" (.sint ⟨128, by decide⟩) y
     (by decide) Std.HashMap.getElem?_insert_self hy
 
 theorem safeCast128Reverts (imms : Store) (evm : EVM.State) (y : Int) (hy : ¬ safeCast128Valid y) :
-    ExecFuncBody config (safeCast128Frame imms y) evm safeCast128Function.body .reverted :=
+    ExecFuncBody fork config (safeCast128Frame imms y) evm safeCast128Function.body .reverted :=
   checkedCastReverts (safeCast128Frame imms y) evm "y" "z" (.sint ⟨128, by decide⟩) y
     (by decide) Std.HashMap.getElem?_insert_self hy
 

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickUpperFeeTrace
 import Benchmarks.UniswapV4PoolManager.TickUpperNetTrace
 import Benchmarks.UniswapV4PoolManager.LiquidityAddTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,19 +21,19 @@ theorem tickUpperExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨17774⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord (tickFieldWord evm id (EVM.signed tick) .liquidityPacked) :: EVM.wordOfInt delta :: ⟨7100⟩ ::
         tickUpperLiquidityTail id tick (tickFieldWord evm id (EVM.signed tick) .liquidityPacked) x5 x6 x7 ptr x9 x10 delta R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
     if liquidityAddFits (tickGrossWord packed) delta then
       if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-        RDstatic (deployedRuntime v) g s0 else
+        RDstatic fork (deployedRuntime v) g s0 else
       if signedFits ⟨128, by decide⟩ (tickNetAfter packed delta true) then ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨7205⟩ (tickUpperStoreInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
+        RD fork (deployedRuntime v) I g s0 ⟨7205⟩ (tickUpperStoreInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
           mem (if Int.ofNat (tickGrossWord packed).toNat = 0 then M aw (UInt256.ofNat 128) ⟨32⟩ else aw) rdata (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   generalize hp : tickFieldWord evm id (EVM.signed tick) .liquidityPacked = packed at h ⊢
   have hsum := liquidityAddTrace (x := tickGrossWord packed) (y := delta) (ret := ⟨7100⟩) v
@@ -62,19 +64,19 @@ theorem tickUpperTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨17774⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord (tickFieldWord evm id (EVM.signed tick) .liquidityPacked) :: EVM.wordOfInt delta :: ⟨7100⟩ ::
         tickUpperLiquidityTail id tick (tickFieldWord evm id (EVM.signed tick) .liquidityPacked) x5 x6 x7 ptr x9 x10 delta R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
     if liquidityAddFits (tickGrossWord packed) delta then
       if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-        RDstatic (deployedRuntime v) g s0 else
+        RDstatic fork (deployedRuntime v) g s0 else
       if signedFits ⟨128, by decide⟩ (tickNetAfter packed delta true) then ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨7205⟩ (tickUpperStoreInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
+        RD fork (deployedRuntime v) I g s0 ⟨7205⟩ (tickUpperStoreInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
           mem aw' rdata (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hr := tickUpperExactTrace v hstack hI hm hd h
   dsimp only at hr ⊢
   split_ifs at hr ⊢

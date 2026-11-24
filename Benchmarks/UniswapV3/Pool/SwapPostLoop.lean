@@ -5,6 +5,8 @@ import Benchmarks.UniswapV3.Pool.SwapAmountsTrace
 import Benchmarks.UniswapV3.Pool.SwapFinishSource
 import Benchmarks.UniswapV3.Pool.SwapFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -17,7 +19,7 @@ theorem swapPostLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {old0 old1 : Value}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3999⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3999⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap start len ⟨621⟩ R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -48,14 +50,14 @@ theorem swapPostLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hmem : 128 ≤ mem.size) (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hcd : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hb : free.toNat + 2 ^ 140 + 2048 ≤ 2 ^ 200) (hov : R.length + 42 ≤ 1024) :
-    (ExecBlock config frame evm (swapTransition.body.drop 14) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapTransition.body.drop 14) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config frame evm (swapTransition.body.drop 14) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapTransition.body.drop 14) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
     ∃ finalFrame finalState,
-      ExecBlock config frame evm (swapTransition.body.drop 14)
+      ExecBlock fork config frame evm (swapTransition.body.drop 14)
         (.returned finalFrame finalState (some [.int (swapAmount0 a s), .int (swapAmount1 a s)])) ∧
-      RDret (deployedRuntime v) g s0 finalState.accountMap
+      RDret fork (deployedRuntime v) g s0 finalState.accountMap
         ((EVM.wordOfInt (swapAmount0 a s)).toByteArray ++
           (EVM.wordOfInt (swapAmount1 a s)).toByteArray) := by
   rcases swapWriteX (v := v) c s initial frame evm rd hs hf hi hcache hstate hslot hslot0
@@ -82,7 +84,7 @@ theorem swapPostLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   obtain ⟨hex3, hs3, aw3, k3, C3, r3, hm3⟩ := swapPoolFeesX (v := v) a s w.frame' evm2 r2 hs2
     hwf hwz hws (fun second ↦ (w.locals_get _ (by cases second <;> decide)).trans (hg second))
     ((w.locals_get "protocolFees" (by decide)).trans hprot) hm2 w.state_mem hsf hperm hpb (by omega)
-  have hex4 := swapAmountsSource (evm := swapPoolFeesState evm2 (!a.zeroForOne) s)
+  have hex4 := swapAmountsSource (fork := fork) (evm := swapPoolFeesState evm2 (!a.zeroForOne) s)
     a s hwz ((w.locals_get "exactInput" (by decide)).trans he)
     ((w.locals_get "amountSpecified" (by decide)).trans ha) hws
     ((w.locals_get "amount0" (by decide)).trans h0) ((w.locals_get "amount1" (by decide)).trans h1)
@@ -108,7 +110,7 @@ theorem swapPostLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have hpbound := pay.free_bound
   have hget5 (name : Ident) (hn : name ∉ swapPaymentWrites a.zeroForOne) :
       pay.frame'.locals.get? name = f4.locals.get? name := pay.locals_get name hn
-  have hfinish := swapFinishSource (hperm := (congrArg ExecutionEnv.perm pay.source_state.env).trans hperm) pay.frame' pay.evm' a.recipient
+  have hfinish := swapFinishSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm pay.source_state.env).trans hperm) pay.frame' pay.evm' a.recipient
     (swapAmount0 a s) (swapAmount1 a s) s (pay.contract_eq.trans hf4)
     ((hget5 _ (by cases a.zeroForOne <;> decide)).trans
       ((hget4 _ (by decide) (by decide)).trans ((w.locals_get _ (by decide)).trans hr)))

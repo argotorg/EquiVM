@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_030
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_050
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -14,10 +16,10 @@ set_option maxRecDepth 100000
 -- GENERALIZES the shared solc bool decoder to arbitrary input-buffer and return pointers.
 theorem safeBoolDecoderHead {I g s0 σ k C aw mem rdata} {start ret : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11632⟩
+    (h : RD fork safeBytecode I g s0 ⟨11632⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨11648⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨11648⟩
       (⟨0⟩ :: start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k' C' := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨0⟩ := by
     apply slt_lit_zero (by decide)
@@ -30,9 +32,9 @@ theorem safeBoolDecoderHead {I g s0 σ k C aw mem rdata} {start ret : UInt256}
 
 theorem safeBoolDecoderShort {I g s0 σ k C aw mem rdata} {start ret : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11632⟩
+    (h : RD fork safeBytecode I g s0 ⟨11632⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev fork safeBytecode g s0 := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨1⟩ := by
     apply slt_lit_one_low (by decide)
     rw [ulit_toNat' len (by change len < 2 ^ 256; omega)]
@@ -43,12 +45,12 @@ theorem safeBoolDecoderShort {I g s0 σ k C aw mem rdata} {start ret : UInt256}
 
 theorem safeBoolDecoderValid {I g s0 σ k C aw mem rdata} {start ret word : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11632⟩
+    (h : RD fork safeBytecode I g s0 ⟨11632⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255)
     (hm : memLoad start mem = word) (hw : word = ⟨0⟩ ∨ word = ⟨1⟩)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (word :: R) mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (word :: R) mem aw' rdata σ k' C' := by
   obtain ⟨_, _, hd⟩ := safeBoolDecoderHead h hov hl hb
   have hr := safeRuntime_block_11648_taken (by simp; omega)
     (by rw [hm]; rcases hw with rfl | rfl <;> decide) (by jump_dest) hd
@@ -58,11 +60,11 @@ theorem safeBoolDecoderValid {I g s0 σ k C aw mem rdata} {start ret word : UInt
 
 theorem safeBoolDecoderNoncanon {I g s0 σ k C aw mem rdata} {start ret word : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11632⟩
+    (h : RD fork safeBytecode I g s0 ⟨11632⟩
       (start :: (start + UInt256.ofNat len) :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255)
     (hm : memLoad start mem = word) (hz : word ≠ ⟨0⟩) (ho : word ≠ ⟨1⟩) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, hd⟩ := safeBoolDecoderHead h (by omega) hl hb
   have hr := safeRuntime_block_11648_fallthrough (by simp; omega)
     (by rw [hm, isZero_eq_zero_of_ne hz]

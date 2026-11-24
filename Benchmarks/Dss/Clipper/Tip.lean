@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -115,7 +117,7 @@ theorem clipperEvalTip (v : ClipperImmutables) (evm : EVM.State) (locals : Store
 
 theorem clipperTipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "tip" = none) :
-    ExecTransitionBody config contract evm locals tipTransition.body
+    ExecTransitionBody fork config contract evm locals tipTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat (UInt256.land
           (UInt256.div (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
@@ -131,12 +133,12 @@ theorem clipperReachTipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 23)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨637⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨637⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperTipSelectorWord hsz hsel
-  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -159,7 +161,7 @@ theorem clipperReachTipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -387,11 +389,11 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 23)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 23) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tipTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -432,7 +434,7 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
                 (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
               (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)
               hmask192))
-  have hreach := clipperReachTipBody
+  have hreach := clipperReachTipBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hret := solcPackedUintOffsetGetterExternal (code := code)

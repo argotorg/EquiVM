@@ -11,6 +11,8 @@ import Mathlib.Data.Nat.Bitwise
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -62,9 +64,9 @@ open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 theorem RD.ballotPanic32Revert1815 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨1815⟩ R mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork ballotBytecode ee g s0 ⟨1815⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
-    RDrev ballotBytecode g s0 := by
+    RDrev fork ballotBytecode g s0 := by
   have hsel :
       UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ = Ballot.ballotPanicSelector := by
     rfl
@@ -86,9 +88,9 @@ theorem RD.ballotPanic32Revert1815 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨1847⟩ R mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork ballotBytecode ee g s0 ⟨1847⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
-    RDrev ballotBytecode g s0 := by
+    RDrev fork ballotBytecode g s0 := by
   have hsel :
       UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ = Ballot.ballotPanicSelector := by
     rfl
@@ -110,10 +112,10 @@ theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨221⟩ (val :: ret :: R)
+    (h : RD fork ballotBytecode ee g s0 ⟨221⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: ret :: R)
+    ∃ k' C', RD fork ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: ret :: R)
       (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
@@ -137,9 +139,9 @@ theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionE
 theorem RD.ballotReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
+    (h : RD fork ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
         (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C) (hov : R.length + 5 ≤ 1024) :
-    RDret ballotBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork ballotBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
@@ -160,7 +162,7 @@ theorem RD.ballotReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
 theorem RD.ballotReturnOneWord194OfMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
+    (h : RD fork ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
         mem (UInt256.ofNat 5) rdata acc k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -169,7 +171,7 @@ theorem RD.ballotReturnOneWord194OfMem {g : Sat256} {s0 : State} {ee : Execution
         ⟨128⟩)
     (hread128 : mem.readWithPadding 128 32 = UInt256.toByteArray val)
     (hov : R.length + 5 ≤ 1024) :
-    RDret ballotBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork ballotBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.OwnerGuards
 import Benchmarks.Safe.Runs1e6.MemoryPreserves
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -23,14 +25,14 @@ theorem safeCanAddOwnerHeapCheckWord (σ : AccountMap) (I : ExecutionEnv) (key :
 
 theorem safeCanAddOwnerHeapTrace {I g s0 σ k C aw mem rdata} {key ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8269⟩ (key :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8269⟩ (key :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 96 ≤ mem.size) (hv : validOwner σ I key) (he : ownerLinkAt σ I key = ⟨0⟩)
     (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ mem' aw' k' C', mem'.size = mem.size ∧
       (∀ off count, 64 ≤ off → off + count ≤ mem.size →
         mem'.readWithPadding off count = mem.readWithPadding off count) ∧
-      RD safeBytecode I g s0 ret R mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ret R mem' aw' rdata σ k' C' := by
   have h₁ := safeRuntime_block_8269 (by simp; omega) (by jump_dest) h
   obtain ⟨mem₂, aw₂, k₂, C₂, hm₂, hr₂, h₂⟩ := safeValidOwnerHeapTrace h₁
     (by simp; omega) hc hm hv (by jump_dest)
@@ -51,10 +53,10 @@ theorem safeCanAddOwnerHeapTrace {I g s0 σ k C aw mem rdata} {key ret : UInt256
 
 theorem safeCanAddOwnerHeapTraceExisting {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8269⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8269⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 96 ≤ mem.size) (hv : validOwner σ I key) (he : ownerLinkAt σ I key ≠ ⟨0⟩) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_8269 (by omega) (by jump_dest) h
   obtain ⟨mem₂, aw₂, k₂, C₂, hm₂, _, h₂⟩ := safeValidOwnerHeapTrace h₁
     (by simp; omega) hc hm hv (by jump_dest)

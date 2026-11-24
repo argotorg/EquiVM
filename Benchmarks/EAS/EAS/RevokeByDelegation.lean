@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedRevokeRun
 import Benchmarks.EAS.EAS.DelegatedRevokePrepare
 import Benchmarks.EAS.EAS.Dispatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 theorem easRevokeByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 16) rfl hsel
   have hd : dispatchMsg contract I.calldata = some revokeByDelegationTransition := by
     apply easDispatch_revokeByDelegation (hsel := hsel)
@@ -19,7 +21,7 @@ theorem easRevokeByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [] :=
     easPlans_of_selector hsel (by native_decide)
-  obtain ⟨k,C,rd⟩ := easReachRevokeByDelegationBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k,C,rd⟩ := easReachRevokeByDelegationBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : 228 ≤ I.calldata.size ∧ I.calldata.size < 2^255+4
   · have hcheck : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨224⟩ = ⟨0⟩ :=
       solcCalldataStaticLenCheckOk (words := 7) hv.1 hv.2 hsize
@@ -33,7 +35,7 @@ theorem easRevokeByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
       obtain ⟨a2,k2,C2,r2⟩ := hr.1 hc
       let r := delegatedRevokeRecord I.calldata 4
       let args := (∅ : Store).insert "delegatedRequest" r.tuple
-      have hprefix := delegatedRevokePrefixSource (L := args) (imms := immStore v)
+      have hprefix := delegatedRevokePrefixSource (fork := fork) (L := args) (imms := immStore v)
         (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (r := r) (store_get_self _ _ _) hsz hsize
         (by change I.calldata.size-4 < 2^255; omega)
       have hreq : (delegatedRevokePrefixLocals args I.calldata r).get? "delegatedRequest" = some r.struct := store_get_self _ _ _

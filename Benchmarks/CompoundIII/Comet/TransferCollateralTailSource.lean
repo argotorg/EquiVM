@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferCollateralTrace
 import Benchmarks.CompoundIII.Comet.TransferCollateralLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -23,10 +25,10 @@ def transferCollateralSrcTail : List Stmt :=
     transferCollateralDstTail
 
 theorem transferCollateralCheck_source {v src dst asset amount evm result}
-    (ht : TransferCollateralCheck v src evm result) (frame : Frame)
+    (ht : TransferCollateralCheck fork v src evm result) (frame : Frame)
     (hf : TransferCollateralArgs frame v src dst asset amount) :
-    internalBlockResult config frame evm transferCollateralCheckTail result := by
-  have hcall {r} (hc : CollateralCheckTrace v true src evm r) :=
+    internalBlockResult fork config frame evm transferCollateralCheckTail result := by
+  have hcall {r} (hc : CollateralCheckTrace fork v true src evm r) :=
     collateralCheck_call hc frame (.var "src") "__c3" hf.contract hf.immutables
       (by simp only [evalExpr?, hf.src, EvalResult.ofOption])
   have he (value : Bool) (evm' : EVM.State) : evalExpr? config
@@ -57,13 +59,13 @@ theorem transferCollateralCheck_source {v src dst asset amount evm result}
           (ExecBlock.consNormal (ExecStmt.emit (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hargs) .nil))⟩
 
 theorem transferCollateralDst_source {v src dst asset amount balance next evm out result}
-    (ht : TransferCollateralDstMember v src dst balance next evm out result) (frame : Frame)
+    (ht : TransferCollateralDstMember fork v src dst balance next evm out result) (frame : Frame)
     (hf : TransferCollateralArgs frame v src dst asset amount) (ho : (calldataWord out 0).toNat < 256)
     (ha : frame.locals.get? "assetInfo" = some (assetValue out))
     (hb : frame.locals.get? "dstCollateral" = some (.int balance.toNat))
     (hn : frame.locals.get? "dstCollateralNew" = some (.int next.toNat)) :
-    internalBlockResult config frame evm transferCollateralDstTail result := by
-  have hc := assetMembership_call frame evm dst out balance next (.var "dst")
+    internalBlockResult fork config frame evm transferCollateralDstTail result := by
+  have hc := assetMembership_call (fork := fork) frame evm dst out balance next (.var "dst")
     (.var "assetInfo") (.var "dstCollateral") (.var "dstCollateralNew") "__c2" hf.contract ho
     (by simp only [evalExpr?, hf.dst, EvalResult.ofOption])
     (by simp only [evalExpr?, ha, EvalResult.ofOption])
@@ -79,13 +81,13 @@ theorem transferCollateralDst_source {v src dst asset amount balance next evm ou
 
 theorem transferCollateralSrc_source
     {v src dst asset amount srcBalance srcNext dstBalance dstNext evm out result}
-    (ht : TransferCollateralSrcMember v src dst srcBalance srcNext dstBalance dstNext evm out result)
+    (ht : TransferCollateralSrcMember fork v src dst srcBalance srcNext dstBalance dstNext evm out result)
     (frame : Frame) (hf : TransferCollateralArgs frame v src dst asset amount)
     (hb : TransferCollateralBalances frame srcBalance srcNext dstBalance dstNext)
     (ho : (calldataWord out 0).toNat < 256)
     (ha : frame.locals.get? "assetInfo" = some (assetValue out)) :
-    internalBlockResult config frame evm transferCollateralSrcTail result := by
-  have hc := assetMembership_call frame evm src out srcBalance srcNext (.var "src")
+    internalBlockResult fork config frame evm transferCollateralSrcTail result := by
+  have hc := assetMembership_call (fork := fork) frame evm src out srcBalance srcNext (.var "src")
     (.var "assetInfo") (.var "srcCollateral") (.var "srcCollateralNew") "__c1" hf.contract ho
     (by simp only [evalExpr?, hf.src, EvalResult.ofOption])
     (by simp only [evalExpr?, ha, EvalResult.ofOption])
@@ -103,11 +105,11 @@ theorem transferCollateralSrc_source
 
 theorem transferCollateralTail_source
     {v src dst asset amount srcBalance srcNext dstBalance dstNext evm result}
-    (ht : TransferCollateralTailTrace v src dst asset srcBalance srcNext dstBalance dstNext evm result)
+    (ht : TransferCollateralTailTrace fork v src dst asset srcBalance srcNext dstBalance dstNext evm result)
     (frame : Frame) (hf : TransferCollateralArgs frame v src dst asset amount)
     (hb : TransferCollateralBalances frame srcBalance srcNext dstBalance dstNext) :
-    internalBlockResult config frame evm transferCollateralTail result := by
-  have hcall {r} (hc : AssetSearch v asset 0 evm r) :=
+    internalBlockResult fork config frame evm transferCollateralTail result := by
+  have hcall {r} (hc : AssetSearch fork v asset 0 evm r) :=
     assetSearch_call hc frame (.var "asset") "assetInfo" hf.contract hf.immutables
       (by simp only [evalExpr?, hf.asset, EvalResult.ofOption])
   cases ht with

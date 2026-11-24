@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.UIDLoopLocals
 import Benchmarks.EAS.EAS.GetAttestationEVM
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,22 +15,22 @@ theorem uidIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
     (hview : AttestationMemoryView mem src dataPtr a) (hh : heap.toNat ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hdisj : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ heap.toNat) (hbump : bump.toNat < 2^32)
-    (rd : RD (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
     let next := allocateNext heap.toNat (157+a.data.size)
     let word := getUIDWord a bump
     (∃ (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       heap.toNat+160 ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
       ((dbUIDWord evm word = ⟨0⟩ ∧
-        ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm uidIteration
+        ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm uidIteration
           (.break {contract := contract,locals := uidComputeLocals L word next,immutables := immStore v} evm) ∧
-        RD (deployedRuntime v) ee g s0 (uidAvailablePC site) (word::bump::uidSaved site src R) mem' aw' rdata σ k' C') ∨
+        RD fork (deployedRuntime v) ee g s0 (uidAvailablePC site) (word::bump::uidSaved site src R) mem' aw' rdata σ k' C') ∨
        (dbUIDWord evm word ≠ ⟨0⟩ ∧
-        ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm uidIteration
+        ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm uidIteration
           (.ok {contract := contract,locals := uidNextLocals L word bump next,immutables := immStore v} evm) ∧
-        RD (deployedRuntime v) ee g s0 (uidStartPC site) (nextUIDBump bump::uidSaved site src R) mem' aw' rdata σ k' C'))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm uidIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+        RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (nextUIDBump bump::uidSaved site src R) mem' aw' rdata σ k' C'))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm uidIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   dsimp only
   let word := getUIDWord a bump
   let next := allocateNext heap.toNat (157+a.data.size)

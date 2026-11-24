@@ -10,6 +10,8 @@ import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -218,7 +220,7 @@ theorem simpleAuctionPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 
 theorem simpleAuctionPayablePrologueRD {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode) :
-    RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
+    RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -230,12 +232,12 @@ theorem simpleAuctionPayablePrologueRD {σ σ₀ A I} {g : Sat256}
 theorem simpleAuctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) simpleAuctionSplitPc
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) simpleAuctionSplitPc
         [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h2⟩ := solcCalldataOk
     (bodyPc := (⟨5⟩ : UInt256)) (selLoadTgt := (⟨110⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (simpleAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
+    (simpleAuctionPayablePrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide)
@@ -261,7 +263,7 @@ theorem simpleAuctionReachHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J simpleAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt simpleAuctionBytecode
         (nthArmPc simpleAuctionBytecode simpleAuctionHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
         [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
@@ -310,14 +312,14 @@ theorem simpleAuctionReachLowBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J simpleAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt simpleAuctionBytecode
         (nthArmPc simpleAuctionBytecode simpleAuctionLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
         [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit
+  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hlowJd := by
     simpa [simpleAuctionLowJumpdestPc, simpleAuctionSplitPc, armTgt, pushAt,
       selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitTakenAuto hsplit simpleAuctionSplitWellFormed hpivot (by jump_dest) (by simp)
+      RD.selectorSplitTakenAuto (fork := fork) hsplit simpleAuctionSplitWellFormed hpivot (by jump_dest) (by simp)
   have hfirst := by
     simpa [simpleAuctionLowFirstArmPc, simpleAuctionLowJumpdestPc] using
       hlowJd.jumpdest (by decide) (by simp)
@@ -388,11 +390,11 @@ theorem simpleAuctionDispatch_none_nomatch {cd : ByteArray}
 
 theorem simpleAuctionX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode) (hsz : I.calldata.size < 4) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   exact solcCalldataShortRevert
     (bodyPc := (⟨5⟩ : UInt256)) (rtgt := (⟨110⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (simpleAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
+    (simpleAuctionPayablePrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
@@ -401,7 +403,7 @@ theorem simpleAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   have heqLow0 : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat simpleAuctionBytecode
@@ -451,11 +453,11 @@ theorem simpleAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
         simpa [simpleAuctionHighSelBytes, simpleAuctionSelBytes] using h
       rw [simpleAuctionHighArmEq I hsz 3 (by omega), hf]
       rfl
-  obtain ⟨kS, CS, hsplit⟩ := simpleAuctionReachSplit
+  obtain ⟨kS, CS, hsplit⟩ := simpleAuctionReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   by_cases hpivot : UInt256.gt (armSelNat simpleAuctionBytecode simpleAuctionSplitPc)
       (simpleAuctionSelWord I) = ⟨0⟩
-  · have h29 := RD.selectorSplitNotTakenAuto hsplit simpleAuctionSplitWellFormed hpivot (by simp)
+  · have h29 := RD.selectorSplitNotTakenAuto (fork := fork) hsplit simpleAuctionSplitWellFormed hpivot (by simp)
     have h73 := h29
       |>.selectorArmNotTakenAuto (simpleAuctionHighArmsWellFormed 0 (by omega))
           (heqHigh0 0 (by omega)) (by simp)
@@ -465,7 +467,7 @@ theorem simpleAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqHigh0 2 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (simpleAuctionHighArmsWellFormed 3 (by omega))
           (heqHigh0 3 (by omega)) (by simp)
-    have h73' : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨73⟩
+    have h73' : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨73⟩
         [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [simpleAuctionHighFirstArmPc, simpleAuctionSplitPc, nthArmPc, selArmNextPc,
@@ -482,7 +484,7 @@ theorem simpleAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqLow0 1 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (simpleAuctionLowArmsWellFormed 2 (by omega))
           (heqLow0 2 (by omega)) (by simp)
-    have h110' : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨110⟩
+    have h110' : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨110⟩
         [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22, ?_⟩
       simpa [simpleAuctionLowFirstArmPc, simpleAuctionLowJumpdestPc, simpleAuctionSplitPc,
@@ -501,10 +503,10 @@ open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 theorem RD.simpleAuctionRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD _root_.simpleAuctionBytecode ee g s0 ⟨174⟩ (val :: ret :: R)
+    (h : RD fork _root_.simpleAuctionBytecode ee g s0 ⟨174⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD _root_.simpleAuctionBytecode ee g s0 ⟨194⟩
+    ∃ k' C', RD fork _root_.simpleAuctionBytecode ee g s0 ⟨194⟩
       (SimpleAuction.simpleAuctionRetEnd :: ret :: R)
       (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
@@ -528,11 +530,11 @@ theorem RD.simpleAuctionRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : Exe
 theorem RD.simpleAuctionReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val : UInt256} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD _root_.simpleAuctionBytecode ee g s0 ⟨194⟩
+    (h : RD fork _root_.simpleAuctionBytecode ee g s0 ⟨194⟩
         (SimpleAuction.simpleAuctionRetEnd :: R) (solcReturnMem val) (UInt256.ofNat 5)
         rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret _root_.simpleAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork _root_.simpleAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyRefine
 import Benchmarks.Morpho.MorphoBlue.MarketTwoWordsAddressBytesDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,13 +13,13 @@ set_option maxRecDepth 1000
 theorem morphoSupplyBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 19)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 19) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some supplyTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k0, C0, rd0⟩ := morphoReachSupplyBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd1 := morphoBlocks.morpho_block_3802_taken (immWords := wordsOf (immStore v))
@@ -55,7 +57,7 @@ theorem morphoSupplyBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
       ⟨hbad, hr⟩ | ⟨hg, a3, k3, C3, rd3⟩
     · exact reEquivSelectorRevert hcode hr hd hdec
         (morphoSupplySourceReject p assets shares account data hc ha evm (immStore v) hcv hbound hbad)
-    · have pref := morphoSupplySourceGuards p assets shares account data hc ha evm (immStore v) hcv hbound hg
+    · have pref := morphoSupplySourceGuards (fork := fork) p assets shares account data hc ha evm (immStore v) hcv hbound hg
       have hl := supplyBeforeAccrue_locals p assets shares account data evm (immStore v)
       have hstart : (UInt256.ofNat 4 + calldataWord I.calldata 260).toNat =
           4 + (calldataWord I.calldata 260).toNat := add4_word_toNat _ hb.2.2.2.2.1

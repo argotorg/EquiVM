@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickPrefixEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -93,11 +95,11 @@ theorem clipperKickX_idPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hid : clipperKickIdWord σ I ≠ ⟨0⟩)
-    (h : RD code I g s0 ⟨5831⟩
+    (h : RD fork code I g s0 ⟨5831⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5913⟩
+    ∃ k' C', RD fork code I g s0 ⟨5913⟩
       (⟨1⟩ :: clipperKickIdWord σ I :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel])
@@ -109,7 +111,7 @@ theorem clipperKickX_idPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k5836, C5836, rd5836raw⟩ := rd5835.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5836 : RD code I g s0 ⟨5836⟩
+  have rd5836 : RD fork code I g s0 ⟨5836⟩
       (solcSlotWord σ I ⟨10⟩ :: ⟨10⟩ :: ⟨1⟩ :: ⟨0⟩ ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
@@ -138,13 +140,13 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
-    (h : RD code I g s0 ⟨5913⟩
+    (h : RD fork code I g s0 ⟨5913⟩
       (⟨1⟩ :: clipperKickIdWord σ I :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (clipperKickIdMap σ I) k C) :
-    ∃ k' C', RD code I g s0 ⟨8728⟩
+    ∃ k' C', RD fork code I g s0 ⟨8728⟩
       (⟨6061⟩ :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: clipperKickIdWord σ I ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
@@ -156,7 +158,7 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k5918, C5918, rd5918raw⟩ := rd5917.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5918 : RD code I g s0 ⟨5918⟩
+  have rd5918 : RD fork code I g s0 ⟨5918⟩
       (clipperKickActiveLengthWord σ I :: ⟨11⟩ :: ⟨1⟩ ::
         clipperKickIdWord σ I :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
@@ -186,7 +188,7 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
   have rd5965 := rd5964.swap1 (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨k5966, C5966, rd5966raw⟩ := rd5965.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5966 : RD code I g s0 ⟨5966⟩
+  have rd5966 : RD fork code I g s0 ⟨5966⟩
       (clipperKickPostPushLengthWord σ I :: ⟨1⟩ :: ⟨1⟩ ::
         clipperKickIdWord σ I :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
@@ -230,7 +232,7 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
     raw dup3 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rd5988⟩ := rd5987pre.sstore hperm
     (by clipper_runtime_decode) (by evm_ov)
-  change RD code I g s0 _ _ _ _ _ (clipperKickSalesPosMap σ I) _ _ at rd5988
+  change RD fork code I g s0 _ _ _ _ _ (clipperKickSalesPosMap σ I) _ _ at rd5988
   have rd5993pre := evm_run rd5988 with [
     raw swap2 (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov),
@@ -239,7 +241,7 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rd5994⟩ := rd5993pre.sstore hperm
     (by clipper_runtime_decode) (by evm_ov)
-  change RD code I g s0 _ _ _ _ _ (clipperKickSalesTabMap σ I) _ _ at rd5994
+  change RD fork code I g s0 _ _ _ _ _ (clipperKickSalesTabMap σ I) _ _ at rd5994
   have rd6000pre := evm_run rd5994 with [
     raw push1 ⟨2⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov),
@@ -248,14 +250,14 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rd6001⟩ := rd6000pre.sstore hperm
     (by clipper_runtime_decode) (by evm_ov)
-  change RD code I g s0 _ _ _ _ _ (clipperKickSalesLotMap σ I) _ _ at rd6001
+  change RD fork code I g s0 _ _ _ _ _ (clipperKickSalesLotMap σ I) _ _ at rd6001
   have rd6004 := evm_run rd6001 with [
     raw push1 ⟨3⟩ (by clipper_runtime_decode) (by evm_ov),
     raw add (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k6006, C6006, rd6006⟩ := rd6004.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd6006' : RD code I g s0 ⟨6006⟩
+  have rd6006' : RD fork code I g s0 ⟨6006⟩
       (solcSlotWord (clipperKickSalesLotMap σ I) I (clipperKickPackedSlot σ I) ::
         clipperKickPackedSlot σ I :: ⟨0⟩ :: ⟨1⟩ :: clipperKickIdWord σ I ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I :: clipperKickLotWord I ::
@@ -321,7 +323,7 @@ theorem clipperKickX_initializeAuction {σ I} {g : Sat256} {s0 : State}
         clipperKickPackedWord σ I := by
     rfl
   rw [hpacked] at rd6051
-  have rd6051' : RD code I g s0 ⟨6051⟩
+  have rd6051' : RD fork code I g s0 ⟨6051⟩
       (⟨0⟩ :: ⟨1⟩ :: clipperKickIdWord σ I :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel])

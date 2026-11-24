@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -19,7 +21,7 @@ theorem assignStorageRef_contract {cfg : Config} {frame out : Frame} {evm evm' :
   all_goals exact (congrArg Frame.contract h.1).symm
 
 theorem execBlock_contract {cfg : Config} {frame : Frame} {evm : EVM.State}
-    {body : List Stmt} {result : ExecResult} (h : ExecBlock cfg frame evm body result) :
+    {body : List Stmt} {result : ExecResult} (h : ExecBlock fork cfg frame evm body result) :
     execResultContract frame.contract result := by
   apply ExecBlock.rec
     (motive_1 := fun f _ _ r _ ↦ execResultContract f.contract r)

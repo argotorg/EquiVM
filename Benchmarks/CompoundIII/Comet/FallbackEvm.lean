@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.DelegateCallBridge
 import Benchmarks.CompoundIII.Comet.FallbackMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_082
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,12 +16,12 @@ theorem cometFallbackRun {v : CometWithExtendedAssetListImmutables}
     {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hsize : ee.calldata.size < UInt256.size)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18418⟩ (ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18418⟩ (ret :: R) mem aw rdata σ k C) :
     ∃ evm' σ' z out,
-      delegateCallViaEVM evm v.extensionDelegate ee.calldata (z, evm', out) ∧
+      delegateCallViaEVM fork evm v.extensionDelegate ee.calldata (z, evm', out) ∧
       SourceState s0 ee σ' evm' ∧
-      (if z then RDret (deployedRuntime v) g s0 σ' out
-       else RDrev (deployedRuntime v) g s0) := by
+      (if z then RDret fork (deployedRuntime v) g s0 σ' out
+       else RDrev fork (deployedRuntime v) g s0) := by
   have hlen := UInt256.toNat_ofNat_of_lt hsize
   have hz : (UInt256.ofNat 0).toNat = 0 := rfl
   have r1 := cometWithExtendedAssetList_block_18418

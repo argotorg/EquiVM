@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapProtocolTrace
 import Benchmarks.UniswapV3.Pool.SwapPriceChangedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,11 +22,11 @@ theorem swapInitializedGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3672⟩ (q :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3672⟩ (q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem q d)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 3 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if d.initialized then ⟨3682⟩ else ⟨3893⟩)
+      RD fork (deployedRuntime v) ee g s0 (if d.initialized then ⟨3682⟩ else ⟨3893⟩)
         (q :: R) mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧
       aw.toNat ≤ aw'.toNat := by
   have hload : memLoad (UInt256.ofNat 64 + q) mem = d.initialized.toUInt256 := by
@@ -53,12 +55,12 @@ theorem swapObservationGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q p exactWord cache free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3682⟩ ([q, p, exactWord, cache] ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3682⟩ ([q, p, exactWord, cache] ++ R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
     (hb : cache.toNat + 192 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if c.computedLatestObservation then ⟨3775⟩ else ⟨3691⟩)
+      RD fork (deployedRuntime v) ee g s0 (if c.computedLatestObservation then ⟨3775⟩ else ⟨3691⟩)
         ([q, p, exactWord, cache] ++ R) mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧
       aw.toNat ≤ aw'.toNat := by
   have hload : memLoad (UInt256.ofNat 160 + cache) mem = c.computedLatestObservation.toUInt256 := by

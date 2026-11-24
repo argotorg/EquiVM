@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TwoAddressDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -38,8 +40,8 @@ theorem cometHasPermission {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 8 ≤ 1024)
     (ho : owner.toNat < EVM.addressModulus) (hm : manager.toNat < EVM.addressModulus)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6921⟩ (owner :: manager :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6921⟩ (owner :: manager :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (permissionRuntimeWord σ ee owner manager :: R) (permissionMemory owner manager mem)
       aw' rdata σ k' C' := by
   have hoClean : UInt256.land owner (UInt256.sub
@@ -73,7 +75,7 @@ theorem cometHasPermission {v : CometWithExtendedAssetListImmutables}
     let slot₀ := solcMappingSlot ⟨3⟩ owner
     have hhash₀ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀ = slot₀ :=
       twoWordHashMem_solcMappingSlot_any ⟨3⟩ owner mem
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀ :: manager :: ⟨6977⟩ :: ⟨255⟩ :: ret :: R)
       mem₀ _ _ _ _ _ at rd2
     rw [hhash₀] at rd2
@@ -88,7 +90,7 @@ theorem cometHasPermission {v : CometWithExtendedAssetListImmutables}
     let mem₁ := twoWordHashMem manager slot₀ mem₀
     have hhash₁ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁ =
         solcMappingSlot slot₀ manager := twoWordHashMem_solcMappingSlot_any slot₀ manager mem₀
-    change RD _ _ _ _ _ (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁ :: ⟨255⟩ :: ret :: R)
+    change RD fork _ _ _ _ _ (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁ :: ⟨255⟩ :: ret :: R)
       mem₁ _ _ _ _ _ at rd3
     rw [hhash₁] at rd3
     obtain ⟨k₄, C₄, rd4⟩ := cometWithExtendedAssetList_block_6977

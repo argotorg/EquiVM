@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V1_0227664.OwnerGuardTraces
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -24,7 +26,7 @@ def swapOwnerState (evm : EVM.State) (prev old new : UInt256) : EVM.State :=
 theorem safeSwapOwnerCanAdd (evm : EVM.State) (prev old new : UInt256)
     (hc : new.toNat < EVM.addressModulus) (hv : validOwner evm.accountMap evm.executionEnv new)
     (he : ownerLink evm new = ⟨0⟩) :
-    ExecStmt config (swapOwnerFrame prev old new) evm
+    ExecStmt fork config (swapOwnerFrame prev old new) evm
       (.internalCall "requireCanAddOwner" [.var "newOwner"] "_canAdd")
       (.ok (swapOwnerFrame₁ prev old new) evm) := by
   apply internalCallFunctionReturn (callee := requireCanAddOwnerFunction)
@@ -39,7 +41,7 @@ theorem safeSwapOwnerCanAdd (evm : EVM.State) (prev old new : UInt256)
 theorem safeSwapOwnerCanRemove (evm : EVM.State) (prev old new : UInt256)
     (hp : prev.toNat < EVM.addressModulus) (ho : old.toNat < EVM.addressModulus)
     (hv : validOwner evm.accountMap evm.executionEnv old) (hl : ownerLink evm prev = old) :
-    ExecStmt config (swapOwnerFrame₁ prev old new) evm
+    ExecStmt fork config (swapOwnerFrame₁ prev old new) evm
       (.internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "oldOwner"] "_canRemove")
       (.ok (swapOwnerFrame₂ prev old new) evm) := by
   apply internalCallFunctionReturn (callee := requireCanRemoveOwnerFunction)
@@ -84,7 +86,7 @@ theorem safeSwapOwnerSource (evm : EVM.State) (prev old new : UInt256)
     (hvn : validOwner evm.accountMap evm.executionEnv new) (he : ownerLink evm new = ⟨0⟩)
     (hvo : validOwner evm.accountMap evm.executionEnv old) (hl : ownerLink evm prev = old)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
+    ExecTransitionBody fork config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
       (.returned (swapOwnerFrame₂ prev old new) (swapOwnerState evm prev old new) none) := by
   have hbase := safeSwapOwnerLocals prev old new
   have hload := safeEvalOwnerLink evm _ _ old hbase ho (safeSwapOwnerEvalOld evm prev old new)
@@ -118,7 +120,7 @@ theorem safeSwapOwnerSourceStatic (evm : EVM.State) (prev old new : UInt256)
     (hvn : validOwner evm.accountMap evm.executionEnv new) (he : ownerLink evm new = ⟨0⟩)
     (hvo : validOwner evm.accountMap evm.executionEnv old) (hl : ownerLink evm prev = old)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
+    ExecTransitionBody fork config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
       .staticViolation := by
   have hbase := safeSwapOwnerLocals prev old new
   have hload := safeEvalOwnerLink evm _ _ old hbase ho (safeSwapOwnerEvalOld evm prev old new)
@@ -133,11 +135,11 @@ theorem safeSwapOwnerSourceStatic (evm : EVM.State) (prev old new : UInt256)
 theorem safeSwapOwnerSourceAddRevert (evm : EVM.State) (prev old new : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
-    (hbody : ExecFuncBody config (canAddOwnerFrame new) evm
+    (hbody : ExecFuncBody fork config (canAddOwnerFrame new) evm
       requireCanAddOwnerFunction.body .reverted) :
-    ExecTransitionBody config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
+    ExecTransitionBody fork config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
       .reverted := by
-  have hcall : ExecStmt config (swapOwnerFrame prev old new) evm
+  have hcall : ExecStmt fork config (swapOwnerFrame prev old new) evm
       (.internalCall "requireCanAddOwner" [.var "newOwner"] "_canAdd") .reverted := by
     apply internalCallFunctionRevert (callee := requireCanAddOwnerFunction)
       (argVals := [.address (AccountAddress.ofNat new.toNat)])
@@ -156,11 +158,11 @@ theorem safeSwapOwnerSourceRemoveRevert (evm : EVM.State) (prev old new : UInt25
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hvn : validOwner evm.accountMap evm.executionEnv new) (he : ownerLink evm new = ⟨0⟩)
-    (hbody : ExecFuncBody config (canRemoveOwnerFrame prev old) evm
+    (hbody : ExecFuncBody fork config (canRemoveOwnerFrame prev old) evm
       requireCanRemoveOwnerFunction.body .reverted) :
-    ExecTransitionBody config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
+    ExecTransitionBody fork config contract evm (swapOwnerArgs prev old new) swapownerTransition.body
       .reverted := by
-  have hcall : ExecStmt config (swapOwnerFrame₁ prev old new) evm
+  have hcall : ExecStmt fork config (swapOwnerFrame₁ prev old new) evm
       (.internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "oldOwner"] "_canRemove")
       .reverted := by
     apply internalCallFunctionRevert (callee := requireCanRemoveOwnerFunction)
@@ -180,7 +182,7 @@ theorem safeSwapOwnerSourceRemoveRevert (evm : EVM.State) (prev old new : UInt25
 theorem safeSwapOwnerSourceUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals swapownerTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals swapownerTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 

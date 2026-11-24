@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.SignaturePiece
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -36,7 +38,7 @@ def signatureCurrentFrame (f : Frame) (r : UInt256) : Frame :=
 theorem signatureCurrentSource {f : Frame} {evm : EVM.State} {r : UInt256} {old : Value}
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hc : f.locals["currentOwner"]? = some old) :
-    ExecStmt config f evm
+    ExecStmt fork config f evm
       (.assign .localVar (varRef "currentOwner")
         (uint256AsAddress (bytes32AsUint256 (.var "r"))))
       (.ok (signatureCurrentFrame f r) evm) := by

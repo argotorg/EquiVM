@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickSqrtStageSource
 import Benchmarks.UniswapV4PoolManager.TickSqrtBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -56,7 +58,7 @@ theorem tickSqrtInitialEval {f : Frame} {evm : EVM.State} {absTick : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
     (ht : f.locals.get? "tick" = some (.int tick)) (hb : tick.natAbs < 2^256) :
-    ∃ f', ExecFuncBody config f evm tickSqrtFunction.body
+    ∃ f', ExecFuncBody fork config f evm tickSqrtFunction.body
       (if tick.natAbs ≤ 887272 then .returned f' evm (some [.int (Int.ofNat (tickSqrtPrice tick).toNat)])
        else .reverted) := by
   let f1 : Frame := {f with locals := f.locals.insert "sqrtPriceX96" (.int 0)}
@@ -65,10 +67,10 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
   have ht2 : f2.locals.get? "tick" = some (.int tick) :=
     (store_get_ne2 _ _ _ (by decide : ("sqrtPriceX96" == "tick") = false)
       (by decide : ("absTick" == "tick") = false)).trans ht
-  have hpref : ExecBlock config f evm (tickSqrtFunction.body.take 3) (.ok f3 evm) :=
+  have hpref : ExecBlock fork config f evm (tickSqrtFunction.body.take 3) (.ok f3 evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
       (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (tickSqrtAbsEval ht2 hb) (assignLocalValue (store_get_self _ _ _)))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (tickSqrtAbsEval ht2 hb) (assignLocalValue (store_get_self _ _ _)))
           ExecBlock.nil))
   have ha3 : f3.locals.get? "absTick" = some (.int (Int.ofNat tick.natAbs)) := store_get_self _ _ _
   have hguard : evalExpr? config f3 evm
@@ -91,10 +93,10 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
       rw [UInt256.toNat_ofNat_of_lt hb]
       exact (store_get_ne _ _ (by decide : ("price" == "absTick") = false)).trans ha3
     have hinit := tickSqrtInitialEval (evm := evm) ha4
-    have hpre5 : ExecBlock config f3 evm ((tickSqrtFunction.body.drop 3).take 3) (.ok f5 evm) :=
+    have hpre5 : ExecBlock fork config f3 evm ((tickSqrtFunction.body.drop 3).take 3) (.ok f5 evm) :=
       ExecBlock.consNormal (ExecStmt.iteFalse (by simpa only [decide_eq_false (by omega : ¬887272 < tick.natAbs)] using hguard) ExecBlock.nil)
         (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
-          (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hinit (assignLocalValue (store_get_self _ _ _))) ExecBlock.nil))
+          (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hinit (assignLocalValue (store_get_self _ _ _))) ExecBlock.nil))
     have ha5 : f5.locals.get? "absTick" = some (.int (Int.ofNat (UInt256.ofNat tick.natAbs).toNat)) :=
       (store_get_ne _ _ (by decide : ("price" == "absTick") = false)).trans ha4
     obtain ⟨f6, hstages, hp6, hf6⟩ := tickSqrtStagesExec (evm := evm) tickSqrtFactors ha5 (store_get_self _ _ _)
@@ -113,7 +115,7 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
       simp only [evalExpr?, bind, EvalResult.bind, pure, evalBinaryOp?]
     let price := tickSqrtRatio (UInt256.ofNat tick.natAbs)
     let finalPrice := if 0 < tick then UInt256.div (UInt256.ofNat (2^256-1)) price else price
-    have hsuffix : ∃ f7, ExecStmt config f6 evm tickSqrtFunction.body[25]! (.ok f7 evm) ∧
+    have hsuffix : ∃ f7, ExecStmt fork config f6 evm tickSqrtFunction.body[25]! (.ok f7 evm) ∧
         f7.locals.get? "price" = some (.int (Int.ofNat finalPrice.toNat)) ∧
         f7.locals.get? "sqrtPriceX96" = some (.int 0) := by
       by_cases hp : 0 < tick
@@ -127,7 +129,7 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
             have hnz : price.toNat ≠ 0 := Nat.ne_of_gt (tickSqrtRatio_pos hn)
             exact hnz (congrArg UInt256.toNat hz))
         refine ⟨f7, ExecStmt.iteTrue (by simpa only [decide_eq_true hp] using hpos)
-          (execBlock_singleton (ExecStmt.assign (hperm := Or.inl rfl) ?_ (assignLocalValue hp6))), store_get_self _ _ _, ?_⟩
+          (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) ?_ (assignLocalValue hp6))), store_get_self _ _ _, ?_⟩
         · simpa only [finalPrice, if_pos hp] using hd
         · exact (store_get_ne _ _ (by decide : ("price" == "sqrtPriceX96") = false)).trans hsqrt6
       · exact ⟨f6, ExecStmt.iteFalse (by simpa only [decide_eq_false hp] using hpos) ExecBlock.nil,
@@ -146,15 +148,15 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
       (Int.ofNat (tickSqrtPrice tick).toNat))) at hcast
     rw [hclean] at hcast
     let f8 : Frame := {f7 with locals := f7.locals.insert "sqrtPriceX96" (.int (Int.ofNat (tickSqrtPrice tick).toNat))}
-    have htail : ExecBlock config f6 evm (tickSqrtFunction.body.drop 25)
+    have htail : ExecBlock fork config f6 evm (tickSqrtFunction.body.drop 25)
         (.returned f8 evm (some [.int (Int.ofNat (tickSqrtPrice tick).toNat)])) :=
-      ExecBlock.consNormal hrecip (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hcast (assignLocalValue hs7))
+      ExecBlock.consNormal hrecip (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hcast (assignLocalValue hs7))
         (ABlock.start.returns (evalLocalValue (store_get_self _ _ _))))
     exact ⟨f8, .execBlockRet (execBlock_append_ok hpref
       (execBlock_append_ok hpre5 (execBlock_append_ok hstages htail)))⟩
   · simp only [if_neg hn]
     refine ⟨f3, .execBlockRevert (execBlock_append_ok hpref ?_)⟩
-    change ExecBlock config f3 evm (tickSqrtFunction.body.drop 3) .reverted
+    change ExecBlock fork config f3 evm (tickSqrtFunction.body.drop 3) .reverted
     exact ExecBlock.consRevert (ExecStmt.iteTrue
       (by simpa only [decide_eq_true (by omega : 887272 < tick.natAbs)] using hguard)
       (ExecBlock.consRevert (ExecStmt.requireFalse (by simp only [evalExpr?, pure]))))
@@ -162,7 +164,7 @@ theorem tickSqrtBody {f : Frame} {evm : EVM.State} {tick : Int}
 theorem tickSqrtCall {f : Frame} {evm : EVM.State} {e : Expr} {tick : Int}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int tick))
     (hb : tick.natAbs < 2^256) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "TickMath_getSqrtPriceAtTick" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "TickMath_getSqrtPriceAtTick" [e] retVar)
       (if tick.natAbs ≤ 887272 then
         .ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (tickSqrtPrice tick).toNat))} evm
        else .reverted) := by

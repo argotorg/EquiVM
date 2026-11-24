@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.WordRangeSourceStep
 import Benchmarks.UniswapV4PoolManager.WordReadTraceReturn
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,9 +23,9 @@ theorem wordRangeTraceStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} {n i : Nat} {start : UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 9 ≤ 1024) (hn : 224+32*n < UInt256.size) (hi : i < max 1 n)
-    (h : RD (deployedRuntime v) I g s0 ⟨9781⟩ (wordReadTraceStack (wordRangeSlot start) ⟨1⟩ n i R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9781⟩ (wordReadTraceStack (wordRangeSlot start) ⟨1⟩ n i R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0
       (if i+1 < n then ⟨9781⟩ else ⟨2508⟩)
       (if i+1 < n then wordReadTraceStack (wordRangeSlot start) ⟨1⟩ n (i+1) R
         else wordReadTraceExitStack (wordRangeSlot start) n (i+1) R)
@@ -47,7 +49,7 @@ theorem wordRangeTraceStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     obtain ⟨aw1, k1, C1, rd⟩ := poolManagerBlocks.poolManager_block_9781_fallthrough_packed hstack
       (by rw [houtadd, ult_one (by rw [UInt256.toNat_ofNat_of_lt houtfit,
         UInt256.toNat_ofNat_of_lt hn]; omega)]; rfl) h
-    change RD _ _ _ _ ⟨9799⟩
+    change RD fork _ _ _ _ ⟨9799⟩
       (UInt256.ofNat 160 :: (UInt256.ofNat (224+32*i) + UInt256.ofNat 32) ::
         (wordRangeSlot start i + (⟨1⟩ : UInt256)) ::
         UInt256.ofNat (224+32*n) :: UInt256.ofNat (160+32*n) :: UInt256.ofNat 160 :: R)
@@ -70,8 +72,8 @@ theorem wordRangePrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 9 ≤ 1024)
     (hn : 224+32*(calldataWord I.calldata 36).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9741⟩ R entryMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨9781⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9741⟩ R entryMemory aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨9781⟩
       (wordReadTraceStack (wordRangeSlot (calldataWord I.calldata 4)) ⟨1⟩ (calldataWord I.calldata 36).toNat 0 R)
       (arrayHeaderMemory (calldataWord I.calldata 36).toNat) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd⟩ := poolManagerBlocks.poolManager_block_9741_packed (by omega) h
@@ -110,8 +112,8 @@ theorem wordRangeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 9 ≤ 1024)
     (hn : 224+32*(calldataWord I.calldata 36).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9741⟩ R entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9741⟩ R entryMemory aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ
       (wordBytes ([UInt256.ofNat 32, calldataWord I.calldata 36] ++
         wordArrayWords (wordRangeTraceValue I σ (calldataWord I.calldata 4)) 0 (calldataWord I.calldata 36).toNat)) := by
   obtain ⟨aw1, k1, C1, rd⟩ := wordRangePrepareTrace v hstack hn h

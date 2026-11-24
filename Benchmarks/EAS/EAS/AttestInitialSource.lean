@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.AttestArraysSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -36,7 +38,7 @@ def attestInitialLocals (L : Store) (len first next : Nat) : Store :=
 
 theorem attestInitialDecls_source {L imms : Store} {evm : EVM.State} {rs : List AttestationRequestRecord}
     (hd : L.get? "data" = some (.array (rs.map AttestationRequestRecord.tuple))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestInitialDecls
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestInitialDecls
       (.ok {contract := contract,locals := attestDeclaredLocals L rs.length,immutables := imms} evm) := by
   have hlen : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
       (.arrayLength .localVar {base := "data"}) = .ok (.int (Int.ofNat rs.length)) := by
@@ -55,7 +57,7 @@ theorem attestInitialDecls_source {L imms : Store} {evm : EVM.State} {rs : List 
 theorem attestUIDDecl_source {L imms : Store} {evm : EVM.State} {len : Nat}
     (hl : L.get? "length" = some (.int (Int.ofNat len)))
     (hr : L.get? "res" = some (attestationsResultValue [] ⟨0⟩)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm attestUIDDecl
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm attestUIDDecl
       (.ok {contract := contract,locals := L.insert "res" (attestationsResultValue (List.replicate len ⟨0⟩) ⟨0⟩),immutables := imms} evm) := by
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
       (.newArray (.elem (.bytes abiBytes32Width)) (.var "length")) =
@@ -75,26 +77,26 @@ theorem attestInitialSource {L imms : Store} {evm : EVM.State} {rs : List Attest
     if first ≤ 2^64-1 ∧ heap ≤ first then
       if rs.length ≤ 2^64-1 then
         if next ≤ 2^64-1 ∧ first ≤ next then
-          ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestInitialBody
+          ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestInitialBody
             (.ok {contract := contract,locals := attestInitialLocals L rs.length first next,immutables := imms} evm)
-        else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted
-      else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted := by
+        else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted
+      else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestInitialBody .reverted := by
   dsimp only
   have hsize : evalExpr? config {contract := contract,locals := L,immutables := imms} evm (.intLit 128) = .ok (.int (Int.ofNat 128)) := by simp only [evalExpr?,pure]; rfl
   by_cases hg : allocateNext heap 128 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 128
   · rw [if_pos hg]
-    have h1 := allocateBlock_ok hsize hh hg
+    have h1 := allocateBlock_ok (fork := fork) hsize hh hg
     have hd1 := (allocateBlockLocals_get (heap := allocateNext heap 128)
       (by decide : ("allocation$allocation" == "data") = false) (by decide) (by decide)).trans hd
-    have hdecl := attestInitialDecls_source (imms := imms) (evm := evm) hd1
+    have hdecl := attestInitialDecls_source (fork := fork) (imms := imms) (evm := evm) hd1
     have hlen : (attestDeclaredLocals (allocateBlockLocals L (allocateNext heap 128)) rs.length).get? "length" =
         some (.int (Int.ofNat rs.length)) := by
       simp (disch := decide) only [attestDeclaredLocals,store_get_ne,store_get_self]
     have hfree : (attestDeclaredLocals (allocateBlockLocals L (allocateNext heap 128)) rs.length).get? "$EAS.freeMemory" =
         some (.int (Int.ofNat (allocateNext heap 128))) := by
       simp (disch := decide) only [attestDeclaredLocals,allocateBlockLocals,unpackHeapLocals,store_get_ne,store_get_self]
-    have ha := arrayAllocateSource (cfg := config) (imms := imms) (evm := evm) hlen hfree 32
+    have ha := arrayAllocateSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) hlen hfree 32
     have hprefix := execBlock_append h1 hdecl
     by_cases hl : rs.length ≤ 2^64-1
     · rw [if_pos hl] at ha ⊢

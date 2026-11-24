@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateWDivReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,9 +15,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoLiquidateScaleReachDiv (hstack : R.length + 12 ≤ 1024)
     (hf : (UInt256.div total wad).toNat * oraclePriceScale.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
       (total :: wad :: price :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14414)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14414)
       ([UInt256.mul (UInt256.div total wad) oraclePriceScale, price, UInt256.ofNat 3521] ++ R)
       mem aw out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_3448_fallthrough (immWords := wordsOf (immStore v))
@@ -26,9 +28,9 @@ theorem morphoLiquidateScaleReachDiv (hstack : R.length + 12 ≤ 1024)
 
 theorem morphoLiquidateScaleOk (hstack : R.length + 12 ≤ 1024)
     (hf : (UInt256.div total wad).toNat * oraclePriceScale.toNat < UInt256.size) (hn : price ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
       (total :: wad :: price :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3521)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3521)
       (UInt256.div (UInt256.mul (UInt256.div total wad) oraclePriceScale) price :: R)
       mem aw out σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoLiquidateScaleReachDiv (v := v) hstack hf h
@@ -36,8 +38,8 @@ theorem morphoLiquidateScaleOk (hstack : R.length + 12 ≤ 1024)
 
 theorem morphoLiquidateScaleReverts (hstack : R.length + 12 ≤ 1024) (hlen : 3 ≤ R.length)
     (hf : UInt256.size ≤ (UInt256.div total wad).toNat * oraclePriceScale.toNat ∨ price = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
-      (total :: wad :: price :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3448)
+      (total :: wad :: price :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hp : (UInt256.div total wad).toNat * oraclePriceScale.toNat < UInt256.size
   · obtain ⟨k1, C1, rd1⟩ := morphoLiquidateScaleReachDiv (v := v) hstack hp h
     exact morphoCheckedDivReverts (v := v) (by change R.length + 6 ≤ 1024; omega) (hf.resolve_left (Nat.not_le_of_gt hp)) rd1

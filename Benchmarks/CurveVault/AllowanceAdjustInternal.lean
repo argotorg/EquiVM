@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.AllowanceAdjustFinish
 import Benchmarks.CurveVault.MutatingLock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -10,8 +12,8 @@ def vaultAdjustLocals (increase : Bool) (spender : AccountAddress) (delta : UInt
 theorem vaultAdjustStatic (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hperm : I.perm = false) (hstack : R.length + 2 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
-    RDstatic vaultBytecode g s0 := by
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
+    RDstatic fork vaultBytecode g s0 := by
   have r1 := h.push1 (UInt256.ofNat 1) (by cases increase <;> native_decide) (by omega)
   have r2 := r1.push0 (by cases increase <;> native_decide) (by simp only [List.length_cons]; omega)
   exact tstoreStaticReach r2 hperm (by cases increase <;> native_decide) (by omega)
@@ -25,12 +27,12 @@ theorem vaultAdjustRoutine (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     (hdelta : locals.get? (vaultAdjustDeltaName increase) = some (.int (Int.ofNat (calldataWord I.calldata 36).toNat)))
     (hms : memLoad (UInt256.ofNat 192) mem = spender)
     (hcanon : spender.toNat < EVM.addressModulus) (hperm : I.perm = true) (hstack : R.length + 6 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
     ∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) (vaultAdjustFunction increase).body
+      ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) (vaultAdjustFunction increase).body
         (.returned {contract := contract, locals := locals'} evm' (some [.bool true])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
   let evm0 := vaultSetLock evm ⟨1⟩
   let σ0 := tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩
   let old := codeOwnerStorageWord I σ0 (vaultAllowanceSlot I.source (AccountAddress.ofNat spender.toNat))
@@ -41,7 +43,7 @@ theorem vaultAdjustRoutine (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0
   have hread : Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner
       (vaultAllowanceSlot evm0.executionEnv.source (AccountAddress.ofNat spender.toNat)) = old := by
     simpa only [hs0.env] using hs0.storageRead (vaultAllowanceSlot I.source (AccountAddress.ofNat spender.toNat))
-  have hprefix := vaultAdjustPrefixSource increase evm0 locals (AccountAddress.ofNat spender.toNat)
+  have hprefix := vaultAdjustPrefixSource (fork := fork) increase evm0 locals (AccountAddress.ofNat spender.toNat)
     old (calldataWord I.calldata 36) hbase hsp hdelta hread
   obtain ⟨mem', aw', k', C', hsize', hms', hmc', hmv', rdFinish⟩ :=
     vaultAdjustPrepare increase hsize hms hcanon (show codeOwnerStorageWord I σ0

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.AmountDeltaPrefix
 import Benchmarks.UniswapV3.Pool.AmountDeltaBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -43,7 +45,7 @@ theorem amount0DeltaZeroFrame_eq (imms : Store) (a : AmountDeltaArgs) :
 
 theorem amount0DeltaNumeratorSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) :
-    ExecStmt config (amountDeltaSortedFrame imms false a) evm (amountDeltaFunction false).body[2]!
+    ExecStmt fork config (amountDeltaSortedFrame imms false a) evm (amountDeltaFunction false).body[2]!
       (.ok (amount0DeltaNumeratorFrame imms a) evm) := by
   have hl := evalExpr_var_get (cfg := config) (evm := evm)
     (amountDeltaSortedGet imms false a).2.2.1
@@ -55,7 +57,7 @@ theorem amount0DeltaNumeratorSource (imms : Store) (evm : EVM.State) (a : Amount
   exact ExecStmt.letDecl hs
 
 theorem amount0DeltaDifferenceSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs) :
-    ExecStmt config (amount0DeltaNumeratorFrame imms a) evm (amountDeltaFunction false).body[3]!
+    ExecStmt fork config (amount0DeltaNumeratorFrame imms a) evm (amountDeltaFunction false).body[3]!
       (.ok (amount0DeltaInputsFrame imms a) evm) := by
   have ha : evalExpr? config (amount0DeltaNumeratorFrame imms a) evm (.var "sqrtRatioAX96") =
       .ok (.int (Int.ofNat (amountDeltaLower a).toNat)) := evalExpr_var_get (by
@@ -76,9 +78,9 @@ theorem amount0DeltaDifferenceSource (imms : Store) (evm : EVM.State) (a : Amoun
 
 theorem amount0DeltaInputsSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) :
-    ExecBlock config (amountDeltaFrame imms a) evm ((amountDeltaFunction false).body.take 4)
+    ExecBlock fork config (amountDeltaFrame imms a) evm ((amountDeltaFunction false).body.take 4)
       (.ok (amount0DeltaInputsFrame imms a) evm) := by
-  change ExecBlock config _ evm ((amountDeltaFunction false).body.take 2 ++
+  change ExecBlock fork config _ evm ((amountDeltaFunction false).body.take 2 ++
     [(amountDeltaFunction false).body[2]!, (amountDeltaFunction false).body[3]!]) _
   exact execBlock_append_ok (amountDeltaPrefixSource imms evm false a)
     (ExecBlock.consNormal (amount0DeltaNumeratorSource imms evm a hfit)
@@ -93,12 +95,12 @@ theorem evalAmount0DeltaGuard (imms : Store) (evm : EVM.State) (a : AmountDeltaA
 
 theorem amount0DeltaZeroSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) (hv : amountDeltaValid false a) :
-    ExecBlock config (amountDeltaFrame imms a) evm ((amountDeltaFunction false).body.take 6)
+    ExecBlock fork config (amountDeltaFrame imms a) evm ((amountDeltaFunction false).body.take 6)
       (.ok (amount0DeltaZeroFrame imms a) evm) := by
   have hp : 0 < (amountDeltaLower a).toNat := hv.resolve_left (by decide)
   have hg := evalAmount0DeltaGuard imms evm a
   rw [decide_eq_true hp] at hg
-  change ExecBlock config _ evm ((amountDeltaFunction false).body.take 4 ++
+  change ExecBlock fork config _ evm ((amountDeltaFunction false).body.take 4 ++
     [(amountDeltaFunction false).body[4]!, (amountDeltaFunction false).body[5]!]) _
   exact execBlock_append_ok (amount0DeltaInputsSource imms evm a hfit)
     (ExecBlock.consNormal (ExecStmt.requireTrue hg)
@@ -106,7 +108,7 @@ theorem amount0DeltaZeroSource (imms : Store) (evm : EVM.State) (a : AmountDelta
 
 theorem amount0DeltaReverts (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) (hv : ¬amountDeltaValid false a) :
-    ExecFuncBody config (amountDeltaFrame imms a) evm (amountDeltaFunction false).body .reverted := by
+    ExecFuncBody fork config (amountDeltaFrame imms a) evm (amountDeltaFunction false).body .reverted := by
   have hp : ¬0 < (amountDeltaLower a).toNat := fun h ↦ hv (Or.inr h)
   have hg := evalAmount0DeltaGuard imms evm a
   rw [decide_eq_false hp] at hg

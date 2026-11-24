@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ArrayEncoding
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -44,7 +46,7 @@ def encodeArrayInitLocals (locals : Store) (ats : List AttestationRecord) : Stor
 
 theorem encodeArrayInit_exec {cfg : Config} {locals imms : Store} {evm : EVM.State} {ats : List AttestationRecord}
     (ha : locals.get? "attestations" = some (.array (ats.map AttestationRecord.value))) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm encodeArrayInit
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeArrayInit
       (.ok {contract := contract, locals := encodeArrayInitLocals locals ats, immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .bytes .empty) (by simp [evalExpr?, EvalResult.bind, bind, pure, ByteArray.empty, ByteArray.emptyWithCapacity] <;> rfl))
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .bytes .empty) (by simp [evalExpr?, EvalResult.bind, bind, pure, ByteArray.empty, ByteArray.emptyWithCapacity] <;> rfl))
@@ -112,7 +114,7 @@ theorem encodeArrayIteration_exec {cfg : Config} {locals imms : Store} {evm : EV
     {ats : List AttestationRecord} {heap i : Nat} (h : EncodeArrayInv locals ats heap i)
     (hi : i < ats.length) (hdata : ats[i].data.size < UInt256.size)
     (hoff : attestationArrayOffset ats i < UInt256.size) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm encodeArrayIteration
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeArrayIteration
       (.ok {contract := contract, locals := encodeArrayNext locals ats heap i ats[i], immutables := imms} evm) := by
   apply ExecBlock.consNormal (encodeAttestationCall (encodeArrayArgs_eval h hi) hdata)
   apply execBlock_append (s1 := [
@@ -129,7 +131,7 @@ theorem encodeArrayIteration_exec {cfg : Config} {locals imms : Store} {evm : EV
   let L1 := base.insert "heads" (.bytes (wordBytes (attestationArrayHeads ats i ++ [UInt256.ofNat (attestationArrayOffset ats i)])))
   let L2 := L1.insert "tails" (.bytes (attestationArrayBodies ats i ++ ats[i].encoding))
   let L3 := L2.insert "offset" (.int (Int.ofNat (attestationArrayOffset ats i+ats[i].encoding.size)))
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (value := .bytes (wordBytes (attestationArrayHeads ats i ++ [UInt256.ofNat (attestationArrayOffset ats i)]))) ?_
     (assignLocalBase_ok (frame := {contract := contract, locals := base, immutables := imms}) hb.heads)) ?_
   · apply evalPackedBytes
@@ -145,7 +147,7 @@ theorem encodeArrayIteration_exec {cfg : Config} {locals imms : Store} {evm : EV
         (by simpa only [ulit_toNat' _ hoff] using encodePacked_uint256 (UInt256.ofNat (attestationArrayOffset ats i))))
     simpa only [wordBytes, ByteArray.append_empty, byteArray_toList_eq, ByteArray.data_append,
       Array.toList_append, toByteArray_eq_toBytesBE] using he
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (value := .bytes (attestationArrayBodies ats i ++ ats[i].encoding)) ?_
     (assignLocalBase_ok (frame := {contract := contract, locals := L1, immutables := imms})
       (by simpa (disch := decide) only [L1, store_get_ne] using hb.tails))) ?_
@@ -161,13 +163,13 @@ theorem encodeArrayIteration_exec {cfg : Config} {locals imms : Store} {evm : EV
             simp (disch := decide) only [evalExpr?, L1, store_get_ne, hbody, EvalResult.ofOption])
         (encodePacked_dynamic_bytes _))
     simpa only [byteArray_toList_eq, ByteArray.data_append, Array.toList_append] using he
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (value := .int (Int.ofNat (attestationArrayOffset ats i+ats[i].encoding.size))) ?_
     (assignLocalBase_ok (frame := {contract := contract, locals := L2, immutables := imms})
       (by simpa (disch := decide) only [L2, L1, store_get_ne] using hb.offset))) ?_
   · simp (disch := decide) only [evalExpr?, L3, L2, L1, readLocalPath?, store_get_ne, hb.offset, hbody,
       EvalResult.ofOption, EvalResult.bind, bind, evalBinaryOp_add_int_ok, Int.natCast_add, Int.ofNat_eq_natCast]
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (i+1))) ?_
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (i+1))) ?_
     (assignLocalBase_ok (frame := {contract := contract, locals := L3, immutables := imms})
       (by simpa (disch := decide) only [L3, L2, L1, store_get_ne] using hb.index))) ExecBlock.nil
   simp (disch := decide) only [evalExpr?, L3, L2, L1, store_get_ne, hb.index,
@@ -203,7 +205,7 @@ theorem encodeArrayLoop_exec {cfg : Config} {locals imms : Store} {evm : EVM.Sta
     {ats : List AttestationRecord} {heap : Nat} (h : EncodeArrayInv locals ats heap 0)
     (hdata : ∀ a ∈ ats, a.data.size < UInt256.size)
     (hbound : attestationArrayOffset ats ats.length < UInt256.size) :
-    ∃ locals', ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ∃ locals', ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.while encodeArrayGuard encodeArrayIteration)
       (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       EncodeArrayInv locals' ats heap ats.length := by
@@ -219,7 +221,7 @@ theorem encodeArrayLoop_exec {cfg : Config} {locals imms : Store} {evm : EVM.Sta
     have hi' : i < ats.length := by omega
     simpa only [hi', decide_true] using encodeArrayGuard_eval (cfg := cfg) (imms := imms) (evm := evm) hinv
   have hs : ∀ n L, P (n+1) L → ∃ L',
-      ExecBlock cfg {contract := contract, locals := L, immutables := imms} evm encodeArrayIteration
+      ExecBlock fork cfg {contract := contract, locals := L, immutables := imms} evm encodeArrayIteration
         (.ok {contract := contract, locals := L', immutables := imms} evm) ∧ P n L' := by
     rintro n L ⟨i, hi, hinv⟩
     have hi' : i < ats.length := by omega
@@ -236,7 +238,7 @@ theorem encodeAttestationsSource {cfg : Config} {locals imms : Store} {evm : EVM
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hdata : ∀ a ∈ ats, a.data.size < UInt256.size)
     (hbound : attestationArrayOffset ats ats.length < UInt256.size) :
-    ∃ locals', ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm encodeAttestationsFunction.body
+    ∃ locals', ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeAttestationsFunction.body
       (.returned {contract := contract, locals := locals', immutables := imms} evm
         (some [.bytes (attestationArrayEncoding ats), .int (Int.ofNat heap)])) := by
   obtain ⟨L, hl, hinv⟩ := encodeArrayLoop_exec (cfg := cfg) (imms := imms) (evm := evm) (encodeArrayInit_inv ha hh) hdata hbound
@@ -267,7 +269,7 @@ theorem encodeAttestationsCall {cfg : Config} {locals imms : Store} {evm : EVM.S
       .ok [.array (ats.map AttestationRecord.value), .int (Int.ofNat heap)])
     (hdata : ∀ a ∈ ats, a.data.size < UInt256.size)
     (hbound : attestationArrayOffset ats ats.length < UInt256.size) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_encodeAttestations" args retVar)
       (.ok {contract := contract, locals := locals.insert retVar (.tuple [
         .bytes (attestationArrayEncoding ats), .int (Int.ofNat heap)]), immutables := imms} evm) := by

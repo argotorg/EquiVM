@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.ContractSignatureEncode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 
 theorem safeContractSignaturePrepare (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {hash owner last sig : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7707⟩
+    (h : RD fork safeBytecode I g s0 ⟨7707⟩
       (UInt256.ofNat src :: last :: owner :: sig :: hash :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -17,9 +19,9 @@ theorem safeContractSignaturePrepare (words : List UInt256)
     (hp : 96 ≤ ptr) (hin : src + 32 + 32 * words.length ≤ mem.size)
     (ha : src + 32 + 32 * words.length ≤ ptr + 32)
     (hb : contractSignatureCallEnd ptr len + 32 < UInt256.size) (hov : R.length + 23 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
       ∃ gas aw' k' C', contractSignatureCallEnd ptr len < 2 ^ 64 ∧
-        RD safeBytecode I g s0 ⟨7776⟩
+        RD fork safeBytecode I g s0 ⟨7776⟩
           (gas :: owner :: UInt256.ofNat (ptr + 32) ::
             UInt256.ofNat (contractSignatureCallLength len) :: ⟨0⟩ :: ⟨0⟩ ::
             last :: owner :: sig :: hash :: R)

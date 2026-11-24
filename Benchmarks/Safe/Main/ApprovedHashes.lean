@@ -5,6 +5,8 @@ import Benchmarks.Safe.Main.Storage
 import Benchmarks.Safe.Main.Routines
 import Benchmarks.Safe.Main.Blocks.Runtime_009
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -19,7 +21,7 @@ def approvedHashesArgs (owner key : UInt256) : Store :=
 theorem safeApprovedHashesSource (evm : EVM.State) (owner key : UInt256)
     (hcanon : owner.toNat < EVM.addressModulus)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (approvedHashesArgs owner key)
+    ExecTransitionBody fork config contract evm (approvedHashesArgs owner key)
       approvedhashesTransition.body
       (.returned { contract := contract, locals := approvedHashesArgs owner key } evm
         (some [.int (Int.ofNat (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -54,10 +56,10 @@ theorem safeApprovedHashesMemory (owner key : UInt256) :
 
 set_option maxRecDepth 100000 in
 theorem safeApprovedHashesTrace {I g s0 σ k C} {owner key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1095⟩ (key :: owner :: ⟨974⟩ :: R) solcFreePtrMem
+    (h : RD fork safeBytecode I g s0 ⟨1095⟩ (key :: owner :: ⟨974⟩ :: R) solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    RDret safeBytecode g s0 σ (solcSlotWordAt (mapSlot key (mapSlot owner ⟨8⟩)) σ I).toByteArray
+    RDret fork safeBytecode g s0 σ (solcSlotWordAt (mapSlot key (mapSlot owner ⟨8⟩)) σ I).toByteArray
       := by
   obtain ⟨_, _, h974⟩ := safeRuntime_block_1095 hov (by jump_dest) h
   have hstack : safeRuntime_block_1095_stack (ee := I) (mem := solcFreePtrMem) (σ := σ)
@@ -78,10 +80,10 @@ theorem safeApprovedhashesBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvedhashesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x7d 0x83 0x29 0x74 ⟨0x7d832974⟩
     hdispatch approvedhashesSelectorBytes (by decide)
-  obtain ⟨k, C, h1069⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1069⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x7d832974⟩ 1 ⟨1069⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -94,7 +96,7 @@ theorem safeApprovedhashesBodyCore
         by_cases hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus
         · obtain ⟨_, _, h1095⟩ := safeDecodeAddressWord h9112 (by simp) hcheck hcanon (by jump_dest)
           have hret := safeApprovedHashesTrace h1095 (by simp)
-          have hbody := safeApprovedHashesSource (initState σ σ₀ (.ofUInt256 g) A I)
+          have hbody := safeApprovedHashesSource (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hvalue
           refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
           exact reEquivSelectorExecution hdispatch (decodeAddressBytes32 hlen hbig hcanon)
@@ -124,7 +126,7 @@ theorem safeApprovedhashesRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvedhashesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeApprovedhashesBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.Main

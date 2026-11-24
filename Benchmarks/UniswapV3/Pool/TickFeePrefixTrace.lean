@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.MappingScratchMemory
 import Benchmarks.UniswapV3.Pool.SignedComparison
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -23,11 +25,11 @@ def tickFeeMemoryWords (aw : UInt256) : UInt256 :=
 theorem tickFeePrefixExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickFeeArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21387⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21387⟩
       (a.global1 :: a.global0 :: EVM.wordOfInt a.current :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21476⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21476⟩
       (tickFeeSide a σ ee false true :: tickFeeSide a σ ee false false ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.upper) ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.lower) :: ⟨0⟩ :: ⟨0⟩ ::
@@ -52,7 +54,7 @@ theorem tickFeePrefixExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       if a.current < a.lower then ⟨1⟩ else ⟨0⟩ := by
     rw [hc, hl]
     exact slt_wordOfInt _ _ (by omega) (by omega) (by omega) (by omega)
-  have rpre : ∃ k' C', RD (deployedRuntime v) ee g s0
+  have rpre : ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if a.lower ≤ a.current then ⟨21441⟩ else ⟨21457⟩)
       (uniswapV3Pool_block_21387_fallthrough_stack (mem := mem) (x0 := a.global1)
         (x1 := a.global0) (x2 := EVM.wordOfInt a.current) (x3 := EVM.wordOfInt a.upper)
@@ -73,7 +75,7 @@ theorem tickFeePrefixExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   obtain ⟨kp, Cp, rp⟩ := rpre
   simp only [uniswapV3Pool_block_21387_fallthrough_stack,
     uniswapV3Pool_block_21387_fallthrough_memory, hl, hu] at rp
-  change RD (deployedRuntime v) ee g s0
+  change RD fork (deployedRuntime v) ee g s0
     (if a.lower ≤ a.current then ⟨21441⟩ else ⟨21457⟩)
     (⟨0⟩ :: ⟨0⟩ :: keccakWord ⟨0⟩ ⟨64⟩ (tickFeeMemory mem a) ::
       keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.wordOfInt a.lower) ⟨5⟩ mem) ::
@@ -106,11 +108,11 @@ theorem tickFeePrefixExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickFeePrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickFeeArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21387⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21387⟩
       (a.global1 :: a.global0 :: EVM.wordOfInt a.current :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C' aw', RD (deployedRuntime v) ee g s0 ⟨21476⟩
+    ∃ k' C' aw', RD fork (deployedRuntime v) ee g s0 ⟨21476⟩
       (tickFeeSide a σ ee false true :: tickFeeSide a σ ee false false ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.upper) ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.lower) :: ⟨0⟩ :: ⟨0⟩ ::

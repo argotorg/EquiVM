@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.CreateMarketMemory
 import Benchmarks.Morpho.MorphoBlue.CreateMarketSource
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -45,12 +47,12 @@ theorem morphoCreateMarketReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 16)) (hcv : I.weiValue = ⟨0⟩)
     (hlen : 164 ≤ I.calldata.size) (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11655)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11655)
       [UInt256.ofNat 4657, UInt256.ofNat 128, UInt256.ofNat 0]
       (marketParamsAllocatedMem solcFreePtrMem) aw ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachCreateMarketBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode (by omega) hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
   have rd0 := morphoBlocks.morpho_block_4600_fallthrough
     (immWords := wordsOf (immStore v)) (by simp) hcv rd
   have hcond := solcCalldataStaticLenCheckOk (words := 5) hlen hbound hsize
@@ -70,9 +72,9 @@ theorem morphoCreateMarketReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImm
 theorem morphoCreateMarketReachIrm {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords) (hc : p.Canonical)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       [createMarketIrmByte σ ee p, UInt256.ofNat 288, UInt256.ofNat 4771,
        UInt256.ofNat 224, solcAddrMask, p.id, UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketIrmMem p) aw' rdata σ k' C' := by
@@ -92,7 +94,7 @@ theorem morphoCreateMarketReachIrm {v : MorphoImmutables} {ee : ExecutionEnv} {g
   simp only [morphoBlocks.morpho_block_4657_stack, morphoBlocks.morpho_block_4657_memory,
     hi, show UInt256.ofNat 1461501637330902918203684832716283019655932542975 = solcAddrMask from rfl,
     solcAddrMask_clean hc.2.2.2, hid] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 4725,
      UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm) σ ee) ⟨255⟩,
      memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 4771,
@@ -117,10 +119,10 @@ theorem morphoCreateMarketReachIrm {v : MorphoImmutables} {ee : ExecutionEnv} {g
 theorem morphoCreateMarketReachLltv {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4771)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4771)
       [UInt256.ofNat 224, solcAddrMask, p.id, UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketIrmMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       [createMarketLltvByte σ ee p, UInt256.ofNat 352, UInt256.ofNat 4853,
        UInt256.ofNat 256, UInt256.ofNat 224, solcAddrMask, p.id,
        UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
@@ -137,7 +139,7 @@ theorem morphoCreateMarketReachLltv {v : MorphoImmutables} {ee : ExecutionEnv} {
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [morphoBlocks.morpho_block_4771_stack, morphoBlocks.morpho_block_4771_memory, hl] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 4807,
      UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm) σ ee) ⟨255⟩,
      memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 4853, UInt256.ofNat 256,
@@ -162,11 +164,11 @@ theorem morphoCreateMarketReachLltv {v : MorphoImmutables} {ee : ExecutionEnv} {
 theorem morphoCreateMarketReachUnused {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4853)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4853)
       [UInt256.ofNat 256, UInt256.ofNat 224, solcAddrMask, p.id,
        UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketLltvMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       [UInt256.isZero (marketFieldWord σ ee p.id 4), UInt256.ofNat 416, UInt256.ofNat 4950,
        uint128Mask, UInt256.ofNat 256, UInt256.ofNat 224, solcAddrMask, p.id,
        UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
@@ -180,7 +182,7 @@ theorem morphoCreateMarketReachUnused {v : MorphoImmutables} {ee : ExecutionEnv}
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_4853_packed
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 4904,
      UInt256.isZero (UInt256.land (solcSlotWordAt
        (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm + UInt256.ofNat 2) σ ee) uint128Mask),
@@ -209,9 +211,9 @@ theorem morphoCreateMarketReachStore {v : MorphoImmutables} {ee : ExecutionEnv} 
     (hirm : createMarketIrmByte σ ee p ≠ ⟨0⟩)
     (hlltv : createMarketLltvByte σ ee p ≠ ⟨0⟩)
     (hnew : marketFieldWord σ ee p.id 4 = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4950)
       [uint128Mask, UInt256.ofNat 256, UInt256.ofNat 224, solcAddrMask, p.id,
        UInt256.ofNat 128, UInt256.ofNat 32, UInt256.ofNat 0]
       (createMarketUnusedMem p) aw' rdata σ k' C' := by
@@ -231,9 +233,9 @@ theorem morphoCreateMarketGuardReverts {v : MorphoImmutables} {ee : ExecutionEnv
     (p : MarketParamsWords) (hc : p.Canonical)
     (hbad : createMarketIrmByte σ ee p = ⟨0⟩ ∨ createMarketLltvByte σ ee p = ⟨0⟩ ∨
       marketFieldWord σ ee p.id 4 ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4657)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoCreateMarketReachIrm (v := v) p hc h
   by_cases hi : createMarketIrmByte σ ee p = ⟨0⟩
   · exact morphoRequireFalseShort (v := v) (by simp) hi

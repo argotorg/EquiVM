@@ -18,7 +18,7 @@ theorem tstore_memory (s : State) (slot value : UInt256) :
 theorem step_stackmemflow_other_potential {gasCost : Nat} {op : Operation.SMSFOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
     (hn : (.StackMemFlow op : Operation) ∉ [.MSTORE, .MSTORE8, .MCOPY, .PC, .MSIZE, .GAS])
-    (h : step gasCost (.StackMemFlow op, arg) s = .ok s') :
+    (h : step fork gasCost (.StackMemFlow op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   cases op <;> simp only [List.mem_cons, List.mem_singleton, not_or] at hn
   all_goals try contradiction
@@ -46,7 +46,7 @@ theorem step_stackmemflow_other_potential {gasCost : Nat} {op : Operation.SMSFOp
     · contradiction
 
 theorem step_pc_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.PC, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
+    (h : step fork gasCost (.PC, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
   rw [step.eq_1] at h
   simp only [Except.ok.injEq] at h
   subst s'
@@ -55,18 +55,18 @@ theorem step_pc_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' 
   omega
 
 theorem step_msize_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.MSIZE, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
+    (h : step fork gasCost (.MSIZE, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
   rw [step.eq_1] at h
   simpa only [operationPotential] using machineStateOp_potential h
 
 theorem step_gas_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.GAS, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
+    (h : step fork gasCost (.GAS, arg) s = .ok s') : operationPotential s' = operationPotential s+2 := by
   rw [step.eq_1] at h
   simpa only [operationPotential] using machineStateOp_potential h
 
 theorem step_log_potential {gasCost : Nat} {op : Operation.LOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Log op, arg) s = .ok s') :
+    (h : step fork gasCost (.Log op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   cases op <;> rw [step.eq_1] at h <;>
     simp only [log0Op, log1Op, log2Op, log3Op, log4Op, Id.run] at h
@@ -87,7 +87,7 @@ theorem step_log_potential {gasCost : Nat} {op : Operation.LOp}
     omega
 
 theorem step_return_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.RETURN, arg) s = .ok s') :
+    (h : step fork gasCost (.RETURN, arg) s = .ok s') :
     operationPotential s'+4 = operationPotential s ∧ s'.machineState.memory = s.machineState.memory := by
   rw [step.eq_1] at h
   simp only [binaryMachineStateOp, Id.run] at h
@@ -102,7 +102,7 @@ theorem step_return_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s
   · contradiction
 
 theorem step_revert_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.REVERT, arg) s = .ok s') :
+    (h : step fork gasCost (.REVERT, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   rw [step.eq_1] at h
   simp only [binaryMachineStateOp, Id.run] at h

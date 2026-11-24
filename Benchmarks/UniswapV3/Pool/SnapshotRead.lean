@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SnapshotPrefix
 import Benchmarks.UniswapV3.Pool.Slot0Struct
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -34,7 +36,7 @@ theorem snapshotLowerRead (locals imms : Store) (evm : EVM.State) (key : Int)
     (ht : locals.get? "tickCumulativeLower" = some (.int 0))
     (hl : locals.get? "secondsPerLiquidityOutsideLowerX128" = some (.int 0))
     (hs : locals.get? "secondsOutsideLower" = some (.int 0)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       ((snapshotTransition.body.drop 14).take 9)
       (.ok (snapshotLowerReadFrame locals imms (tickOutside key evm.accountMap evm.executionEnv)) evm) := by
   let outside := tickOutside key evm.accountMap evm.executionEnv
@@ -64,22 +66,22 @@ theorem snapshotLowerRead (locals imms : Store) (evm : EVM.State) (key : Int)
       (by simp [l4, l3, l2, l1, Std.HashMap.getElem?_insert, ha])
   let l6 := l5.insert "tickCumulativeLower" (.int outside.cumulative)
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l6, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int outside.cumulative) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int outside.cumulative) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, ht])
   let l7 := l6.insert "secondsPerLiquidityOutsideLowerX128" (.int (Int.ofNat outside.secondsPerLiquidity.toNat))
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l7, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.secondsPerLiquidity.toNat)) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.secondsPerLiquidity.toNat)) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l6, l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, hl])
   let l8 := l7.insert "secondsOutsideLower" (.int (Int.ofNat outside.seconds.toNat))
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l8, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.seconds.toNat)) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.seconds.toNat)) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, hs])
   let l9 := l8.insert "initializedLower" (.bool outside.initialized)
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l9, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .bool outside.initialized) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .bool outside.initialized) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l8, l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .bool false) (by simp [l8, l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   exact ExecBlock.nil
@@ -101,7 +103,7 @@ theorem snapshotUpperRead (locals imms : Store) (evm : EVM.State) (key : Int)
     (ht : locals.get? "tickCumulativeUpper" = some (.int 0))
     (hl : locals.get? "secondsPerLiquidityOutsideUpperX128" = some (.int 0))
     (hs : locals.get? "secondsOutsideUpper" = some (.int 0)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       ((snapshotTransition.body.drop 24).take 9)
       (.ok (snapshotUpperReadFrame locals imms (tickOutside key evm.accountMap evm.executionEnv)) evm) := by
   let outside := tickOutside key evm.accountMap evm.executionEnv
@@ -131,22 +133,22 @@ theorem snapshotUpperRead (locals imms : Store) (evm : EVM.State) (key : Int)
       (by simp [l4, l3, l2, l1, Std.HashMap.getElem?_insert, ha])
   let l6 := l5.insert "tickCumulativeUpper" (.int outside.cumulative)
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l6, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int outside.cumulative) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int outside.cumulative) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, ht])
   let l7 := l6.insert "secondsPerLiquidityOutsideUpperX128" (.int (Int.ofNat outside.secondsPerLiquidity.toNat))
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l7, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.secondsPerLiquidity.toNat)) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.secondsPerLiquidity.toNat)) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l6, l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, hl])
   let l8 := l7.insert "secondsOutsideUpper" (.int (Int.ofNat outside.seconds.toNat))
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l8, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.seconds.toNat)) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat outside.seconds.toNat)) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .int 0) (by simp [l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem?_insert, hs])
   let l9 := l8.insert "initializedUpper" (.bool outside.initialized)
   refine ExecBlock.consNormal (stele' := {contract := contract, locals := l9, immutables := imms}) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .bool outside.initialized) ?_ ?_) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .bool outside.initialized) ?_ ?_) ?_
   · exact evalExpr_var_get (by simp [l8, l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   · exact assignLocalVarBase_frame (old := .bool false) (by simp [l8, l7, l6, l5, l4, l3, l2, l1, Std.HashMap.getElem_insert])
   exact ExecBlock.nil

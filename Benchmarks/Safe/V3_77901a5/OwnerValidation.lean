@@ -5,6 +5,8 @@ import Benchmarks.Safe.V3_77901a5.DelegatedAccount
 import Benchmarks.Safe.V3_77901a5.Membership
 import Benchmarks.Safe.V3_77901a5.Authorization
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -60,13 +62,13 @@ theorem safeEvalValidOwner (evm : EVM.State) (frame : Frame) (expr : Expr) (key 
 -- The shared validator leaves its invalidity flag at the final conditional jump.
 theorem safeOwnerValidationFlagTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8589⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8589⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 32 ≤ mem.size) :
     ∃ mem' aw' k' C', mem'.size = mem.size ∧
       (∀ off count, 3 ≤ off → off + count ≤ mem.size →
         mem'.readWithPadding off count = mem.readWithPadding off count) ∧
-      RD safeBytecode I g s0 ⟨8655⟩
+      RD fork safeBytecode I g s0 ⟨8655⟩
         ((if validOwner σ I key then ⟨0⟩ else ⟨1⟩) :: key :: R)
         mem' aw' rdata σ k' C' := by
   by_cases hz : key = ⟨0⟩
@@ -122,14 +124,14 @@ theorem safeOwnerValidationFlagTrace {I g s0 σ k C aw mem rdata} {key : UInt256
 
 theorem safeValidOwnerTrace {I g s0 σ k C aw mem rdata} {key ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8589⟩ (key :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8589⟩ (key :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 32 ≤ mem.size) (hv : validOwner σ I key)
     (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ mem' aw' k' C', mem'.size = mem.size ∧
       (∀ off count, 3 ≤ off → off + count ≤ mem.size →
         mem'.readWithPadding off count = mem.readWithPadding off count) ∧
-      RD safeBytecode I g s0 ret R mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ret R mem' aw' rdata σ k' C' := by
   obtain ⟨mem', aw', _, _, hm', hr, h₁⟩ := safeOwnerValidationFlagTrace h
     (by simp; omega) hc hm
   simp only [hv, if_true] at h₁
@@ -139,9 +141,9 @@ theorem safeValidOwnerTrace {I g s0 σ k C aw mem rdata} {key ret : UInt256}
 
 theorem safeInvalidOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8589⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8589⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
+    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, _, _, _, _, h₁⟩ := safeOwnerValidationFlagTrace h hov hc hm
   simp only [hv, if_false] at h₁
   have h₂ := safeRuntime_block_8655_fallthrough (by simp; omega) (by decide) h₁

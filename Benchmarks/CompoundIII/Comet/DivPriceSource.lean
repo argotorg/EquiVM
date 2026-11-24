@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.MulPrice
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -24,7 +26,7 @@ def divPriceEntry (imms : Store) (n price scale : UInt256) : Frame :=
       "n" (.int n.toNat) }
 
 theorem divPrice_source (evm : EVM.State) (imms : Store) (n price scale : UInt256) :
-    ExecFuncBody config (divPriceEntry imms n price scale) evm divPriceCallable.body
+    ExecFuncBody fork config (divPriceEntry imms n price scale) evm divPriceCallable.body
       (if DivPriceValid n price scale then .returned (divPriceEntry imms n price scale) evm
         (some [.int (divPriceWord n price scale).toNat]) else .reverted) := by
   let frame := divPriceEntry imms n price scale
@@ -52,11 +54,11 @@ theorem divPrice_call (frame : Frame) (evm : EVM.State) (n price scale : UInt256
     (hn : evalExpr? config frame evm nExpr = .ok (.int n.toNat))
     (hp : evalExpr? config frame evm priceExpr = .ok (.int price.toNat))
     (hs : evalExpr? config frame evm scaleExpr = .ok (.int scale.toNat)) :
-    ExecStmt config frame evm (.internalCall "divPrice" [nExpr, priceExpr, scaleExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "divPrice" [nExpr, priceExpr, scaleExpr] ret)
       (if DivPriceValid n price scale then .ok { frame with
         locals := frame.locals.insert ret (.int (divPriceWord n price scale).toNat) } evm
       else .reverted) := by
-  have hb := divPrice_source evm frame.immutables n price scale
+  have hb := divPrice_source (fork := fork) evm frame.immutables n price scale
   have he : evalExprs? config frame evm [nExpr, priceExpr, scaleExpr] =
       .ok [.int n.toNat, .int price.toNat, .int scale.toNat] := by
     simp only [evalExprs?, hn, hp, hs, pure, bind, EvalResult.bind]

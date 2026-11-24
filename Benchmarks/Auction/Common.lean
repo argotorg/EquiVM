@@ -5,6 +5,8 @@ import Reasoning.Solc
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -254,9 +256,9 @@ theorem dispatchShort {cd : ByteArray} (hsz : cd.size < 4) :
   rw [entrySelector, entryBytes_size]
 
 /-- The body entry reached after selector routing, before its per-entry value guard. -/
-abbrev EntryReached (i : Entry) (σ σ₀ : AccountMap)
+abbrev EntryReached (fork : Ethereum.Fork) (i : Entry) (σ σ₀ : AccountMap)
     (A : Substate) (I : ExecutionEnv) (g : UInt256) : Prop :=
-  ∃ k C, RD auctionBytecode I (Sat256.ofUInt256 g)
+  ∃ k C, RD fork auctionBytecode I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) (entryPc i)
     [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C
 

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickClearSource
 import Benchmarks.UniswapV3.Pool.TickClearStaticTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 1000
 theorem tickClearWriteExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21964⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21964⟩
       (EVM.wordOfInt tick :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23)
     (hp : ee.perm = true) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem)
         (M (M (M aw ⟨0⟩ ⟨32⟩) ⟨32⟩ ⟨32⟩) ⟨0⟩ ⟨64⟩) rdata (tickClearMap σ ee tick) k' C' := by
   have ht : UInt256.signextend (UInt256.ofNat 2) (EVM.wordOfInt tick) = EVM.wordOfInt tick := by
@@ -24,7 +26,7 @@ theorem tickClearWriteExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   obtain ⟨kf, Cf, rf⟩ := uniswapV3Pool_block_21964 (immWords := wordsOf (immStore v))
     hov hp hret rd
   simp only [uniswapV3Pool_block_21964_stack, uniswapV3Pool_block_21964_memory, ht] at rf
-  change RD (deployedRuntime v) ee g s0 ret R
+  change RD fork (deployedRuntime v) ee g s0 ret R
     (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) _ rdata
     (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner
       (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ
@@ -42,12 +44,12 @@ theorem tickClearWriteExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickClearWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21964⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21964⟩
       (EVM.wordOfInt tick :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23)
     (hp : ee.perm = true) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C' aw', RD (deployedRuntime v) ee g s0 ret R
+    ∃ k' C' aw', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) aw' rdata (tickClearMap σ ee tick) k' C' := by
   obtain ⟨k', C', r'⟩ := tickClearWriteExactX (v := v) tick rd hlo hhi hp hret hov
   exact ⟨k', C', _, r'⟩
@@ -55,13 +57,13 @@ theorem tickClearWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickClearX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21964⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21964⟩
       (EVM.wordOfInt tick :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    (RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
-    (ee.perm = true ∧ ∃ k' C' aw', RD (deployedRuntime v) ee g s0 ret R
+    (RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+    (ee.perm = true ∧ ∃ k' C' aw', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) aw' rdata (tickClearMap σ ee tick) k' C') := by
   cases hp : ee.perm
   · exact Or.inl ⟨tickClearStaticX (v := v) rd hp hov, rfl⟩

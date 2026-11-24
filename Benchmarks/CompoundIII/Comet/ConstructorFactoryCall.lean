@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorRemainingImmsEvm
 import Benchmarks.CompoundIII.Comet.ConstructorRemainingImmsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -46,16 +48,16 @@ theorem constructorFactory_decode {out : ByteArray} (hhi : out.size < 2^255) :
 
 theorem constructorFactory_typed {evm evm' : EVM.State} {delegate : AccountAddress}
     {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm delegate 0 constructorFactoryPayload (z, evm', out) false) :
-    typedCallViaEVM config evm delegate "assetListFactory" 0 [] (z, evm', out) false :=
+    (hc : callViaEVM fork evm delegate 0 constructorFactoryPayload (z, evm', out) false) :
+    typedCallViaEVM fork config evm delegate "assetListFactory" 0 [] (z, evm', out) false :=
   ⟨_, constructorFactoryPayload_encode, hc⟩
 
 theorem constructorFactory_source_ok {frame : Frame} {evm evm' : EVM.State}
     {delegate : AccountAddress} {expr : Expr} {ret : Ident} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address delegate))
-    (hc : callViaEVM evm delegate 0 constructorFactoryPayload (true, evm', out) false)
+    (hc : callViaEVM fork evm delegate 0 constructorFactoryPayload (true, evm', out) false)
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.externalCall expr "assetListFactory" (.intLit 0) [] ret (perm := false))
       (.ok { frame with locals := (frame.locals.insert ret
         (.address (AccountAddress.ofUInt256 (calldataWord out 0)))) } evm') := by
@@ -67,9 +69,9 @@ theorem constructorFactory_source_ok {frame : Frame} {evm evm' : EVM.State}
 theorem constructorFactory_source_revert {frame : Frame} {evm evm' : EVM.State}
     {delegate : AccountAddress} {expr : Expr} {ret : Ident} {z : Bool} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address delegate))
-    (hc : callViaEVM evm delegate 0 constructorFactoryPayload (z, evm', out) false)
+    (hc : callViaEVM fork evm delegate 0 constructorFactoryPayload (z, evm', out) false)
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.externalCall expr "assetListFactory" (.intLit 0) [] ret (perm := false)) .reverted := by
   rw [← addressOfAddress delegate] at hc
   cases z with
@@ -86,13 +88,13 @@ theorem cometConstructorFactoryCall {tail : ByteArray} {ee : ExecutionEnv} {g : 
     {aw ptr base : UInt256} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hp : mem.readWithPadding ptr.toNat 4 = constructorFactoryPayload)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1291⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1291⟩
       ((g.subNat C).toUInt256 :: constructorRecordWord c 4 :: ptr :: ⟨4⟩ :: ptr :: ⟨32⟩ ::
         base :: ptr :: R) mem aw rdata σ k C) :
     ∃ evm' σ' z out aw' k' C',
-      callViaEVM evm c.extensionDelegate 0 constructorFactoryPayload (z, evm', out) false ∧
+      callViaEVM fork evm c.extensionDelegate 0 constructorFactoryPayload (z, evm', out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
-      RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1292⟩
+      RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1292⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: base :: ptr :: R)
         (callOutputMem mem out ptr ⟨32⟩) aw' out σ' k' C' := by
   have hdec : decode (cometWithExtendedAssetListCreationBytecode ++ tail) ⟨1291⟩ =
@@ -120,24 +122,24 @@ theorem constructorSourceDelegate_eval {c : ConstructorConfig} {w feed : UInt256
 
 theorem constructorSourceFactory_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' evm'' : EVM.State} {out : ByteArray}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
       (.ok (constructorSourceDelegate c w feed) evm'))
-    (hc : callViaEVM evm' c.extensionDelegate 0 constructorFactoryPayload (true, evm'', out) false)
+    (hc : callViaEVM fork evm' c.extensionDelegate 0 constructorFactoryPayload (true, evm'', out) false)
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
       (.ok (constructorSourceFactory c w feed (calldataWord out 0)) evm'') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 35 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 35 ++
     [.externalCall (.var "delegate") "assetListFactory" (.intLit 0) [] "__c2" (perm := false)]) _
   apply execBlockAppendOk hp
   exact .consNormal (constructorFactory_source_ok constructorSourceDelegate_eval hc hhi hv) .nil
 
 theorem constructorSourceFactory_revert {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' evm'' : EVM.State} {z : Bool} {out : ByteArray}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
       (.ok (constructorSourceDelegate c w feed) evm'))
-    (hc : callViaEVM evm' c.extensionDelegate 0 constructorFactoryPayload (z, evm'', out) false)
+    (hc : callViaEVM fork evm' c.extensionDelegate 0 constructorFactoryPayload (z, evm'', out) false)
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   rw [← List.take_append_drop 35 contract.ctor.body]
   apply execBlockAppendOk hp
   exact .consRevert (constructorFactory_source_revert constructorSourceDelegate_eval hc hhi hv)

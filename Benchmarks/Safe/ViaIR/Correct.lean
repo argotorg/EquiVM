@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Runtime
 import Benchmarks.Safe.ViaIR.Blocks
 import Reasoning.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Safe via-IR refinement
 
@@ -19,7 +21,7 @@ namespace Benchmarks.Safe.ViaIR
 theorem safeCorrect :
     runtimeRefinementWithWF (fun σ I ↦ σ.get? I.codeOwner ≠ none) noGasBound
       config safeBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize haccount _ ↦ ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize haccount _ ↦ ?_⟩
   by_cases hempty : I.calldata.size = 0
   · exact safeReceiveRefines hcode hempty
   cases hdispatch : selectorDispatchMsg contract I.calldata with

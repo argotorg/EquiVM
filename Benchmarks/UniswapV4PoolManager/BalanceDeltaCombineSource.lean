@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BalanceDeltaComponentSource
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 import Benchmarks.UniswapV4PoolManager.SafeCast128Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -51,15 +53,15 @@ theorem balanceDeltaCombine_eval {f : Frame} {evm : State} {a b : UInt256}
 theorem balanceDeltaCombineBody {f : Frame} {evm : State} {a b : UInt256}
     (hf : f.contract = contract) (ha : f.locals.get? "a" = some (.int (EVM.signed a)))
     (hb : f.locals.get? "b" = some (.int (EVM.signed b))) (sub : Bool) :
-    ExecFuncBody config f evm (balanceDeltaCombineFunction sub).body (balanceDeltaCombineResult f evm sub a b) := by
+    ExecFuncBody fork config f evm (balanceDeltaCombineFunction sub).body (balanceDeltaCombineResult f evm sub a b) := by
   rw [balanceDeltaCombine_body]
-  have hfirst := signedToInt128Call hf (balanceDeltaCombine_eval (evm := evm) ha hb sub false) "amount0"
+  have hfirst := signedToInt128Call (fork := fork) hf (balanceDeltaCombine_eval (evm := evm) ha hb sub false) "amount0"
   by_cases h0 : signedFits ⟨128, by decide⟩ (balanceDeltaCombineAmount sub false a b)
   · rw [if_pos h0] at hfirst
     let f1 := {f with locals := f.locals.insert "amount0" (.int (balanceDeltaCombineAmount sub false a b))}
     have ha1 : f1.locals.get? "a" = some (.int (EVM.signed a)) := (store_get_ne _ _ (by decide : ("amount0" == "a") = false)).trans ha
     have hb1 : f1.locals.get? "b" = some (.int (EVM.signed b)) := (store_get_ne _ _ (by decide : ("amount0" == "b") = false)).trans hb
-    have hsecond := signedToInt128Call (f := f1) hf (balanceDeltaCombine_eval (evm := evm) ha1 hb1 sub true) "amount1"
+    have hsecond := signedToInt128Call (fork := fork) (f := f1) hf (balanceDeltaCombine_eval (evm := evm) ha1 hb1 sub true) "amount1"
     by_cases h1 : signedFits ⟨128, by decide⟩ (balanceDeltaCombineAmount sub true a b)
     · rw [if_pos h1] at hsecond
       rw [balanceDeltaCombineResult, if_pos (show balanceDeltaCombineFits sub a b from ⟨h0, h1⟩)]
@@ -72,7 +74,7 @@ theorem balanceDeltaCombineBody {f : Frame} {evm : State} {a b : UInt256}
           .ok (.int (EVM.signed (EVM.wordOfInt (balanceDeltaCombineAmount sub true a b)))) := by
         rw [signed_wordOfInt (signedFits128_int256 h1)]
         exact evalLocalValue (store_get_self _ _ _)
-      have hpack := balanceDeltaCall (f := f2) hf he0 he1 "result"
+      have hpack := balanceDeltaCall (fork := fork) (f := f2) hf he0 he1 "result"
       exact .execBlockRet (ExecBlock.consNormal hfirst (ExecBlock.consNormal hsecond
         (ExecBlock.consNormal hpack (ABlock.start.returns (evalLocalValue (store_get_self _ _ _))))))
     · rw [balanceDeltaCombineResult, if_neg (show ¬balanceDeltaCombineFits sub a b from fun hh => h1 hh.2)]
@@ -85,11 +87,11 @@ theorem balanceDeltaCombineBody {f : Frame} {evm : State} {a b : UInt256}
 theorem balanceDeltaCombineCall {f : Frame} {evm : State} {ea eb : Expr} {a b : UInt256}
     (hf : f.contract = contract) (ha : evalExpr? config f evm ea = .ok (.int (EVM.signed a)))
     (hb : evalExpr? config f evm eb = .ok (.int (EVM.signed b))) (sub : Bool) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (balanceDeltaCombineName sub) [ea, eb] ret)
+    ExecStmt fork config f evm (.internalCall (balanceDeltaCombineName sub) [ea, eb] ret)
       (if balanceDeltaCombineFits sub a b then
         .ok {f with locals := f.locals.insert ret (.int (EVM.signed (balanceDeltaCombineWord sub a b)))} evm else .reverted) := by
   let fc := {f with locals := ((∅ : Store).insert "b" (.int (EVM.signed b))).insert "a" (.int (EVM.signed a))}
-  have hr := balanceDeltaCombineBody (f := fc) (evm := evm) hf (store_get_self _ _ _)
+  have hr := balanceDeltaCombineBody (fork := fork) (f := fc) (evm := evm) hf (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("a" == "b") = false)).trans (store_get_self _ _ _)) sub
   have hl : lookupCallable? f.contract (balanceDeltaCombineName sub) = some (balanceDeltaCombineFunction sub).toCallable := by
     rw [hf]; exact balanceDeltaCombine_lookup sub

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonateEventMemory
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,11 +15,11 @@ theorem donateEventTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {σ : Acco
     (hk : PoolKeyView mem keyPtr key) (hw : accountWord hook = key.hooks)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+32 < UInt256.size)
     (hperm : I.perm = true) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10297⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10297⟩
       (id :: (keyPtr+UInt256.ofNat 128) :: keyPtr :: src :: amount1 :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 (if I.source = hook then ⟨10381⟩ else ⟨10391⟩)
+      RD fork (deployedRuntime v) I g s0 (if I.source = hook then ⟨10381⟩ else ⟨10391⟩)
         (accountWord hook :: amount1 :: keyPtr :: src :: accountWord hook :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
         (donateEventMemory mem free amount0 amount1) aw' rdata σ k' C' := by
   have hm : poolManagerBlocks.poolManager_block_10297_taken_memory

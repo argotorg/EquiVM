@@ -2,29 +2,31 @@ import Benchmarks.CompoundIII.Comet.TransferBaseModel
 import Benchmarks.CompoundIII.Comet.TransferCollateralTrace
 import Benchmarks.CompoundIII.Comet.WithdrawAssetModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive TransferAssetTrace (v : CometWithExtendedAssetListImmutables)
+inductive TransferAssetTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src dst asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | base {result} (hb : asset = v.baseToken) (hm : amount ≠ UInt256.lnot ⟨0⟩)
-      (ht : TransferBaseTrace v src dst amount evm result) :
-      TransferAssetTrace v src dst asset amount evm result
+      (ht : TransferBaseTrace fork v src dst amount evm result) :
+      TransferAssetTrace fork v src dst asset amount evm result
   | balanceFailed (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : ¬ withdrawBalanceValid v evm) :
-      TransferAssetTrace v src dst asset amount evm .reverted
+      TransferAssetTrace fork v src dst asset amount evm .reverted
   | allBase {result} (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : withdrawBalanceValid v evm)
-      (ht : TransferBaseTrace v src dst (withdrawBalanceWord v evm src) evm result) :
-      TransferAssetTrace v src dst asset amount evm result
+      (ht : TransferBaseTrace fork v src dst (withdrawBalanceWord v evm src) evm result) :
+      TransferAssetTrace fork v src dst asset amount evm result
   | tooLarge (hb : asset ≠ v.baseToken) (hw : ¬ amount.toNat < 2^128) :
-      TransferAssetTrace v src dst asset amount evm .reverted
+      TransferAssetTrace fork v src dst asset amount evm .reverted
   | collateral {result} (hb : asset ≠ v.baseToken) (hw : amount.toNat < 2^128)
-      (ht : TransferCollateralTrace v src dst asset amount evm result) :
-      TransferAssetTrace v src dst asset amount evm result
+      (ht : TransferCollateralTrace fork v src dst asset amount evm result) :
+      TransferAssetTrace fork v src dst asset amount evm result
 
 def transferBaseAmountStmt : Stmt :=
   .ite (.binary .eq (.var "amount") (.intLit (2^256-1)))

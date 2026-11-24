@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapComputeWindow
 import Benchmarks.UniswapV4PoolManager.PoolSwapComputeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,7 +16,7 @@ theorem poolSwapComputeMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hm : PoolSwapMemoryView mem step state params s r p)
     (hprice : r.price.toNat < 2^160) (hlimit : p.priceLimit.toNat < 2^160)
     (hnext : next.toNat < 2^160) (hliq : r.liquidity.toNat < 2^128) (hfee : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨19479⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([next, solcAddrMask, step, ⟨96⟩, ⟨1⟩, ⟨64⟩,
         UInt256.ofNat (2^128-1), state, fee, UInt256.fromBool (!p.zeroForOne),
         remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
@@ -22,13 +24,13 @@ theorem poolSwapComputeMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     let w := swapStepWord r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee
     (swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee →
       ∃ mem' k' C', C ≤ C' ∧
-        RD (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
+        RD fork (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
           ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
             step, pool, state] ++ R) mem' (poolSwapComputeAW aw step state params) rdata σ k' C' ∧
         PoolSwapMemoryView mem' step state params (poolSwapComputeStep s next w) {r with price := w.next} p ∧
         MemoryWindowEq mem mem' 64 (min step.toNat state.toNat)) ∧
     (¬swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee →
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   dsimp only
   let w := swapStepWord r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee
   have hdir : UInt256.fromBool (!p.zeroForOne) = (if p.zeroForOne then (⟨0⟩ : UInt256) else ⟨1⟩) := by

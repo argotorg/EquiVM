@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem tickScanRightReadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id compressed spacing step x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 : UInt256}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨21109⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21109⟩
       ([compressed, spacing, poolSlot id, step, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
       (if tickScanMasked evm id (compressed+UInt256.ofNat 1) false = ⟨0⟩ then ⟨21441⟩ else ⟨21205⟩)
       ([step, x4, x12, x15, UInt256.isZero (tickScanMasked evm id (compressed+UInt256.ofNat 1) false),
         tickScanMasked evm id (compressed+UInt256.ofNat 1) false, spacing, compressed+UInt256.ofNat 1,
@@ -43,7 +45,7 @@ theorem tickScanRightReadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     refine ⟨k1, C1, ?_⟩
     simp only [poolManagerBlocks.poolManager_block_21109_taken_stack,
       poolManagerBlocks.poolManager_block_21109_taken_memory, hload, hmask] at rd1
-    change RD (deployedRuntime v) I budget start ⟨21441⟩
+    change RD fork (deployedRuntime v) I budget start ⟨21441⟩
       ([step, x4, x12, x15, UInt256.isZero (tickScanMasked evm id (compressed+UInt256.ofNat 1) false),
         tickScanMasked evm id (compressed+UInt256.ofNat 1) false, spacing, compressed+UInt256.ofNat 1,
         UInt256.isZero (UInt256.isZero (tickScanMasked evm id (compressed+UInt256.ofNat 1) false)),
@@ -59,7 +61,7 @@ theorem tickScanRightReadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     refine ⟨k1, C1, ?_⟩
     simp only [poolManagerBlocks.poolManager_block_21109_fallthrough_stack,
       poolManagerBlocks.poolManager_block_21109_fallthrough_memory, hload, hmask] at rd1
-    change RD (deployedRuntime v) I budget start ⟨21205⟩
+    change RD fork (deployedRuntime v) I budget start ⟨21205⟩
       ([step, x4, x12, x15, UInt256.isZero (tickScanMasked evm id (compressed+UInt256.ofNat 1) false),
         tickScanMasked evm id (compressed+UInt256.ofNat 1) false, spacing, compressed+UInt256.ofNat 1,
         UInt256.isZero (UInt256.isZero (tickScanMasked evm id (compressed+UInt256.ofNat 1) false)),

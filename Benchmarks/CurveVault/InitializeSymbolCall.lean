@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.InitializeSymbolDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -12,20 +14,20 @@ theorem vaultInitializeSymbolCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (htarget : locals.get? "_borrowed_token_" = some (.address (AccountAddress.ofNat target.toNat)))
     (hcd : config.externalABI.encode? "symbol" [] = some (mem.readWithPadding 316 4))
     (hmem : mem.size = 320) (haw : aw.toNat ≤ 10) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 388)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 388)
       (gasArg :: target :: ⟨316⟩ :: ⟨4⟩ :: ⟨288⟩ :: ⟨96⟩ :: target :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (size ptr : UInt256) (mem' out : ByteArray)
         (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm vaultInitializeSymbolStmt
+      ExecStmt fork config {contract := contract, locals := locals} evm vaultInitializeSymbolStmt
         (.ok {contract := contract, locals := (locals.insert "borrowed_symbol"
           (vaultBorrowedSymbol size.toNat (mem'.readWithPadding (ptr.toNat + 32) 32)))} evm') ∧
       SourceState s0 I σ' evm' ∧ size.toNat ≤ 32 ∧ ptr.toNat ≤ 352 ∧
       ptr.toNat + 32 ≤ mem'.size ∧ mem'.size ≤ 384 ∧
       memLoad ptr mem' = size ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 476)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 476)
         (size :: ptr :: UInt256.ofNat (min out.size 96) :: target :: R) mem' aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm vaultInitializeSymbolStmt .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} evm vaultInitializeSymbolStmt .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   have hreceiver : evalExpr? config {contract := contract, locals := locals} evm (.var "_borrowed_token_") =
       .ok (.address (AccountAddress.ofNat target.toNat)) := by
     simp only [evalExpr?, htarget, EvalResult.ofOption]
@@ -65,7 +67,7 @@ theorem vaultInitializeSymbolCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       (by rw [hmin]; exact ugt_zero (by rw [hlen]; change 320 ≤ _; omega)) rd400
     dsimp only [vaultBlocks.vault_block_400_fallthrough_stack, vaultBlocks.vault_block_389_taken_stack] at rd425
     rw [hmin] at rd425
-    change RD vaultBytecode I g s0 (UInt256.ofNat 425)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 425)
       (UInt256.ofNat (min out.size 96) :: target :: R)
       (out.write 0 mem 288 (min (UInt256.ofNat 96) (UInt256.ofNat out.size)).toNat) _ out σ' _ _ at rd425
     rw [vaultSymbolCallMemory_eq mem out hmem h32 hwide] at rd425

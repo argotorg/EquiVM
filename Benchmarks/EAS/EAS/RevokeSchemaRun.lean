@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeFromSchema
 import Benchmarks.EAS.EAS.RevocationRequestMemory
 import Benchmarks.EAS.EAS.GetSchemaCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,11 +20,11 @@ theorem revokeSchemaRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 :
     (hh : ptr.toNat ≤ 2^64-1) (hin : ptr.toNat ≤ mem.size) (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hlast : kind = .single → last = true) (hpayload : mem.readWithPadding ptr.toNat 36 = getSchemaPayload schema)
     (hcd : ee.calldata.size < UInt256.size) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (schemaCallPC kind.schemaSite)
+    (rd : RD fork (deployedRuntime v) ee g s0 (schemaCallPC kind.schemaSite)
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::ptr::⟨36⟩::ptr::⟨0⟩::
         schemaCallSaved kind.schemaSite ptr (revokeSchemaSaved kind schema data (UInt256.ofNat revoker.val) available last.toUInt256 ret R))
       mem aw rdata σ k C) :
-    ∃ used : UInt256, HeapReturnPostOrStatic (used.toNat ≤ available.toNat)
+    ∃ used : UInt256, HeapReturnPostOrStatic fork (used.toNat ≤ available.toNat)
       config (deployedRuntime v) ee g s0
       {contract := contract,locals := revokeArgs schema rs revoker available last ptr.toNat,immutables := immStore v}
       evm revokeFunction.body (.int (Int.ofNat used.toNat)) ret (used::R) mem ptr.toNat := by
@@ -53,7 +55,7 @@ theorem revokeSchemaRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 :
       simpa only [site,hn,L] using revokeSetupLocals_of_schema site rs s ptr.toNat
     obtain ⟨used,hafter⟩ := revokeFromSchemaRun v site hstack hs1 hf hm rfl (by change (UInt256.ofNat heap1).toNat ≤ _; rw [hn]; exact hhi1)
       hfree1 hcd (by change _ = UInt256.ofNat (allocateNext (UInt256.ofNat heap1).toNat _); rw [hn]) hlast hret r1
-    change HeapReturnPostOrStatic (used.toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
+    change HeapReturnPostOrStatic fork (used.toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
       {contract := contract,locals := attestSchemaLocals L s heap1,immutables := immStore v} e1
       revokeFromSchemaBody (.int (Int.ofNat used.toNat)) ret (used::R) m1 (UInt256.ofNat heap1).toNat at hafter
     rw [hn] at hafter

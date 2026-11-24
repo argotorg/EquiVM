@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.PauseEvm
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `pause(bool,bool,bool,bool,bool)`
 
@@ -21,11 +23,11 @@ set_option maxRecDepth 10000
 theorem cometWithExtendedAssetListPauseBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 25)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 25) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some pauseTransition :=
     cometSelectorDispatch ⟨25, by decide⟩ hsel
-  have hX := pauseX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := pauseX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 164 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2^255 + 4
@@ -39,7 +41,7 @@ theorem cometWithExtendedAssetListPauseBody {σ σ₀ A I} {g : UInt256} (v : Co
             by_cases hp : I.perm = true
             · rw [if_pos hp] at hX
               exact selectorStateReturn_refines hcode hX hd hdec
-                (pause_returns (hperm := by assumption) _ v (pauseInputs I.calldata) hv hhi ha)
+                (pause_returns (fork := fork) (hperm := by assumption) _ v (pauseInputs I.calldata) hv hhi ha)
                 (pauseSourceState_accountMap _).symm voidReturnEquiv
             · rw [if_neg hp] at hX
               exact selectorStatic_refines hcode hX hd hdec

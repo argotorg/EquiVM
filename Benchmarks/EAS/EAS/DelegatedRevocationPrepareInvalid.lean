@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.DelegatedRevocationPrepared
 import Benchmarks.EAS.EAS.CopySignatureArrayDecodedRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,8 +14,8 @@ theorem easDelegatedRevocationPrepareInvalid {ee : ExecutionEnv} {g : Sat256} {s
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1) (hmem : 96 ≤ mem.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hdecode : decodeDelegatedRevocationAt ee.calldata root = none)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   let dp := delegatedRevocationDataPtr heap
   have hdp : dp.toNat = heap.toNat+128 := ulit_toNat' _ (by change heap.toNat+128 < 2^256; omega)
   have hreserve := easDelegatedRevocationReserve v (by omega) hh hfree rd

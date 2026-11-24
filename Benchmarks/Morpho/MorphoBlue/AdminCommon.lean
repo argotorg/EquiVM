@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,13 +29,13 @@ theorem addressAdminBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (hcanon : value.toNat < EVM.addressModulus)
     (ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv)
     (hne : value ≠ solcAddressSlotWord slot evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm locals (addressAdminBody name arg event)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm locals (addressAdminBody name arg event)
       (.returned (addressAdminFrame v locals evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner slot
           (setAddressOffset0Word (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot) value))
         none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm locals (addressAdminBody name arg event)
+      ExecTransitionBody fork config contract evm locals (addressAdminBody name arg event)
         .staticViolation (immStore v)) := by
   have hargEval (state : EVM.State) : evalExpr? config
       (addressAdminFrame v locals evm.executionEnv.calldata) state (.var arg) =
@@ -42,7 +44,7 @@ theorem addressAdminBodySplit (v : MorphoImmutables) (evm : EVM.State)
   have howner := evalMorphoOwnerCheck evm _ (immStore v) hbaseOwner
   have hnew := evalMorphoAddressNe evm _ (immStore v) name slot value (.var arg)
     hbaseName hty hloc (hargEval evm) hcanon
-  have hprefix : ABlock config evm
+  have hprefix : ABlock fork config evm
       { contract := contract, locals := locals, immutables := immStore v }
       (addressAdminBody name arg event) (addressAdminFrame v locals evm.executionEnv.calldata)
       [.assign .storage ⟨name, []⟩ (.var arg), .emit event [.var arg]] :=
@@ -54,8 +56,8 @@ theorem addressAdminBodySplit (v : MorphoImmutables) (evm : EVM.State)
   · intro hperm
     apply ExecFuncBody.execBlockOK
     apply hprefix.run
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (hargEval evm) hassign)
-    apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (hargEval _)))
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (hargEval evm) hassign)
+    apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (hargEval _)))
     exact ExecBlock.nil
   · intro hperm
     exact ExecFuncBody.execBlockStatic
@@ -74,7 +76,7 @@ theorem addressAdminBodyRejects (v : MorphoImmutables) (evm : EVM.State)
     (hcanon : value.toNat < EVM.addressModulus)
     (hbad : solcSourceWord evm.executionEnv ≠ solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv ∨
       value = solcAddressSlotWord slot evm.accountMap evm.executionEnv) :
-    ExecTransitionBody config contract evm locals (addressAdminBody name arg event)
+    ExecTransitionBody fork config contract evm locals (addressAdminBody name arg event)
       .reverted (immStore v) := by
   have howner := evalMorphoOwnerCheck evm _ (immStore v) hbaseOwner
   apply ExecFuncBody.execBlockRevert

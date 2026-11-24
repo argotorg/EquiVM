@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueAssetsRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -16,25 +18,25 @@ theorem morphoAccrueMathRefineWithMemory (p : MarketParamsWords) (locals imms : 
     (hr : locals.get? "borrowRate" = some (.int (Int.ofNat rate.toNat)))
     (he : locals.get? "elapsed" = some (.int (Int.ofNat elapsed.toNat)))
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    AccrueTailRefinesWithMemory v ee g s0 p imms locals evm (accrueIrmBody.drop 3) ret R (spare - 192) mem fp 128 := by
+    AccrueTailRefinesWithMemory fork v ee g s0 p imms locals evm (accrueIrmBody.drop 3) ret R (spare - 192) mem fp 128 := by
   have her : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm (.var "borrowRate") =
       .ok (.int (Int.ofNat rate.toNat)) := by simp only [evalExpr?, hr, EvalResult.ofOption]
   have hee : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm (.var "elapsed") =
       .ok (.int (Int.ofNat elapsed.toNat)) := by simp only [evalExpr?, he, EvalResult.ofOption]
   by_cases ht : TaylorFits rate elapsed
-  · have hst := morphoAccrueTaylorStep locals imms rate elapsed evm her hee ht
+  · have hst := morphoAccrueTaylorStep (fork := fork) locals imms rate elapsed evm her hee ht
     by_cases hi : (marketFieldWord σ ee p.id 2).toNat * (taylorWord rate elapsed).toNat < UInt256.size
     · have hi' : (marketFieldWord evm.accountMap evm.executionEnv p.id 2).toNat *
           (taylorWord rate elapsed).toNat < UInt256.size := by simpa only [hs.env, ← hs.accounts] using hi
-      have hsi := morphoAccrueInterestStep p locals imms rate elapsed evm hl hi'
+      have hsi := morphoAccrueInterestStep (fork := fork) p locals imms rate elapsed evm hl hi'
       obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueInterestOk (v := v) hstack ht hi h
       let l := accrueCalcLocals locals rate elapsed (marketFieldWord σ ee p.id 2)
-      have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+      have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
           (accrueIrmBody.drop 3) { contract := contract, locals := l, immutables := imms } evm (accrueIrmBody.drop 5) := by
-        have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+        have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
             (accrueIrmBody.drop 3)
             { contract := contract, locals := accrueCalcLocals locals rate elapsed (marketFieldWord evm.accountMap evm.executionEnv p.id 2), immutables := imms }
             evm (accrueIrmBody.drop 5) := (StateBlock.start.step hst).step hsi
@@ -63,10 +65,10 @@ theorem morphoAccrueMathRefine (p : MarketParamsWords) (locals imms : Store)
     (hr : locals.get? "borrowRate" = some (.int (Int.ofNat rate.toNat)))
     (he : locals.get? "elapsed" = some (.int (Int.ofNat elapsed.toNat)))
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    AccrueTailRefines v ee g s0 p imms locals evm (accrueIrmBody.drop 3) ret R (spare - 192) := by
+    AccrueTailRefines fork v ee g s0 p imms locals evm (accrueIrmBody.drop 3) ret R (spare - 192) := by
   exact (morphoAccrueMathRefineWithMemory p locals imms hstack hs hm hb hl hr he hvalid h).forget
 
 end Refine

@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.SafeTransferDynamicRuntime
 import Examples.UniswapV2Pair.SafeTransferDynamicCalldata
 import Examples.UniswapV2Pair.SafeTransferDynamicCopyRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -11,14 +13,14 @@ theorem RD.uniswapSafeTransferDynamicCallPrepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6575 : RD uniswapV2PairBytecode I g s0 ⟨6575⟩
+    (rd6575 : RD fork uniswapV2PairBytecode I g s0 ⟨6575⟩
       (⟨68⟩ :: (ptr + ⟨96⟩) :: (ptr + ⟨164⟩) :: (ptr + ⟨164⟩) :: (ptr + ⟨64⟩) ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ gasArg k' C', RD uniswapV2PairBytecode I g s0 ⟨6594⟩
+    ∃ gasArg k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6594⟩
       (gasArg :: UInt256.land token solcAddrMask :: ⟨0⟩ :: (ptr + ⟨164⟩) :: ⟨68⟩ :: (ptr + ⟨164⟩) :: ⟨0⟩ ::
         (ptr + ⟨232⟩) :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) rdata σ k' C' := by
@@ -51,14 +53,14 @@ theorem RD.uniswapSafeTransferDynamicEntryToCallPrepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
+    (rd6370 : RD fork uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
       base aw rdata σ k C)
     (hload : memoryWordLoad base ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (hbase : base.size ≤ ptr.toNat + 228)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ gasArg k' C', RD uniswapV2PairBytecode I g s0 ⟨6594⟩
+    ∃ gasArg k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6594⟩
       (gasArg :: UInt256.land token solcAddrMask :: ⟨0⟩ :: (ptr + ⟨164⟩) :: ⟨68⟩ :: (ptr + ⟨164⟩) :: ⟨0⟩ ::
         (ptr + ⟨232⟩) :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) rdata σ k' C' := by

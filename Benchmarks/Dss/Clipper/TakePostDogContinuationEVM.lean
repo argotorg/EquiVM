@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeDynamicPostDog
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -13,7 +15,7 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd5003 : RD code I g (initState σStart σ₀ g A I) ⟨5003⟩
+    (rd5003 : RD fork code I g (initState σStart σ₀ g A I) ⟨5003⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem aw rdata σ k C)
@@ -22,12 +24,12 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (onNoCode :
       ∀ hcodeVat : extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩,
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onCallFailure :
       ∀ (σFlux : AccountMap)
         (outFlux : ByteArray) (AFlux : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "flux" 0
@@ -37,12 +39,12 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
             { initState σStart σ₀ g A I with
               accountMap := σFlux, substate := AFlux },
             outFlux) true →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onCallSuccess :
       ∀ (σFlux : AccountMap)
         (outFlux : ByteArray) (AFlux : Substate) (kFlux CFlux : ℕ),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "flux" 0
@@ -53,7 +55,7 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
               accountMap := σFlux, substate := AFlux },
             outFlux) true →
         clipperTakeMemoryWF (clipperTakeVatFluxCalldataMem v I packed lotNew mem) aw →
-        RD code I g (initState σStart σ₀ g A I) ⟨8274⟩
+        RD fork code I g (initState σStart σ₀ g A I) ⟨8274⟩
           (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
             stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
             [⟨502⟩, sel])

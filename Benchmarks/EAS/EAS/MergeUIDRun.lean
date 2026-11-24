@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MergeUIDOuter
 import Benchmarks.EAS.EAS.MergeUIDAllocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -40,24 +42,24 @@ theorem mergeUIDRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat25
     (hm : WordArrayArrayMemoryView mem lists groups heap.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hsize : ee.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11975⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11975⟩
       (lists::UInt256.ofNat groups.flatten.length::ret::R) mem aw rdata σ k C) :
     let next := allocateNext heap.toNat (32+32*groups.flatten.length)
     (∃ L' mem' aw' k' C' words, words.length = groups.flatten.length ∧ next ≤ 2^64-1 ∧
       MemoryPrefix mem mem' heap.toNat ∧ WordArrayMemoryView mem' heap words next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body
         (.returned {contract := contract,locals := L',immutables := immStore v} evm (some [wordListValue words,.int (Int.ofNat next)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
-    (ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
+    (ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   dsimp only
   let n := groups.flatten.length
   let next := allocateNext heap.toNat (32+32*n)
   have hlen : (UInt256.ofNat n).toNat = n := ulit_toNat' _ (hm.flatten_fit hh)
   have hhead := easMergeUIDAllocate v (by omega) hh hfree hsize rd
   rw [hlen] at hhead
-  have hprefix := mergeUIDPrefixSource (imms := immStore v) (evm := evm) hd hn hf
+  have hprefix := mergeUIDPrefixSource (fork := fork) (imms := immStore v) (evm := evm) hd hn hf
   dsimp only at hprefix
   by_cases hv : n ≤ 2^64-1 ∧ (next ≤ 2^64-1 ∧ heap.toNat ≤ next)
   · obtain ⟨a1,k1,C1,r1⟩ := hhead.1 hv
@@ -75,12 +77,12 @@ theorem mergeUIDRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat25
       (by simp only [List.drop_zero,List.length_replicate,Nat.zero_add]; rfl) hf1 hm1 hs1 hm0.2.2 r1
     rw [hnword] at hf2 hm2
     simp only [List.length_replicate] at hwords
-    have hreturn : ExecBlock config {contract := contract,locals := L2,immutables := immStore v} evm mergeUIDReturn
+    have hreturn : ExecBlock fork config {contract := contract,locals := L2,immutables := immStore v} evm mergeUIDReturn
         (.returned {contract := contract,locals := L2,immutables := immStore v} evm (some [wordListValue words,.int (Int.ofNat next)])) := by
       apply ExecBlock.consReturn
       apply ExecStmt.return
       simp only [evalExprs?,evalExpr?,hf2.words,hf2.heap,EvalResult.ofOption,EvalResult.bind,bind,pure]
-    have hsol : ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body
+    have hsol : ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm mergeUIDFunction.body
         (.returned {contract := contract,locals := L2,immutables := immStore v} evm (some [wordListValue words,.int (Int.ofNat next)])) := by
       rw [mergeUID_body]
       exact ExecFuncBody.execBlockRet (execBlock_append hs0 (ExecBlock.consNormal hsol2 hreturn))

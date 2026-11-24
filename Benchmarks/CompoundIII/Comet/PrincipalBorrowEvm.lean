@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PrincipalSupplyEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_058
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,11 +15,11 @@ theorem cometPrincipalBorrow {v : CometWithExtendedAssetListImmutables}
     {aw index present ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12813⟩ (present :: index :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12813⟩ (present :: index :: ret :: R)
       mem aw rdata σ k C) :
-    (PrincipalMagnitudeFits true index present ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (PrincipalMagnitudeFits true index present ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (principalMagnitudeWord true index present :: R) mem aw rdata σ k' C') ∨
-    (¬ PrincipalMagnitudeFits true index present ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ PrincipalMagnitudeFits true index present ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hm : present.toNat * 1000000000000000 < UInt256.size
   · have r1 := cometWithExtendedAssetList_block_12813_fallthrough
       (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
@@ -29,7 +31,7 @@ theorem cometPrincipalBorrow {v : CometWithExtendedAssetListImmutables}
     · obtain ⟨k3, C3, r3⟩ := cometCheckedAdd (v := v)
         (by change R.length + 3 + 5 ≤ 1024; omega) ha
         (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r2
-      change RD _ _ _ _ _ (principalMagnitudeSum index present :: UInt256.lnot ⟨0⟩ ::
+      change RD fork _ _ _ _ _ (principalMagnitudeSum index present :: UInt256.lnot ⟨0⟩ ::
         index :: ret :: R) _ _ _ _ _ _ at r3
       by_cases hs : 1 ≤ (principalMagnitudeSum index present).toNat
       · have r4 := cometWithExtendedAssetList_block_12850_fallthrough
@@ -42,7 +44,7 @@ theorem cometPrincipalBorrow {v : CometWithExtendedAssetListImmutables}
           have r6 := cometWithExtendedAssetList_block_12866
             (immWords := wordsOf (immStore v)) (by change R.length + 1 + 3 ≤ 1024; omega)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5
-          change RD _ _ _ _ _ (UInt256.div
+          change RD fork _ _ _ _ _ (UInt256.div
             (principalMagnitudeSum index present + UInt256.lnot ⟨0⟩) index :: ret :: R)
             _ _ _ _ _ _ at r6
           rw [u256_add_lnot_zero_eq_sub_one] at r6

@@ -4,6 +4,8 @@ import Examples.VyperImmutable.Bytecode
 import Examples.VyperImmutable.Immutables
 import Examples.VyperImmutable.ImmutableCode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -23,8 +25,8 @@ def immutable_block_0_memory {suffix : ByteArray} {ee : ExecutionEnv} {mem : Byt
 theorem immutable_block_0 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) (immutable_block_0_stack (ee := ee) (R := R)) (immutable_block_0_memory (suffix := suffix) (ee := ee) (mem := mem)) (M (M aw (UInt256.ofNat 30) (UInt256.ofNat 2)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) rdata σ (k + 17) (C + ((51) + (memExpansionCost aw (UInt256.ofNat 30) (UInt256.ofNat 2)) + (3 + 3 * (((UInt256.ofNat 2).toNat + 31) / 32)) + (memExpansionCost (M aw (UInt256.ofNat 30) (UInt256.ofNat 2)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) (immutable_block_0_stack (ee := ee) (R := R)) (immutable_block_0_memory (suffix := suffix) (ee := ee) (mem := mem)) (M (M aw (UInt256.ofNat 30) (UInt256.ofNat 2)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) rdata σ (k + 17) (C + ((51) + (memExpansionCost aw (UInt256.ofNat 30) (UInt256.ofNat 2)) + (3 + 3 * (((UInt256.ofNat 2).toNat + 31) / 32)) + (memExpansionCost (M aw (UInt256.ofNat 30) (UInt256.ofNat 2)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.push0 (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨0⟩ : UInt256), .PUSH0, none)) (by evm_ov)
   have r2 := r1.calldataload (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨1⟩ : UInt256), .CALLDATALOAD, none)) (by evm_ov)
@@ -49,8 +51,8 @@ theorem immutable_block_0 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} 
 theorem immutable_block_0_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) (immutable_block_0_stack (ee := ee) (R := R)) (immutable_block_0_memory (suffix := suffix) (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableBytecode ++ suffix).write ((UInt256.ofNat 135) + (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224)) (UInt256.ofNat 3)) (UInt256.ofNat 1))).toNat mem (UInt256.ofNat 30).toNat (UInt256.ofNat 2).toNat)) (immutable_block_0_stack (ee := ee) (R := R)) (immutable_block_0_memory (suffix := suffix) (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_0 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -59,8 +61,8 @@ theorem immutable_block_24_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1474176676)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨24⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1474176676) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨25⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 1474176676), 4))) (by evm_ov)
@@ -76,8 +78,8 @@ theorem immutable_block_24_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1474176676)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_24_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -85,8 +87,8 @@ theorem immutable_block_24_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_24_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1474176676)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨24⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1474176676) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨25⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 1474176676), 4))) (by evm_ov)
@@ -101,8 +103,8 @@ theorem immutable_block_24_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_24_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1474176676)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 24) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_24_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -111,8 +113,8 @@ theorem immutable_block_36_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨36⟩ : UInt256), .CALLVALUE, none)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 131) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨37⟩ : UInt256), .Push .PUSH2, some ((UInt256.ofNat 131), 2))) (by evm_ov)
@@ -125,8 +127,8 @@ theorem immutable_block_36_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_36_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -134,8 +136,8 @@ theorem immutable_block_36_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_36_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 41) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 41) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨36⟩ : UInt256), .CALLVALUE, none)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 131) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨37⟩ : UInt256), .Push .PUSH2, some ((UInt256.ofNat 131), 2))) (by evm_ov)
@@ -147,8 +149,8 @@ theorem immutable_block_36_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_36_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 41) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 36) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 41) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_36_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -157,8 +159,8 @@ theorem immutable_block_41 {immWords : String → UInt256}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 41) R mem aw rdata σ k C) :
-    RDret (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ (Examples.VyperImmutable.immutableLayout.suffixWords immWords) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 41) R mem aw rdata σ k C) :
+    RDret fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ (Examples.VyperImmutable.immutableLayout.suffixWords immWords) := by
   have hcode : Examples.VyperImmutable.immutableBytecode.size = 143 := by native_decide
   have hsize : (Examples.VyperImmutable.immutableLayout.suffixWords immWords).size = Examples.VyperImmutable.immutableLayout.size :=
     Reasoning.VyperImmutables.Layout.suffixWords_size Examples.VyperImmutable.immutableLayout immWords
@@ -183,8 +185,8 @@ theorem immutable_block_54_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2376452955)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨54⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 2376452955) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨55⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 2376452955), 4))) (by evm_ov)
@@ -200,8 +202,8 @@ theorem immutable_block_54_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2376452955)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_54_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -209,8 +211,8 @@ theorem immutable_block_54_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_54_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2376452955)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨54⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 2376452955) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨55⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 2376452955), 4))) (by evm_ov)
@@ -225,8 +227,8 @@ theorem immutable_block_54_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_54_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2376452955)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 54) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_54_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -235,8 +237,8 @@ theorem immutable_block_66_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨66⟩ : UInt256), .CALLVALUE, none)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 131) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨67⟩ : UInt256), .Push .PUSH2, some ((UInt256.ofNat 131), 2))) (by evm_ov)
@@ -249,8 +251,8 @@ theorem immutable_block_66_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_66_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -258,8 +260,8 @@ theorem immutable_block_66_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_66_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 71) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 71) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨66⟩ : UInt256), .CALLVALUE, none)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 131) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨67⟩ : UInt256), .Push .PUSH2, some ((UInt256.ofNat 131), 2))) (by evm_ov)
@@ -271,8 +273,8 @@ theorem immutable_block_66_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_66_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 71) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 66) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 71) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_66_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -281,8 +283,8 @@ theorem immutable_block_71 {immWords : String → UInt256}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 71) R mem aw rdata σ k C) :
-    RDret (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ (immWords "OWNER").toByteArray := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 71) R mem aw rdata σ k C) :
+    RDret fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ (immWords "OWNER").toByteArray := by
   have hcode : Examples.VyperImmutable.immutableBytecode.size = 143 := by native_decide
   have hcopy : ((Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords).write (UInt256.ofNat 143).toNat mem (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) = ((immWords "OWNER").toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) := by
     simpa [hcode] using Examples.VyperImmutable.immutableCopyWord_OWNER immWords mem (UInt256.ofNat 64).toNat
@@ -307,8 +309,8 @@ theorem immutable_block_84_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨84⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1597203657) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨85⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 1597203657), 4))) (by evm_ov)
@@ -324,8 +326,8 @@ theorem immutable_block_84_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 127) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_84_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -333,8 +335,8 @@ theorem immutable_block_84_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_84_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨84⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1597203657) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨85⟩ : UInt256), .Push .PUSH4, some ((UInt256.ofNat 1597203657), 4))) (by evm_ov)
@@ -349,8 +351,8 @@ theorem immutable_block_84_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_84_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 84) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_84_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -359,8 +361,8 @@ theorem immutable_block_96_taken {suffix : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 36) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨96⟩ : UInt256), .Push .PUSH1, some ((UInt256.ofNat 36), 1))) (by evm_ov)
   have r2 := r1.calldatasize (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨98⟩ : UInt256), .CALLDATASIZE, none)) (by evm_ov)
@@ -377,8 +379,8 @@ theorem immutable_block_96_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J (Examples.VyperImmutable.immutableBytecode ++ suffix) 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_96_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -386,8 +388,8 @@ theorem immutable_block_96_taken_packed {suffix : ByteArray} {ee : ExecutionEnv}
 theorem immutable_block_96_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 106) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 106) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 36) (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨96⟩ : UInt256), .Push .PUSH1, some ((UInt256.ofNat 36), 1))) (by evm_ov)
   have r2 := r1.calldatasize (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨98⟩ : UInt256), .CALLDATASIZE, none)) (by evm_ov)
@@ -403,16 +405,16 @@ theorem immutable_block_96_fallthrough {suffix : ByteArray} {ee : ExecutionEnv} 
 theorem immutable_block_96_fallthrough_packed {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 106) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 96) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 106) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutable_block_96_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Vyper scalar immutable summary for block at pc 106. -/
 theorem immutable_block_106 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 106) R mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ ((UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (immWords "LIMIT"))).toByteArray := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) ee g s0 (UInt256.ofNat 106) R mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords) g s0 σ ((UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (immWords "LIMIT"))).toByteArray := by
   have hcode : Examples.VyperImmutable.immutableBytecode.size = 143 := by native_decide
   have hcopy0 : ((Examples.VyperImmutable.immutableBytecode ++ Examples.VyperImmutable.immutableLayout.suffixWords immWords).write (UInt256.ofNat 175).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 32).toNat) = ((immWords "LIMIT").toByteArray.write 0 mem (⟨0⟩ : UInt256).toNat 32) := by
     simpa [hcode] using Examples.VyperImmutable.immutableCopyWord_LIMIT immWords (mem) (⟨0⟩ : UInt256).toNat
@@ -445,8 +447,8 @@ theorem immutable_block_106 {immWords : String → UInt256} {ee : ExecutionEnv} 
 /-- Automatically generated RD summary for bytecode block at pc 127. -/
 theorem immutable_block_127 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) R mem aw rdata σ k C)
-    : RDrev (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 127) R mem aw rdata σ k C)
+    : RDrev fork (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨127⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push0 (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨128⟩ : UInt256), .PUSH0, none)) (by evm_ov)
@@ -456,8 +458,8 @@ theorem immutable_block_127 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256
 /-- Automatically generated RD summary for bytecode block at pc 131. -/
 theorem immutable_block_131 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ k C)
-    : RDrev (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ k C)
+    : RDrev fork (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨131⟩ : UInt256), .JUMPDEST, none)) (by evm_ov)
   have r2 := r1.push0 (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨132⟩ : UInt256), .PUSH0, none)) (by evm_ov)
@@ -467,16 +469,16 @@ theorem immutable_block_131 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256
 /-- Automatically generated RD summary for bytecode block at pc 135. -/
 theorem immutable_block_135 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 0 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 135) R mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 135) R mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
   let r0 := h
   exact r0.stop (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨135⟩ : UInt256), .STOP, none)) (by evm_ov)
 
 /-- Automatically generated RD summary for bytecode block at pc 136. -/
 theorem immutable_block_136 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 136) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 136) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
   let r0 := h
   have r1 := r0.xor (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨136⟩ : UInt256), .XOR, none)) (by evm_ov)
   exact r1.stop (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨137⟩ : UInt256), .STOP, none)) (by evm_ov)
@@ -484,8 +486,8 @@ theorem immutable_block_136 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256
 /-- Automatically generated RD summary for bytecode block at pc 138. -/
 theorem immutable_block_138 {suffix : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 138) (x0 :: R) mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableBytecode ++ suffix) ee g s0 (UInt256.ofNat 138) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableBytecode ++ suffix) g s0 σ ByteArray.empty := by
   let r0 := h
   obtain ⟨_, _, r1⟩ := RD.sload r0 (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨138⟩ : UInt256), .SLOAD, none)) (by evm_ov)
   exact r1.stop (by append_decode(Examples.VyperImmutable.immutableBytecode, suffix, (⟨139⟩ : UInt256), .STOP, none)) (by evm_ov)

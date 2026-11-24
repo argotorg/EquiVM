@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopySignatureArrayLoop
 import Benchmarks.EAS.EAS.ArrayAllocationHead
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,21 +12,21 @@ theorem easCopySignatureArrayHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {header heap a b c d e : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+16 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1439⟩ (a::b::c::d::e::header::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1439⟩ (a::b::c::d::e::header::R) mem aw rdata σ k C) :
     let len := calldataWord ee.calldata header.toNat
     if signatureArrayHeaderValid ee.calldata header ∧
         allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧
         heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨1492⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨1492⟩
         ((heap+UInt256.ofNat 32)::(header+UInt256.ofNat 32)::
           ((header+UInt256.ofNat 32)+UInt256.mul len (UInt256.ofNat 96))::a::b::c::d::e::heap::R)
         (arrayAllocationHeaderMemory mem heap len.toNat) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   let len := calldataWord ee.calldata header.toNat
   obtain ⟨a1,j1,D1,r1⟩ := easBlocks.eas_block_1439_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
-  change RD (deployedRuntime v) ee g s0 ⟨5069⟩ (len::⟨1450⟩::header::a::b::c::d::e::len::R) mem a1 rdata σ j1 D1 at r1
+  change RD fork (deployedRuntime v) ee g s0 ⟨5069⟩ (len::⟨1450⟩::header::a::b::c::d::e::len::R) mem a1 rdata σ j1 D1 at r1
   have hsize := easArrayAllocationSize v (by simp only [List.length_cons]; omega)
     (by rw [easPatchedValidJumps v]; jump_dest) r1
   by_cases hl : len.toNat ≤ 2^64-1

@@ -3,6 +3,8 @@ import Benchmarks.Dss.Clipper.Guards
 import Benchmarks.Dss.Clipper.Count
 import Benchmarks.Dss.Clipper.RedoDoneSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -539,7 +541,7 @@ theorem clipperEvalKickVarUsr (v : ClipperImmutables) (evm evmRead : EVM.State)
 theorem clipperKickAssignSalesPos (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperKickLocalsActivePos evm I, immutables := immStore v }
       (clipperKickSourceActiveState evm)
       (.assign .storage (salesF (.var "id") "pos") (.var "activePos"))
@@ -568,7 +570,7 @@ theorem clipperKickAssignSalesPos (v : ClipperImmutables)
 theorem clipperKickAssignSalesTab (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperKickLocalsActivePos evm I, immutables := immStore v }
       (clipperKickSourceSalesPosState evm)
       (.assign .storage (salesF (.var "id") "tab") (.var "tab"))
@@ -599,7 +601,7 @@ theorem clipperKickAssignSalesTab (v : ClipperImmutables)
 theorem clipperKickAssignSalesLot (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperKickLocalsActivePos evm I, immutables := immStore v }
       (clipperKickSourceSalesTabState evm I)
       (.assign .storage (salesF (.var "id") "lot") (.var "lot"))
@@ -663,7 +665,7 @@ theorem clipperEvalKickUsrZero (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperKickAssignSalesUsr (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperKickLocalsActivePos evm I, immutables := immStore v }
       (clipperKickSourceSalesLotState evm I)
       (.assign .storage (salesF (.var "id") "usr") (.var "usr"))
@@ -711,7 +713,7 @@ theorem clipperKickSourceTicWord_toNat (evm : EVM.State) :
 theorem clipperKickAssignSalesTic (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperKickLocalsActivePos evm I, immutables := immStore v }
       (clipperKickSourceSalesUsrState evm I)
       (.assign .storage (salesF (.var "id") "tic") (wrap96 (.env .timestamp)))

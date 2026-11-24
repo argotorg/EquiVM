@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionGet
 import Benchmarks.UniswapV3.Pool.CollectPaymentsSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,9 +13,9 @@ set_option maxRecDepth 10000
 theorem collectLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7626⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7626⟩ R mem aw rdata σ k C)
     (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have rdLoad := evm_run rd with [
     raw jumpdest (by immutable_decode(immutableLayout, uniswapV3PoolBytecode, wordsOf (immStore v),
         (⟨7626⟩ : UInt256), (UInt8.ofNat 91), .JUMPDEST, none,
@@ -55,11 +57,11 @@ theorem collectLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7555⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7555⟩ R mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
       (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7626⟩ (⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k' C') := by
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7626⟩ (⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k' C') := by
   have hfield : UInt256.land (UInt256.ofNat 255)
       (UInt256.div
         (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -79,12 +81,12 @@ theorem collectReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectPositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p lower upper req0 req1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7626⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7626⟩
       (⟨0⟩ :: ⟨0⟩ :: req1 :: req0 :: positionTickWord upper :: positionTickWord lower :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 87 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7652⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7652⟩
       (solcMappingSlot ⟨7⟩ (positionKey ee.source lower upper) :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         req1 :: req0 :: positionTickWord upper :: positionTickWord lower :: R)
       (positionGetMem mem p ee.source lower upper ⟨7⟩) aw' rdata

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipMask
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,9 +15,9 @@ theorem cometMembershipAssets {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (add : Bool) (hstack : R.length + 14 ≤ 1024)
     (hoffset : memLoad ptr mem = offset) (hlo : offset.toNat < 16)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (if add then ⟨14188⟩ else ⟨14355⟩)
+    (h : RD fork (deployedRuntime v) ee g s0 (if add then ⟨14188⟩ else ⟨14355⟩)
       (offset :: offset :: EVM.word account.val :: ptr :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (twoWordHashMem (EVM.word account.val) ⟨5⟩ mem) rdata ret R
       (assetMembershipFieldResult evm account add false offset.toNat) := by
   have hc : UInt256.land (UInt256.ofNat 255) offset = offset := by
@@ -54,9 +56,9 @@ theorem cometMembershipReserved {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (add : Bool) (hstack : R.length + 14 ≤ 1024)
     (hlo : 16 ≤ offset.toNat) (hhi : offset.toNat < 24)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (if add then ⟨14270⟩ else ⟨14425⟩)
+    (h : RD fork (deployedRuntime v) ee g s0 (if add then ⟨14270⟩ else ⟨14425⟩)
       (EVM.word account.val :: offset :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (twoWordHashMem (EVM.word account.val) ⟨5⟩ mem) rdata ret R
       (assetMembershipFieldResult evm account add true (offset.toNat - 16)) := by
   have hd : (UInt256.sub offset (UInt256.ofNat 16)).toNat = offset.toNat - 16 :=

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `DOMAIN_SEPARATOR()`
 
@@ -20,7 +22,7 @@ set_option maxRecDepth 2000000
 theorem morphoDOMAIN_SEPARATORBodyReturns (v : MorphoImmutables) (evm : EVM.State) (locals : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm locals dOMAIN_SEPARATORTransition.body
+    ExecTransitionBody fork config contract evm locals dOMAIN_SEPARATORTransition.body
       (.returned
         { contract := contract,
           locals := locals.insert "__calldata" (.bytes evm.executionEnv.calldata),
@@ -36,7 +38,7 @@ theorem morphoDOMAIN_SEPARATORXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 5))
     (hcv : I.weiValue = ⟨0⟩) (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       v.DOMAIN_SEPARATOR.toByteArray := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 5) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachDOMAIN_SEPARATORBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -54,7 +56,7 @@ theorem morphoDOMAIN_SEPARATORXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 5))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 5) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachDOMAIN_SEPARATORBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -78,7 +80,7 @@ theorem morphoDOMAIN_SEPARATORXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoIm
 theorem morphoDOMAIN_SEPARATORBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 5) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some dOMAIN_SEPARATORTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

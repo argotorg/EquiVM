@@ -4,6 +4,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cure.Rely
 import Benchmarks.Dss.Cure.Selectors
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -609,7 +611,7 @@ theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
     (hpos : solcSlotWordAt (dropPosSlotFor I) σ I = ⟨0⟩) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
       dropTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -631,7 +633,7 @@ theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
         (.binary .gt (.var "pos_") (.intLit 0)) = .ok (.bool false) := by
     simpa [localsPos] using evalExpr_dropPosGtZero_false evm0 I hposLoad
   have hblock :
-      ExecBlock config { contract := contract, locals := dropLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
           .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -676,10 +678,10 @@ theorem cureDropSourceBodyOkNoSwapSplit {σ σ₀ A I} {g : UInt256}
     let evmPop := dropAfterPopState evm0 lenWord
     let evmPos := dropAfterDeletePosState evmPop I
     let evmAmt := dropAfterDeleteAmtState evmPos I
-    (I.perm = true → ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body
       (.returned { contract := contract, locals := localsLast } evmAmt none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 (dropLocals I)
+      ExecTransitionBody fork config contract evm0 (dropLocals I)
         dropTransition.body .staticViolation) := by
   intro evm0 posWord lenWord localsPos localsLast evmPop evmPos evmAmt
   have hguardAuth := cureAuthGuardEval_true
@@ -735,9 +737,9 @@ theorem cureDropSourceBodyOkNoSwapSplit {σ σ₀ A I} {g : UInt256}
         hlenLoad
         (by simpa [lenWord] using hlenPos)
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := localsLast } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := localsLast } evm0
         (dropTransition.body.drop 7) result) :
-      ExecBlock config { contract := contract, locals := dropLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
         dropTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -775,9 +777,9 @@ theorem cureDropSourceBodyOkNoSwapSplit {σ σ₀ A I} {g : UInt256}
             rw [Std.HashMap.getElem_insert]
             simp)
     exact ExecFuncBody.execBlockOK (hprefix
-      (ExecBlock.consNormal (ExecStmt.pop (hperm := hperm) hpop)
-        (ExecBlock.consNormal (ExecStmt.delete (hperm := by simpa only [evmPop, dropAfterPopState, dropAfterPopClearState, storageStore_executionEnv] using hperm) hdelPos)
-          (ExecBlock.consNormal (ExecStmt.delete (hperm := by simpa only [evmPos, dropAfterDeletePosState, evmPop, dropAfterPopState, dropAfterPopClearState, storageStore_executionEnv] using hperm) hdelAmt) ExecBlock.nil))))
+      (ExecBlock.consNormal (ExecStmt.pop (fork := fork) (hperm := hperm) hpop)
+        (ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := by simpa only [evmPop, dropAfterPopState, dropAfterPopClearState, storageStore_executionEnv] using hperm) hdelPos)
+          (ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := by simpa only [evmPos, dropAfterDeletePosState, evmPop, dropAfterPopState, dropAfterPopClearState, storageStore_executionEnv] using hperm) hdelAmt) ExecBlock.nil))))
   · intro hperm
     exact ExecFuncBody.execBlockStatic (hprefix
       (ExecBlock.consStatic (ExecStmt.popStatic hpop
@@ -797,7 +799,7 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
     let localsLast : Store := localsPos.insert "last" (.int (Int.ofNat lenWord.toNat))
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body .reverted := by
   intro evm0 posWord lenWord localsPos localsLast
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -851,7 +853,7 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
         (by simp [localsLast, localsPos, dropLocals])
         (by simpa [evm0, lenWord] using hlenZero)
   have hblock :
-      ExecBlock config { contract := contract, locals := dropLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
           .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -918,7 +920,7 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
     let evmPop := dropAfterPopState evmMovePos popLen
     let evmPos := dropAfterDeletePosState evmPop I
     let evmAmt := dropAfterDeleteAmtState evmPos I
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body
+    ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body
       (.returned { contract := contract, locals := localsDst } evmAmt none) := by
   intro evm0 posWord lenWord lastIndex dstIndex localsPos localsLast localsLastIndex
     localsMove localsDst evmMoveElem evmMovePos popLen evmPop evmPos evmAmt
@@ -1114,7 +1116,7 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
             Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert,
             Std.HashMap.get?_eq_getElem?])
   have hswapBlock :
-      ExecBlock config { contract := contract, locals := localsLast } evm0
+      ExecBlock fork config { contract := contract, locals := localsLast } evm0
         [ .letDecl "lastIndex" (some uint256) (sub256 (.var "last") (.intLit 1)),
           .letDecl "move" (some addr) (.storage (srcElemRef (.var "lastIndex"))),
           .letDecl "dstIndex" (some uint256) (sub256 (.var "pos_") (.intLit 1)),
@@ -1125,15 +1127,15 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.letDecl hmoveExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hdstIndexExpr) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr hperm)
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm)
         (by simpa [localsLastIndex, localsMove, localsDst] using hmoveVar)
         (by simpa [localsLastIndex, localsMove, localsDst] using hassignMoveElem)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm))
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm))
         (by simpa [localsLastIndex, localsMove, localsDst] using hposVar)
         (by simpa [localsLastIndex, localsMove, localsDst] using hassignMovePos)) ExecBlock.nil
   have hblock :
-      ExecBlock config { contract := contract, locals := dropLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
           .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1160,9 +1162,9 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.iteTrue hswapExpr hswapBlock) ?_
-    refine ExecBlock.consNormal (ExecStmt.pop (hperm := by simpa only [evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hpop) ?_
-    refine ExecBlock.consNormal (ExecStmt.delete (hperm := by simpa only [evmPop, dropAfterPopState, dropAfterPopClearState, evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hdelPos) ?_
-    exact ExecBlock.consNormal (ExecStmt.delete (hperm := by simpa only [evmPos, dropAfterDeletePosState, evmPop, dropAfterPopState, dropAfterPopClearState, evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hdelAmt) ExecBlock.nil
+    refine ExecBlock.consNormal (ExecStmt.pop (fork := fork) (hperm := by simpa only [evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hpop) ?_
+    refine ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := by simpa only [evmPop, dropAfterPopState, dropAfterPopClearState, evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hdelPos) ?_
+    exact ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := by simpa only [evmPos, dropAfterDeletePosState, evmPop, dropAfterPopState, dropAfterPopClearState, evmMovePos, dropAfterMovePosState, evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm) hdelAmt) ExecBlock.nil
   simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0, posWord, lenWord,
     lastIndex, dstIndex, localsPos, localsLast, localsLastIndex, localsMove, localsDst,
     evmMoveElem, evmMovePos, evmPop, evmPos, evmAmt] using
@@ -1196,9 +1198,9 @@ theorem cureDropSourceBodySwapPopZeroRevertSplit {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (solcSlotWordAt (dropPosSlotFor I) σ I)
         (solcSlotWordAt ⟨2⟩ σ I) = ⟨0⟩ →
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body .reverted) ∧
+    ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body .reverted) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 (dropLocals I)
+      ExecTransitionBody fork config contract evm0 (dropLocals I)
         dropTransition.body .staticViolation) := by
   intro evm0 posWord lenWord lastIndex dstIndex localsPos localsLast localsLastIndex
     localsMove localsDst evmMoveElem evmMovePos
@@ -1340,9 +1342,9 @@ theorem cureDropSourceBodySwapPopZeroRevertSplit {σ σ₀ A I} {g : UInt256}
     simp [evalExpr?, localsDst, localsMove, EvalResult.ofOption,
       Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert, Std.HashMap.get?_eq_getElem?]
   have houter {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := localsLast } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := localsLast } evm0
         (dropTransition.body.drop 6) result) :
-      ExecBlock config { contract := contract, locals := dropLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
         dropTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1353,9 +1355,9 @@ theorem cureDropSourceBodySwapPopZeroRevertSplit {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
     exact hrest
   have hswapPrefix {rest : List Stmt} {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := localsDst } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := localsDst } evm0
         rest result) :
-      ExecBlock config { contract := contract, locals := localsLast } evm0
+      ExecBlock fork config { contract := contract, locals := localsLast } evm0
         (.letDecl "lastIndex" (some uint256) (sub256 (.var "last") (.intLit 1)) ::
           .letDecl "move" (some addr) (.storage (srcElemRef (.var "lastIndex"))) ::
           .letDecl "dstIndex" (some uint256) (sub256 (.var "pos_") (.intLit 1)) :: rest)
@@ -1400,7 +1402,7 @@ theorem cureDropSourceBodySwapPopZeroRevertSplit {σ σ₀ A I} {g : UInt256}
           (by simp [localsDst, localsMove, localsLastIndex, localsLast, localsPos, dropLocals])
           hpopLenLoad
     have hswapBlock :
-        ExecBlock config { contract := contract, locals := localsLast } evm0
+        ExecBlock fork config { contract := contract, locals := localsLast } evm0
           [ .letDecl "lastIndex" (some uint256) (sub256 (.var "last") (.intLit 1)),
             .letDecl "move" (some addr) (.storage (srcElemRef (.var "lastIndex"))),
             .letDecl "dstIndex" (some uint256) (sub256 (.var "pos_") (.intLit 1)),
@@ -1409,15 +1411,15 @@ theorem cureDropSourceBodySwapPopZeroRevertSplit {σ σ₀ A I} {g : UInt256}
           (.ok { contract := contract, locals := localsDst } evmMovePos) := by
       apply hswapPrefix
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm)
           (by simpa [localsLastIndex, localsMove, localsDst] using hmoveVar)
           (by simpa [localsLastIndex, localsMove, localsDst] using hassignMoveElem)) ?_
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm))
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmMoveElem, dropAfterMoveElemState, storageStore_executionEnv] using hperm))
           (by simpa [localsLastIndex, localsMove, localsDst] using hposVar)
           (by simpa [localsLastIndex, localsMove, localsDst] using hassignMovePos)) ExecBlock.nil
     have hblock :
-        ExecBlock config { contract := contract, locals := dropLocals I } evm0
+        ExecBlock fork config { contract := contract, locals := dropLocals I } evm0
           [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
             .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
             .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1479,7 +1481,7 @@ theorem cureDropSourceBodySwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
       localsMove.insert "dstIndex" (.int (Int.ofNat dstIndex.toNat))
     let evmMoveElem := dropAfterMoveElemState evm0 posWord lenWord
     let _evmMovePos := dropAfterMovePosState evm0 evmMoveElem posWord lenWord
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body .reverted :=
   (cureDropSourceBodySwapPopZeroRevertSplit
     hwv hauth hlive hposNe hlenPos hswap).1 hperm hpopLenZero
 

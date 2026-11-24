@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiAttestRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,18 +13,18 @@ theorem multiAttestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
     (hreq : L.get? "multiRequests" = some (.array (multiRequestValues ee.calldata
       (UInt256.ofNat (wordArrayOffset ee.calldata+36)) (wordArrayLength ee.calldata))))
     (hheap : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat 224)))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3713⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3713⟩
       (UInt256.ofNat (wordArrayLength ee.calldata)::UInt256.ofNat (wordArrayOffset ee.calldata+36)::R)
       (Reasoning.Theory.writeWord ByteArray.empty 64 (UInt256.ofNat 224)) aw out σ k C) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (words : List UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail)
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail)
         (.returned {contract := contract,locals := L',immutables := immStore v} evm' (some [wordListValue words])) ∧
       SourceState s0 ee σ' evm' ∧
-      RDret (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      RDret fork (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestAllocateBody++multiAttestTail) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   let n := wordArrayLength ee.calldata
   let base := UInt256.ofNat (wordArrayOffset ee.calldata+36)
   let initial := Reasoning.Theory.writeWord ByteArray.empty 64 (UInt256.ofNat 224)
@@ -38,7 +40,7 @@ theorem multiAttestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
     omega
   have ha := easMultiAttestAllocate (heap := UInt256.ofNat 224) v (by omega) hn (by decide) (by native_decide) rd
   simp only [show (UInt256.ofNat 224).toNat = 224 from rfl] at ha
-  have hs := multiAttestAllocateSource (imms := immStore v) (evm := evm) hreq hheap
+  have hs := multiAttestAllocateSource (fork := fork) (imms := immStore v) (evm := evm) hreq hheap
     (by rw [multiRequestValues_length]; exact hn)
   dsimp only at hs
   rw [multiRequestValues_length,hstate.env] at hs
@@ -52,7 +54,7 @@ theorem multiAttestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
         (UInt256.ofNat 224) (List.replicate n []) 0 (UInt256.ofNat next).toNat := by
       rw [hnext]
       exact ⟨hmem.2.1,by decide,EmptyArraySuffix.replicate n,hmem.2.2,arrayTableAllocationMemory_zero96 n⟩
-    have hstart : MultiAttestAt v ee g s0 n base (UInt256.ofNat 224) R 0
+    have hstart : MultiAttestAt fork v ee g s0 n base (UInt256.ofNat 224) R 0
         (multiAttestInitialLocals L n next ee.weiValue) evm := by
       refine ⟨σ,_,out,a1,j1,D1,UInt256.ofNat next,ee.weiValue,List.replicate n [],hstate,
         by rw [hnext]; exact hv.1,by rw [List.length_replicate],?_,hm,?_⟩

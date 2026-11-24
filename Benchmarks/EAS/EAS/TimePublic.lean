@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.TimeEntry
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -17,12 +19,12 @@ def timePublicFinalLocals (locals : Store) (ee : ExecutionEnv) : Store :=
 
 /-- Finish either single-word time entry after its state-changing internal call. -/
 theorem timePublicFinish {evm evm' : EVM.State} {locals imms : Store} {stmt : Stmt}
-    (hcall : ExecStmt config {contract := contract, locals := timeEntryLocals locals evm.executionEnv, immutables := imms}
+    (hcall : ExecStmt fork config {contract := contract, locals := timeEntryLocals locals evm.executionEnv, immutables := imms}
       evm stmt (.ok {
         contract := contract
         locals := (timeEntryLocals locals evm.executionEnv).insert "__c1$allocation" (.tuple [.tuple [], .int 224])
         immutables := imms} evm')) :
-    ExecBlock config {contract := contract, locals := timeEntryLocals locals evm.executionEnv, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := timeEntryLocals locals evm.executionEnv, immutables := imms} evm
       [stmt, .letDecl "__c1" none (.tupleGet (.var "__c1$allocation") 0),
         .assign .localVar {base := "$EAS.freeMemory"} (.tupleGet (.var "__c1$allocation") 1), .return [.var "time"]]
       (.returned {contract := contract, locals := timePublicFinalLocals locals evm.executionEnv, immutables := imms}
@@ -30,7 +32,7 @@ theorem timePublicFinish {evm evm' : EVM.State} {locals imms : Store} {stmt : St
   apply ExecBlock.consNormal hcall
   have hh : (timeEntryLocals locals evm.executionEnv).get? "$EAS.freeMemory" = some (.int (Int.ofNat (224 : Nat))) :=
     store_get_self _ _ _
-  have hunpack := unpackHeapResult (cfg := config) (evm := evm')
+  have hunpack := unpackHeapResult (fork := fork) (cfg := config) (evm := evm')
     (frame := {
       contract := contract
       locals := (timeEntryLocals locals evm.executionEnv).insert "__c1$allocation" (.tuple [.tuple [], .int 224])

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.HookCallPrefixTrace
 import Benchmarks.UniswapV4PoolManager.CallCostTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,16 +16,16 @@ theorem hookCallPaidPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hstack : R.length+11 ≤ 1024) (hI : evm.executionEnv = I) (hσ0 : evm.σ₀ = s0.σ₀)
     (hdata : BytesObjectView mem ptr data) (hsmall : data.size ≤ Ethereum.EVM.maxReturnDataSizeByGas)
     (hfit : ptr.toNat+32 < UInt256.size) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨16165⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16165⟩
       (accountWord hook :: ptr :: ret :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ post z out, callViaEVM evm hook 0 data (z, post, out) ∧
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ post z out, callViaEVM fork evm hook 0 data (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (if z = true then ∃ k' C', Cₘ (hookCallActiveWords aw ptr data) ≤ C' ∧
-        RD (deployedRuntime v) I g s0 ⟨16189⟩
+        RD fork (deployedRuntime v) I g s0 ⟨16189⟩
           (ptr :: accountWord hook :: ret :: (ptr+⟨32⟩) :: R)
           mem (hookCallActiveWords aw ptr data) out post.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   have hsize : data.size < UInt256.size := lt_of_le_of_lt hsmall (by decide)
   have hptr : (ptr+UInt256.ofNat 32).toNat = ptr.toNat+32 := uadd_word_ofNat_toNat ptr 32 hfit
   have hinput : mem.readWithPadding (ptr+UInt256.ofNat 32).toNat (memLoad ptr mem).toNat = data := by
@@ -37,8 +39,8 @@ theorem hookCallPaidPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       poolManagerBlocks.immutableTemplate_size64)
   by_cases hd : I.depth = 1024
   · obtain ⟨k2, C2, rd2⟩ := RD.callDepthLimit rd1 hdec hd (by simp only [List.length_cons]; omega)
-    have hc : callViaEVM evm hook 0 data
-        (false, {evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+    have hc : callViaEVM fork evm hook 0 data
+        (false, {evm with substate := (Ethereum.EVM.callSubstate fork
           evm.accountMap hook evm.substate)}, .empty) := by
       apply callViaEVM.callNotMade rfl rfl
       intro hh
@@ -55,13 +57,13 @@ theorem hookCallPaidPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨σ', z, out, Ain, callGas, gasLeft, A', k2, C2, hθ, rd2, hcost, _⟩ := hcall
   rw [hinput] at hθ
   let post : State := {evm with accountMap := σ', substate := A'}
-  have hc : callViaEVM evm hook 0 data (z, post, out) := by
+  have hc : callViaEVM fork evm hook 0 data (z, post, out) := by
     apply callViaEVM.callMade (g' := gasLeft) (A' := A') wordOfInt_zero.symm
       ⟨callGas, Ain, ?_⟩ rfl (Fin.zero_le _) (by rw [hI]; exact hd)
     simpa only [post, hI, hσ0, accountWord, accountAddress_roundtrip, Bool.true_and] using hθ
   have ho : out.size < 2^138 :=
     Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ hsmall
-  change RD _ _ _ _ ⟨16184⟩
+  change RD fork _ _ _ _ ⟨16184⟩
     ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: accountWord hook :: ret :: (ptr+⟨32⟩) :: R)
     (callOutputMem mem out ⟨0⟩ ⟨0⟩) _ _ _ _ _ at rd2
   simp only [callOutputMem_zero, hdata.lengthWord] at rd2 hcost

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -298,10 +300,10 @@ theorem fileIlkUintChopSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintChopSlotFor I) (fileIlkUintData I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+      ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
         .staticViolation) := by
   intro locals evm0 evm1
   have hguard := catAuthGuardEval_true
@@ -323,9 +325,9 @@ theorem fileIlkUintChopSourceBodySplit {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "chop") (.int (Int.ofNat (fileIlkUintData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileIlkChopStorage evm0 I hsz36
-  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+  have hbody : ∀ r, ExecStmt fork config { contract := contract, locals := locals } evm0
       (.assign .storage (ilksF (.var "ilk") "chop") (.var "data")) r →
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         fileIlkUintTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -333,7 +335,7 @@ theorem fileIlkUintChopSourceBodySplit {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     exact execBlock_singleton (ExecStmt.iteTrue hcond (execBlock_singleton h))
   refine ⟨fun hperm ↦ ?_, fun hperm ↦ ?_⟩
-  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign))
+  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign))
   · exact ExecFuncBody.execBlockStatic
       (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hperm)))
 
@@ -347,7 +349,7 @@ theorem fileIlkUintChopSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintChopSlotFor I) (fileIlkUintData I)
-    ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) :=
   (fileIlkUintChopSourceBodySplit (σ₀ := σ₀) (A := A) (g := g)
     hwv hsz36 hauth hwhat).1 hperm
@@ -362,10 +364,10 @@ theorem fileIlkUintDunkSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintDunkSlotFor I) (fileIlkUintData I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+      ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
         .staticViolation) := by
   intro locals evm0 evm1
   have hguard := catAuthGuardEval_true
@@ -393,9 +395,9 @@ theorem fileIlkUintDunkSourceBodySplit {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "dunk") (.int (Int.ofNat (fileIlkUintData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileIlkDunkStorage evm0 I hsz36
-  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+  have hbody : ∀ r, ExecStmt fork config { contract := contract, locals := locals } evm0
       (.assign .storage (ilksF (.var "ilk") "dunk") (.var "data")) r →
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         fileIlkUintTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -404,7 +406,7 @@ theorem fileIlkUintDunkSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact execBlock_singleton (ExecStmt.iteFalse hchop
       (execBlock_singleton (ExecStmt.iteTrue hcond (execBlock_singleton h))))
   refine ⟨fun hperm ↦ ?_, fun hperm ↦ ?_⟩
-  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign))
+  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign))
   · exact ExecFuncBody.execBlockStatic
       (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hperm)))
 
@@ -419,7 +421,7 @@ theorem fileIlkUintDunkSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintDunkSlotFor I) (fileIlkUintData I)
-    ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) :=
   (fileIlkUintDunkSourceBodySplit (σ₀ := σ₀) (A := A) (g := g)
     hwv hsz36 hauth hnotChop hwhat).1 hperm
@@ -431,7 +433,7 @@ theorem fileIlkUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     (hnotDunk : fileIlkUintWhat I ≠ fileIlkDunkBytes) :
     let locals := fileIlkUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body .reverted := by
   intro locals evm0
   have hguard := catAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -453,7 +455,7 @@ theorem fileIlkUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         .ok (.bool false) := by
     simp [evalExpr?, pure]
   have hinner :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [.ite (.binary .eq (.var "what") dunkParamLit)
           [.assign .storage (ilksF (.var "ilk") "dunk") (.var "data")]
           [.require (.boolLit false)]]
@@ -461,7 +463,7 @@ theorem fileIlkUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     ExecBlock.consRevert (ExecStmt.iteFalse hdunk
       (ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileIlkUintTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileIlkUintTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -474,12 +476,12 @@ theorem fileIlkUintAuthRevertSourceBody {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (catCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileIlkUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body .reverted := by
   intro locals evm0
   have hguard := catAuthGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkUintLocals]) hauth
-  have hblock := nonpayableSecondRequireReverts
+  have hblock := nonpayableSecondRequireReverts (fork := fork)
     (cfg := config) (stele := { contract := contract, locals := locals })
     (evm := evm0)
     (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -500,7 +502,7 @@ theorem catReachFileIlkUintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨261⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨436938878⟩ :=
@@ -528,11 +530,11 @@ theorem RD.catFileIlkUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : S
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨283⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨283⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = catBytecode)
     (hroutine : (D_J code 0).contains ⟨783⟩ = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨783⟩
+    ∃ k' C', RD fork code ee g s0 ⟨783⟩
       (calldataWord ee.calldata 68 :: calldataWord ee.calldata 36 ::
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
@@ -558,12 +560,12 @@ theorem RD.catFileIlkUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : S
       using rd301.jump (by native_decide) hroutine (by evm_ov)⟩
 
 theorem RD.catFileIlkUintToSwitch {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I) ⟨872⟩
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I) ⟨872⟩
       (fileIlkUintData I :: fileIlkUintWhatWord I :: fileIlkUintIlkWord I :: ⟨302⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -592,12 +594,12 @@ theorem RD.catFileIlkUintToSwitch {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, hafterAuth⟩
 
 theorem RD.catFileIlkUintAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -629,17 +631,17 @@ theorem RD.catFileIlkUintAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem RD.catFileIlkStoreChopSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨872⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨872⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileIlkChopBytes)
     (hmem : mem.size = 96)
     (hret : (D_J catBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
+      ∃ k' C', RD fork catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
         (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C') ∨
-      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork catBytecode g s0) := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
@@ -697,11 +699,11 @@ theorem RD.catFileIlkStoreChopSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
 theorem RD.catFileIlkSkipChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨872⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨872⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileIlkChopBytes)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
   have rd873 := h.jumpdest (by native_decide) (by evm_ov)
   have rd874 := rd873.dup2 (by native_decide) (by evm_ov)
@@ -723,17 +725,17 @@ theorem RD.catFileIlkSkipChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.catFileIlkStoreDunkSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileIlkDunkBytes)
     (hmem : mem.size = 96)
     (hret : (D_J catBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
+      ∃ k' C', RD fork catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
         (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C') ∨
-      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork catBytecode g s0) := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
@@ -790,11 +792,11 @@ theorem RD.catFileIlkStoreDunkSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
 theorem RD.catFileIlkSkipDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileIlkDunkBytes)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨953⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨953⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
   have rd914 := h.jumpdest (by native_decide) (by evm_ov)
   have rd915 := rd914.dup2 (by native_decide) (by evm_ov)
@@ -821,11 +823,11 @@ abbrev catFileIlkUintUnrecognizedRawWord : UInt256 :=
 theorem RD.catFileIlkUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨953⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork catBytecode ee g s0 ⟨953⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev catBytecode g s0 := by
+    RDrev fork catBytecode g s0 := by
   have rdMload := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -881,17 +883,17 @@ theorem RD.catFileIlkUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Exec
 /-! ### success / revert wrappers -/
 
 theorem RD.catFileIlkChopSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hwhat : fileIlkUintWhat I = fileIlkChopBytes) :
     (I.perm = true ∧
-      RDret catBytecode g (initState σ σ₀ g A I)
+      RDret fork catBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (fileIlkUintChopSlotFor I) (fileIlkUintData I))
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic catBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork catBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileIlkUintToSwitch hreach hsz100 hsize hauth
   have hword : fileIlkUintWhatWord I = ABI.bytesToWord fileIlkChopBytes :=
     fileIlkUintWhatWord_eq_of_bytes_eq (by omega) hwhat
@@ -910,7 +912,7 @@ theorem RD.catFileIlkChopSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
     RD.stop hretPc' (by native_decide) (by simp)
 
 theorem RD.catFileIlkDunkSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -918,10 +920,10 @@ theorem RD.catFileIlkDunkSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
     (hnotChop : fileIlkUintWhat I ≠ fileIlkChopBytes)
     (hwhat : fileIlkUintWhat I = fileIlkDunkBytes) :
     (I.perm = true ∧
-      RDret catBytecode g (initState σ σ₀ g A I)
+      RDret fork catBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (fileIlkUintDunkSlotFor I) (fileIlkUintData I))
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic catBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork catBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileIlkUintToSwitch hreach hsz100 hsize hauth
   have hchopNe : fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkChopBytes :=
     fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by native_decide)
@@ -945,14 +947,14 @@ theorem RD.catFileIlkDunkSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
     RD.stop hretPc' (by native_decide) (by simp)
 
 theorem RD.catFileIlkUintUnrecognizedParamRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hnotChop : fileIlkUintWhat I ≠ fileIlkChopBytes)
     (hnotDunk : fileIlkUintWhat I ≠ fileIlkDunkBytes) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileIlkUintToSwitch hreach hsz100 hsize hauth
   have hchopNe : fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkChopBytes :=
     fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by native_decide)
@@ -984,10 +986,10 @@ theorem catFileIlkUintBodyCore
       config.externalABI.decodeCalldata? (fileIlkUintTransition.params.map Param.name)
         (transitionSignature fileIlkUintTransition).paramTypes I.calldata =
           some (fileIlkUintLocals I))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
   let locals := fileIlkUintLocals I
   have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
@@ -1006,10 +1008,10 @@ theorem catFileIlkUintBodyCore
       let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (fileIlkUintChopSlotFor I)
         (fileIlkUintData I)
       have hbody (hperm : I.perm = true) :
-          ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+          ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
             (.returned { contract := contract, locals := locals } evm1 none) := by
         simpa [evm0, evm1, locals] using
-          (fileIlkUintChopSourceBody (hperm := hperm) (σ := σ)
+          (fileIlkUintChopSourceBody (fork := fork) (hperm := hperm) (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthStele hchop)
       have hstoreSplit := RD.catFileIlkChopSuccessSplit hreach hsz100 hsize hauthSolc hchop
       rcases hstoreSplit with ⟨hperm, hret⟩ | ⟨hperm, hstatic⟩
@@ -1025,10 +1027,10 @@ theorem catFileIlkUintBodyCore
         let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (fileIlkUintDunkSlotFor I)
           (fileIlkUintData I)
         have hbody (hperm : I.perm = true) :
-            ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+            ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
               (.returned { contract := contract, locals := locals } evm1 none) := by
           simpa [evm0, evm1, locals] using
-            (fileIlkUintDunkSourceBody (hperm := hperm) (σ := σ)
+            (fileIlkUintDunkSourceBody (fork := fork) (hperm := hperm) (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthStele hchop hdunk)
         have hstoreSplit := RD.catFileIlkDunkSuccessSplit hreach hsz100 hsize hauthSolc hchop hdunk
         rcases hstoreSplit with ⟨hperm, hret⟩ | ⟨hperm, hstatic⟩
@@ -1041,10 +1043,10 @@ theorem catFileIlkUintBodyCore
           henc
       · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body
+            ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body
               .reverted := by
           simpa [evm0, locals] using
-            (fileIlkUintUnrecognizedSourceBody (σ := σ)
+            (fileIlkUintUnrecognizedSourceBody (fork := fork) (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hchop hdunk)
         have hrev := RD.catFileIlkUintUnrecognizedParamRevert hreach hsz100 hsize hauthSolc
           hchop hdunk
@@ -1057,9 +1059,9 @@ theorem catFileIlkUintBodyCore
       simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
-        ExecTransitionBody config contract evm0 locals fileIlkUintTransition.body .reverted := by
+        ExecTransitionBody fork config contract evm0 locals fileIlkUintTransition.body .reverted := by
       simpa [evm0, locals] using
-        (fileIlkUintAuthRevertSourceBody (σ := σ)
+        (fileIlkUintAuthRevertSourceBody (fork := fork) (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele)
     have hrev := RD.catFileIlkUintAuthRevert hreach hsz100 hsize hauthSolc
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -1071,9 +1073,9 @@ theorem catFileIlkUintShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsel : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    catReachFileIlkUintBody (σ := σ)
+    catReachFileIlkUintBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -1097,7 +1099,7 @@ theorem catFileIlkUintBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 100

@@ -5,6 +5,8 @@ import Benchmarks.UniswapV3.Pool.SignedWordZero
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_071
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,16 +16,16 @@ set_option maxRecDepth 1000
 theorem bitmapFlipBeforeStoreRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw base ret spacingRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick spacing : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21285⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21285⟩
       (spacingRaw :: EVM.wordOfInt tick :: base :: ret :: R) mem aw rdata σ k C)
     (htlo : -(2 ^ 23 : Int) ≤ tick) (hthi : tick < 2 ^ 23)
     (hslo : -(2 ^ 23 : Int) ≤ spacing) (hshi : spacing < 2 ^ 23)
     (hs : UInt256.signextend (UInt256.ofNat 2) spacingRaw = EVM.wordOfInt spacing)
     (hov : R.length + 11 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ spacing = 0) ∨
-    (RDrev (deployedRuntime v) g s0 ∧ spacing ≠ 0 ∧ tick.tmod spacing ≠ 0) ∨
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ spacing = 0) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ spacing ≠ 0 ∧ tick.tmod spacing ≠ 0) ∨
     (spacing ≠ 0 ∧ tick.tmod spacing = 0 ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨21341⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨21341⟩
         (bitmapPositionBitRaw (tick.tdiv spacing) :: EVM.wordOfInt (bitmapWordPos (tick.tdiv spacing)) ::
           ⟨0⟩ :: ⟨0⟩ :: spacingRaw :: EVM.wordOfInt tick :: base :: ret :: R)
         mem aw rdata σ k' C') := by
@@ -91,15 +93,15 @@ theorem bitmapFlipBeforeStoreRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
 theorem bitmapFlipBeforeStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw base ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick spacing : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21285⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21285⟩
       (EVM.wordOfInt spacing :: EVM.wordOfInt tick :: base :: ret :: R) mem aw rdata σ k C)
     (htlo : -(2 ^ 23 : Int) ≤ tick) (hthi : tick < 2 ^ 23)
     (hslo : -(2 ^ 23 : Int) ≤ spacing) (hshi : spacing < 2 ^ 23)
     (hov : R.length + 11 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ spacing = 0) ∨
-    (RDrev (deployedRuntime v) g s0 ∧ spacing ≠ 0 ∧ tick.tmod spacing ≠ 0) ∨
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ spacing = 0) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ spacing ≠ 0 ∧ tick.tmod spacing ≠ 0) ∨
     (spacing ≠ 0 ∧ tick.tmod spacing = 0 ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨21341⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨21341⟩
         (bitmapPositionBitRaw (tick.tdiv spacing) :: EVM.wordOfInt (bitmapWordPos (tick.tdiv spacing)) ::
           ⟨0⟩ :: ⟨0⟩ :: EVM.wordOfInt spacing :: EVM.wordOfInt tick :: base :: ret :: R)
         mem aw rdata σ k' C') := by

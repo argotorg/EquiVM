@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_013
 import Benchmarks.CurveVault.RuntimeBlocks_016
 import Benchmarks.CurveVault.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -37,8 +39,8 @@ theorem vaultMutationConversionSetup (flow : VaultFlow) {I : ExecutionEnv} {g : 
     (hsize : flow.conversionTotalOffset + 32 ≤ mem.size)
     (hmt : memLoad (UInt256.ofNat flow.conversionTotalOffset) mem = total)
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.conversionEntry) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.conversionEntry) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0
       (if flow.conversionToShares then UInt256.ofNat 7108 else UInt256.ofNat 7332)
       (UInt256.ofNat 704 :: UInt256.ofNat flow.conversionNext :: R)
       (vaultConversionArgsMemory (vaultMutationConversionBase flow mem total) (calldataWord I.calldata 4)
@@ -64,7 +66,7 @@ theorem vaultMutationConversionSetup (flow : VaultFlow) {I : ExecutionEnv} {g : 
     (hframe.load 640 (by omega) (by decide +kernel) hbaseSize (by decide +kernel)).trans hbaseTotal
   let rawBase := if flow.conversionToShares then mem else (memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32
   let rawPartial := flag.toByteArray.write 0 ((calldataWord I.calldata 4).toByteArray.write 0 rawBase 320 32) 352 32
-  have hraw : ∃ aw' k' C', RD vaultBytecode I g s0
+  have hraw : ∃ aw' k' C', RD fork vaultBytecode I g s0
       (if flow.conversionToShares then UInt256.ofNat 7108 else UInt256.ofNat 7332)
       (UInt256.ofNat 704 :: UInt256.ofNat flow.conversionNext :: R)
       (vaultConversionArgsMemory rawBase (calldataWord I.calldata 4) flag (memLoad (UInt256.ofNat 640) rawPartial))

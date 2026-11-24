@@ -3,6 +3,8 @@ import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -240,7 +242,7 @@ theorem supportsInterfaceResultWord_norm (I : ExecutionEnv) :
 
 theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (supportsInterfaceStore I) supportsInterfaceTransition.body
+    ExecTransitionBody fork config contract evm (supportsInterfaceStore I) supportsInterfaceTransition.body
       (.returned { contract := contract, locals := supportsInterfaceStore I } evm
         (some [(.bool (supportsInterfaceResult I))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -255,10 +257,10 @@ theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 theorem erc6909SupportsInterfaceX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1696⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1696⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨188⟩, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
@@ -271,10 +273,10 @@ theorem erc6909SupportsInterfaceX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨447⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨447⟩
       [supportsInterfaceWord I, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
@@ -305,11 +307,11 @@ theorem erc6909SupportsInterfaceX_decoded {σ σ₀ A I} {g : Sat256}
 theorem erc6909ReturnBool193 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap} {val : UInt256}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨193⟩ (val :: R) solcFreePtrMem
+    (h : RD fork erc6909BenchBytecode ee g s0 ⟨193⟩ (val :: R) solcFreePtrMem
         (UInt256.ofNat 3) rdata acc k C)
     (hnorm : UInt256.isZero (UInt256.isZero val) = val)
     (hov : R.length + 8 ≤ 1024) :
-    RDret erc6909BenchBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork erc6909BenchBytecode g s0 acc (UInt256.toByteArray val) := by
   have rd165 := evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -334,11 +336,11 @@ theorem erc6909ReturnBool193 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem erc6909SupportsInterfaceX_body {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨447⟩
       [supportsInterfaceWord I, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨193⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨193⟩
       [supportsInterfaceResultWord I, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd447⟩ := hreach
@@ -409,10 +411,10 @@ theorem erc6909X_supportsInterface {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork erc6909BenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (supportsInterfaceResultWord I)) := by
   obtain ⟨_, _, rd447⟩ := erc6909SupportsInterfaceX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -426,10 +428,10 @@ theorem erc6909SupportsInterfaceX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
@@ -444,10 +446,10 @@ theorem erc6909SupportsInterfaceX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
@@ -463,10 +465,10 @@ theorem erc6909SupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = none)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨174⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
@@ -493,11 +495,11 @@ theorem erc6909SupportsInterfaceBodyCore
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 1))
-    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hselSupports : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ := by
     simpa [erc6909SelBytes] using hsel
@@ -520,7 +522,7 @@ theorem erc6909SupportsInterfaceBodyCore
           have hdec := erc6909Decode_supportsInterface_ok
             (I := I) hsz36 hbig hpadSome
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (supportsInterfaceStore I)
                 supportsInterfaceTransition.body

@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.UniswapV3.Pool.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -18,8 +20,8 @@ def uniswapV3PoolCreation_block_4449_stack {mem : ByteArray} {x0 : UInt256} {x1 
 theorem uniswapV3PoolCreation_block_4449 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 13807) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4449) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13807) (uniswapV3PoolCreation_block_4449_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw ((UInt256.ofNat 192) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 9) (C + ((30) + (memExpansionCost aw ((UInt256.ofNat 192) + x2) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4449) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13807) (uniswapV3PoolCreation_block_4449_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw ((UInt256.ofNat 192) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 9) (C + ((30) + (memExpansionCost aw ((UInt256.ofNat 192) + x2) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -38,8 +40,8 @@ theorem uniswapV3PoolCreation_block_4449 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4449_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 13807) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4449) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13807) (uniswapV3PoolCreation_block_4449_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4449) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13807) (uniswapV3PoolCreation_block_4449_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4449 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -54,8 +56,8 @@ def uniswapV3PoolCreation_block_4463_memory {mem : ByteArray} {x0 : UInt256} {x3
 /-- Automatically generated RD summary for bytecode block at pc 4463. -/
 theorem uniswapV3PoolCreation_block_4463 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4463) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (uniswapV3PoolCreation_block_4463_stack (x2 := x2) (x3 := x3) (R := R)) (uniswapV3PoolCreation_block_4463_memory (mem := mem) (x0 := x0) (x3 := x3)) (M aw (x3 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((33) + (memExpansionCost aw (x3 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4463) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (uniswapV3PoolCreation_block_4463_stack (x2 := x2) (x3 := x3) (R := R)) (uniswapV3PoolCreation_block_4463_memory (mem := mem) (x0 := x0) (x3 := x3)) (M aw (x3 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((33) + (memExpansionCost aw (x3 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -76,8 +78,8 @@ theorem uniswapV3PoolCreation_block_4463 {tail : ByteArray} {ee : ExecutionEnv} 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem uniswapV3PoolCreation_block_4463_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4463) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (uniswapV3PoolCreation_block_4463_stack (x2 := x2) (x3 := x3) (R := R)) (uniswapV3PoolCreation_block_4463_memory (mem := mem) (x0 := x0) (x3 := x3)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4463) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (uniswapV3PoolCreation_block_4463_stack (x2 := x2) (x3 := x3) (R := R)) (uniswapV3PoolCreation_block_4463_memory (mem := mem) (x0 := x0) (x3 := x3)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4463 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -86,8 +88,8 @@ theorem uniswapV3PoolCreation_block_4479_taken {tail : ByteArray} {ee : Executio
     (hstack : R.length + 14 ≤ 1024)
     (hcond : x11 ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3908) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3908) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ (k + 4) (C + ((17))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3908) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ (k + 4) (C + ((17))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -102,8 +104,8 @@ theorem uniswapV3PoolCreation_block_4479_taken_packed {tail : ByteArray} {ee : E
     (hstack : R.length + 14 ≤ 1024)
     (hcond : x11 ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3908) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3908) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3908) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4479_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -111,8 +113,8 @@ theorem uniswapV3PoolCreation_block_4479_taken_packed {tail : ByteArray} {ee : E
 theorem uniswapV3PoolCreation_block_4479_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hcond : x11 = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ (k + 4) (C + ((17))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ (k + 4) (C + ((17))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -126,8 +128,8 @@ theorem uniswapV3PoolCreation_block_4479_fallthrough {tail : ByteArray} {ee : Ex
 theorem uniswapV3PoolCreation_block_4479_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hcond : x11 = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4479) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4479_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -139,8 +141,8 @@ def uniswapV3PoolCreation_block_4485_stack {mem : ByteArray} {x0 : UInt256} {R :
 theorem uniswapV3PoolCreation_block_4485 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3917) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3917) (uniswapV3PoolCreation_block_4485_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 6) (C + ((23) + (memExpansionCost aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3917) (uniswapV3PoolCreation_block_4485_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 6) (C + ((23) + (memExpansionCost aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -156,8 +158,8 @@ theorem uniswapV3PoolCreation_block_4485 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4485_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3917) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3917) (uniswapV3PoolCreation_block_4485_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4485) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3917) (uniswapV3PoolCreation_block_4485_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4485 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -168,8 +170,8 @@ def uniswapV3PoolCreation_block_4494_stack {mem : ByteArray} {x0 : UInt256} {R :
 /-- Automatically generated RD summary for bytecode block at pc 4494. -/
 theorem uniswapV3PoolCreation_block_4494 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4494) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (uniswapV3PoolCreation_block_4494_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 7) (C + ((19) + (memExpansionCost aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4494) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (uniswapV3PoolCreation_block_4494_stack (mem := mem) (x0 := x0) (R := R)) mem (M aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 7) (C + ((19) + (memExpansionCost aw ((UInt256.ofNat 32) + x0) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -185,8 +187,8 @@ theorem uniswapV3PoolCreation_block_4494 {tail : ByteArray} {ee : ExecutionEnv} 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem uniswapV3PoolCreation_block_4494_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4494) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (uniswapV3PoolCreation_block_4494_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4494) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (uniswapV3PoolCreation_block_4494_stack (mem := mem) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4494 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -202,8 +204,8 @@ def uniswapV3PoolCreation_block_4503_memory {mem : ByteArray} {x0 : UInt256} {x2
 theorem uniswapV3PoolCreation_block_4503 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3993) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (uniswapV3PoolCreation_block_4503_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4503_memory (mem := mem) (x0 := x0) (x2 := x2)) (M aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ (k + 13) (C + ((46) + (memExpansionCost aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (uniswapV3PoolCreation_block_4503_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4503_memory (mem := mem) (x0 := x0) (x2 := x2)) (M aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ (k + 13) (C + ((46) + (memExpansionCost aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -226,8 +228,8 @@ theorem uniswapV3PoolCreation_block_4503 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4503_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3993) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (uniswapV3PoolCreation_block_4503_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4503_memory (mem := mem) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4503) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (uniswapV3PoolCreation_block_4503_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4503_memory (mem := mem) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4503 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -236,8 +238,8 @@ theorem uniswapV3PoolCreation_block_4520_taken {tail : ByteArray} {ee : Executio
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 64) + x1) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 0) + x0) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3993) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (x0 :: x1 :: R) mem (M (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (x0 :: x1 :: R) mem (M (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -272,8 +274,8 @@ theorem uniswapV3PoolCreation_block_4520_taken_packed {tail : ByteArray} {ee : E
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 64) + x1) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 0) + x0) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 3993) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 3993) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4520_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -281,8 +283,8 @@ theorem uniswapV3PoolCreation_block_4520_taken_packed {tail : ByteArray} {ee : E
 theorem uniswapV3PoolCreation_block_4520_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 64) + x1) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 0) + x0) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem (M (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem (M (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 0) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -316,8 +318,8 @@ theorem uniswapV3PoolCreation_block_4520_fallthrough {tail : ByteArray} {ee : Ex
 theorem uniswapV3PoolCreation_block_4520_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 64) + x1) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 0) + x0) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4520_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -329,8 +331,8 @@ def uniswapV3PoolCreation_block_4554_stack {mem : ByteArray} {x0 : UInt256} {x1 
 theorem uniswapV3PoolCreation_block_4554 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 13989) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13989) (uniswapV3PoolCreation_block_4554_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 7) (C + ((26) + (memExpansionCost aw ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13989) (uniswapV3PoolCreation_block_4554_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)) rdata σ (k + 7) (C + ((26) + (memExpansionCost aw ((UInt256.ofNat 64) + x1) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.push2 (UInt256.ofNat 3980) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -347,8 +349,8 @@ theorem uniswapV3PoolCreation_block_4554 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4554_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 13989) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13989) (uniswapV3PoolCreation_block_4554_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4554) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 13989) (uniswapV3PoolCreation_block_4554_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4554 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -363,8 +365,8 @@ def uniswapV3PoolCreation_block_4566_memory {mem : ByteArray} {x0 : UInt256} {x2
 /-- Automatically generated RD summary for bytecode block at pc 4566. -/
 theorem uniswapV3PoolCreation_block_4566 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4566) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (uniswapV3PoolCreation_block_4566_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4566_memory (mem := mem) (x0 := x0) (x2 := x2)) (M aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((35) + (memExpansionCost aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4566) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (uniswapV3PoolCreation_block_4566_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4566_memory (mem := mem) (x0 := x0) (x2 := x2)) (M aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((35) + (memExpansionCost aw (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -384,8 +386,8 @@ theorem uniswapV3PoolCreation_block_4566 {tail : ByteArray} {ee : ExecutionEnv} 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem uniswapV3PoolCreation_block_4566_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4566) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (uniswapV3PoolCreation_block_4566_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4566_memory (mem := mem) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4566) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (uniswapV3PoolCreation_block_4566_stack (x1 := x1) (x2 := x2) (R := R)) (uniswapV3PoolCreation_block_4566_memory (mem := mem) (x0 := x0) (x2 := x2)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4566 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -397,8 +399,8 @@ def uniswapV3PoolCreation_block_4579_stack {R : List UInt256} : List UInt256 :=
 theorem uniswapV3PoolCreation_block_4579 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 2991) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2991) (uniswapV3PoolCreation_block_4579_stack (R := R)) mem aw rdata σ (k + 4) (C + ((14))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2991) (uniswapV3PoolCreation_block_4579_stack (R := R)) mem aw rdata σ (k + 4) (C + ((14))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -412,8 +414,8 @@ theorem uniswapV3PoolCreation_block_4579 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4579_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 2991) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2991) (uniswapV3PoolCreation_block_4579_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4579) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2991) (uniswapV3PoolCreation_block_4579_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4579 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -422,8 +424,8 @@ theorem uniswapV3PoolCreation_block_4585_taken {tail : ByteArray} {ee : Executio
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 96) + x0) mem)) (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 32) + x3) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4218) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4218) (x0 :: x1 :: x2 :: x3 :: R) mem (M (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 16) (C + ((57) + (memExpansionCost aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4218) (x0 :: x1 :: x2 :: x3 :: R) mem (M (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 16) (C + ((57) + (memExpansionCost aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -450,8 +452,8 @@ theorem uniswapV3PoolCreation_block_4585_taken_packed {tail : ByteArray} {ee : E
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 96) + x0) mem)) (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 32) + x3) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4218) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4218) (x0 :: x1 :: x2 :: x3 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4218) (x0 :: x1 :: x2 :: x3 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4585_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -459,8 +461,8 @@ theorem uniswapV3PoolCreation_block_4585_taken_packed {tail : ByteArray} {ee : E
 theorem uniswapV3PoolCreation_block_4585_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 96) + x0) mem)) (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 32) + x3) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem (M (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 16) (C + ((57) + (memExpansionCost aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem (M (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)) rdata σ (k + 16) (C + ((57) + (memExpansionCost aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x0) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -486,8 +488,8 @@ theorem uniswapV3PoolCreation_block_4585_fallthrough {tail : ByteArray} {ee : Ex
 theorem uniswapV3PoolCreation_block_4585_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 96) + x0) mem)) (UInt256.signextend (UInt256.ofNat 2) (memLoad ((UInt256.ofNat 32) + x3) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4585) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4585_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -499,8 +501,8 @@ def uniswapV3PoolCreation_block_4607_stack {mem : ByteArray} {x0 : UInt256} {x1 
 theorem uniswapV3PoolCreation_block_4607 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) (uniswapV3PoolCreation_block_4607_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem (M (M (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x3) (⟨32⟩ : UInt256)) rdata σ (k + 40) (C + ((125) + (memExpansionCost aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x3) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) (uniswapV3PoolCreation_block_4607_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem (M (M (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x3) (⟨32⟩ : UInt256)) rdata σ (k + 40) (C + ((125) + (memExpansionCost aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw ((UInt256.ofNat 64) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 64) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) ((UInt256.ofNat 96) + x3) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x3) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 0) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -549,8 +551,8 @@ theorem uniswapV3PoolCreation_block_4607 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4607_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) (uniswapV3PoolCreation_block_4607_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4607) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.land (UInt256.ofNat 4294967295) (UInt256.ofNat 14801)) (uniswapV3PoolCreation_block_4607_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4607 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -561,8 +563,8 @@ def uniswapV3PoolCreation_block_4663_stack {ee : ExecutionEnv} {mem : ByteArray}
 /-- Automatically generated RD summary for bytecode block at pc 4663. -/
 theorem uniswapV3PoolCreation_block_4663 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4663) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (uniswapV3PoolCreation_block_4663_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem (M (M aw (x4 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x4 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4663) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (uniswapV3PoolCreation_block_4663_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem (M (M aw (x4 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x4 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -635,8 +637,8 @@ theorem uniswapV3PoolCreation_block_4663 {tail : ByteArray} {ee : ExecutionEnv} 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem uniswapV3PoolCreation_block_4663_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4663) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (uniswapV3PoolCreation_block_4663_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4663) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (uniswapV3PoolCreation_block_4663_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := uniswapV3PoolCreation_block_4663 hstack h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -650,8 +652,8 @@ theorem uniswapV3PoolCreation_block_4752 {tail : ByteArray} {ee : ExecutionEnv} 
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4268) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4268) (uniswapV3PoolCreation_block_4752_stack (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ x4 (UInt256.lor (UInt256.land x2 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (UInt256.lor (UInt256.mul x0 x3) x1)))) k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4268) (uniswapV3PoolCreation_block_4752_stack (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ x4 (UInt256.lor (UInt256.land x2 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (UInt256.lor (UInt256.mul x0 x3) x1)))) k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.swap3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -689,8 +691,8 @@ theorem uniswapV3PoolCreation_block_4752_packed {tail : ByteArray} {ee : Executi
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4268) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4268) (uniswapV3PoolCreation_block_4752_stack (R := R)) mem aw' rdata (sstoreAccountMap ee.codeOwner σ x4 (UInt256.lor (UInt256.land x2 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (UInt256.lor (UInt256.mul x0 x3) x1)))) k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4752) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4268) (uniswapV3PoolCreation_block_4752_stack (R := R)) mem aw' rdata (sstoreAccountMap ee.codeOwner σ x4 (UInt256.lor (UInt256.land x2 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (UInt256.lor (UInt256.mul x0 x3) x1)))) k' C' := by
   obtain ⟨k0, C0, h0⟩ := uniswapV3PoolCreation_block_4752 hstack hperm hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -699,8 +701,8 @@ theorem uniswapV3PoolCreation_block_4752_packed {tail : ByteArray} {ee : Executi
 theorem uniswapV3PoolCreation_block_4804 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4804) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: R) mem (M aw (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 0) (UInt256.lor (UInt256.land (memLoad (x0 + (UInt256.ofNat 64)) mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 0) (⟨0⟩ : UInt256)))))) k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4804) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: R) mem (M aw (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 0) (UInt256.lor (UInt256.land (memLoad (x0 + (UInt256.ofNat 64)) mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 0) (⟨0⟩ : UInt256)))))) k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -735,8 +737,8 @@ theorem uniswapV3PoolCreation_block_4804 {tail : ByteArray} {ee : ExecutionEnv} 
 theorem uniswapV3PoolCreation_block_4804_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4804) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: R) mem aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 0) (UInt256.lor (UInt256.land (memLoad (x0 + (UInt256.ofNat 64)) mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 0) (⟨0⟩ : UInt256)))))) k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4804) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: R) mem aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 0) (UInt256.lor (UInt256.land (memLoad (x0 + (UInt256.ofNat 64)) mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (UInt256.land (UInt256.lnot (UInt256.ofNat 1461501637330902918203684832716283019655932542975)) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 0) (⟨0⟩ : UInt256)))))) k' C' := by
   obtain ⟨k0, C0, h0⟩ := uniswapV3PoolCreation_block_4804 hstack hperm h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -746,8 +748,8 @@ theorem uniswapV3PoolCreation_block_4854_taken {tail : ByteArray} {ee : Executio
     (hstack : R.length + 8 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 32) + x2) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 192) + x0) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4338) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4338) (x0 :: x1 :: x2 :: R) mem (M (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4338) (x0 :: x1 :: x2 :: R) mem (M (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -782,8 +784,8 @@ theorem uniswapV3PoolCreation_block_4854_taken_packed {tail : ByteArray} {ee : E
     (hstack : R.length + 8 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 32) + x2) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 192) + x0) mem))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode 0).contains (UInt256.ofNat 4338) = true)
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4338) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4338) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4854_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -791,8 +793,8 @@ theorem uniswapV3PoolCreation_block_4854_taken_packed {tail : ByteArray} {ee : E
 theorem uniswapV3PoolCreation_block_4854_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 32) + x2) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 192) + x0) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4888) (x0 :: x1 :: x2 :: R) mem (M (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4888) (x0 :: x1 :: x2 :: R) mem (M (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)) rdata σ (k + 24) (C + ((77) + (memExpansionCost aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw ((UInt256.ofNat 192) + x0) (⟨32⟩ : UInt256)) ((UInt256.ofNat 32) + x2) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode.size = 22728 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -826,8 +828,8 @@ theorem uniswapV3PoolCreation_block_4854_fallthrough {tail : ByteArray} {ee : Ex
 theorem uniswapV3PoolCreation_block_4854_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 32) + x2) mem)) (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (memLoad ((UInt256.ofNat 192) + x0) mem))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4888) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4854) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.UniswapV3.Pool.uniswapV3PoolCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 4888) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (uniswapV3PoolCreation_block_4854_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 

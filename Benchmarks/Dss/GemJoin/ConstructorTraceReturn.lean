@@ -1,5 +1,7 @@
 import Benchmarks.Dss.GemJoin.ConstructorTraceCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor return trace
 -/
@@ -22,10 +24,10 @@ theorem gemJoinCtorReturnTrace
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩)
-    (h : RD (gemJoinCtorCode vat ilk gem) I g s0 ⟨241⟩
+    (h : RD fork (gemJoinCtorCode vat ilk gem) I g s0 ⟨241⟩
       [dec, EVM.word gem.val, ilk, EVM.word vat.val]
       mem (UInt256.ofNat 8) rdata σ k C) :
-    RDret (gemJoinCtorCode vat ilk gem) g s0
+    RDret fork (gemJoinCtorCode vat ilk gem) g s0
       (sstoreAccountMap I.codeOwner σ ⟨4⟩ dec) gemJoinBytecode := by
   have rd243 := gem_ctor_run h with [push1 ⟨4⟩]
   obtain ⟨_, _, rd244⟩ := rd243.sstore hperm (by gem_ctor_decode)

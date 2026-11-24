@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SupplyBaseTotalsModel
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,7 +15,7 @@ theorem supplyBaseTotals_source (frame : Frame) (evm : EVM.State) (supplied repa
     (hB : frame.locals.get? "repayAmount" = some (.int repaid.toNat))
     (hST : frame.locals.get? "totalSupplyBase" = none)
     (hBT : frame.locals.get? "totalBorrowBase" = none) :
-    ExecBlock config frame evm supplyBaseTotalsBlock
+    ExecBlock fork config frame evm supplyBaseTotalsBlock
       (supplyBaseTotalsResult frame evm supplied repaid) := by
   have heS : evalExpr? config frame evm (.var "supplyAmount") =
       .ok (.int supplied.toNat) := by simp only [evalExpr?, hS, EvalResult.ofOption]
@@ -48,13 +50,13 @@ theorem supplyBaseTotals_source (frame : Frame) (evm : EVM.State) (supplied repa
             .ok (frame, supplyBaseTotalsState evm supplied repaid) := by
           simpa only [← hc] using assignTotalsPrincipal evm' frame.locals frame.immutables true
             (UInt256.sub (withdrawBaseTotal evm' true) repaid) hBT
-        exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp) hadd hwS)
-          (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm', supplyBaseSupplyState, storeTotalsPrincipal, storageStore_executionEnv] using hp)) hsub hwB) ExecBlock.nil)
+        exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp) hadd hwS)
+          (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm', supplyBaseSupplyState, storeTotalsPrincipal, storageStore_executionEnv] using hp)) hsub hwB) ExecBlock.nil)
       · simp only [supplyBaseTotalsResult, supplyBaseTotalsOutcome, if_pos hs, hp,
           if_true, if_neg hb]
         have hsub := checkedNarrowSubSourceUnderflow ⟨104, by decide⟩ htB heB
           (Nat.lt_of_not_ge hb)
-        exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp) hadd hwS)
+        exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp) hadd hwS)
           (ExecBlock.consRevert (ExecStmt.assignExprRevert hsub))
   · simp only [supplyBaseTotalsResult, supplyBaseTotalsOutcome, if_neg hs]
     have hadd := uintRangeSourceOverflow ⟨104, by decide⟩ (naturalAddSource htS heS)

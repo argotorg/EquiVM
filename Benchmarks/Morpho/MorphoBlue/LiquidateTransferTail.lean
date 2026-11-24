@@ -4,6 +4,8 @@ import Benchmarks.Morpho.MorphoBlue.WordBytesCallerBridge
 import Benchmarks.Morpho.MorphoBlue.CallerCallbackSource
 import Benchmarks.Morpho.MorphoBlue.LocalBytesGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -30,9 +32,9 @@ theorem morphoLiquidateTransferTail {v : MorphoImmutables} {ee : ExecutionEnv} {
     (hloan : memLoad (UInt256.ofNat 128) mem = p.loanToken)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2704)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2704)
       (liquidateTransferTail assets seized srcOff len []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (liquidateTransition.body.drop 33) liquidateTransition.returnType := by
   have hg := evalLocalBytesNonempty (cfg := config) (evm := evm)
@@ -50,7 +52,7 @@ theorem morphoLiquidateTransferTail {v : MorphoImmutables} {ee : ExecutionEnv} {
     have rd0 := morphoBlocks.morpho_block_2704_taken (immWords := wordsOf (immStore v)) (by change 8 ≤ 1024; decide) hz
       (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
     by_cases hcode : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = UInt256.ofNat 0
-    · have hes : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+    · have hes : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
           (callerCallbackBody "onMorphoLiquidate" [.var "repaidAssets", .var "data"] "__c22") .reverted :=
         callerCallbackSourceNoCode config _ evm "onMorphoLiquidate" [.var "repaidAssets", .var "data"] "__c22" []
           (by rw [← hs.accounts, hs.env]; exact hcode)
@@ -67,9 +69,9 @@ theorem morphoLiquidateTransferTail {v : MorphoImmutables} {ee : ExecutionEnv} {
         config "onMorphoLiquidate" liquidateCallbackSelectorWord hm hs hlen hsrc hdata hdataSize
         (by rw [liquidateCallbackSelectorWord_bytes]; exact liquidateCallback_encode assets data)
         hdecode (by simp) rd1
-      change RD _ _ _ _ (UInt256.ofNat 2837) _ _ _ _ _ _ _ at rd2
+      change RD fork _ _ _ _ (UInt256.ofNat 2837) _ _ _ _ _ _ _ at rd2
       cases z
-      · have hes : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+      · have hes : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
             (callerCallbackBody "onMorphoLiquidate" [.var "repaidAssets", .var "data"] "__c22") .reverted :=
           callerCallbackSourceFailure config _ evm evm1 "onMorphoLiquidate" [.var "repaidAssets", .var "data"] "__c22"
             [] _ result hcode' (liquidateCallback_args hl imms evm) hcall
@@ -95,7 +97,7 @@ theorem morphoLiquidateTransferTail {v : MorphoImmutables} {ee : ExecutionEnv} {
             store_get_ne (k := "callback") (a := "__c21") _ _ (by decide)] using hget
         have hf := morphoLiquidateLoanTransfer (v := v) p _ imms hc hl1 hs1 hm2
           (by have hh := hp.size; omega) (by omega) hget1 hz2 ht2 rd3
-        have hes : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+        have hes : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
             (callerCallbackBody "onMorphoLiquidate" [.var "repaidAssets", .var "data"] "__c22")
             (.ok (callerCallbackCalledFrame { contract := contract, locals := locals, immutables := imms }
               evm.executionEnv.source "__c22") evm1) :=

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.UnsafeDivRoundSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -40,9 +42,9 @@ theorem unsafeDivRoundWord (x y : UInt256) :
 theorem unsafeDivRoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret x y : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19703⟩ (y :: x :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19703⟩ (y :: x :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (unsafeDivRoundResult x y :: R) mem aw rdata σ k' C' := by
   have rr := uniswapV3Pool_block_19703 (immWords := wordsOf (immStore v)) hov hret rd
   simp only [uniswapV3Pool_block_19703_stack, unsafeDivRoundWord] at rr

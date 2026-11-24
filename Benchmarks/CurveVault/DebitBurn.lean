@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.DebitTail
 import Benchmarks.CurveVault.ControllerCache
 import Benchmarks.CurveVault.SupplyForward
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -21,23 +23,23 @@ theorem vaultDebitBurn (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s0 e
     (hinput : calldataWord I.calldata 4 = vaultDebitInput isWithdraw assets shares)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hocanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 9 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4549 else 5453)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4549 else 5453)) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop 4)
+      ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop 4)
         (.returned {contract := contract, locals := locals'} evm'
           (some [.int (Int.ofNat (vaultDebitResult isWithdraw assets shares).toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
         (vaultDebitResult isWithdraw assets shares).toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop 4)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop 4)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let beforeBody := if isWithdraw then vaultControllerCacheBody else []
   let afterBody := if isWithdraw then [] else vaultControllerCacheBody
   let locals0 := if isWithdraw then vaultControllerCacheLocals locals (codeOwnerStorageWord I σ ⟨3⟩) else locals
   have hbody : (vaultDebitFunction isWithdraw).body.drop 4 = beforeBody ++
       [.internalCall "_burn" [.var "_owner", .var (vaultDebitSharesName isWithdraw)] "__c3"] ++
       afterBody ++ (vaultDebitFunction isWithdraw).body.drop 7 := by cases isWithdraw <;> rfl
-  have hbefore : ExecBlock config {contract := contract, locals := locals} evm beforeBody
+  have hbefore : ExecBlock fork config {contract := contract, locals := locals} evm beforeBody
       (.ok {contract := contract, locals := locals0} evm) := by
     cases isWithdraw
     · exact ExecBlock.nil
@@ -67,7 +69,7 @@ theorem vaultDebitBurn (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s0 e
   let controller := if isWithdraw then codeOwnerStorageWord I σ ⟨3⟩ else codeOwnerStorageWord I σ1 ⟨3⟩
   let locals1 := locals0.insert "__c3" .unit
   let locals2 := if isWithdraw then locals1 else vaultControllerCacheLocals locals1 controller
-  have hafter : ExecBlock config {contract := contract, locals := locals1} evm1 afterBody
+  have hafter : ExecBlock fork config {contract := contract, locals := locals1} evm1 afterBody
       (.ok {contract := contract, locals := locals2} evm1) := by
     cases isWithdraw
     · apply vaultControllerCache hs1

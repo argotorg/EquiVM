@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.UnsignedWordRange
 import Benchmarks.UniswapV4PoolManager.Signed128
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -23,10 +25,10 @@ theorem liquidityAddTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hx : x.toNat < 2^128) (hlo : -(2^127 : Int) ≤ y) (hhi : y < 2^127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨17774⟩ (x :: EVM.wordOfInt y :: ret :: R) mem aw rdata σ k C) :
-    if liquidityAddFits x y then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17774⟩ (x :: EVM.wordOfInt y :: ret :: R) mem aw rdata σ k C) :
+    if liquidityAddFits x y then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (EVM.wordOfInt (Int.ofNat x.toNat+y) :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land x (UInt256.ofNat 340282366920938463463374607431768211455) = x :=
     u256LandMaskCleanOfToNat _ _ rfl hx
   have hsign : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt y) = EVM.wordOfInt y :=

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AllocateBlock
 import Reasoning.ABIComposite
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -28,7 +30,7 @@ theorem resolverCopiedLocals_get (locals : Store) (n : Nat) (name : Ident)
 
 theorem resolverCopyPrefix_exec {cfg : Config} {locals imms : Store} {evm : EVM.State} {out : ByteArray}
     (ho : locals.get? "result" = some (.bytes out)) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverCopyPrefix
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverCopyPrefix
       (.ok {contract := contract, locals := resolverCopiedLocals locals out.size, immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .int (Int.ofNat out.size)) (by
     simp only [evalExpr?, readLocalPath?, ho, EvalResult.bind, bind, pure]))
@@ -39,7 +41,7 @@ theorem resolverCopyPrefix_exec {cfg : Config} {locals imms : Store} {evm : EVM.
   by_cases hgt : 32 < out.size
   · rw [resolverCopiedLocals, if_pos hgt]
     apply ExecBlock.consNormal (ExecStmt.iteTrue (by simpa only [hgt, decide_true] using hc) ?_) ExecBlock.nil
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?, pure])
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?, pure])
       (assignLocalBase_ok (store_get_self _ _ _))) ExecBlock.nil
   · rw [resolverCopiedLocals, if_neg hgt]
     exact ExecBlock.consNormal (ExecStmt.iteFalse (by simpa only [hgt, decide_false] using hc) ExecBlock.nil) ExecBlock.nil
@@ -59,7 +61,7 @@ theorem resolverResultAllocation {cfg : Config} {locals imms : Store} {evm : EVM
     (ho : locals.get? "result" = some (.bytes out))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap (min out.size 32) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (min out.size 32)) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (resolverCopyPrefix ++ allocateBlock (.var "copied"))
       (.ok {contract := contract, locals := resolverResultLocals locals out heap, immutables := imms} evm) := by
   apply execBlock_append (resolverCopyPrefix_exec ho)
@@ -84,7 +86,7 @@ theorem resolverResultTail_ok {cfg : Config} {locals imms : Store} {evm : EVM.St
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap (min out.size 32) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (min out.size 32))
     (hd : cfg.externalABI.decodeValue? abiBool out = some (.bool accepted)) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail
       (.returned {contract := contract, locals := (resolverResultLocals locals out heap).insert "accepted" (.bool accepted), immutables := imms}
         evm (some [.bool accepted, .int (Int.ofNat (allocateNext heap (min out.size 32)))])) := by
   apply execBlock_append (resolverResultAllocation ho hh hg)
@@ -102,7 +104,7 @@ theorem resolverResultTail_decode_revert {cfg : Config} {locals imms : Store} {e
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap (min out.size 32) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (min out.size 32))
     (hd : cfg.externalABI.decodeValue? abiBool out = none) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail .reverted := by
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail .reverted := by
   apply execBlock_append (resolverResultAllocation ho hh hg)
   apply ExecBlock.consRevert (ExecStmt.letDeclRevert ?_)
   simp only [evalExpr?, resolverResultLocals_result, ho, EvalResult.ofOption, EvalResult.bind, bind, hd]
@@ -112,7 +114,7 @@ theorem resolverResultTail_allocation_revert {cfg : Config} {locals imms : Store
     (ho : locals.get? "result" = some (.bytes out))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : ¬ (allocateNext heap (min out.size 32) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (min out.size 32))) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail .reverted := by
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverResultTail .reverted := by
   rw [resolverResultTail, List.append_assoc]
   apply execBlock_append (resolverCopyPrefix_exec ho)
   apply execBlock_append_term (allocateBlock_revert (n := min out.size 32)

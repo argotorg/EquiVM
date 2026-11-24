@@ -1,5 +1,7 @@
 import Benchmarks.Safe.Runs1e6.ModulesFillSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -74,10 +76,10 @@ theorem safeModulesPrefix (evm : EVM.State) (start pageSize : UInt256) {result :
     (hc : start.toNat < EVM.addressModulus) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hs : start = ⟨1⟩ ∨ moduleLink evm start ≠ ⟨0⟩) (hz : pageSize ≠ ⟨0⟩)
     (hn : pageSize.toNat ≤ 2 ^ 64 - 1)
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       { contract := contract, locals := modulesInitialLocals evm start pageSize } evm
       (modulesCountLoop :: modulesSelectNext :: modulesFillSuffix) result) :
-    ExecBlock config { contract := contract, locals := modulesArgs start pageSize } evm
+    ExecBlock fork config { contract := contract, locals := modulesArgs start pageSize } evm
       getmodulespaginatedTransition.body result := by
   have hstart := safeModulesStartGuard evm start pageSize hc
   have hzero := safeModulesNonzeroGuard evm start pageSize
@@ -111,7 +113,7 @@ theorem safeModulesPositiveCondition (evm : EVM.State) {locals start pageSize in
 theorem safeModulesSelectNext (evm : EVM.State) {locals start pageSize index current last}
     (hl : ModulesCountLocals locals start pageSize index current last)
     (hc : current.toNat < EVM.addressModulus) (hg : current = ⟨1⟩ ∨ 0 < index) :
-    ∃ locals', ExecStmt config { contract := contract, locals := locals } evm modulesSelectNext
+    ∃ locals', ExecStmt fork config { contract := contract, locals := locals } evm modulesSelectNext
         (.ok { contract := contract, locals := locals' } evm) ∧
       ModulesCountLocals locals' start pageSize index (if current = ⟨1⟩ then current else last)
         last := by
@@ -138,7 +140,7 @@ theorem safeModulesFillSuffix (evm : EVM.State) {locals start pageSize words nex
     (hl : ModulesCountLocals locals start pageSize words.length next last)
     (hp : LinkedPage (moduleLink evm) fuel (moduleLink evm start) words current)
     (hc : start.toNat < EVM.addressModulus) (hfit : words.length < UInt256.size) :
-    ∃ locals', ExecBlock config { contract := contract, locals := locals } evm modulesFillSuffix
+    ∃ locals', ExecBlock fork config { contract := contract, locals := locals } evm modulesFillSuffix
       (.returned { contract := contract, locals := locals' } evm
         (some [.array (words.map addressArrayValue), addressArrayValue next])) := by
   let ls₁ := locals.insert "array"
@@ -179,7 +181,7 @@ theorem safeModulesSourceSuccess (evm : EVM.State) (start pageSize : UInt256) {w
     (hn : pageSize.toNat ≤ 2 ^ 64 - 1)
     (hp : LinkedPage (moduleLink evm) pageSize.toNat (moduleLink evm start) words next)
     (hg : next = ⟨1⟩ ∨ 0 < words.length) :
-    ∃ locals', ExecTransitionBody config contract evm (modulesArgs start pageSize)
+    ∃ locals', ExecTransitionBody fork config contract evm (modulesArgs start pageSize)
       getmodulespaginatedTransition.body
       (.returned { contract := contract, locals := locals' } evm
         (some [.array (words.map addressArrayValue), addressArrayValue (modulesPageNext words
@@ -203,7 +205,7 @@ theorem safeModulesSourceEmpty (evm : EVM.State) (start pageSize : UInt256) {nex
     (hn : pageSize.toNat ≤ 2 ^ 64 - 1)
     (hp : LinkedPage (moduleLink evm) pageSize.toNat (moduleLink evm start) [] next)
     (hg : next ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (modulesArgs start pageSize)
+    ExecTransitionBody fork config contract evm (modulesArgs start pageSize)
       getmodulespaginatedTransition.body .reverted := by
   obtain ⟨locals, hcount, hl⟩ := safeModulesCountLoop evm (safeModulesInitialLocals evm start
     pageSize)
@@ -218,7 +220,7 @@ theorem safeModulesSourceEmpty (evm : EVM.State) (start pageSize : UInt256) {nex
 theorem safeModulesSourceInvalid (evm : EVM.State) (start pageSize : UInt256)
     (hc : start.toNat < EVM.addressModulus) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hs : ¬(start = ⟨1⟩ ∨ moduleLink evm start ≠ ⟨0⟩)) :
-    ExecTransitionBody config contract evm (modulesArgs start pageSize)
+    ExecTransitionBody fork config contract evm (modulesArgs start pageSize)
       getmodulespaginatedTransition.body .reverted := by
   have he := safeModulesStartGuard evm start pageSize hc
   exact .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hv))
@@ -227,7 +229,7 @@ theorem safeModulesSourceInvalid (evm : EVM.State) (start pageSize : UInt256)
 theorem safeModulesSourceZero (evm : EVM.State) (start pageSize : UInt256)
     (hc : start.toNat < EVM.addressModulus) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hs : start = ⟨1⟩ ∨ moduleLink evm start ≠ ⟨0⟩) (hz : pageSize = ⟨0⟩) :
-    ExecTransitionBody config contract evm (modulesArgs start pageSize)
+    ExecTransitionBody fork config contract evm (modulesArgs start pageSize)
       getmodulespaginatedTransition.body .reverted := by
   have he := safeModulesStartGuard evm start pageSize hc
   have hzero := safeModulesNonzeroGuard evm start pageSize
@@ -239,7 +241,7 @@ theorem safeModulesSourceLarge (evm : EVM.State) (start pageSize : UInt256)
     (hc : start.toNat < EVM.addressModulus) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hs : start = ⟨1⟩ ∨ moduleLink evm start ≠ ⟨0⟩) (hz : pageSize ≠ ⟨0⟩)
     (hn : ¬pageSize.toNat ≤ 2 ^ 64 - 1) :
-    ExecTransitionBody config contract evm (modulesArgs start pageSize)
+    ExecTransitionBody fork config contract evm (modulesArgs start pageSize)
       getmodulespaginatedTransition.body .reverted := by
   have he := safeModulesStartGuard evm start pageSize hc
   have hzero := safeModulesNonzeroGuard evm start pageSize

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.FullMathReduce
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,9 +29,9 @@ theorem fullMath128Reduce {f : Frame} {evm : EVM.State} {a b : UInt256}
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat fullMathQ128.toNat)))
     (hp0 : f.locals.get? "prod0" = some (.int (Int.ofNat (fullMathLow a b).toNat)))
     (hp1 : f.locals.get? "prod1" = some (.int (Int.ofNat (fullMathHigh a b).toNat))) :
-    ExecBlock config f evm ((fullMathFunction.body.drop 7).take 9)
+    ExecBlock fork config f evm ((fullMathFunction.body.drop 7).take 9)
       (.ok (fullMath128ReduceFrame f a b) evm) := by
-  have h := fullMathReduce (evm := evm) fullMathQ128_ne ha hb hd hp0 hp1
+  have h := fullMathReduce (fork := fork) (evm := evm) fullMathQ128_ne ha hb hd hp0 hp1
   simpa only [fullMathReduceFrame, fullMathRemainder, fullMathReducedLow,
     fullMathReducedHigh, fullMathTwos, fullMathOdd, fullMathTwosInverse, fullMathWide,
     fullMath128_twos, fullMath128_denominator, fullMath128_twosInverse,

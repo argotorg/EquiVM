@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.FrobBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
@@ -14,17 +16,17 @@ theorem vatFrobSuccessEquivFromFinalState
     (hdecode :
       config.externalABI.decodeCalldata? (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
-    (hret : RDret vatBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals } evmFinal none))
     (haccounts :
       Eq (frobAfterRuntimeFinal σ I) evmFinal.accountMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none frobTransition.returnType := by
     rw [show frobTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -41,11 +43,11 @@ theorem vatFrobSuccessEquivFromSourceFinal
     (hdecode :
       config.externalABI.decodeCalldata? (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
-    (hret : RDret vatBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals }
@@ -53,7 +55,7 @@ theorem vatFrobSuccessEquivFromSourceFinal
             (frobUrnInkNew σ I) (frobUrnArtNew σ I)
             (frobIlkArtNew σ I) (frobGemNew σ I)
             (frobDaiNew σ I)) none)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsourceAccounts :=
     frobSourceFinalState_accountMap_eq
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -66,11 +68,11 @@ theorem vatFrobSuccessEquivFromSourceFinal
 
 theorem vatFrobLiveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
-    (hdecoded : ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨2975⟩
+    (hdecoded : ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨2975⟩
       [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
         frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨3045⟩
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨3045⟩
       [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
         frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyViews
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -110,8 +112,8 @@ theorem easEncodeAttestationHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+8 ≤ 1024) (hlo : 96 ≤ src.toNat)
     (hdisj : src.toNat+320 ≤ dst.toNat) (hin : src.toNat+320 ≤ mem.size)
     (hbound : dst.toNat+320 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4502⟩ (src::dst::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4435⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4502⟩ (src::dst::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4435⟩
       (memLoad (src+UInt256.ofNat 288) mem :: (dst+UInt256.ofNat 320) :: UInt256.ofNat 4692 :: R)
       (attestationEncodeHeadMemory mem src dst) aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_4502_packed (immWords := wordsOf (immStore v)) hstack rd
@@ -125,7 +127,7 @@ theorem easEncodeAttestationHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     exact memLoad_of_prefix hp _ (by rw [hs]; omega) (by rw [hs]; omega) (by rw [hs]; omega)
   obtain ⟨aw2,k2,C2,rd2⟩ := easBlocks.eas_block_4628_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd1
-  change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4435)
+  change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4435)
     (easBlocks.eas_block_4628_stack (mem := m) (x0 := dst) (x1 := UInt256.ofNat 192)
       (x2 := UInt256.land (memLoad (src+UInt256.ofNat 192) mem) (UInt256.ofNat (2^160-1)))
       (x3 := src) (x4 := UInt256.ofNat 288) (x5 := UInt256.ofNat 320) (x6 := dst) (R := UInt256.ofNat 4692 :: R))

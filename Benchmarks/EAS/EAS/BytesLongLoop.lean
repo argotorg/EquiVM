@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BytesLongControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,10 +13,10 @@ theorem easBytesLongLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hwords : ∀ i, i < bytes.size/32 → memLoad (UInt256.ofNat (32+32*i)+ptr) mem =
       uInt256OfByteArray (bytes.readWithPadding (i*32) 32))
     (idx fuel : Nat) (hcount : idx+fuel = bytes.size/32)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
       (UInt256.ofNat (32*idx)::ptr::UInt256.ofNat (32+32*idx)::solidityBytesDataSlot (slot+⟨6⟩) idx::
         UInt256.ofNat bytes.size::slot::bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesLongTailPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesLongTailPC site)
       (UInt256.ofNat (32*(bytes.size/32))::ptr::UInt256.ofNat (32+32*(bytes.size/32))::
         solidityBytesDataSlot (slot+⟨6⟩) (bytes.size/32)::UInt256.ofNat bytes.size::slot::
         bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw' rdata

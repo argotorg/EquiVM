@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -47,12 +49,12 @@ theorem RD.catBiteGrabNoCode
     {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {target inOff inSize outOff : UInt256} {R : List UInt256}
-    (rd2177 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
+    (rd2177 : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -69,7 +71,7 @@ theorem RD.catBiteGrabCall
     {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {target inOff inSize outOff : UInt256} {R : List UInt256}
-    (rd2177 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
+    (rd2177 : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
@@ -79,13 +81,13 @@ theorem RD.catBiteGrabCall
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256)
       (mem' : ByteArray) (aw' : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
+      ∧ RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: R) mem' aw' o σ' k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
@@ -110,13 +112,13 @@ theorem RD.catBiteGrabCallDepthLimit
     {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {target inOff inSize outOff : UInt256} {R : List UInt256}
-    (rd2177 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
+    (rd2177 : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ mem' aw' k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
+    ∃ mem' aw' k' C', RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
       (⟨0⟩ :: R) mem' aw' ByteArray.empty σ k' C' := by
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
@@ -140,11 +142,11 @@ theorem RD.catBiteGrabCallFailed
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {acc : AccountMap}
     {R : List UInt256}
-    (rd2193 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
+    (rd2193 : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
       (⟨0⟩ :: R) mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -161,11 +163,11 @@ theorem RD.catBiteGrabCallSucceeded
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {acc : AccountMap}
     {status : UInt256} {x : UInt256} {R : List UInt256}
-    (rd2193 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
+    (rd2193 : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2193⟩
       (status :: x :: R) mem aw rdata acc k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨2212⟩
+    ∃ k' C', RD fork catBytecode I g (initState σ σ₀ g A I) ⟨2212⟩
       R mem aw rdata acc k' C' := by
   obtain ⟨k1, C1, rd2211⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyBitmap
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -22,14 +24,14 @@ theorem poolModifyFlipEnterExactTrace {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hs : memLoad (params+UInt256.ofNat 128) mem = p.spacing)
     (hf : memLoad (if upper then ptr+UInt256.ofNat 64 else ptr) mem = UInt256.fromBool flipped)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata σ k C) :
-    if flipped then ∃ k' C', RD (deployedRuntime v) I g s0 ⟨16652⟩
+    if flipped then ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨16652⟩
       ((poolSlot id+⟨5⟩) :: (if upper then p.upper else p.lower) :: p.spacing :: poolModifyFlipReturn upper ::
         x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem (poolModifyFlipEnterActiveWords aw params ptr upper flipped) rdata σ k' C'
-    else ∃ k' C', RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem (poolModifyFlipEnterActiveWords aw params ptr upper flipped) rdata σ k' C' := by
   have hc' : UInt256.signextend (UInt256.ofNat 2) p.spacing = p.spacing := (signextend24_eq_iff _).mpr hc
@@ -58,8 +60,8 @@ theorem poolModifyFlipEnterExactTrace {I : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem poolModifyFlipReturnExactTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (upper : Bool) (v : PoolManagerImmutables) (hstack : R.length+1 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipReturn upper) R mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper) R mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipReturn upper) R mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper) R mem aw rdata σ k' C' := by
   cases upper with
   | false => exact ⟨_, _, poolManagerBlocks.poolManager_block_7324 hstack
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h⟩
@@ -73,14 +75,14 @@ theorem poolModifyFlipEnterTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hs : memLoad (params+UInt256.ofNat 128) mem = p.spacing)
     (hf : memLoad (if upper then ptr+UInt256.ofNat 64 else ptr) mem = UInt256.fromBool flipped)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata σ k C) :
-    if flipped then ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨16652⟩
+    if flipped then ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨16652⟩
       ((poolSlot id+⟨5⟩) :: (if upper then p.upper else p.lower) :: p.spacing :: poolModifyFlipReturn upper ::
         x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw' rdata σ k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
+    else ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw' rdata σ k' C' := by
   have hr := poolModifyFlipEnterExactTrace upper flipped v hstack hc hm hs hf h
@@ -90,8 +92,8 @@ theorem poolModifyFlipEnterTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem poolModifyFlipReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (upper : Bool) (v : PoolManagerImmutables) (hstack : R.length+1 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipReturn upper) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper) R mem aw' rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipReturn upper) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', rd⟩ := poolModifyFlipReturnExactTrace upper v hstack h
   exact ⟨aw, k', C', rd⟩
 

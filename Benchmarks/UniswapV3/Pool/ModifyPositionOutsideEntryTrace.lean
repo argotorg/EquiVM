@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionGuardTrace
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaEntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,11 +21,11 @@ def modifyPositionOutsideAmountReturn (second : Bool) : UInt256 :=
 theorem modifyPositionOutsideLowerEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q key free : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11629⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11629⟩
       (EVM.wordOfInt a.lower :: modifyPositionOutsideLowerReturn second ::
         modifyPositionOutsideAmountReturn second :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R)
       mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free := by
@@ -45,12 +47,12 @@ theorem modifyPositionOutsideLowerEntryX {σ : AccountMap} {ee : ExecutionEnv} {
 theorem modifyPositionOutsideUpperEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q key free sqrt : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideLowerReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideLowerReturn second)
       (sqrt :: modifyPositionOutsideAmountReturn second :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11629⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11629⟩
       (EVM.wordOfInt a.upper :: modifyPositionOutsideUpperReturn second :: sqrt ::
         modifyPositionOutsideAmountReturn second :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R)
       mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free := by
@@ -72,12 +74,12 @@ theorem modifyPositionOutsideUpperEntryX {σ : AccountMap} {ee : ExecutionEnv} {
 theorem modifyPositionOutsideAmountEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q key free sqrtA sqrtB : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideUpperReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideUpperReturn second)
       (sqrtB :: sqrtA :: modifyPositionOutsideAmountReturn second ::
         p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (EVM.wordOfInt a.delta :: sqrtB :: sqrtA :: modifyPositionOutsideAmountReturn second ::
         p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free := by
   have hqw : q.toNat + 128 < UInt256.size := by change _ < 2 ^ 256; omega
@@ -98,10 +100,10 @@ theorem modifyPositionOutsideAmountEntryX {σ : AccountMap} {ee : ExecutionEnv} 
 theorem modifyPositionOutsideDoneX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q key amount : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideAmountReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideAmountReturn second)
       (amount :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16801⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
       (p :: (if second then amount else ⟨0⟩) :: (if second then ⟨0⟩ else amount) :: key :: q :: R)
       mem aw rdata σ k' C' := by
   cases second

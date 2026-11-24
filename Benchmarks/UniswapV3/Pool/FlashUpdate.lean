@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashUpdateSource
 import Benchmarks.UniswapV3.Pool.FlashGrowthTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,7 +13,7 @@ theorem flashUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (locals : Store) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0
       (if (if second then paid1 else paid0) = ⟨0⟩ then flashUpdateExit second
         else flashProtocolEntry second)
       (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
@@ -22,14 +24,14 @@ theorem flashUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hslot : locals.get? "slot0" = none) (hfees : locals.get? "protocolFees" = none)
     (hbase : locals.get? (feeGrowthName second) = none)
     (hliquidity : liquidity.toNat < 2 ^ 128) (hov : R.length + 27 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashUpdateStmt second) .reverted) ∨
     ∃ evm' σ' locals' k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashUpdateStmt second)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 (flashUpdateExit second)
+      RD fork (deployedRuntime v) ee g s0 (flashUpdateExit second)
         (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
         mem aw rdata σ' k' C' ∧ FlashUpdatePreserves second locals locals' := by
   by_cases hz : (if second then paid1 else paid0) = ⟨0⟩

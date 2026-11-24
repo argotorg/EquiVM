@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Calldata
 import Benchmarks.UniswapV3.Pool.TickStorage
 import Benchmarks.UniswapV3.Pool.TupleMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `ticks(int24)`
 
@@ -58,12 +60,12 @@ theorem ticksReturnMemory (scratch : ByteArray) (a b c d e f j : UInt256)
 theorem ticksReturnX {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {a b c d e f j q aw : UInt256} {R : List UInt256}
     {rdata scratch : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨2120⟩ (q :: j :: f :: e :: d :: c :: b :: a :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2120⟩ (q :: j :: f :: e :: d :: c :: b :: a :: R)
       scratch aw rdata acc k C)
     (hs : scratch.size = 96)
     (hr : scratch.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray)
     (hov : R.length + 13 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc
+    RDret fork (deployedRuntime v) g s0 acc
       (wordBytes (ticksCleanPrefix a b c d e f j ++ [UInt256.isZero (UInt256.isZero q)])) := by
   obtain ⟨aw', k', C', rdFinal⟩ := uniswapV3Pool_block_2120_packed
     (immWords := wordsOf (immStore v)) hov h
@@ -104,7 +106,7 @@ def ticksReturnWords (key : Int) (σ : AccountMap) (I : ExecutionEnv) : List UIn
 theorem uniswapV3PoolTicksReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (key : Int) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "ticks" = none) (hkey : locals.get? "arg0" = some (.int key)) :
-    ExecTransitionBody config contract evm locals ticksTransition.body
+    ExecTransitionBody fork config contract evm locals ticksTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some (ticksReturnValues key evm.accountMap evm.executionEnv))) (immStore v) := by
   apply ExecFuncBody.execBlockRet
@@ -157,7 +159,7 @@ theorem uniswapV3PoolTicksX {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmuta
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 24)) (hlen : 36 ≤ I.calldata.size) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (wordBytes (ticksReturnWords (ticksKey I) σ I)) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachTicksBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -168,7 +170,7 @@ theorem uniswapV3PoolTicksX {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmuta
   have rdRead := uniswapV3Pool_block_2110 (immWords := wordsOf (immStore v))
     (by simp) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rdDecode
   simp only [uniswapV3Pool_block_2110_stack] at rdRead
-  change RD _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 2) (calldataWord I.calldata 4) :: _)
+  change RD fork _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 2) (calldataWord I.calldata 4) :: _)
     solcFreePtrMem _ _ _ _ _ at rdRead
   have hkey : UInt256.signextend (UInt256.ofNat 2) (calldataWord I.calldata 4) =
       EVM.wordOfInt (ticksKey I) :=
@@ -224,7 +226,7 @@ theorem uniswapV3PoolTicksShortX {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolI
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 24)) (hshort : I.calldata.size < 36) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachTicksBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
   have rdRevert := uniswapV3Pool_block_2088_fallthrough (immWords := wordsOf (immStore v))
@@ -238,7 +240,7 @@ theorem uniswapV3PoolTicksBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 24)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 24) rfl hsel
   have hd : dispatchMsg contract I.calldata = some ticksTransition := by
     apply uniswapV3PoolDispatch_ticks <;>

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ArrayEncoding
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -45,7 +47,7 @@ theorem encodeValuesGuard_eval {cfg : Config} {base locals imms : Store} {evm : 
 
 theorem encodeValuesIteration_exec {cfg : Config} {base locals imms : Store} {evm : EVM.State}
     {words : List UInt256} {i : Nat} (h : EncodeValuesInv base locals words i) (hi : i < words.length) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm encodeValuesIteration
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeValuesIteration
       (.ok {contract := contract, locals := encodeValuesNext locals words i, immutables := imms} evm) := by
   have hw : lookupNth? words i = some words[i] := (lookupNth_getElem words i).trans (List.getElem?_eq_getElem hi)
   have hx : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm
@@ -65,8 +67,8 @@ theorem encodeValuesIteration_exec {cfg : Config} {base locals imms : Store} {ev
       simp only [valuesEncoding, List.take_succ_eq_append_getElem hi, ← List.cons_append, wordBytes_append,
         wordBytes, ByteArray.append_empty, ByteArray.append_assoc]
     simpa only [hs, byteArray_toList_eq, ByteArray.data_append, Array.toList_append, toByteArray_eq_toBytesBE] using hp
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalBase_ok h.encoded))
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (i+1))) ?_
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalBase_ok h.encoded))
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (i+1))) ?_
     (assignLocalBase_ok (frame := {contract := contract, locals := locals.insert "valuesBody" (.bytes (valuesEncoding words (i+1))), immutables := imms})
       (by simpa (disch := decide) only [store_get_ne] using h.index))) ExecBlock.nil
   simp (disch := decide) only [evalExpr?, store_get_ne, h.index,
@@ -74,7 +76,7 @@ theorem encodeValuesIteration_exec {cfg : Config} {base locals imms : Store} {ev
 
 theorem encodeValuesLoop_exec {cfg : Config} {base locals imms : Store} {evm : EVM.State}
     {words : List UInt256} (h : EncodeValuesInv base locals words 0) :
-    ∃ locals', ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ∃ locals', ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.while encodeValuesGuard encodeValuesIteration)
       (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       EncodeValuesInv base locals' words words.length := by
@@ -89,7 +91,7 @@ theorem encodeValuesLoop_exec {cfg : Config} {base locals imms : Store} {evm : E
     have hi' : i < words.length := by omega
     simpa only [hi', decide_true] using encodeValuesGuard_eval (cfg := cfg) (imms := imms) (evm := evm) hinv
   have hs : ∀ n L, P (n+1) L → ∃ L',
-      ExecBlock cfg {contract := contract, locals := L, immutables := imms} evm encodeValuesIteration
+      ExecBlock fork cfg {contract := contract, locals := L, immutables := imms} evm encodeValuesIteration
         (.ok {contract := contract, locals := L', immutables := imms} evm) ∧ P n L' := by
     rintro n L ⟨i, hi, hinv⟩
     refine ⟨encodeValuesNext L words i, encodeValuesIteration_exec hinv (by omega), i+1, by omega, encodeValuesNext_inv hinv⟩
@@ -101,7 +103,7 @@ theorem encodeValuesBlock_exec {cfg : Config} {locals imms : Store} {evm : EVM.S
     {words : List UInt256}
     (hv : locals.get? "values" = some (.array (words.map fun w => .int (Int.ofNat w.toNat))))
     (hlen : words.length < UInt256.size) :
-    ∃ locals', ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm encodeValuesBlock
+    ∃ locals', ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeValuesBlock
       (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       EncodeValuesInv locals locals' words words.length := by
   let L := (locals.insert "valuesBody" (.bytes (valuesEncoding words 0))).insert "i" (.int (Int.ofNat 0))

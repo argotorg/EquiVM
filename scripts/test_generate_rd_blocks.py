@@ -33,7 +33,7 @@ class GeneratorTests(unittest.TestCase):
         rendered = units("5b00")
         self.assertIn("{σ : AccountMap}", rendered)
         self.assertIn("rdata σ k C", rendered)
-        self.assertIn("RDret sampleCode g s0 σ ByteArray.empty", rendered)
+        self.assertIn("RDret fork sampleCode g s0 σ ByteArray.empty", rendered)
         self.assertNotIn("cA", rendered)
 
     def test_sload_uses_current_map_operations(self) -> None:
@@ -78,7 +78,7 @@ class GeneratorTests(unittest.TestCase):
             [{"offset": 1, "length": 32, "key": "owner"}], code)
         rendered = rd.generate(code, "imm", "template", ["Contract.Immutables"],
                                immutable_sites=sites, layout_term="Contract.layout")
-        self.assertIn("RD (Contract.layout.runtime template immWords) ee g s0", rendered)
+        self.assertIn("RD fork (Contract.layout.runtime template immWords) ee g s0", rendered)
         self.assertNotIn("def immutableLayout", rendered)
         self.assertIn('immWords "owner"', rendered)
         self.assertIn("Layout.decodeSite", rendered)
@@ -101,7 +101,7 @@ class GeneratorTests(unittest.TestCase):
         rendered = rd.generate(code, "suffix", "template", [],
                                runtime_suffix=True)
         self.assertIn("{suffix : ByteArray}", rendered)
-        self.assertIn("RD (template ++ suffix) ee g s0", rendered)
+        self.assertIn("RD fork (template ++ suffix) ee g s0", rendered)
         self.assertIn("(template ++ suffix).write", rendered)
         self.assertIn("append_decode(template, suffix,", rendered)
         self.assertNotIn("immWords", rendered)
@@ -141,7 +141,7 @@ class GeneratorTests(unittest.TestCase):
             [{"offset": 1, "length": 20, "key": "owner"}], code)
         rendered = rd.generate(code, "imm20", "template", ["Contract.Immutables"],
                                immutable_sites=sites, layout_term="Contract.layout")
-        self.assertIn("RD (Contract.layout.runtimeN template immWords)", rendered)
+        self.assertIn("RD fork (Contract.layout.runtimeN template immWords)", rendered)
         self.assertIn('Layout.siteWord 20 (immWords "owner")', rendered)
         self.assertIn("Layout.decodeSite20", rendered)
         self.assertIn("immutable_decode_n(", rendered)
@@ -192,7 +192,7 @@ class GeneratorTests(unittest.TestCase):
                                ["Sample.Bytecode"], keep_metadata=True,
                                creation_code=True)
         self.assertIn("decode_append_left_of_decode", rendered)
-        self.assertIn("RD (sampleCode ++ tail)", rendered)
+        self.assertIn("RD fork (sampleCode ++ tail)", rendered)
 
     def test_creation_jump_destination_substitutes_codecopy_source(self) -> None:
         from bytecode_io import read_bytecode

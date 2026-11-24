@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt1OutputCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -30,7 +32,7 @@ theorem evalNextSqrt1Subtract (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt1OutputReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hfit : a.Fits) (hv : nextSqrt1OutputValid a) :
-    ExecBlock config (nextSqrt1QuotientFrame imms a) evm ((nextSqrt1Branch a.add).drop 3)
+    ExecBlock fork config (nextSqrt1QuotientFrame imms a) evm ((nextSqrt1Branch a.add).drop 3)
       (.returned (nextSqrt1OutputFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt1Result a).toNat)])) := by
   cases ha : a.add
@@ -56,7 +58,7 @@ theorem nextSqrt1OutputReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArg
 
 theorem nextSqrt1OutputReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt1OutputValid a) :
-    ExecBlock config (nextSqrt1QuotientFrame imms a) evm ((nextSqrt1Branch a.add).drop 3)
+    ExecBlock fork config (nextSqrt1QuotientFrame imms a) evm ((nextSqrt1Branch a.add).drop 3)
       .reverted := by
   cases ha : a.add
   · have hguard : ¬(nextSqrt1Quotient a).toNat < a.price.toNat := by

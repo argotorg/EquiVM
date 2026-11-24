@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickLogMsbWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -13,7 +15,7 @@ theorem tickLogNormalizeSource {frame : Frame} {evm : EVM.State}
     (hm : frame.locals.get? "msb" = some (.int (Int.ofNat msb)))
     (hq : frame.locals.get? "ratio" = some (.int (Int.ofNat ratio.toNat)))
     (hr : frame.locals.get? "r" = some old) (hmsb : msb < 256) :
-    ExecStmt config frame evm (tickLogFunction.body[13]!)
+    ExecStmt fork config frame evm (tickLogFunction.body[13]!)
       (.ok (tickLogNormalizedFrame frame ratio msb) evm) := by
   have hfit : msb < UInt256.size := lt_trans hmsb (by decide)
   have hmword : (UInt256.ofNat msb).toNat = msb := UInt256.toNat_ofNat_of_lt hfit
@@ -40,7 +42,7 @@ theorem tickLogNormalizeSource {frame : Frame} {evm : EVM.State}
       omega
     refine ExecStmt.iteTrue (by simpa only [h, decide_true] using hg) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickLogNormalized ratio msb).toNat)) ?_
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickLogNormalized ratio msb).toNat)) ?_
         (assignLocalVarBase_frame hr)) ExecBlock.nil
     simpa only [tickLogNormalized, if_pos h] using
       evalExpr_word_shr_by hq' (evalExpr_word_sub hm' h127) hb
@@ -52,7 +54,7 @@ theorem tickLogNormalizeSource {frame : Frame} {evm : EVM.State}
       omega
     refine ExecStmt.iteFalse (by simpa only [h, decide_false] using hg) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickLogNormalized ratio msb).toNat)) ?_
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickLogNormalized ratio msb).toNat)) ?_
         (assignLocalVarBase_frame hr)) ExecBlock.nil
     simpa only [tickLogNormalized, if_neg h] using
       evalExpr_word_shl_by hq' (evalExpr_word_sub h127 hm') hb

@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapReserveGuardRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -13,12 +15,12 @@ theorem RD.uniswapSwapInputDifference
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw balance reserve amountOut x0 x1 x3 x5 x6 x7 x8 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd : RD uniswapV2PairBytecode I g s0 (if second then ⟨2400⟩ else ⟨2356⟩)
+    (rd : RD fork uniswapV2PairBytecode I g s0 (if second then ⟨2400⟩ else ⟨2356⟩)
       (x0 :: x1 :: balance :: x3 :: reserve :: x5 :: x6 :: x7 :: x8 :: amountOut :: R)
       mem aw rdata σ k C)
     (hclean : UInt256.land reserve reserve112Mask = reserve)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 (if second then ⟨2415⟩ else ⟨2371⟩)
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 (if second then ⟨2415⟩ else ⟨2371⟩)
       (UInt256.sub balance (UInt256.sub reserve amountOut) ::
         x0 :: x1 :: balance :: x3 :: reserve :: x5 :: x6 :: x7 :: x8 :: amountOut :: R)
       mem aw rdata σ k' C' := by
@@ -35,12 +37,12 @@ theorem RD.uniswapSwapAmount0In
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw balance1 balance0 reserve1 reserve0 dataLen dataPtr
       toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2331 : RD uniswapV2PairBytecode I g s0 ⟨2331⟩
+    (rd2331 : RD fork uniswapV2PairBytecode I g s0 ⟨2331⟩
       (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2374⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2374⟩
       (swapAmountInWord balance0 reserve0 amount0Out :: balance1 :: balance0 :: reserve1 :: reserve0 ::
         dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
   have rd2349 := evm_run rd2331 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub,
@@ -64,12 +66,12 @@ theorem RD.uniswapSwapAmount1In
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr
       toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2374 : RD uniswapV2PairBytecode I g s0 ⟨2374⟩
+    (rd2374 : RD fork uniswapV2PairBytecode I g s0 ⟨2374⟩
       (amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 17 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2418⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2418⟩
       (swapAmountInWord balance1 reserve1 amount1Out :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 ::
         dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
   have rd2393 := evm_run rd2374 with [push1 ⟨0⟩, dup10, dup6, push1 ⟨1⟩, push1 ⟨1⟩,

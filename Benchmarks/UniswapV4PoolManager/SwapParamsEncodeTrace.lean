@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapParamsEncodeMemory
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,8 +19,8 @@ theorem swapParamsEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hl : p.priceLimit.toNat < 2^160) (hb : ptr.toNat+96 ≤ dest.toNat+228)
     (hp : ptr.toNat+96 < UInt256.size) (hf : dest.toNat+324 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15382⟩ (ptr :: ret :: x2 :: x3 :: x4 :: dest :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', C+84+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15382⟩ (ptr :: ret :: x2 :: x3 :: x4 :: dest :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', C+84+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
       (x2 :: x3 :: x4 :: dest :: R) (wordSequenceMemory mem (dest.toNat+228) (swapParamsWordList p))
         aw' rdata σ k' C' := by
   have hm := swapParamsEncodeMemory hv hl hb hp hf

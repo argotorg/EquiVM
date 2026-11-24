@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -16,7 +18,7 @@ theorem spotReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (spotSelBytes 6)) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         ⟨400⟩ [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : spotSelWord I = ⟨0x957aa58c⟩ :=
@@ -45,11 +47,11 @@ theorem spotLiveBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (spotSelBytes 6) rfl hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

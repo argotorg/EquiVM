@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SourceWordBits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -58,7 +60,7 @@ theorem evalTickLogGuard {frame : Frame} {evm : EVM.State} (price : UInt256)
 
 theorem tickLogGuardSource (imms : Store) (evm : EVM.State) (price : UInt256)
     (hv : tickLogValid price) :
-    ExecBlock config (tickLogFrame imms price) evm (tickLogFunction.body.take 2)
+    ExecBlock fork config (tickLogFrame imms price) evm (tickLogFunction.body.take 2)
       (.ok (tickLogZeroFrame imms price) evm) := by
   refine ExecBlock.consNormal (stele' := tickLogZeroFrame imms price)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -69,7 +71,7 @@ theorem tickLogGuardSource (imms : Store) (evm : EVM.State) (price : UInt256)
 
 theorem tickLogReverts (imms : Store) (evm : EVM.State) (price : UInt256)
     (hv : ¬ tickLogValid price) :
-    ExecFuncBody config (tickLogFrame imms price) evm tickLogFunction.body .reverted := by
+    ExecFuncBody fork config (tickLogFrame imms price) evm tickLogFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := tickLogZeroFrame imms price)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -97,9 +99,9 @@ def tickLogReadyFrame (imms : Store) (price : UInt256) : Frame :=
 
 theorem tickLogReadySource (imms : Store) (evm : EVM.State) (price : UInt256)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) :
-    ExecBlock config (tickLogFrame imms price) evm (tickLogFunction.body.take 5)
+    ExecBlock fork config (tickLogFrame imms price) evm (tickLogFunction.body.take 5)
       (.ok (tickLogReadyFrame imms price) evm) := by
-  change ExecBlock _ _ _ (tickLogFunction.body.take 2 ++ (tickLogFunction.body.drop 2).take 3) _
+  change ExecBlock fork _ _ _ (tickLogFunction.body.take 2 ++ (tickLogFunction.body.drop 2).take 3) _
   apply execBlock_append_ok (tickLogGuardSource imms evm price hv)
   refine ExecBlock.consNormal (stele' := tickLogRatioFrame imms price) (ExecStmt.letDecl ?_) ?_
   · have he : evalExpr? config (tickLogZeroFrame imms price) evm

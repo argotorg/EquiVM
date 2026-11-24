@@ -12,6 +12,8 @@ import Reasoning.Initcode
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -78,12 +80,12 @@ namespace Benchmarks.Dss.Dog.RD
 theorem solcIlksChopGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcIlksChopGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) :: R)
       (twoWordHashMem key ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3) rdata
       σ k' C' := by
@@ -190,7 +192,7 @@ theorem dogAddressGetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
     (her : evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -207,7 +209,7 @@ theorem dogUint256GetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
     (her : evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) (immStore v) := by
@@ -225,7 +227,7 @@ theorem dogAddressGetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -235,13 +237,13 @@ theorem dogAddressGetterBodyCore
     (hretmem : solcReturnAddressFromMemWf code returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hval :
       some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] =
         some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] := by
@@ -258,7 +260,7 @@ theorem dogAddressGetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret code (Sat256.ofUInt256 g)
+      RDret fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
     simpa [solcAddressSlotWord, solcSlotWordAt] using hret
@@ -273,7 +275,7 @@ theorem dogUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -283,12 +285,12 @@ theorem dogUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf code returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hval :
       some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] =
         some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
@@ -304,7 +306,7 @@ theorem dogUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret code (Sat256.ofUInt256 g)
+      RDret fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -443,14 +445,14 @@ abbrev dogFileUnrecognizedRawWord : UInt256 :=
 theorem RD.dogAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcAuthTailPc pc) ⟨18⟩
       dogNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ≠ ⟨1⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   Reasoning.Reach.RD.solcAuthCheckRevert18 h hwf htail hauth hov
 
 

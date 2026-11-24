@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Common
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_005
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -50,10 +52,10 @@ set_option maxRecDepth 10000 in
 theorem RD.poolReturnAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {val aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨443⟩ (val :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨443⟩ (val :: R)
       solcFreePtrMem aw rdata acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc
+    RDret fork (deployedRuntime v) g s0 acc
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   have hret := uniswapV3Pool_block_443 (immWords := wordsOf (immStore v)) hov h
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
@@ -102,10 +104,10 @@ theorem solcMask128 : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.
 theorem RD.poolReturnUint128 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {val aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨654⟩ (val :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨654⟩ (val :: R)
       solcFreePtrMem aw rdata acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc
+    RDret fork (deployedRuntime v) g s0 acc
       (UInt256.toByteArray (UInt256.land val (UInt256.ofNat (2 ^ 128 - 1)))) := by
   have hret := uniswapV3PoolBlocks.uniswapV3Pool_block_654
     (immWords := wordsOf (immStore v)) hov h
@@ -114,12 +116,12 @@ theorem RD.poolReturnUint128 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.poolReturnWordFromScratch {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {val aw : UInt256} {R : List UInt256}
     {rdata scratch : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨1118⟩ (val :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨1118⟩ (val :: R)
       scratch aw rdata acc k C)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray)
     (hov : R.length + 4 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
+    RDret fork (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
   have hret := uniswapV3PoolBlocks.uniswapV3Pool_block_1118
     (immWords := wordsOf (immStore v)) hov h
   simpa only [solcScratchScalarReturnBytes val scratch hscratch hread64] using hret
@@ -127,10 +129,10 @@ theorem RD.poolReturnWordFromScratch {g : Sat256} {s0 : State} {ee : ExecutionEn
 theorem RD.poolReturnWord {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {val aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨1118⟩ (val :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨1118⟩ (val :: R)
       solcFreePtrMem aw rdata acc k C)
     (hov : R.length + 4 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
+    RDret fork (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
   exact RD.poolReturnWordFromScratch (v := v) h solcFreePtrMem_size solcFreePtrMem_read64 hov
 
 end Benchmarks.UniswapV3.Pool

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SnapshotInsideTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 theorem snapshotBranchesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free p lowerRaw upperRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (lower upper : Int)
-    (rd : RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0
       (if slot0TickValue σ ee < lower then ⟨10298⟩ else ⟨10317⟩)
       (snapshotReadyStack lower upper σ ee p lowerRaw upperRaw (UInt256.ofNat 1952) R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hslot : Slot0Memory mem p σ ee)
@@ -17,9 +19,9 @@ theorem snapshotBranchesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hticks : validTicks lower upper)
     (hu : UInt256.signextend (UInt256.ofNat 2) upperRaw = EVM.wordOfInt upper)
     (hov : R.length + 55 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ lower ≤ slot0TickValue σ ee ∧ slot0TickValue σ ee < upper ∧
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ lower ≤ slot0TickValue σ ee ∧ slot0TickValue σ ee < upper ∧
       ¬ (slot0FieldWord 23 2 σ ee).toNat < 65535) ∨
-    (RDret (deployedRuntime v) g s0 σ (wordBytes (snapshotResult lower upper σ ee).words) ∧
+    (RDret fork (deployedRuntime v) g s0 σ (wordBytes (snapshotResult lower upper σ ee).words) ∧
       (lower ≤ slot0TickValue σ ee → slot0TickValue σ ee < upper →
         (slot0FieldWord 23 2 σ ee).toNat < 65535)) := by
   simp only [snapshotReadyStack, List.cons_append, List.nil_append] at rd

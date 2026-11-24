@@ -3,31 +3,33 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyTickMemory
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickLowerCorrect
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickUpperCorrect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def poolModifyTwoTicksNormal (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def poolModifyTwoTicksNormal (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm : State) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
   (EVM.wordOfInt (tickGrossAfterInt (poolModifyLowerPacked evm id p) p.delta)).toNat < 2^128 ∧
   (EVM.wordOfInt (tickGrossAfterInt (poolModifyUpperPacked evm id p) p.delta)).toNat < 2^128 ∧
-  ∃ aw k C, RD (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
+  ∃ aw k C, RD fork (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
     (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: R)
     (poolModifyTwoTicksMemory mem ptr id p evm) aw rdata post.accountMap k C
 
 def poolModifyTwoTicksActiveWords (aw ptr id : UInt256) (p : PoolModifyParams) (evm : State) : UInt256 :=
   tickUpperUpdateActiveWords (tickLowerUpdateActiveWords aw ptr) ptr (poolModifyUpperPacked evm id p)
 
-def poolModifyTwoTicksNormalAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def poolModifyTwoTicksNormalAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm : State) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (aw : UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
   (EVM.wordOfInt (tickGrossAfterInt (poolModifyLowerPacked evm id p) p.delta)).toNat < 2^128 ∧
   (EVM.wordOfInt (tickGrossAfterInt (poolModifyUpperPacked evm id p) p.delta)).toNat < 2^128 ∧
-  ∃ k C, RD (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
+  ∃ k C, RD fork (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
     (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: R)
     (poolModifyTwoTicksMemory mem ptr id p evm) aw rdata post.accountMap k C
 
@@ -39,11 +41,11 @@ theorem poolModifyTwoTicksExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hptr : 160 ≤ ptr.toNat) (hfit : ptr.toNat+32 < UInt256.size)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyTwoTicksNormalAtAW v I g s0 evm mem rdata id ptr x0 x1 x2 x4 x5 p R (poolModifyTwoTicksActiveWords aw ptr id p evm))
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyTwoTicksNormalAtAW fork v I g s0 evm mem rdata id ptr x0 x1 x2 x4 x5 p R (poolModifyTwoTicksActiveWords aw ptr id p evm))
       (fun _ _ => False) (poolModifyTwoTicksResult f evm id p) := by
   have hlo := poolUpdateTickLowerExactResultTrace (poolModifyTickAliasFrame f id false) v hstack hI hm hmem hl hu hd h
   apply blockResultTrace_continueBlock (poolModifyTickResultTrace hlo)
@@ -88,11 +90,11 @@ theorem poolModifyTwoTicksTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hptr : 160 ≤ ptr.toNat) (hfit : ptr.toNat+32 < UInt256.size)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyTwoTicksNormal v I g s0 evm mem rdata id ptr x0 x1 x2 x4 x5 p R)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyTwoTicksNormal fork v I g s0 evm mem rdata id ptr x0 x1 x2 x4 x5 p R)
       (fun _ _ => False) (poolModifyTwoTicksResult f evm id p) := by
   have hr := poolModifyTwoTicksExactTrace f v hstack hI hm hmem hptr hfit hl hu hd h
   apply blockResultTrace_mono hr

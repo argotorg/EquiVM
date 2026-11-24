@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordArrayLoopViews
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,8 +18,8 @@ theorem easEncodeRecordArrayStep_view {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (h : RecordArrayLoopView before mem base ats limit i) (hi : i < ats.length)
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+128+attestationArrayOffset ats ats.length < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats i R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats (i+1) R) mem' aw' rdata σ k' C' ∧
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats i R) mem aw rdata σ k C) :
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats (i+1) R) mem' aw' rdata σ k' C' ∧
       RecordArrayLoopView before mem' base ats limit (i+1) := by
   have hlimit : limit < UInt256.size := by omega
   have hav := harray.preserve h.front hlimit
@@ -80,14 +82,14 @@ theorem easEncodeRecordArrayLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (h : RecordArrayLoopView before mem base ats limit i)
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+128+attestationArrayOffset ats ats.length < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats i R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14300⟩ (recordArrayStack base array ats ats.length R) mem' aw' rdata σ k' C' ∧
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats i R) mem aw rdata σ k C) :
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14300⟩ (recordArrayStack base array ats ats.length R) mem' aw' rdata σ k' C' ∧
       RecordArrayLoopView before mem' base ats limit ats.length := by
   let Inv := fun n (c : RecordArrayCursor) => c.index+n=ats.length ∧ RecordArrayLoopView before c.memory base ats limit c.index
   let stk := fun c : RecordArrayCursor => recordArrayStack base array ats c.index R
   have hx : ∀ c, Inv 0 c → ∀ k C,
-      RD (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c) c.memory c.active rdata σ k C →
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14300⟩ (stk c) c.memory c.active rdata σ k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c) c.memory c.active rdata σ k C →
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14300⟩ (stk c) c.memory c.active rdata σ k' C' := by
     intro c hc k C rd
     have hi0 : c.index=ats.length := by have := hc.1; omega
     have hlt : UInt256.lt (UInt256.ofNat c.index) (UInt256.ofNat ats.length) = ⟨0⟩ := by
@@ -97,8 +99,8 @@ theorem easEncodeRecordArrayLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (by simp only [List.length_cons]; omega) hlt rd
     exact ⟨_,_,rd1⟩
   have hs : ∀ n c, Inv (n+1) c → ∀ k C,
-      RD (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c) c.memory c.active rdata σ k C →
-      ∃ c' k' C', Inv n c' ∧ RD (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c') c'.memory c'.active rdata σ k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c) c.memory c.active rdata σ k C →
+      ∃ c' k' C', Inv n c' ∧ RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (stk c') c'.memory c'.active rdata σ k' C' := by
     intro n c hc k C rd
     have hi : c.index < ats.length := by have := hc.1; omega
     obtain ⟨mem',aw',k',C',rd',hv⟩ := easEncodeRecordArrayStep_view v hstack harray hc.2 hi hbase hbound rd

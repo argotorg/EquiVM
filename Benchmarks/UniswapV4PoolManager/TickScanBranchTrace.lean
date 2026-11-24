@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickScanLeftNextTrace
 import Benchmarks.UniswapV4PoolManager.TickScanRightReadTrace
 import Benchmarks.UniswapV4PoolManager.TickScanRightNextTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,12 +15,12 @@ theorem tickScanBranchTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id compressed spacing step state fee direction x0 x1 params x3 x4 x6 x7 : UInt256}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (lte : Bool) (hstack : R.length+33 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 (if lte then ⟨19234⟩ else ⟨21109⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if lte then ⟨19234⟩ else ⟨21109⟩)
       ([compressed, spacing, poolSlot id, step, state, fee, direction, x0, x1, params, x3, x4,
         fee, x6, x7, direction, step, poolSlot id, state] ++ R) mem aw rdata evm.accountMap k C) :
     let chosen := if lte then compressed else compressed+UInt256.ofNat 1
     let masked := tickScanMasked evm id chosen lte
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19401⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19401⟩
       ([(decide (masked ≠ ⟨0⟩)).toUInt256, tickScanResultWord chosen spacing masked lte,
         UInt256.ofNat (2^256-887272), step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64,
         UInt256.ofNat (2^128-1), state, fee, direction, x0, x1, params, x3, x4, fee, x6, x7,

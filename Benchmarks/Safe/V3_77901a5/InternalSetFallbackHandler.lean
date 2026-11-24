@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Decoders
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_030
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -52,7 +54,7 @@ theorem safeInternalSetFallbackHandlerSource (evm : EVM.State) (handler : UInt25
     (hcanon : handler.toNat < EVM.addressModulus)
     (hne : AccountAddress.ofNat handler.toNat ≠ evm.executionEnv.codeOwner)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
+    ExecFuncBody fork config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
       (.returned (fallbackHandlerFrame handler)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner fallbackHandlerSlot handler) none)
           := by
@@ -64,7 +66,7 @@ theorem safeInternalSetFallbackHandlerStatic (evm : EVM.State) (handler : UInt25
     (hcanon : handler.toNat < EVM.addressModulus)
     (hne : AccountAddress.ofNat handler.toNat ≠ evm.executionEnv.codeOwner)
     (hperm : evm.executionEnv.perm = false) :
-    ExecFuncBody config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
+    ExecFuncBody fork config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
       .staticViolation := by
   exact .execBlockStatic
     (.consNormal (.requireTrue (by simpa [hne] using safeHandlerGuard evm handler))
@@ -73,33 +75,33 @@ theorem safeInternalSetFallbackHandlerStatic (evm : EVM.State) (handler : UInt25
 
 theorem safeInternalSetFallbackHandlerRevert (evm : EVM.State) (handler : UInt256)
     (heq : AccountAddress.ofNat handler.toNat = evm.executionEnv.codeOwner) :
-    ExecFuncBody config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
+    ExecFuncBody fork config (fallbackHandlerFrame handler) evm internalSetFallbackHandlerFunction.body
       .reverted := by
   exact .execBlockRevert (.consRevert (.requireFalse
     (by simpa [heq] using safeHandlerGuard evm handler)))
 
 theorem safeInternalFallbackTrace {I g s0 σ k C aw mem rdata} {handler ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8283⟩ (handler :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8283⟩ (handler :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) (hperm : I.perm = true)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork safeBytecode I g s0 ret R mem aw rdata
       (sstoreAccountMap I.codeOwner σ fallbackHandlerSlot handler) k' C' :=
   safeRuntime_block_8283 hov hperm hret h
 
 theorem safeInternalFallbackTraceStatic {I g s0 σ k C aw mem rdata} {handler : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8283⟩ (handler :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8283⟩ (handler :: R) mem aw rdata σ k C)
     (hov : R.length + 2 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hdest := h.jumpdest (by native_decide) (by simp; omega)
   have hslot := RD.pushConst (width := 32) (op := .PUSH32) hdest fallbackHandlerSlot
     (by decide) (by native_decide) (by simp; omega)
   exact hslot.sstoreStatic hperm (by native_decide) (by omega)
 
 theorem safeInternalFallbackTraceRevert {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8267⟩ R mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨8267⟩ R mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h6898 := safeRuntime_block_8267 (by omega) (by jump_dest) h
   exact safeRuntime_block_6898 (by simp; omega) h6898
 

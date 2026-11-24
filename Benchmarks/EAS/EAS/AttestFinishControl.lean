@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestLoopControl
 import Benchmarks.EAS.EAS.RecordTailPreserve
 import Benchmarks.EAS.EAS.RequestRevocableControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,9 +29,9 @@ theorem easAttestResolveStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema idx t3 t4 : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+11 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (attestLoopExitPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestLoopExitPC site)
       (recordNextStack site schema idx t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14435⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14435⟩
       (requestSchemaPtr site::recordArrayPtr site t3 t4::recordValuesPtr site t4::attestAvailableWord site::
         attestLastWord site::attestFinishPC site::attestFinishSaved site R) mem aw' rdata σ k' C' := by
   cases site with
@@ -48,9 +50,9 @@ theorem easAttestReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+4 ≤ 1024) (hlo : 160 ≤ (recordResultPtr site mem).toNat)
     (hcovered : (recordResultPtr site mem).toNat+32 ≤ mem.size)
     (hret : (D_J (deployedRuntime v) 0).contains (attestReturnPC site) = true)
-    (rd : RD (deployedRuntime v) ee g s0 (attestFinishPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestFinishPC site)
       (used::attestFinishSaved site R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (attestReturnPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (attestReturnPC site)
       (recordResultPtr site mem::R) (Reasoning.Theory.writeWord mem (recordResultPtr site mem).toNat used)
       aw' rdata σ k' C' := by
   cases site with
@@ -64,7 +66,7 @@ theorem easAttestReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           omega)
     simp only [Reasoning.Theory.writeWord] at hp
     simpa only [easBlocks.eas_block_10084_stack,easBlocks.eas_block_10084_memory,
-      Reasoning.Theory.writeWord,recordResultPtr,attestReturnPC,hp] using (show ∃ a j D, RD (deployedRuntime v) ee g s0 s3
+      Reasoning.Theory.writeWord,recordResultPtr,attestReturnPC,hp] using (show ∃ a j D, RD fork (deployedRuntime v) ee g s0 s3
         (easBlocks.eas_block_10084_stack (mem := mem) (x0 := used) (R := R))
         (easBlocks.eas_block_10084_memory (mem := mem) (x0 := used)) a rdata σ j D from ⟨a,j,D,hr⟩)
 

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.DelegatedRevokeSource
 import Benchmarks.EAS.EAS.DelegatedRevokeDecode
 import Benchmarks.EAS.EAS.RevokeRun
 import Benchmarks.EAS.EAS.PublicVoidRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,10 +20,10 @@ theorem delegatedRevokeTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
     (hheap : memLoad (UInt256.ofNat 64) mem = heap) (hcover : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hsize : ee.calldata.size < UInt256.size) (h100 : 100 ≤ ee.calldata.size) (hbig : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1136⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1136⟩
       (UInt256.ofNat (delegatedRevokeRecord ee.calldata 4).revoker.val::calldataWord ee.calldata 4::UInt256.ofNat 1180::R)
       mem aw rdata σ k C) :
-    PublicVoidRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    PublicVoidRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm delegatedRevokeTail := by
   let r := delegatedRevokeRecord ee.calldata 4
   have hn : allocateNext heap.toNat 192 = heap.toNat+192 := fixedAllocation_next .bytes192 hh
@@ -32,14 +34,14 @@ theorem delegatedRevokeTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
   by_cases hg : heap.toNat+192 ≤ 2^64-1
   · rw [if_pos hg] at hr
     obtain ⟨a1,k1,C1,r1⟩ := hr
-    have hp := allocateBlock_ok healloc hf (by rw [hn]; exact ⟨hg,by omega⟩)
+    have hp := allocateBlock_ok (fork := fork) healloc hf (by rw [hn]; exact ⟨hg,by omega⟩)
     rw [hn] at hp
     let L1 := allocateBlockLocals L (heap.toNat+192)
     let L2 := delegatedRevokeDataLocals L1 r.data
     have hr1 : L1.get? "delegatedRequest" = some r.struct :=
       (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hreq
     have hf1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat (heap.toNat+192))) := store_get_self _ _ _
-    have hd := delegatedRevokeDataSource (L := L1) (imms := immStore v) (evm := evm) (r := r) hr1
+    have hd := delegatedRevokeDataSource (fork := fork) (L := L1) (imms := immStore v) (evm := evm) (r := r) hr1
     apply PublicVoidRun.prepend (hp := hp)
     apply PublicVoidRun.prepend (hp := hd)
     have hr2 : L2.get? "delegatedRequest" = some r.struct := by
@@ -59,7 +61,7 @@ theorem delegatedRevokeTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
       (retVar := "__c1$allocation") v .single hstack hs he (by simpa only [hnext] using hm.1)
       (by rw [hnext]; exact hg) hm.2.1 hm.2.2.1 (fun _ => rfl) hsize
       (by rw [easPatchedValidJumps v]; jump_dest) r1
-    have hrun : HeapCallOrStatic config (deployedRuntime v) ee g s0
+    have hrun : HeapCallOrStatic fork config (deployedRuntime v) ee g s0
         {contract := contract,locals := L2,immutables := immStore v} evm "_revoke" delegatedRevokeCallArgs "__c1$allocation"
         (.int (Int.ofNat used.toNat)) (UInt256.ofNat 1180) (used::R)
         (delegatedRevokeTailMemory mem heap ee.calldata) (heap.toNat+192) := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextModel
 import Benchmarks.UniswapV3.Pool.SourceSignedDivision
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -48,7 +50,7 @@ theorem evalBitmapNextAdjust {frame : Frame} {evm : EVM.State} (tick spacing : I
     evalExpr_bool_and (evalExpr_int_lt et ez) (evalExpr_int_ne (evalExpr_int_srem et es hn) ez)
 
 theorem bitmapNextRevertsZero (imms : Store) (evm : EVM.State) (tick : Int) (lte : Bool) :
-    ExecFuncBody config (bitmapNextFrame imms tick 0 lte) evm
+    ExecFuncBody fork config (bitmapNextFrame imms tick 0 lte) evm
       bitmapNextFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := bitmapNextNextZeroFrame imms tick 0 lte)
@@ -66,7 +68,7 @@ theorem bitmapNextRevertsZero (imms : Store) (evm : EVM.State) (tick : Int) (lte
 
 theorem bitmapNextPrefixSource (imms : Store) (evm : EVM.State) (tick spacing : Int) (lte : Bool)
     (hn : spacing ≠ 0) :
-    ExecBlock config (bitmapNextFrame imms tick spacing lte) evm (bitmapNextFunction.body.take 4)
+    ExecBlock fork config (bitmapNextFrame imms tick spacing lte) evm (bitmapNextFunction.body.take 4)
       (.ok (bitmapNextPrefixFrame imms tick spacing lte) evm) := by
   refine ExecBlock.consNormal (stele' := bitmapNextNextZeroFrame imms tick spacing lte)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -83,7 +85,7 @@ theorem bitmapNextPrefixSource (imms : Store) (evm : EVM.State) (tick spacing : 
   · rw [bitmapNextPrefixFrame, if_pos h]
     refine ExecBlock.consNormal (ExecStmt.iteTrue
       (by simpa only [h, decide_true] using hg) ?_) ExecBlock.nil
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (bitmapNextCompressed tick spacing))
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (bitmapNextCompressed tick spacing))
       ?_ (assignLocalVarBase_frame Std.HashMap.getElem?_insert_self)) ExecBlock.nil
     have ec : evalExpr? config (bitmapNextDivFrame imms tick spacing lte) evm (.var "compressed") =
         .ok (.int (tick.tdiv spacing)) := evalExpr_var_get Std.HashMap.getElem?_insert_self

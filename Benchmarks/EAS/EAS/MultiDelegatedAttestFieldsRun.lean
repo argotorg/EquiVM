@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedAttestVerifyAccess
 import Benchmarks.EAS.EAS.DelegatedAttestationBatch
 import Benchmarks.EAS.EAS.RuntimeBlocks_013
 import Benchmarks.EAS.EAS.RuntimeBlocks_008
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,18 +13,18 @@ theorem easMultiDelegatedAttestFields {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {root i groups base available total last n : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+19≤1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2826⟩ (root::i::groups::base::available::total::last::n::R) mem aw out σ k C) :
-    (DelegatedAttestationBatchReady ee.calldata root → ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2874⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2826⟩ (root::i::groups::base::available::total::last::n::R) mem aw out σ k C) :
+    (DelegatedAttestationBatchReady ee.calldata root → ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
       (multiDelegatedAttestVerifyStack ee.calldata 0 root (delegatedAttestationDataOffset ee.calldata root)
         base n (delegatedAttestationDataLength ee.calldata root) available groups total i last R) mem aw' out σ k' C') ∧
-    (¬DelegatedAttestationBatchReady ee.calldata root → RDrev (deployedRuntime v) g s0) := by
+    (¬DelegatedAttestationBatchReady ee.calldata root → RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_2826_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons];omega) (by rw [easPatchedValidJumpsRuntime v];jump_dest) rd
   simp only [easBlocks.eas_block_2826_stack] at r1
   have hdata := easRequestArrayAccess v (by simp only [List.length_cons];omega) (by rw [easPatchedValidJumps v];jump_dest) r1
   by_cases hd : requestArrayAccessValid ee.calldata root
   · obtain ⟨a2,k2,C2,r2⟩ := hdata.1 hd
-    change RD (deployedRuntime v) ee g s0 ⟨2840⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨2840⟩
       (delegatedAttestationDataLength ee.calldata root::delegatedAttestationDataOffset ee.calldata root::total::i::groups::base::available::root::last::n::R)
       mem a2 out σ k2 C2 at r2
     by_cases hn : 0<(delegatedAttestationDataLength ee.calldata root).toNat

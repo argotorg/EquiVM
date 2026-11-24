@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_039
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem signedToInt128CostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret : UInt256} {n : Int} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (hn : int256Fits n)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14213⟩ (EVM.wordOfInt n :: ret :: R) mem aw rdata σ k C) :
-    if signedFits ⟨128, by decide⟩ n then ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14213⟩ (EVM.wordOfInt n :: ret :: R) mem aw rdata σ k C) :
+    if signedFits ⟨128, by decide⟩ n then ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret
       (EVM.wordOfInt n :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hfit : signedFits ⟨128, by decide⟩ n
   · rw [if_pos hfit]
     have hs := (signextend128_fixed_iff hn).mpr hfit
@@ -38,10 +40,10 @@ theorem signedToInt128Trace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret : UInt256} {n : Int} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (hn : int256Fits n)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14213⟩ (EVM.wordOfInt n :: ret :: R) mem aw rdata σ k C) :
-    if signedFits ⟨128, by decide⟩ n then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14213⟩ (EVM.wordOfInt n :: ret :: R) mem aw rdata σ k C) :
+    if signedFits ⟨128, by decide⟩ n then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (EVM.wordOfInt n :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hr := signedToInt128CostTrace v hstack hn hret h
   by_cases hf : signedFits ⟨128, by decide⟩ n
   · rw [if_pos hf] at hr ⊢

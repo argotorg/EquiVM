@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Benchmarks.Safe.V1_0227664.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -9,8 +11,8 @@ namespace Benchmarks.Safe.V1_0227664.RuntimeBlocks
 /-- Automatically generated RD summary for bytecode block at pc 7394. -/
 theorem safeRuntime_block_7394 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7394) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7394) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
   let r0 := h
   have r1 := r0.push0 (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -23,8 +25,8 @@ def safeRuntime_block_7397_stack {g : Sat256} {C : ℕ} {R : List UInt256} : Lis
 /-- Automatically generated RD summary for bytecode block at pc 7397. -/
 theorem safeRuntime_block_7397 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7397) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7400) (safeRuntime_block_7397_stack (g := g) (C := C) (R := R)) mem aw rdata σ (k + 3) (C + ((5))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7397) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7400) (safeRuntime_block_7397_stack (g := g) (C := C) (R := R)) mem aw rdata σ (k + 3) (C + ((5))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -35,8 +37,8 @@ theorem safeRuntime_block_7397 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem safeRuntime_block_7397_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7397) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7400) (safeRuntime_block_7397_stack (g := g) (C := C) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7397) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7400) (safeRuntime_block_7397_stack (g := g) (C := C) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7397 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -51,8 +53,8 @@ theorem safeRuntime_block_7401_taken {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.isZero x0)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7415) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (safeRuntime_block_7401_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((22))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (safeRuntime_block_7401_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((22))) := by
   let r0 := h
   have r1 := r0.iszero (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -67,8 +69,8 @@ theorem safeRuntime_block_7401_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.isZero x0)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7415) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (safeRuntime_block_7401_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (safeRuntime_block_7401_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7401_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -80,8 +82,8 @@ def safeRuntime_block_7401_fallthrough_stack {x0 : UInt256} {R : List UInt256} :
 theorem safeRuntime_block_7401_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.isZero x0)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) (safeRuntime_block_7401_fallthrough_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((22))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) (safeRuntime_block_7401_fallthrough_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 5) (C + ((22))) := by
   let r0 := h
   have r1 := r0.iszero (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -95,16 +97,16 @@ theorem safeRuntime_block_7401_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem safeRuntime_block_7401_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.isZero x0)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) (safeRuntime_block_7401_fallthrough_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7401) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) (safeRuntime_block_7401_fallthrough_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7401_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 7408. -/
 theorem safeRuntime_block_7408 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7408) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
   let r0 := h
   have r1 := r0.returndatasize (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -123,8 +125,8 @@ def safeRuntime_block_7415_stack {R : List UInt256} : List UInt256 :=
 /-- Automatically generated RD summary for bytecode block at pc 7415. -/
 theorem safeRuntime_block_7415 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (safeRuntime_block_7415_stack (R := R)) mem aw rdata σ (k + 5) (C + ((9))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (safeRuntime_block_7415_stack (R := R)) mem aw rdata σ (k + 5) (C + ((9))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -137,8 +139,8 @@ theorem safeRuntime_block_7415 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem safeRuntime_block_7415_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (safeRuntime_block_7415_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7415) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (safeRuntime_block_7415_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7415 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -147,8 +149,8 @@ theorem safeRuntime_block_7420_taken {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7473) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: R) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: R) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -163,8 +165,8 @@ theorem safeRuntime_block_7420_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7473) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7420_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -172,8 +174,8 @@ theorem safeRuntime_block_7420_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
 theorem safeRuntime_block_7420_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: R) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: R) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -187,8 +189,8 @@ theorem safeRuntime_block_7420_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem safeRuntime_block_7420_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7420_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -201,8 +203,8 @@ theorem safeRuntime_block_7427 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7427_stack (R := R)) mem (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) rdata σ (k + 13) (C + ((36) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) + (375 + 8 * (⟨0⟩ : UInt256).toNat + 2 * 375))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7427_stack (R := R)) mem (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) rdata σ (k + 13) (C + ((36) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) + (375 + 8 * (⟨0⟩ : UInt256).toNat + 2 * 375))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 64) (by native_decide) (by evm_ov)
   have r2 := RD.genMload r1 (by native_decide) (by evm_ov)
@@ -224,8 +226,8 @@ theorem safeRuntime_block_7427_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7427_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7427) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7427_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7427 hstack hperm hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -238,8 +240,8 @@ theorem safeRuntime_block_7473 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7473_stack (R := R)) mem (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) rdata σ (k + 14) (C + ((37) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) + (375 + 8 * (⟨0⟩ : UInt256).toNat + 2 * 375))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7473_stack (R := R)) mem (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) rdata σ (k + 14) (C + ((37) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨0⟩ : UInt256)) + (375 + 8 * (⟨0⟩ : UInt256).toNat + 2 * 375))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by native_decide) (by evm_ov)
@@ -262,8 +264,8 @@ theorem safeRuntime_block_7473_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7473_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7473) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7473_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7473 hstack hperm hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -276,8 +278,8 @@ theorem safeRuntime_block_7520_taken {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x1 x0)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7535) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (safeRuntime_block_7520_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (safeRuntime_block_7520_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -295,8 +297,8 @@ theorem safeRuntime_block_7520_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x1 x0)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7535) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (safeRuntime_block_7520_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (safeRuntime_block_7520_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7520_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -308,8 +310,8 @@ def safeRuntime_block_7520_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {R : 
 theorem safeRuntime_block_7520_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x1 x0)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (safeRuntime_block_7520_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (safeRuntime_block_7520_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -326,8 +328,8 @@ theorem safeRuntime_block_7520_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem safeRuntime_block_7520_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lt x1 x0)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (safeRuntime_block_7520_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7520) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (safeRuntime_block_7520_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7520_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -339,8 +341,8 @@ def safeRuntime_block_7530_stack {x0 : UInt256} {x1 : UInt256} {R : List UInt256
 theorem safeRuntime_block_7530 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 6705) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 6705) (safeRuntime_block_7530_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 6705) (safeRuntime_block_7530_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
   let r0 := h
   have r1 := r0.dup2 (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 6705) (by native_decide) (by evm_ov)
@@ -352,8 +354,8 @@ theorem safeRuntime_block_7530 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
 theorem safeRuntime_block_7530_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 6705) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 6705) (safeRuntime_block_7530_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7530) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 6705) (safeRuntime_block_7530_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7530 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -365,8 +367,8 @@ def safeRuntime_block_7535_stack {x2 : UInt256} {R : List UInt256} : List UInt25
 theorem safeRuntime_block_7535 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7535_stack (x2 := x2) (R := R)) mem aw rdata σ (k + 7) (C + ((22))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7535_stack (x2 := x2) (R := R)) mem aw rdata σ (k + 7) (C + ((22))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -381,8 +383,8 @@ theorem safeRuntime_block_7535 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
 theorem safeRuntime_block_7535_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains x3 = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7535_stack (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7535) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 x3 (safeRuntime_block_7535_stack (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7535 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -395,8 +397,8 @@ theorem safeRuntime_block_7542_taken {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.gt x0 x1)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7555) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (safeRuntime_block_7542_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (safeRuntime_block_7542_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -414,8 +416,8 @@ theorem safeRuntime_block_7542_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.gt x0 x1)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7555) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (safeRuntime_block_7542_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (safeRuntime_block_7542_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7542_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -427,8 +429,8 @@ def safeRuntime_block_7542_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {R : 
 theorem safeRuntime_block_7542_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.gt x0 x1)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) (safeRuntime_block_7542_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) (safeRuntime_block_7542_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -445,16 +447,16 @@ theorem safeRuntime_block_7542_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem safeRuntime_block_7542_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.gt x0 x1)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) (safeRuntime_block_7542_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7542) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) (safeRuntime_block_7542_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7542_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 7552. -/
 theorem safeRuntime_block_7552 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7552) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Safe.V1_0227664.safeBytecode g s0 := by
   let r0 := h
   have r1 := r0.push0 (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -468,8 +470,8 @@ def safeRuntime_block_7555_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R
 theorem safeRuntime_block_7555 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 10798) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 10798) (safeRuntime_block_7555_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 10798) (safeRuntime_block_7555_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 6705) (by native_decide) (by evm_ov)
@@ -484,8 +486,8 @@ theorem safeRuntime_block_7555 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
 theorem safeRuntime_block_7555_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 10798) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 10798) (safeRuntime_block_7555_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7555) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 10798) (safeRuntime_block_7555_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7555 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -498,8 +500,8 @@ theorem safeRuntime_block_7565_taken {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7588) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7588) (safeRuntime_block_7565_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((43))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7588) (safeRuntime_block_7565_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((43))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -522,8 +524,8 @@ theorem safeRuntime_block_7565_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V1_0227664.safeBytecode 0).contains (UInt256.ofNat 7588) = true)
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7588) (safeRuntime_block_7565_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7588) (safeRuntime_block_7565_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7565_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -535,8 +537,8 @@ def safeRuntime_block_7565_fallthrough_stack {x0 : UInt256} {R : List UInt256} :
 theorem safeRuntime_block_7565_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7583) (safeRuntime_block_7565_fallthrough_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((43))) := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7583) (safeRuntime_block_7565_fallthrough_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 13) (C + ((43))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -558,8 +560,8 @@ theorem safeRuntime_block_7565_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem safeRuntime_block_7565_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7583) (safeRuntime_block_7565_fallthrough_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7565) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Safe.V1_0227664.safeBytecode ee g s0 (UInt256.ofNat 7583) (safeRuntime_block_7565_fallthrough_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeRuntime_block_7565_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 

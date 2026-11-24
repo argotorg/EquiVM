@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ExecTransactionPaymentTrace
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_023
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -22,7 +24,7 @@ theorem safeExecEventSource {frame : Frame} {evm : EVM.State} {z : Bool} {hash p
     (hh : frame.locals["txHash"]? = some (wordBytes32Value hash))
     (hp : frame.locals["payment"]? = some (uint256Value paid))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm execEventStmt (.ok frame evm) := by
+    ExecStmt fork config frame evm execEventStmt (.ok frame evm) := by
   have he := evalLocalValue (cfg := config) (evm := evm) hz
   have ha : evalExprs? config frame evm [.var "txHash", .var "payment"] =
       .ok [wordBytes32Value hash, uint256Value paid] := by
@@ -36,7 +38,7 @@ theorem safeExecEventSourceStatic {frame : Frame} {evm : EVM.State} {z : Bool}
     (hh : frame.locals["txHash"]? = some (wordBytes32Value hash))
     (hp : frame.locals["payment"]? = some (uint256Value paid))
     (hperm : evm.executionEnv.perm = false) :
-    ExecStmt config frame evm execEventStmt .staticViolation := by
+    ExecStmt fork config frame evm execEventStmt .staticViolation := by
   have he := evalLocalValue (cfg := config) (evm := evm) hz
   have ha : evalExprs? config frame evm [.var "txHash", .var "payment"] =
       .ok [wordBytes32Value hash, uint256Value paid] := by
@@ -48,9 +50,9 @@ theorem safeExecEventSourceStatic {frame : Frame} {evm : EVM.State} {z : Bool}
 set_option maxRecDepth 5000 in
 theorem safeExecEventPrepare {I g s0 σ k C aw mem rdata} {guard hash paid : UInt256}
     {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4763⟩ (execEventSaved guard hash paid z R)
+    (h : RD fork safeBytecode I g s0 ⟨4763⟩ (execEventSaved guard hash paid z R)
       mem aw rdata σ k C) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 (execEventLogPC z)
+    ∃ k' C', RD fork safeBytecode I g s0 (execEventLogPC z)
       (execEventSaved guard hash paid z R) mem aw rdata σ k' C' := by
   simp only [execEventSaved, List.cons_append, List.nil_append] at h ⊢
   have h₁ := evm_run h with [dup4, push0, eq, push2 ⟨4931⟩]
@@ -62,10 +64,10 @@ theorem safeExecEventPrepare {I g s0 σ k C aw mem rdata} {guard hash paid : UIn
 set_option maxRecDepth 5000 in
 theorem safeExecEventLog {I g s0 σ k C aw mem rdata paid hash}
     {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 (execEventLogPC z) (paid :: hash :: R)
+    (h : RD fork safeBytecode I g s0 (execEventLogPC z) (paid :: hash :: R)
       mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hp : I.perm = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4813⟩ R
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4813⟩ R
       (writeWord mem (memLoad ⟨64⟩ mem).toNat paid) aw' rdata σ k' C' := by
   cases z
   · exact safeRuntime_block_4931_packed hov hp (by jump_dest) h
@@ -74,9 +76,9 @@ theorem safeExecEventLog {I g s0 σ k C aw mem rdata paid hash}
 set_option maxRecDepth 5000 in
 theorem safeExecEventLogStatic {I g s0 σ k C aw mem rdata paid hash}
     {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 (execEventLogPC z) (paid :: hash :: R)
+    (h : RD fork safeBytecode I g s0 (execEventLogPC z) (paid :: hash :: R)
       mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) (hp : I.perm = false) : RDstatic safeBytecode g s0 := by
+    (hov : R.length + 6 ≤ 1024) (hp : I.perm = false) : RDstatic fork safeBytecode g s0 := by
   cases z
   · have h₁ := evm_run h with [jumpdest, push1 ⟨32⟩]
     have h₂ := RD.pushConst (width := 32) (op := .PUSH32) h₁ (execEventTopic false)

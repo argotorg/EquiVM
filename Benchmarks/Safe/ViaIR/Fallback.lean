@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.FallbackRefinement
 import Benchmarks.Safe.ViaIR.FallbackGas
 import Benchmarks.Safe.ViaIR.RawZeroCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -18,8 +20,8 @@ theorem safeFallbackBodyCore
     (hsize : I.calldata.size < UInt256.size)
     (hnonempty : I.calldata.size ≠ 0)
     (hdispatch : selectorDispatchMsg contract I.calldata = none) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨R, k, C, hlen, h21⟩ := safeReachFallback (σ := σ) (σ₀ := σ₀) (A := A)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨R, k, C, hlen, h21⟩ := safeReachFallback (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hcode hsize hnonempty hdispatch
   have hreceive : receiveDispatchMsg contract I.calldata = none := by
     simp only [receiveDispatchMsg, hnonempty, if_false]
@@ -34,13 +36,13 @@ theorem safeFallbackBodyCore
       have hret := safeRuntime_block_109 (by
         simp only [safeRuntime_block_26_taken_stack, List.length_cons]
         omega) h109
-      have hbody := safeFallbackZero evm hv (hh.trans hz)
+      have hbody := safeFallbackZero (fork := fork) evm hv (hh.trans hz)
       exact RDret.reEquivElim hcode hret fun _ _ hΞ ↦
         reEquivFallbackExecution hdispatch hreceive rfl rfl rfl hbody
           (.success hΞ rfl rfl (.rawBytes rfl))
     · obtain ⟨_, _, h66⟩ := safeRuntime_block_26_fallthrough (by omega)
         (isZero_eq_zero_of_ne hz) h26
-      change RD safeBytecode I (.ofUInt256 g) evm ⟨66⟩ (handler :: R)
+      change RD fork safeBytecode I (.ofUInt256 g) evm ⟨66⟩ (handler :: R)
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ _ _ at h66
       by_cases hsmall : I.calldata.size < 2 ^ 138
       · obtain ⟨aw, gasArg, k', C', h92⟩ := safeFallbackPrepare h66 (by omega)
@@ -55,7 +57,7 @@ theorem safeFallbackBodyCore
           show (⟨128⟩ : UInt256).toNat = 128 from rfl,
           fallbackMemory_read I hnonempty hsmall, ← hh] at hcall
         rw [callOutputMem_zero] at h93
-        change RD safeBytecode I (.ofUInt256 g) evm ⟨93⟩
+        change RD fork safeBytecode I (.ofUInt256 g) evm ⟨93⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨128⟩ :: R)
           (fallbackMemory I) aw' out σ' k'' C'' at h93
         have hn : fallbackHandler evm ≠ ⟨0⟩ := by rwa [hh]
@@ -77,7 +79,7 @@ theorem safeFallbackBodyCore
           (by rw [← hcode] at hoog; exact hoog))
   · have h111 := safeRuntime_block_21_taken (by omega) hv (by jump_dest) h21
     have hrev := safeRuntime_block_111 (by omega) h111
-    have hbody := safeFallbackValueRevert evm hv
+    have hbody := safeFallbackValueRevert (fork := fork) evm hv
     exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
       reEquivFallbackExecution hdispatch hreceive rfl rfl rfl hbody (.revert hΞ rfl)
 
@@ -87,7 +89,7 @@ theorem safeFallbackRefines
     (hsize : I.calldata.size < UInt256.size)
     (hnonempty : I.calldata.size ≠ 0)
     (hdispatch : selectorDispatchMsg contract I.calldata = none) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeFallbackBodyCore hcode hsize hnonempty hdispatch
 
 end Benchmarks.Safe.ViaIR

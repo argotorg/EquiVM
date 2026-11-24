@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.MintSource
 import Benchmarks.UniswapV4PoolManager.MintTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `mint(address,uint256,uint256)`
 
@@ -25,11 +27,11 @@ theorem mintBalanceRefinement {σ σ₀ A I} {g : UInt256} {args imms : Store} {
     (hd : dispatchMsg contract I.calldata = some mintTransition)
     (hdec : config.externalABI.decodeCalldata? (mintTransition.params.map Param.name)
       (transitionSignature mintTransition).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args mintTransition.body
+    (hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args mintTransition.body
       (balanceMintResult f evm receiver (accountWord currency) amount) imms)
-    (htrace : mintBalanceTraceResult v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (htrace : mintBalanceTraceResult fork v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       evm receiver currency amount) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   rw [balanceMintResult, hI] at hbody
   rw [mintBalanceTraceResult] at htrace
   by_cases hfit : (balanceWord evm receiver (accountWord currency)).toNat + amount.toNat < UInt256.size
@@ -45,15 +47,15 @@ theorem mintBalanceRefinement {σ σ₀ A I} {g : UInt256} {args imms : Store} {
 theorem poolManagerMintBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 5) rfl hsel
   have hd : dispatchMsg contract I.calldata = some mintTransition := by
     apply poolManagerDispatch_mint <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachMintBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachMintBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨10709⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -84,7 +86,7 @@ theorem poolManagerMintBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImm
               ((store_get_ne _ _ (by decide : ("id" == "to") = false)).trans (store_get_self _ _ _))
           have hi : args.get? "id" = some (.int (Int.ofNat id.toNat)) :=
             (store_get_ne _ _ (by decide : ("amount" == "id") = false)).trans (store_get_self _ _ _)
-          have hbody := mintBodyExec (evm := evm) (imms := immStore v) (receiver := receiver) (id := id) (amount := amount)
+          have hbody := mintBodyExec (fork := fork) (evm := evm) (imms := immStore v) (receiver := receiver) (id := id) (amount := amount)
             hwv hhi hcanon hr hi (store_get_self _ _ _)
           have htrace := mintTrace (evm := evm) v (by simp) entryMemory_size hI hcanon rdBody
           rw [mintBodyResult] at hbody
@@ -137,7 +139,7 @@ theorem poolManagerMintBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutab
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerMintBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

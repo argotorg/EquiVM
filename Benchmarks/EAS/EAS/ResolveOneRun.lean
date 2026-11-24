@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ResolveOnePayment
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,9 +20,9 @@ theorem resolveOneRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : 
     (hsrc : src.toNat+320 ≤ ptr.toNat) (hdata : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15724⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15724⟩
       (schemaPtr::src::value::rev.toUInt256::available::last.toUInt256::ret::R) mem aw rdata σ k C) :
-    HeapReturnPost ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
+    HeapReturnPost fork ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
       {contract := contract, locals := resolveOneArgs record a value rev available last ptr.toNat, immutables := imms}
       evm resolveOneFunction.body (.int (Int.ofNat (resolveOneUsedValue target value).toNat))
       ret (resolveOneUsedValue target value::R) mem ptr.toNat := by
@@ -35,7 +37,7 @@ theorem resolveOneRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : 
   by_cases hz : target = EVM.address 0
   · rw [if_pos (hziff.mpr hz)] at rd1
     have hr := resolveOneZero v (by omega) hret rd1
-    have hsource := resolveOneSource_zero (cfg := config) (imms := imms)
+    have hsource := resolveOneSource_zero (fork := fork) (cfg := config) (imms := imms)
       (by simpa only [hz] using hfieldEval)
       (by simpa only [store_get_ne _ _ (by decide : ("resolver" == "value") = false)] using hf.value)
       (by simpa only [store_get_ne _ _ (by decide : ("resolver" == "$EAS.freeMemory") = false)] using hf.heap)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveSource
 import Benchmarks.UniswapV3.Pool.BlockTimestamp
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -81,7 +83,7 @@ theorem evalSnapshotUpper (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower
 
 theorem snapshotBelowReturns (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int) :
     let frame := snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv
-    ExecBlock config frame evm snapshotBelowBody (.returned frame evm
+    ExecBlock fork config frame evm snapshotBelowBody (.returned frame evm
       (some (snapshotDifference (tickOutside lower evm.accountMap evm.executionEnv)
         (tickOutside upper evm.accountMap evm.executionEnv)).values)) := by
   apply ExecBlock.consReturn (ExecStmt.return ?_)
@@ -92,7 +94,7 @@ theorem snapshotBelowReturns (v : UniswapV3PoolImmutables) (evm : EVM.State) (lo
 
 theorem snapshotAboveReturns (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int) :
     let frame := snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv
-    ExecBlock config frame evm snapshotAboveBody (.returned frame evm
+    ExecBlock fork config frame evm snapshotAboveBody (.returned frame evm
       (some (snapshotDifference (tickOutside upper evm.accountMap evm.executionEnv)
         (tickOutside lower evm.accountMap evm.executionEnv)).values)) := by
   apply ExecBlock.consReturn (ExecStmt.return ?_)

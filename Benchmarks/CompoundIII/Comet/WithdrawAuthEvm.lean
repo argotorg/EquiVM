@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_056
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_035
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,14 +18,14 @@ theorem cometWithdrawAuth {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray} {aw amount : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (operator src recipient asset : AccountAddress)
     (hstack : R.length + 13 ≤ 1024) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15597⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15597⟩
       (EVM.word operator.val :: EVM.word src.val :: EVM.word recipient.val ::
         EVM.word asset.val :: amount :: R) mem aw rdata σ k C) :
     if WithdrawAuthValid evm operator src then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15632⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15632⟩
         (EVM.word asset.val :: EVM.word recipient.val :: amount :: EVM.word src.val :: R)
         (permissionMemory (EVM.word src.val) (EVM.word operator.val) mem) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hp : pauseBitWord evm ⟨2, by decide⟩ =
       UInt256.land (UInt256.shiftRight (solcSlotWordAt ⟨1⟩ σ ee) ⟨248⟩) ⟨4⟩ := by
     rw [pauseBitWord, pauseFlagsWord_eq_shift, hs.storageRead]

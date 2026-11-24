@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorRuntimeStart
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open cometWithExtendedAssetListCreationBlocks
 
@@ -15,9 +17,9 @@ theorem cometConstructorRuntimeReturn {tail : ByteArray} {ee : ExecutionEnv} {g 
     (hptr : memLoad (UInt256.ofNat 64) mem = ptr)
     (hr : ∀ off, 96 ≤ off → off + 32 ≤ 928 →
       memLoad (UInt256.ofNat off) (writeWord mem 896 assetList) = w off)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
       (discard :: assetList :: R) mem aw rdata σ k C) :
-    RDret (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 σ
+    RDret fork (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 σ
       (immutableLayout.runtime cometWithExtendedAssetListBytecode (constructorRuntimeWords w)) := by
   let copied := constructorRuntimeCopy (writeWord mem 896 assetList) tail ptr
   have hcopy := constructorRuntimeCopy_prefix (tail := tail) (ptr := ptr)
@@ -39,7 +41,7 @@ theorem cometConstructorRuntimeReturn {tail : ByteArray} {ee : ExecutionEnv} {g 
   obtain ⟨aw1, k1, C1, r1⟩ := cometWithExtendedAssetListCreation_block_1410_packed hstack h
   have he1 := constructorRuntimeStart_eq (tail := tail) hm hlo hin hfit hptr hr R
   rw [he1.1, he1.2] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ((UInt256.ofNat 6266 + ptr) :: w 192 :: ptr :: w 192 :: ptr :: R)
     (constructorRuntimePatchedMemory copied ptr w 9) _ _ _ _ _ at r1
   obtain ⟨aw2, k2, C2, r2⟩ := cometWithExtendedAssetListCreation_block_1505_packed hstack r1
@@ -64,7 +66,7 @@ theorem cometConstructorRuntimeReturn {tail : ByteArray} {ee : ExecutionEnv} {g 
   have hadd : (UInt256.ofNat 7222 + ptr).toNat = ptr.toNat + 7222 := by
     rw [u256_add_comm]
     exact uadd_word_ofNat_toNat _ _ (by omega)
-  change RDret _ _ _ _ ((writeWord (constructorRuntimePatchedMemory copied ptr w 69)
+  change RDret fork _ _ _ _ ((writeWord (constructorRuntimePatchedMemory copied ptr w 69)
     (UInt256.ofNat 7222 + ptr).toNat (w 896)).readWithPadding ptr.toNat 18599) at r7
   rw [hadd, hlast, constructorRuntimePatchedMemory_return (by
     rw [writeWord_sparse_size]; omega)] at r7

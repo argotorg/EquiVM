@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokePublicSource
 import Benchmarks.EAS.EAS.VerifyRevokeSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -31,11 +33,11 @@ theorem delegatedRevokePrefixSource {L imms : Store} {evm : EVM.State} {r : Dele
     (hr : L.get? "delegatedRequest" = some r.tuple)
     (hsz : 4 ≤ evm.executionEnv.calldata.size) (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : evm.executionEnv.calldata.size-4 < 2^255) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm delegatedRevokePrefix
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm delegatedRevokePrefix
       (.ok {contract := contract,locals := delegatedRevokePrefixLocals L evm.executionEnv.calldata r,immutables := imms} evm) := by
   rw [delegatedRevokePrefix,List.append_assoc]
   apply execBlock_append (easPayableEntryPrefix_ok hsz hsize hguard)
-  have ha := allocateBlock_ok (cfg := config) (evm := evm) (locals := easEntryLocals L evm.executionEnv.calldata)
+  have ha := allocateBlock_ok (fork := fork) (cfg := config) (evm := evm) (locals := easEntryLocals L evm.executionEnv.calldata)
     (imms := imms) (size := .intLit 288) (n := 288) (heap := 224)
     (by simp only [evalExpr?,pure]; rfl)
     (by simp (disch := decide) only [easEntryLocals,store_get_ne,store_get_self]; rfl) (by decide)
@@ -50,7 +52,7 @@ theorem delegatedRevokePrefixSource {L imms : Store} {evm : EVM.State} {r : Dele
 
 theorem delegatedRevokeDataSource {L imms : Store} {evm : EVM.State} {r : DelegatedRevocationRecord}
     (hr : L.get? "delegatedRequest" = some r.struct) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm delegatedRevokeData
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm delegatedRevokeData
       (.ok {contract := contract,locals := delegatedRevokeDataLocals L r.data,immutables := imms} evm) := by
   have hd : defaultValue? revocationDataType = .ok defaultRevocationRecord.struct := by native_decide
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
@@ -58,7 +60,7 @@ theorem delegatedRevokeDataSource {L imms : Store} {evm : EVM.State} {r : Delega
     simp only [evalExpr?,pure,bind,EvalResult.bind,show ¬ (1 : Int) < 0 by decide,if_false,hd]
     rfl
   apply ExecBlock.consNormal (ExecStmt.letDecl he)
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := r.data.tuple) ?_ ?_) ExecBlock.nil
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := r.data.tuple) ?_ ?_) ExecBlock.nil
   · apply evalRecordField (record := r.struct) ?_ rfl
     simp only [evalExpr?,store_get_ne _ _ (by decide : ("data" == "delegatedRequest") = false),hr,EvalResult.ofOption]
   · exact assignLocalArrayExpr (cfg := config) (evm := evm)

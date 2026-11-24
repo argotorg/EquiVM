@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.AddressWord
 import Benchmarks.CurveVault.RuntimeBlocks_021
 import Benchmarks.CurveVault.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -60,12 +62,12 @@ theorem vaultAdjustPrepare (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     (hold : codeOwnerStorageWord I (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩)
       (vaultAllowanceSlot I.source (AccountAddress.ofNat spender.toNat)) = old)
     (hperm : I.perm = true) (hstack : R.length + 6 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustEntryPc increase) R mem aw rdata σ k C) :
     ∃ (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       288 ≤ mem'.size ∧ memLoad (UInt256.ofNat 192) mem' = spender ∧
       memLoad (UInt256.ofNat 224) mem' = old ∧
       memLoad (UInt256.ofNat 256) mem' = vaultAdjustValue increase old (calldataWord I.calldata 36) ∧
-      RD vaultBytecode I g s0 (vaultAdjustFinishPc increase) R mem' aw' rdata
+      RD fork vaultBytecode I g s0 (vaultAdjustFinishPc increase) R mem' aw' rdata
         (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
   let value := vaultAdjustWrapped increase old (calldataWord I.calldata 36)
   let scratch := vaultAdjustRawMemory increase I σ mem
@@ -84,13 +86,13 @@ theorem vaultAdjustPrepare (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0
         (if increase then memLoad (UInt256.ofNat 256) scratch else memLoad (UInt256.ofNat 224) scratch)
         (if increase then memLoad (UInt256.ofNat 224) scratch else memLoad (UInt256.ofNat 256) scratch)) = ⟨0⟩ := by
       rw [hc, hover]; rfl
-    have rdClamp : ∃ aw' k' C', RD vaultBytecode I g s0 (vaultAdjustClampPc increase) R scratch aw' rdata
+    have rdClamp : ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultAdjustClampPc increase) R scratch aw' rdata
         (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
       cases increase
       · exact vaultBlocks.vault_block_6209_fallthrough_packed (by omega) hperm hc0 h
       · exact vaultBlocks.vault_block_6036_fallthrough_packed (by omega) hperm hc0 h
     obtain ⟨aw1, k1, C1, rd⟩ := rdClamp
-    have rdFinish : ∃ aw' k' C', RD vaultBytecode I g s0 (vaultAdjustFinishPc increase) R
+    have rdFinish : ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultAdjustFinishPc increase) R
         ((vaultAdjustBound increase).toByteArray.write 0 scratch 256 32) aw' rdata
         (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
       cases increase
@@ -109,7 +111,7 @@ theorem vaultAdjustPrepare (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0
         (if increase then memLoad (UInt256.ofNat 256) scratch else memLoad (UInt256.ofNat 224) scratch)
         (if increase then memLoad (UInt256.ofNat 224) scratch else memLoad (UInt256.ofNat 256) scratch)) ≠ ⟨0⟩ := by
       rw [hc, hover']; decide +kernel
-    have rdFinish : ∃ aw' k' C', RD vaultBytecode I g s0 (vaultAdjustFinishPc increase) R scratch aw' rdata
+    have rdFinish : ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultAdjustFinishPc increase) R scratch aw' rdata
         (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
       cases increase
       · exact vaultBlocks.vault_block_6209_taken_packed (by omega) hperm hc1 (by native_decide) h

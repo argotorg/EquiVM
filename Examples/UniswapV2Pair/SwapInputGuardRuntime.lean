@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapInputRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -8,14 +10,14 @@ theorem uniswapSwapInputGuardRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw amount1In amount0In : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2418 : RD uniswapV2PairBytecode I g s0 ⟨2418⟩
+    (rd2418 : RD fork uniswapV2PairBytecode I g s0 ⟨2418⟩
       (amount1In :: amount0In :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    (¬ (0 < amount0In.toNat ∨ 0 < amount1In.toNat)) ∧ RDrev uniswapV2PairBytecode g s0 ∨
+    (¬ (0 < amount0In.toNat ∨ 0 < amount1In.toNat)) ∧ RDrev fork uniswapV2PairBytecode g s0 ∨
     (0 < amount0In.toNat ∨ 0 < amount1In.toNat) ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨2491⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨2491⟩
         (amount1In :: amount0In :: R) mem aw rdata σ k' C' := by
-  have hto2432 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2432⟩
+  have hto2432 : ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2432⟩
       ((if 0 < amount0In.toNat ∨ 0 < amount1In.toNat then ⟨1⟩ else ⟨0⟩) ::
         amount1In :: amount0In :: R) mem aw rdata σ k' C' := by
     have rd2426 := evm_run rd2418 with [push1 ⟨0⟩, dup3, gt, dup1, push2 ⟨2432⟩]

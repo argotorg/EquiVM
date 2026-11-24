@@ -3,6 +3,8 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.RedoSuccessEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -321,14 +323,14 @@ theorem RD.clipperRedoPayoutToSuckGuard {code : ByteArray}
     {coin chost oldCoin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7932⟩
+    (rd : RD fork code ee g s0 ⟨7932⟩
       (coin :: chost :: oldCoin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew ::
         tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
       mem (UInt256.ofNat 7) o σ k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 50 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8079⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8079⟩
       (clipperRedoVatTarget v :: clipperRedoVatTarget v :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
@@ -384,7 +386,7 @@ theorem RD.clipperRedoPayoutToSuckGuard {code : ByteArray}
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) vatWord =
         clipperRedoVatTarget v := by
     rw [hmask]
-  obtain ⟨_, _, rd7995⟩ : ∃ k C, RD code ee g s0 ⟨7995⟩
+  obtain ⟨_, _, rd7995⟩ : ∃ k C, RD fork code ee g s0 ⟨7995⟩
       (solcSlotWord σ ee ⟨2⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
@@ -402,7 +404,7 @@ theorem RD.clipperRedoPayoutToSuckGuard {code : ByteArray}
   have hpc8004 :
       (⟨7995⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 +
         UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨8004⟩ := by native_decide
-  obtain ⟨_, _, rd8004⟩ : ∃ k C, RD code ee g s0 ⟨8004⟩
+  obtain ⟨_, _, rd8004⟩ : ∃ k C, RD fork code ee g s0 ⟨8004⟩
       (clipperRedoVowTarget σ ee :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
@@ -540,7 +542,7 @@ theorem RD.clipperRedoSuckNoCode {code : ByteArray}
     {σ : AccountMap}
     {chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8079⟩
+    (rd : RD fork code ee g s0 ⟨8079⟩
       (clipperRedoVatTarget v :: clipperRedoVatTarget v :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
@@ -549,7 +551,7 @@ theorem RD.clipperRedoSuckNoCode {code : ByteArray}
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperRedoVatTarget v) = ⟨0⟩)
     (hov : R.length + 50 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨8079⟩) (okPc := ⟨8091⟩)
     rd hcodeSizeVat
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -567,7 +569,7 @@ theorem RD.clipperRedoSuckPostCall
     {R : List UInt256} {mem rdata : ByteArray}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd : RD code ee g (initState σStart σ₀ g A ee) ⟨8079⟩
+    (rd : RD fork code ee g (initState σStart σ₀ g A ee) ⟨8079⟩
       (clipperRedoVatTarget v :: clipperRedoVatTarget v :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
@@ -580,13 +582,13 @@ theorem RD.clipperRedoSuckPostCall
     (hmem : mem.size = 196) (hov : R.length + 50 ≤ 1024) :
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code ee g (initState σStart σ₀ g A ee) ⟨8095⟩
+      RD fork code ee g (initState σStart σ₀ g A ee) ⟨8095⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
           clipperRedoVatTarget v :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
           done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
         (clipperRedoSuckCalldataMem σ ee kpr coin mem) (UInt256.ofNat 8) out
         σ' k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A ee with
           accountMap := σ }
         (EVM.address v.vat) "suck" 0
@@ -659,9 +661,9 @@ theorem RD.clipperRedoSuckCallFailure {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd : RD code ee g s0 ⟨8095⟩ (⟨0⟩ :: R) mem aw out acc k C)
+    (rd : RD fork code ee g s0 ⟨8095⟩ (⟨0⟩ :: R) mem aw out acc k C)
     (hout : out.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨8095⟩) (okPc := ⟨8111⟩)
     rd (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -679,13 +681,13 @@ theorem RD.clipperRedoSuckCallSuccess {code : ByteArray}
     {acc : AccountMap}
     {chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8095⟩
+    (rd : RD fork code ee g s0 ⟨8095⟩
       (⟨1⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord :: clipperRedoVatTarget v ::
         chost :: coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw out acc k C)
     (hov : R.length + 50 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8118⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ret :: sel :: R)
       mem aw out acc k' C' := by

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionSlotHeadTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,12 +11,12 @@ set_option maxRecDepth 10000
 theorem modifyPositionSlotX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16264⟩ (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16264⟩ (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hq : ModifyPositionParamsMemory mem q a)
     (hqlo : 96 ≤ q.toNat) (hqp : q.toNat + 128 ≤ p.toNat)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 14 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨19151⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨19151⟩
       (EVM.wordOfInt (slot0TickValue σ ee) :: EVM.wordOfInt a.delta :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: EVM.word a.owner.val :: ⟨16428⟩ :: p ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R)

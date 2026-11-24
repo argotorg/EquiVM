@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.WordWrappingSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -22,7 +24,7 @@ theorem tickCrossWriteSource {f : Frame} {evm : EVM.State} {id growth0 growth1 :
     (hi : f.locals.get? "info" = some (tickRefValue id tick))
     (h0 : f.locals.get? "feeGrowthGlobal0X128" = some (.int (Int.ofNat growth0.toNat)))
     (h1 : f.locals.get? "feeGrowthGlobal1X128" = some (.int (Int.ofNat growth1.toNat))) :
-    ExecBlock config f evm tickCrossWriteStmts
+    ExecBlock fork config f evm tickCrossWriteStmts
       (if evm.executionEnv.perm = false then .staticViolation else .ok f (tickCrossPost evm id tick growth0 growth1)) := by
   have he0 := evalWordSub (evalLocalValue (cfg := config) (evm := evm) h0)
     (tickField_read hi .feeGrowthOutside0)
@@ -36,8 +38,8 @@ theorem tickCrossWriteSource {f : Frame} {evm : EVM.State} {id growth0 growth1 :
       (tickField_read hi .feeGrowthOutside1)
     have hw1 := tickField_write (evm := tickCrossWrite0 evm id tick growth0) hi .feeGrowthOutside1
       (UInt256.sub growth1 (tickFieldWord (tickCrossWrite0 evm id tick growth0) id tick .feeGrowthOutside1))
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he0 hw0)
-      (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (by simpa only [tickCrossWrite0, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) he1 hw1))
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he0 hw0)
+      (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [tickCrossWrite0, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) he1 hw1))
 
 def tickCrossResult (f : Frame) (evm : EVM.State) (id : UInt256) (tick : Int) (growth0 growth1 : UInt256) : ExecResult :=
   if evm.executionEnv.perm = false then .staticViolation else
@@ -49,16 +51,16 @@ theorem tickCrossBody {f : Frame} {evm : EVM.State} {id growth0 growth1 : UInt25
     (ht : f.locals.get? "tick" = some (.int tick))
     (h0 : f.locals.get? "feeGrowthGlobal0X128" = some (.int (Int.ofNat growth0.toNat)))
     (h1 : f.locals.get? "feeGrowthGlobal1X128" = some (.int (Int.ofNat growth1.toNat))) :
-    ∃ f', ExecFuncBody config f evm tickCrossFunction.body (tickCrossResult f' evm id tick growth0 growth1) := by
+    ∃ f', ExecFuncBody fork config f evm tickCrossFunction.body (tickCrossResult f' evm id tick growth0 growth1) := by
   let f1 := valueLocal f "liquidityNet" (.int 0)
   let f2 := valueLocal f1 "info" (tickRefValue id tick)
-  have hlet : ExecStmt config f evm tickCrossFunction.body[0]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm tickCrossFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure])
-  have href : ExecStmt config f1 evm tickCrossFunction.body[1]! (.ok f2 evm) :=
+  have href : ExecStmt fork config f1 evm tickCrossFunction.body[1]! (.ok f2 evm) :=
     ExecStmt.letStorage (tickMappingResolve
       ((store_get_ne _ _ (by decide : ("liquidityNet" == "self") = false)).trans hs)
       (evalLocalValue ((store_get_ne _ _ (by decide : ("liquidityNet" == "tick") = false)).trans ht)))
-  have hpre : ExecBlock config f evm (tickCrossFunction.body.take 2) (.ok f2 evm) :=
+  have hpre : ExecBlock fork config f evm (tickCrossFunction.body.take 2) (.ok f2 evm) :=
     ExecBlock.consNormal hlet (execBlock_singleton href)
   have hi2 : f2.locals.get? "info" = some (tickRefValue id tick) := store_get_self _ _ _
   have h02 : f2.locals.get? "feeGrowthGlobal0X128" = some (.int (Int.ofNat growth0.toNat)) :=
@@ -67,7 +69,7 @@ theorem tickCrossBody {f : Frame} {evm : EVM.State} {id growth0 growth1 : UInt25
   have h12 : f2.locals.get? "feeGrowthGlobal1X128" = some (.int (Int.ofNat growth1.toNat)) :=
     (store_get_ne2 _ _ _ (by decide : ("liquidityNet" == "feeGrowthGlobal1X128") = false)
       (by decide : ("info" == "feeGrowthGlobal1X128") = false)).trans h1
-  have hwrites := tickCrossWriteSource (evm := evm) hi2 h02 h12
+  have hwrites := tickCrossWriteSource (fork := fork) (evm := evm) hi2 h02 h12
   by_cases hp : evm.executionEnv.perm = false
   · rw [if_pos hp] at hwrites
     refine ⟨f2, ?_⟩
@@ -80,9 +82,9 @@ theorem tickCrossBody {f : Frame} {evm : EVM.State} {id growth0 growth1 : UInt25
     let f3 := valueLocal f2 "liquidityNet" (.int (EVM.signed net))
     have hn : f2.locals.get? "liquidityNet" = some (.int 0) :=
       (store_get_ne _ _ (by decide : ("info" == "liquidityNet") = false)).trans (store_get_self _ _ _)
-    have hnet : ExecStmt config f2 post tickCrossFunction.body[4]! (.ok f3 post) :=
+    have hnet : ExecStmt fork config f2 post tickCrossFunction.body[4]! (.ok f3 post) :=
       ExecStmt.assign (hperm := Or.inl rfl) (tickNet_eval (tickField_read hi2 .liquidityPacked)) (assignLocalValue hn)
-    have htail : ExecFuncBody config f2 evm (tickCrossFunction.body.drop 2)
+    have htail : ExecFuncBody fork config f2 evm (tickCrossFunction.body.drop 2)
         (.returned f3 post (some [.int (EVM.signed net)])) :=
       ExecFuncBody.execBlockRet (execBlock_append_ok hwrites
         (ExecBlock.consNormal hnet (ABlock.start.returns (evalLocalValue (store_get_self _ _ _)))))
@@ -94,7 +96,7 @@ theorem tickCrossCall {f : Frame} {evm : EVM.State} {id growth0 growth1 : UInt25
     (ht : evalExpr? config f evm et = .ok (.int tick))
     (h0 : evalExpr? config f evm e0 = .ok (.int (Int.ofNat growth0.toNat)))
     (h1 : evalExpr? config f evm e1 = .ok (.int (Int.ofNat growth1.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_crossTick" [es, et, e0, e1] ret)
+    ExecStmt fork config f evm (.internalCall "Pool_crossTick" [es, et, e0, e1] ret)
       (resumeCallResult f ret (tickCrossResult f evm id tick growth0 growth1)) := by
   let fc : Frame := {f with locals :=
     (((((∅ : Store).insert "feeGrowthGlobal1X128" (.int (Int.ofNat growth1.toNat))).insert

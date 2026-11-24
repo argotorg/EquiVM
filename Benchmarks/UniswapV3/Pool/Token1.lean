@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `token1()`
 
@@ -19,7 +21,7 @@ set_option maxRecDepth 2000000
 
 theorem uniswapV3PoolToken1Returns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals token1Transition.body
+    ExecTransitionBody fork config contract evm locals token1Transition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v }
         evm (some [.address v.token1])) (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
@@ -30,7 +32,7 @@ theorem uniswapV3PoolToken1X {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmut
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 21)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (EVM.word v.token1.val)) := by
   obtain ⟨k, C, rd2040⟩ := uniswapV3PoolReachToken1Body (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -43,7 +45,7 @@ theorem uniswapV3PoolToken1X {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmut
   simp only [uniswapV3PoolBlocks.uniswapV3Pool_block_10527_stack,
     wordsOf_immStore_token1] at rd443
   have hret := RD.poolReturnAddress (v := v) rd443 (by simp)
-  change RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+  change RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
     (UInt256.toByteArray (UInt256.land (EVM.word v.token1.val) solcAddrMask)) at hret
   rwa [addressWord_val_clean] at hret
 
@@ -52,7 +54,7 @@ theorem uniswapV3PoolToken1Body {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolI
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 21) rfl hsel
   have hd : dispatchMsg contract I.calldata = some token1Transition := by
     apply uniswapV3PoolDispatch_token1 <;>

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Decoders
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_044
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,8 +14,8 @@ set_option maxRecDepth 2000
 
 theorem safePreModuleUnauthorizedTrace {I g s0 σ k C aw mem rdata}
     {x : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9869⟩ (x :: R) mem aw rdata σ k C)
-    (hx : x ≠ ⟨0⟩) (hov : R.length + 8 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨9869⟩ (x :: R) mem aw rdata σ k C)
+    (hx : x ≠ ⟨0⟩) (hov : R.length + 8 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_9869_taken (by omega) hx (by jump_dest) h
   exact safeRuntime_block_10064 (by
     simp only [safeRuntime_block_9869_taken_stack]; omega) h₁
@@ -21,13 +23,13 @@ theorem safePreModuleUnauthorizedTrace {I g s0 σ k C aw mem rdata}
 theorem safePreModuleAuthorizationTrace {I g s0 σ k C aw mem rdata}
     {target value src operation ret : UInt256} {R : List UInt256}
     (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨9817⟩
+    (h : RD fork safeBytecode I g s0 ⟨9817⟩
       (target :: value :: src :: operation :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hm : 64 ≤ mem.size) (hov : R.length + 15 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬preModuleAuthorized evm) ∨
+    (RDrev fork safeBytecode g s0 ∧ ¬preModuleAuthorized evm) ∨
     (preModuleAuthorized evm ∧
-      ∃ aw' k' C', RD safeBytecode I g s0 ⟨9874⟩
+      ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9874⟩
         (value :: operation :: src :: ret :: ⟨0⟩ :: target :: preModuleGuardWord evm :: R)
         (twoWordHashMem (UInt256.ofNat I.source.val) ⟨1⟩ mem) aw' rdata σ k' C') := by
   by_cases hs : UInt256.ofNat I.source.val = ⟨1⟩
@@ -58,14 +60,14 @@ theorem safePreModuleAuthorizationTrace {I g s0 σ k C aw mem rdata}
     rfl
   simp only [safeRuntime_block_10109_stack, safeRuntime_block_9817_taken_stack,
     safeAddressMask, hmem] at h₂
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (UInt256.isZero (UInt256.land solcAddrMask
       (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩
         (twoWordHashMem (UInt256.ofNat I.source.val) ⟨1⟩ mem)) σ I)) ::
       value :: operation :: src :: ret :: ⟨0⟩ :: target ::
       solcSlotWordAt moduleGuardSlot σ I :: R) _ _ rdata σ _ _ at h₂
   rw [hh, u256_land_comm, ← hguard] at h₂
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (UInt256.isZero (moduleLinkAt σ I (UInt256.ofNat I.source.val)) ::
       value :: operation :: src :: ret :: ⟨0⟩ :: target :: preModuleGuardWord evm :: R) _ _ rdata σ _ _ at h₂
   rw [← hlink] at h₂

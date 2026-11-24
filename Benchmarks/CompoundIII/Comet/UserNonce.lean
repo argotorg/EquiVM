@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.MappingGetter
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `userNonce(address)`
 
@@ -48,7 +50,7 @@ theorem evalUserNonce (evm : EVM.State) (locals imms : Store) (addr : AccountAdd
 
 theorem userNonce_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) (addressGetterArgs "arg0" I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) (addressGetterArgs "arg0" I)
       userNonceTransition.body
       (.returned
         (calldataLocalFrame
@@ -70,7 +72,7 @@ theorem userNonceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 14)) :
-    AddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    AddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (userNonceWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)).toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachUserNonceBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -102,7 +104,7 @@ theorem userNonceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
             solcAddrMask_clean_left hc
           rw [hclean] at rd6
           let mem := twoWordHashMem w ⟨4⟩ solcFreePtrMem
-          change RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+          change RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
             (((solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem) σ I).toByteArray.write
               0 mem (memLoad ⟨64⟩ mem).toNat 32).readWithPadding
                 (memLoad ⟨64⟩ mem).toNat 32) at rd6
@@ -136,7 +138,7 @@ theorem userNonceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
 theorem cometWithExtendedAssetListUserNonceBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 14) rfl hsel
   apply addressGetter_refines (t := userNonceTransition) hcode hsz
     (cometSelectorDispatch ⟨14, by decide⟩ hsel) rfl rfl rfl

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Values
 import Reasoning.TransientStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! PoolManager storage reads, using the concrete Solidity layout. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -48,7 +50,7 @@ theorem addressGetterBodyReturns (evm : EVM.State) (locals imms : Store)
     (hty : storageTypeAt? contract.storage {base := name} = some (.elem .address))
     (hloc : config.storageBackend.locate? {base := name} =
       some (.leaf (addressOffset0Loc slot))) :
-    ExecTransitionBody config contract evm locals
+    ExecTransitionBody fork config contract evm locals
       (nonpayableCalldataPrefix ++ [.return [.storage {base := name}]])
       (.returned (calldataFrame contract locals imms evm) evm
         (some [.address (AccountAddress.ofNat

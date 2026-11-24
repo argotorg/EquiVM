@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ArrayAllocationSize
 import Benchmarks.EAS.EAS.RuntimeBlocks_027
 import Benchmarks.EAS.EAS.RuntimeBlocks_028
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -26,16 +28,16 @@ theorem easArrayAllocationHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {heap len ret : UInt256} {R : List UInt256} (v : EASImmutables) (kind : ArrayAllocationKind)
     (hstack : R.length+10 ≤ 1024) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 kind.pc (len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.pc (len::ret::R) mem aw rdata σ k C) :
     if len.toNat ≤ 2^64-1 then
       if allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.initialized
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.initialized
           (UInt256.ofNat (32+32*len.toNat)::
             UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639904::heap::ret::heap::R)
           (arrayAllocationHeaderMemory mem heap len.toNat) aw' rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
-  have hstart : ∃ a j D, RD (deployedRuntime v) ee g s0 ⟨5069⟩
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
+  have hstart : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ⟨5069⟩
       (len::kind.afterSize::ret::len::R) mem a rdata σ j D := by
     have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 5069) = true := by rw [easPatchedValidJumps v]; jump_dest
     cases kind with
@@ -48,7 +50,7 @@ theorem easArrayAllocationHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   by_cases hl : len.toNat ≤ 2^64-1
   · rw [if_pos hl] at hsize ⊢
     obtain ⟨a2,k2,C2,r2⟩ := hsize
-    have hreserve : ∃ a j D, RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    have hreserve : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
         (heap::UInt256.ofNat (32+32*len.toNat)::kind.afterReserve::heap::ret::len::R) mem a rdata σ j D := by
       have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 4883) = true := by rw [easPatchedValidJumps v]; jump_dest
       cases kind with
@@ -70,7 +72,7 @@ theorem easArrayAllocationHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         (by simpa only [hn] using hg)
         (by cases kind <;> simp only [ArrayAllocationKind.afterReserve] <;> rw [easPatchedValidJumps v] <;> jump_dest) r3
       rw [hn] at r4
-      have hheader : ∃ a j D, RD (deployedRuntime v) ee g s0 ⟨5069⟩
+      have hheader : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ⟨5069⟩
           (len::kind.initialized::UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639904::heap::ret::heap::R)
           (arrayAllocationHeaderMemory mem heap len.toNat) a rdata σ j D := by
         have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 5069) = true := by rw [easPatchedValidJumps v]; jump_dest

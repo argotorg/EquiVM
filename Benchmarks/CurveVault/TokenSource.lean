@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.TokenReturnSource
 import Benchmarks.CurveVault.TokenMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -29,7 +31,7 @@ theorem vaultTokenPayloadEval (evm : State) (locals : Store) (sender recipient a
 
 theorem vaultTokenSourceZero (evm : State) (locals : Store)
     (ha : locals.get? "amount" = some (.int 0)) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body
       (.returned {contract := contract, locals := locals} evm none) := by
   apply ExecFuncBody.execBlockOK
   apply ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ExecBlock.nil
@@ -42,12 +44,12 @@ theorem vaultTokenSourceCallStmt (evm evm' : State) (locals : Store)
     (ht : locals.get? "_to" = some (.int (Int.ofNat recipient.toNat)))
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hpos : 0 < amount.toNat)
-    (hcall : callViaEVM evm (AccountAddress.ofUInt256 token) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofUInt256 token) 0
       (vaultTokenPayload sender recipient amount) (z, evm', out))
-    (hrest : ExecBlock config
+    (hrest : ExecBlock fork config
       {contract := contract, locals := vaultTokenCalledLocals locals sender recipient amount z out} evm'
       [.require (.var "success"), vaultTokenReturnStmt] result) :
-    ExecStmt config {contract := contract, locals := locals} evm vaultTokenFunction.body[0]! result := by
+    ExecStmt fork config {contract := contract, locals := locals} evm vaultTokenFunction.body[0]! result := by
   apply ExecStmt.iteTrue
     (by simpa only [hpos, decide_true] using evalExpr_uint256_var_positive evm "amount" amount ha)
   apply ExecBlock.consNormal (ExecStmt.letDecl (vaultTokenPayloadEval evm locals sender recipient amount hf ht ha))
@@ -72,10 +74,10 @@ theorem vaultTokenSourceSuccess {s0 evm evm' : State} {I : ExecutionEnv} {σ' : 
     (ht : locals.get? "_to" = some (.int (Int.ofNat recipient.toNat)))
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hpos : 0 < amount.toNat)
-    (hcall : callViaEVM evm (AccountAddress.ofUInt256 token) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofUInt256 token) 0
       (vaultTokenPayload sender recipient amount) (true, evm', out))
     (haccept : vaultTokenReturnAccepted σ' token out) :
-    ∃ locals', ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body
+    ∃ locals', ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body
       (.returned {contract := contract, locals := locals'} evm' none) := by
   let afterCall := vaultTokenCalledLocals locals sender recipient amount true out
   obtain ⟨locals', hreturn⟩ := vaultTokenReturnSourceSuccess hs' afterCall token out
@@ -95,9 +97,9 @@ theorem vaultTokenSourceCallFailure (evm evm' : State) (locals : Store)
     (ht : locals.get? "_to" = some (.int (Int.ofNat recipient.toNat)))
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hpos : 0 < amount.toNat)
-    (hcall : callViaEVM evm (AccountAddress.ofUInt256 token) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofUInt256 token) 0
       (vaultTokenPayload sender recipient amount) (false, evm', out)) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply vaultTokenSourceCallStmt evm evm' locals token sender recipient amount false out _ htoken hf ht ha hpos hcall
@@ -112,10 +114,10 @@ theorem vaultTokenSourceReturnFailure {s0 evm evm' : State} {I : ExecutionEnv} {
     (ht : locals.get? "_to" = some (.int (Int.ofNat recipient.toNat)))
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hpos : 0 < amount.toNat)
-    (hcall : callViaEVM evm (AccountAddress.ofUInt256 token) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofUInt256 token) 0
       (vaultTokenPayload sender recipient amount) (true, evm', out))
     (hreject : ¬ vaultTokenReturnAccepted σ' token out) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply vaultTokenSourceCallStmt evm evm' locals token sender recipient amount true out _ htoken hf ht ha hpos hcall

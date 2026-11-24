@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WordComparisons
 import Benchmarks.Morpho.MorphoBlue.AccruePublicSource
 import Benchmarks.Morpho.MorphoBlue.MarketParamsWordABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -50,7 +52,7 @@ theorem morphoSetFeePrelude (p : MarketParamsWords) (fee : UInt256) (hc : p.Cano
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv) :
-    ABlock config evm { contract := contract, locals := setFeeArgs p fee, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := setFeeArgs p fee, immutables := imms }
       setFeeTransition.body (setFeeFrame p fee evm.executionEnv.calldata imms) (setFeeTransition.body.drop 5) := by
   have heo := evalMorphoOwnerCheck evm (setFeeBeforeId p fee evm.executionEnv.calldata imms).locals imms
     (by simp [setFeeBeforeId, setFeeArgs])
@@ -69,7 +71,7 @@ theorem morphoSetFeeSourceGuards (p : MarketParamsWords) (fee : UInt256) (hc : p
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : SetFeeGuards evm.accountMap evm.executionEnv p fee) :
-    ABlock config evm { contract := contract, locals := setFeeArgs p fee, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := setFeeArgs p fee, immutables := imms }
       setFeeTransition.body (setFeeFrame p fee evm.executionEnv.calldata imms) (setFeeTransition.body.drop 8) := by
   have hl := setFeeFrame_market p fee evm.executionEnv.calldata imms
   exact (((morphoSetFeePrelude p fee hc evm imms hcv hsize hg.1).requireStep
@@ -83,10 +85,10 @@ theorem morphoSetFeeSourceRejects (p : MarketParamsWords) (fee : UInt256) (hc : 
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hbad : ¬ SetFeeGuards evm.accountMap evm.executionEnv p fee) :
-    ExecTransitionBody config contract evm (setFeeArgs p fee) setFeeTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm (setFeeArgs p fee) setFeeTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   by_cases ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv
-  · have pref := morphoSetFeePrelude p fee hc evm imms hcv hsize ho
+  · have pref := morphoSetFeePrelude (fork := fork) p fee hc evm imms hcv hsize ho
     have hl := setFeeFrame_market p fee evm.executionEnv.calldata imms
     have hec := evalWordNeZero (hl.evalField imms evm ⟨4, by decide⟩)
     by_cases hcreated : marketFieldWord evm.accountMap evm.executionEnv p.id 4 ≠ ⟨0⟩
@@ -106,7 +108,7 @@ theorem morphoSetFeeSourceRejects (p : MarketParamsWords) (fee : UInt256) (hc : 
 theorem morphoSetFeeAssign (p : MarketParamsWords) (fee : UInt256) (locals imms : Store) (evm : EVM.State)
     (hl : MarketLocals p locals) (hg : locals.get? "newFee" = some (.int (Int.ofNat fee.toNat)))
     (hfit : fee.toNat ≤ maxMarketFee) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm setFeeTransition.body[9]!
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm setFeeTransition.body[9]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms } (storeMarketField evm p.id ⟨5, by decide⟩ fee) else .staticViolation) := by
   have hc : fee.toNat < 2 ^ 128 := by unfold maxMarketFee at hfit; omega
   have he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm (.var "newFee") =
@@ -119,10 +121,10 @@ theorem morphoSetFeeFinishSource (p : MarketParamsWords) (fee : UInt256) (locals
     (hl : MarketLocals p locals) (hg : locals.get? "newFee" = some (.int (Int.ofNat fee.toNat)))
     (hfit : fee.toNat ≤ maxMarketFee)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm (setFeeTransition.body.drop 9)
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm (setFeeTransition.body.drop 9)
       (.ok { contract := contract, locals := locals, immutables := imms } (storeMarketField evm p.id ⟨5, by decide⟩ fee)) := by
   apply ExecBlock.consNormal (by simpa only [hperm, if_true] using morphoSetFeeAssign p fee locals imms evm hl hg hfit)
-  apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storeMarketField_executionEnv] using hperm) (vals := [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id),
+  apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storeMarketField_executionEnv] using hperm) (vals := [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id),
     .int (Int.ofNat fee.toNat)]) ?_)
   · exact ExecBlock.nil
   · simp only [evalExprs?, hl.evalId, evalExpr?, hg, EvalResult.ofOption, pure, bind, EvalResult.bind]

@@ -2,6 +2,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flipper.Dispatch
 import Benchmarks.Dss.Flipper.BidStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -452,7 +454,7 @@ theorem flipperReachTickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 14)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨938⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0xfc7b6aee⟩ :=
@@ -485,11 +487,11 @@ theorem RD.flipperTickDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨960⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨960⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨5964⟩ = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨5964⟩
+    ∃ k' C', RD fork code ee g s0 ⟨5964⟩
       (calldataWord ee.calldata 4 :: ret :: sel :: R) mem aw rdata acc k' C' := by
   subst hwf
   have rd5964 := evm_run h with [
@@ -502,10 +504,10 @@ theorem RD.flipperTickDecodeToRoutine {code : ByteArray} {g : Sat256}
 
 theorem flipperTickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨938⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨5964⟩
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨5964⟩
         [tickId I, ⟨323⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -526,10 +528,10 @@ theorem flipperTickX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨938⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -580,9 +582,9 @@ theorem flipperTickDecodePushMask6276 :
 theorem flipperTickX_endCheckOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hlt : (tickEndWord (tickBidPackedSlot I) σ I).toNat < (tickNow I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨5964⟩ [tickId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨5964⟩ [tickId I, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd5982 := evm_run h with [
@@ -605,7 +607,7 @@ theorem flipperTickX_endCheckOk {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by native_decide) (by evm_ov)
-  have rd5983 : RD flipperBytecode I g s0 ⟨5983⟩
+  have rd5983 : RD fork flipperBytecode I g s0 ⟨5983⟩
       [solcSlotWordAt (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k5983 C5983 := by
@@ -650,9 +652,9 @@ theorem flipperTickX_endCheckOk {σ I} {g : Sat256} {s0 : State}
 theorem flipperTickX_notFinished {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hge : (tickNow I).toNat ≤ (tickEndWord (tickBidPackedSlot I) σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨5964⟩ [tickId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨5964⟩ [tickId I, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd5982 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -673,7 +675,7 @@ theorem flipperTickX_notFinished {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by native_decide) (by evm_ov)
-  have rd5983 : RD flipperBytecode I g s0 ⟨5983⟩
+  have rd5983 : RD fork flipperBytecode I g s0 ⟨5983⟩
       [solcSlotWordAt (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k5983 C5983 := by
@@ -731,10 +733,10 @@ theorem flipperTickX_notFinished {σ I} {g : Sat256} {s0 : State}
 theorem flipperTickX_ticCheckOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (htic : tickTicWord (tickBidPackedSlot I) σ I = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6187⟩ [tickId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6187⟩ [tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -761,7 +763,7 @@ theorem flipperTickX_ticCheckOk {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by native_decide) (by evm_ov)
-  have rd6091 : RD flipperBytecode I g s0 ⟨6091⟩
+  have rd6091 : RD fork flipperBytecode I g s0 ⟨6091⟩
       [solcSlotWordAt (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
@@ -801,10 +803,10 @@ theorem flipperTickX_ticCheckOk {σ I} {g : Sat256} {s0 : State}
 theorem flipperTickX_bidAlreadyPlaced {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (htic : tickTicWord (tickBidPackedSlot I) σ I ≠ ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨6072⟩ [tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd6090 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -828,7 +830,7 @@ theorem flipperTickX_bidAlreadyPlaced {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by native_decide) (by evm_ov)
-  have rd6091 : RD flipperBytecode I g s0 ⟨6091⟩
+  have rd6091 : RD fork flipperBytecode I g s0 ⟨6091⟩
       [solcSlotWordAt (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
@@ -862,7 +864,7 @@ theorem flipperTickX_bidAlreadyPlaced {σ I} {g : Sat256} {s0 : State}
       simpa [ticRaw, tickTicWord, flipperUint48Offset20Word, uint48Divisor20,
         u256_land_comm] using hbad)
   have hiszero : UInt256.isZero ticRaw = ⟨0⟩ := isZero_eq_zero_of_ne hrawNe
-  change RD flipperBytecode I g s0 ⟨6107⟩
+  change RD fork flipperBytecode I g s0 ⟨6107⟩
     (UInt256.isZero ticRaw :: tickId I :: ret :: sel :: [])
     (twoWordHashMem (tickId I) ⟨1⟩
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
@@ -935,15 +937,15 @@ theorem flipperTickX_bidAlreadyPlaced {σ I} {g : Sat256} {s0 : State}
 
 theorem flipperTickX_toAdd48 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
-    (h : RD flipperBytecode I g s0 ⟨6187⟩ [tickId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨6187⟩ [tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
       [tickTauWord σ I, tickNow I, ⟨6216⟩, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd6190 := h.jumpdest (by native_decide) (by evm_ov)
     |>.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k6191, C6191, rd6191raw⟩ := rd6190.sload (by native_decide) (by evm_ov)
-  have rd6191 : RD flipperBytecode I g s0 ⟨6191⟩
+  have rd6191 : RD fork flipperBytecode I g s0 ⟨6191⟩
       [solcSlotWordAt ⟨5⟩ σ I, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k6191 C6191 := by
     simpa [solcSlotWordAt] using rd6191raw
@@ -977,10 +979,10 @@ theorem flipperTickX_toAdd48 {σ I} {g : Sat256} {s0 : State}
 theorem flipperTickX_add48Success {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hfit : (tickNow48 I).toNat + (tickTauWord σ I).toNat < 2 ^ 48)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tickTauWord σ I, tickNow I, ⟨6216⟩, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6216⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6216⟩
       [tickNow I + tickTauWord σ I, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd6289 := evm_run h with [
@@ -1023,10 +1025,10 @@ theorem flipperTickX_add48Success {σ I} {g : Sat256} {s0 : State}
 theorem flipperTickX_add48Overflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hover : 2 ^ 48 ≤ (tickNow48 I).toNat + (tickTauWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tickTauWord σ I, tickNow I, ⟨6216⟩, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd6289 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1061,14 +1063,14 @@ theorem flipperTickX_add48Overflow {σ I} {g : Sat256} {s0 : State}
 
 theorem flipperTickX_storeEndSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (h : RD flipperBytecode I g s0 ⟨6216⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6216⟩
       [tickNow I + tickTauWord σ I, tickId I, ⟨323⟩, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret flipperBytecode g s0
+      RDret fork flipperBytecode g s0
         (sstoreAccountMap I.codeOwner σ (tickBidPackedSlot I) (tickEndStoredWord σ I))
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flipperBytecode g s0) := by
   let mem0 := tickTicCheckedMem I
   let mem1 := wordAt0Mem (tickId I) mem0
   let mem2 := twoWordHashMem (tickId I) ⟨1⟩ mem0
@@ -1098,7 +1100,7 @@ theorem flipperTickX_storeEndSplit {σ I} {g : Sat256} {s0 : State}
     raw add (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k6237, C6237, rd6237raw⟩ := rd6236.sload (by native_decide) (by evm_ov)
-  have rd6237 : RD flipperBytecode I g s0 ⟨6237⟩
+  have rd6237 : RD fork flipperBytecode I g s0 ⟨6237⟩
       [solcSlotWordAt (tickBidPackedSlot I) σ I, tickBidPackedSlot I,
         tickNow I + tickTauWord σ I, ⟨323⟩, sel]
       mem2 (UInt256.ofNat 3) ByteArray.empty σ k6237 C6237 := by
@@ -1185,7 +1187,7 @@ theorem flipperTickSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
     (hge : (tickNow I).toNat ≤ (tickEndWord (tickBidPackedSlot I) σ I).toNat) :
     let locals := tickLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
   intro locals evm0
   have hend :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1195,7 +1197,7 @@ theorem flipperTickSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
       evalExpr_tickEndLtTimestamp_false (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hge
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
@@ -1215,7 +1217,7 @@ theorem flipperTickSourceBodyBidAlreadyPlaced {σ σ₀ A I} {g : UInt256}
     (htic : tickTicWord (tickBidPackedSlot I) σ I ≠ ⟨0⟩) :
     let locals := tickLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
   intro locals evm0
   have hend :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1232,7 +1234,7 @@ theorem flipperTickSourceBodyBidAlreadyPlaced {σ σ₀ A I} {g : UInt256}
       evalExpr_tickTicEqZero_false (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) htic
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
@@ -1254,7 +1256,7 @@ theorem flipperTickSourceBodyAddOverflow {σ σ₀ A I} {g : UInt256}
     (hover : 2 ^ 48 ≤ (tickNow48 I).toNat + (tickTauWord σ I).toNat) :
     let locals := tickLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
   intro locals evm0
   have hend :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1284,13 +1286,13 @@ theorem flipperTickSourceBodyAddOverflow {σ σ₀ A I} {g : UInt256}
       evalExpr_tickEndNewGeNow_false (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hover
   have htail :
-      ExecBlock config { contract := contract, locals := tickLocalsWithEnd σ I } evm0
+      ExecBlock fork config { contract := contract, locals := tickLocalsWithEnd σ I } evm0
         [ .require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_") ]
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse hge)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
@@ -1316,9 +1318,9 @@ theorem flipperTickSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (tickBidPackedSlot I)
       (tickEndStoredWord σ I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals tickTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals tickTransition.body
       (.returned { contract := contract, locals := tickLocalsWithEnd σ I } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         tickTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hend :
@@ -1356,13 +1358,13 @@ theorem flipperTickSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     simpa [evm1, evm0, initState, tickEndStoredWord, solcSlotWordAt, Stele.EVM.storageLoad] using
       assign_tickEndStorage evm0 σ I
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := tickLocalsWithEnd σ I } evm0
+      (htail : ExecBlock fork config { contract := contract, locals := tickLocalsWithEnd σ I } evm0
         [.require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_")] result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         tickTransition.body result := by
     have hblock :
-        ExecBlock config { contract := contract, locals := locals } evm0
+        ExecBlock fork config { contract := contract, locals := locals } evm0
           [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
             .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
             .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
@@ -1382,7 +1384,7 @@ theorem flipperTickSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
   · intro hperm
     exact ExecFuncBody.execBlockOK
       (hprefix (ExecBlock.consNormal (ExecStmt.requireTrue hge)
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign) ExecBlock.nil)))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign) ExecBlock.nil)))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consNormal (ExecStmt.requireTrue hge)
@@ -1394,12 +1396,12 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=
     flipperDispatchTick hsel
-  have hreach := flipperReachTickBody
+  have hreach := flipperReachTickBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1420,10 +1422,10 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
           let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (tickBidPackedSlot I)
             (tickEndStoredWord σ I)
           have hbodySplit :
-              (I.perm = true → ExecTransitionBody config contract evm0 locals tickTransition.body
+              (I.perm = true → ExecTransitionBody fork config contract evm0 locals tickTransition.body
                 (.returned { contract := contract, locals := tickLocalsWithEnd σ I }
                   evm1 none)) ∧
-              (I.perm = false → ExecTransitionBody config contract evm0 locals
+              (I.perm = false → ExecTransitionBody fork config contract evm0 locals
                 tickTransition.body .staticViolation) := by
             simpa [evm0, evm1, locals] using
               (flipperTickSourceBodySuccessSplit
@@ -1442,7 +1444,7 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
               2 ^ 48 ≤ (tickNow48 I).toNat + (tickTauWord σ I).toNat := by
             omega
           have hbody :
-              ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
             simpa [evm0, locals] using
               (flipperTickSourceBodyAddOverflow
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1450,7 +1452,7 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
           exact (flipperTickX_add48Overflow hoverEvm rd6272)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hbody :
-            ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+            ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
           simpa [evm0, locals] using
             (flipperTickSourceBodyBidAlreadyPlaced
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1461,7 +1463,7 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
           (tickNow I).toNat ≤ (tickEndWord (tickBidPackedSlot I) σ I).toNat := by
         omega
       have hbody :
-          ExecTransitionBody config contract evm0 locals tickTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 locals tickTransition.body .reverted := by
         simpa [evm0, locals] using
           (flipperTickSourceBodyNotFinished
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hgeEvm)

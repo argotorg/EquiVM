@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.BitMsbTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_035
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,16 +15,16 @@ theorem bitmapNextResultLeftX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret spacingRaw tickRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (compressed : Int) (masked : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 (if masked = ⟨0⟩ then ⟨11451⟩ else ⟨11463⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if masked = ⟨0⟩ then ⟨11451⟩ else ⟨11463⟩)
       (masked :: bitmapNextMask compressed true :: bitmapPositionBitRaw compressed ::
         EVM.wordOfInt (bitmapWordPos compressed) :: EVM.wordOfInt compressed ::
         bitmapNextFlag masked :: ⟨0⟩ :: ⟨1⟩ :: spacingRaw :: tickRaw :: ⟨6⟩ :: ret :: R)
       mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (bitmapNextFlag masked :: bitmapNextResultRaw compressed spacingRaw true masked :: R)
       mem aw rdata σ k' C' := by
-  have hmiddle : ∃ km Cm, RD (deployedRuntime v) ee g s0 ⟨11482⟩
+  have hmiddle : ∃ km Cm, RD fork (deployedRuntime v) ee g s0 ⟨11482⟩
       (bitmapNextResultRaw compressed spacingRaw true masked :: masked ::
         bitmapNextMask compressed true :: bitmapPositionBitRaw compressed ::
         EVM.wordOfInt (bitmapWordPos compressed) :: EVM.wordOfInt compressed ::

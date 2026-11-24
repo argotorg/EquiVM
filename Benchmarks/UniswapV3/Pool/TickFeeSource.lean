@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickFeePrefix
 import Benchmarks.UniswapV3.Pool.TickFeeSideSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -36,7 +38,7 @@ local macro "tick_fee_get" : tactic => `(tactic| (
   rfl))
 
 theorem tickFeeBelowSource (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
-    ExecStmt config (tickFeeBelowZeroFrame imms a) evm (tickFeeSideStmt false)
+    ExecStmt fork config (tickFeeBelowZeroFrame imms a) evm (tickFeeSideStmt false)
       (.ok (tickFeeBelowFrame imms a evm) evm) := by
   apply tickFeeSideSource (tickFeeBelowZeroFrame imms a).locals imms evm a false
   · intro second; cases second <;> tick_fee_get
@@ -46,7 +48,7 @@ theorem tickFeeBelowSource (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
   · tick_fee_get
 
 theorem tickFeeAboveSource (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
-    ExecStmt config (tickFeeAboveZeroFrame imms a evm) evm (tickFeeSideStmt true)
+    ExecStmt fork config (tickFeeAboveZeroFrame imms a evm) evm (tickFeeSideStmt true)
       (.ok (tickFeeReadyFrame imms a evm) evm) := by
   apply tickFeeSideSource (tickFeeAboveZeroFrame imms a evm).locals imms evm a true
   · intro second; cases second <;> tick_fee_get
@@ -56,9 +58,9 @@ theorem tickFeeAboveSource (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
   · tick_fee_get
 
 theorem tickFeeReadySource (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
-    ExecBlock config (tickFeeFrame imms a) evm (tickFeeFunction.body.take 10)
+    ExecBlock fork config (tickFeeFrame imms a) evm (tickFeeFunction.body.take 10)
       (.ok (tickFeeReadyFrame imms a evm) evm) := by
-  change ExecBlock config (tickFeeFrame imms a) evm
+  change ExecBlock fork config (tickFeeFrame imms a) evm
     (tickFeeFunction.body.take 6 ++ [tickFeeSideStmt false,
       .letDecl "feeGrowthAbove0X128" (some (.elem (.int (.uint ⟨256, by decide⟩)))) (.intLit 0),
       .letDecl "feeGrowthAbove1X128" (some (.elem (.int (.uint ⟨256, by decide⟩)))) (.intLit 0),
@@ -91,7 +93,7 @@ theorem evalTickFeeInside (locals imms : Store) (evm : EVM.State) (a : TickFeeAr
     (evalExpr_var_get ha)
 
 theorem tickFeeReturns (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
-    ExecFuncBody config (tickFeeFrame imms a) evm tickFeeFunction.body
+    ExecFuncBody fork config (tickFeeFrame imms a) evm tickFeeFunction.body
       (.returned (tickFeeFinalFrame imms a evm) evm
         (some [.int (Int.ofNat (tickFeeInside a evm.accountMap evm.executionEnv false).toNat),
           .int (Int.ofNat (tickFeeInside a evm.accountMap evm.executionEnv true).toNat)])) := by
@@ -99,13 +101,13 @@ theorem tickFeeReturns (imms : Store) (evm : EVM.State) (a : TickFeeArgs) :
   rw [← List.take_append_drop 10 tickFeeFunction.body]
   apply execBlock_append_ok (tickFeeReadySource imms evm a)
   refine ExecBlock.consNormal (stele' := tickFeeFirstFrame imms a evm) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
       (Int.ofNat (tickFeeInside a evm.accountMap evm.executionEnv false).toNat)) ?_ ?_) ?_
   · exact evalTickFeeInside (tickFeeReadyFrame imms a evm).locals imms evm a false
       (by tick_fee_get) (by tick_fee_get) (by tick_fee_get)
   · exact assignLocalVarBase_frame (old := .int 0) (by tick_fee_get)
   · refine ExecBlock.consNormal (stele' := tickFeeFinalFrame imms a evm) (evm' := evm)
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
         (Int.ofNat (tickFeeInside a evm.accountMap evm.executionEnv true).toNat)) ?_ ?_) ?_
     · exact evalTickFeeInside (tickFeeFirstFrame imms a evm).locals imms evm a true
         (by tick_fee_get) (by tick_fee_get) (by tick_fee_get)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolFeesUpdateSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapFinishSource
 import Benchmarks.UniswapV4PoolManager.LocalBytes
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,7 +29,7 @@ theorem swapWrapperUnpack_get (f : Frame) (delta fee amount : UInt256) (r : Pool
 
 theorem swapWrapperUnpackSource {f : Frame} {evm : State} {delta fee amount : UInt256} {r : PoolSwapResultWords}
     (hv : f.locals.get? "__c0" = some (.tuple (poolSwapReturnValues delta fee amount r))) :
-    ExecBlock config f evm ((swapWrapperFunction.body.drop 2).take 4)
+    ExecBlock fork config f evm ((swapWrapperFunction.body.drop 2).take 4)
       (.ok (swapWrapperUnpackFrame f delta fee amount r) evm) := by
   let f1 := valueLocal f "delta" (.int (EVM.signed delta))
   let f2 := wordLocal f1 "amountToProtocol" amount
@@ -76,12 +78,12 @@ theorem swapWrapperTailSource {f : Frame} {evm : State} {id delta fee amount : U
     (ha : f.locals.get? "amountToProtocol" = some (.int (Int.ofNat amount.toNat)))
     (hr : f.locals.get? "result" = some (poolSwapResultValue r))
     (hc : f.locals.get? "inputCurrency" = some (.address currency)) :
-    ExecFuncBody config f evm (swapWrapperFunction.body.drop 6)
+    ExecFuncBody fork config f evm (swapWrapperFunction.body.drop 6)
       (swapWrapperTailResult f evm currency delta amount) := by
   have hcond := evalNatGtLiteral (cfg := config) (evm := evm) (k := 0) (evalLocalValue ha)
   by_cases hz : 0 < amount.toNat
   · rw [decide_eq_true hz] at hcond
-    have hcall := protocolFeesUpdateCall (evm := evm) hf (evalLocalValue hc) (evalLocalValue ha) "__c1"
+    have hcall := protocolFeesUpdateCall (fork := fork) (evm := evm) hf (evalLocalValue hc) (evalLocalValue ha) "__c1"
     by_cases hp : evm.executionEnv.perm = false
     · simp only [protocolFeesUpdateResult, if_pos hp, resumeCallResult_static] at hcall
       simp only [swapWrapperTailResult, if_pos hp]
@@ -91,14 +93,14 @@ theorem swapWrapperTailSource {f : Frame} {evm : State} {id delta fee amount : U
       let f1 := valueLocal f "__c1" .unit
       have hget (name : Ident) (hn : ("__c1" == name) = false) :
           f1.locals.get? name = f.locals.get? name := store_get_ne _ _ hn
-      have htail := swapWrapperEventSource (f := f1) (evm := protocolFeesUpdatePost evm currency amount) hf
+      have htail := swapWrapperEventSource (fork := fork) (f := f1) (evm := protocolFeesUpdatePost evm currency amount) hf
         ((hget "id" (by decide)).trans hi) ((hget "delta" (by decide)).trans hd)
         ((hget "swapFee" (by decide)).trans he) ((hget "result" (by decide)).trans hr)
       simp only [protocolFeesUpdatePost, protocolFeesPost, storageStore_executionEnv, if_neg hp] at htail
       simpa only [swapWrapperTailResult, if_neg hp, swapWrapperFeeFrame, swapWrapperFeePost, if_pos hz] using
         execFuncBody_prepend (execBlock_singleton (ExecStmt.iteTrue hcond (execBlock_singleton hcall))) htail
   · rw [decide_eq_false hz] at hcond
-    have htail := swapWrapperEventSource (evm := evm) hf hi hd he hr
+    have htail := swapWrapperEventSource (fork := fork) (evm := evm) hf hi hd he hr
     simpa only [swapWrapperTailResult, swapWrapperFeeFrame, swapWrapperFeePost, if_neg hz] using
       execFuncBody_prepend (execBlock_singleton (ExecStmt.iteFalse hcond ExecBlock.nil)) htail
 

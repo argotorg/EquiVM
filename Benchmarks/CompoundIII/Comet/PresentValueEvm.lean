@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.PresentValue
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_043
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -21,9 +23,9 @@ theorem cometPresentValue {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 8 ≤ 1024)
     (hi : index.toNat < 2^64) (hp : principal.toNat < 2^104)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9318⟩ (index :: principal :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9318⟩ (index :: principal :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (presentValueWord index principal :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9318
     (immWords := wordsOf (immStore v)) (by simpa using hstack)
@@ -48,9 +50,9 @@ theorem cometUnsignedPresentValue {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 9 ≤ 1024)
     (hi : index.toNat < 2^64) (hp : principal.toNat < 2^103)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17913⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17913⟩
       (principal :: ⟨17536⟩ :: index :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (presentValueWord index principal :: R) mem aw rdata σ k' C' := by
   obtain ⟨k1, C1, r1⟩ := cometUnsigned104 (v := v)
     (by simp only [List.length_cons]; omega) hp

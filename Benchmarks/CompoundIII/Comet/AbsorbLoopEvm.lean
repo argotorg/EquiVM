@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbLoopModel
 import Benchmarks.CompoundIII.Comet.AbsorbAssetEvm
 import Benchmarks.CompoundIII.Comet.InternalValueBoundedRun
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,11 +21,11 @@ theorem cometAbsorbLoop {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : free.toNat ≤ mem.size)
     (hbound : free.toNat + 928 * (v.numAssets.toNat - i) + 256 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17110⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17110⟩
       (absorbLoopStack i assets reserved old principal price (EVM.word account.val) delta ptr absorber R)
       mem aw rdata σ k C) :
-    ∃ result, AbsorbLoopTrace v account assets reserved i delta evm result ∧
-      internalValueBoundedRun (deployedRuntime v) ee g s0 mem free
+    ∃ result, AbsorbLoopTrace fork v account assets reserved i delta evm result ∧
+      internalValueBoundedRun fork (deployedRuntime v) ee g s0 mem free
         (928 * (v.numAssets.toNat - i)) ⟨17156⟩
         (fun d ↦ absorbLoopStack v.numAssets.toNat assets reserved old principal price
           (EVM.word account.val) d ptr absorber R) result := by

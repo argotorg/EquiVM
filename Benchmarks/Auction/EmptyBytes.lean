@@ -1,15 +1,17 @@
 import Benchmarks.Auction.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem encodeEmptyBytes {I g s0 dest src ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6093⟩ (dest :: src :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨6093⟩ (dest :: src :: ret :: R)
       mem aw rdata acc k C)
     (hzero : loadedWord mem src = ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (dest :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (dest :: R)
       (writeWord mem dest.toNat ⟨0⟩)
       (expandedWords (expandedWords aw src ⟨32⟩) dest ⟨32⟩) rdata acc k' C' := by
   have rd6097 := evm_run h with [jumpdest, push0, dup3,

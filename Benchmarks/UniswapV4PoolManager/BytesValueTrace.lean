@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BytesValueMemory
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem encodeBytesValueTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hfit : dest.toNat+len.toNat+64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12396⟩ (src :: len :: dest :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12396⟩ (src :: len :: dest :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', (dest.toNat+len.toNat+95)/32 ≤ aw'.toNat ∧
       C+86+3*((len.toNat+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ret
+      RD fork (deployedRuntime v) I g s0 ret
         (UInt256.ofNat (dest.toNat+32+paddedSize len.toNat) :: R)
         (bytesValueMemory I.calldata mem src.toNat dest.toNat len) aw' rdata σ k' C' := by
   have h32 := uadd_word_ofNat_toNat dest 32 (by omega : dest.toNat+32 < UInt256.size)
@@ -40,7 +42,7 @@ theorem encodeBytesValueTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (dest+UInt256.ofNat 32).toNat len.toNat) ((dest+len)+UInt256.ofNat 32).toNat ⟨0⟩ = _
     rw [h32, hend]; rfl
   have hr := poolManagerBlocks.poolManager_block_12396 hstack hret h
-  change RD _ _ _ _ ret (((paddedWord len+dest)+UInt256.ofNat 32) :: R) _ _ _ _ _ _ at hr
+  change RD fork _ _ _ _ ret (((paddedWord len+dest)+UInt256.ofNat 32) :: R) _ _ _ _ _ _ at hr
   rw [hout, hm] at hr
   refine ⟨_, _, _, ?_, ?_, hr⟩
   · have hs := memoryWords_ge_span (M (M aw dest ⟨32⟩) (dest+UInt256.ofNat 32) len)

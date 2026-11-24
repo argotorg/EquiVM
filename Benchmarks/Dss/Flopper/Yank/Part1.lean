@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flopper.AuctionCommon
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -798,7 +800,7 @@ theorem evalExpr_yank_extCodeGuard_false {evm : EVM.State} {locals : Store}
 theorem flopperYankBodyReverts_stillLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (yankLocals I) yankTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [yankTransition, nonpayable] using
     nonpayableSecondRequireReverts
@@ -820,7 +822,7 @@ theorem flopperYankBodyReverts_guyNotSet (evm : EVM.State) (I : ExecutionEnv)
     (hlive : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (yankLocals I) yankTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [yankTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -837,7 +839,7 @@ theorem flopperYankBodyReverts_suckNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (yankLocals I) yankTransition.body .reverted := by
   have hvat := evalExpr_yank_vat_storage evm I
   have hnoCodeLookup :
       (UInt256.ofNat
@@ -878,7 +880,7 @@ theorem flopperYankBodyReverts_suckCallFailure
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat))
         "suck" 0
@@ -891,7 +893,7 @@ theorem flopperYankBodyReverts_suckCallFailure
           (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)]
         (false, evm', out) true) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (yankLocals I) yankTransition.body .reverted := by
   have hvat := evalExpr_yank_vat_storage evm I
   have hcodeLookup :
       0 < (UInt256.ofNat
@@ -913,14 +915,14 @@ theorem flopperYankBodyReverts_suckCallFailure
     evalExpr_yank_extCodeGuard_true hvat hcodeLookup
   have hargs := evalExprs_yank_suck_args evm I
   have hchecked :
-      ExecBlock config { contract := contract, locals := yankLocals I } evm
+      ExecBlock fork config { contract := contract, locals := yankLocals I } evm
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [.storage vowRef, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_suckRet")
         .reverted := by
     exact checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hvat hargs hcall
   have htail :
-      ExecBlock config { contract := contract, locals := yankLocals I } evm
+      ExecBlock fork config { contract := contract, locals := yankLocals I } evm
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [.storage vowRef, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_suckRet" ++
@@ -947,7 +949,7 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat))
         "suck" 0
@@ -960,11 +962,11 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
           (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)]
         (true, evm', out) true) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (yankLocals I) yankTransition.body
       (.returned { contract := contract, locals := yankSuckLocals I }
         (yankDeletePostState evm' I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (yankLocals I)
+        ExecTransitionBody fork config contract evm (yankLocals I)
           yankTransition.body .staticViolation) := by
   have hvat := evalExpr_yank_vat_storage evm I
   have hcodeLookup :
@@ -989,7 +991,7 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
   have hdec : config.externalABI.decode? "suck" out = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hchecked :
-      ExecBlock config { contract := contract, locals := yankLocals I } evm
+      ExecBlock fork config { contract := contract, locals := yankLocals I } evm
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [.storage vowRef, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_suckRet")
@@ -998,12 +1000,12 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
       checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hvat hargs hcall hdec
   have hdelete := deleteStorage_yankSuck_bid evm' I
   have hprefix {result : ExecResult}
-      (hdelete : ExecBlock config { contract := contract, locals := yankSuckLocals I } evm'
+      (hdelete : ExecBlock fork config { contract := contract, locals := yankSuckLocals I } evm'
         [.delete (bidRef (.var "id"))] result) :
-      ExecBlock config { contract := contract, locals := yankLocals I } evm
+      ExecBlock fork config { contract := contract, locals := yankLocals I } evm
         yankTransition.body result := by
     have htail :
-        ExecBlock config { contract := contract, locals := yankLocals I } evm
+        ExecBlock fork config { contract := contract, locals := yankLocals I } evm
           (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [.storage vowRef, .storage (bidsF (.var "id") "guy"),
               .storage (bidsF (.var "id") "bid")] "_suckRet" ++
@@ -1021,7 +1023,7 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
   constructor
   · intro hperm
     exact ExecFuncBody.execBlockOK
-      (hprefix (ExecBlock.consNormal (ExecStmt.delete (hperm := by simpa only [typedCallViaEVM_executionEnv_eq hcall] using hperm) hdelete) ExecBlock.nil))
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := by simpa only [typedCallViaEVM_executionEnv_eq hcall] using hperm) hdelete) ExecBlock.nil))
   · intro hperm
     have hp : evm'.executionEnv.perm = false := by
       rw [typedCallViaEVM_executionEnv_eq hcall]
@@ -1049,7 +1051,7 @@ theorem flopperReachYankBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 19)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨305⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0x26e027f1⟩ := by
@@ -1085,10 +1087,10 @@ theorem flopperReachYankBody {σ σ₀ A I} {g : Sat256}
 
 theorem flopperYankX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨878⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨878⟩
       [yankIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -1110,10 +1112,10 @@ theorem flopperYankX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperYankX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1131,17 +1133,17 @@ theorem flopperYankX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperYankX_stillLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨878⟩
       [yankIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd878⟩ := h
   have rd881 := evm_run rd878 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
-  have rd882 : RD flopperBytecode I g
+  have rd882 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨882⟩
       (solcSlotWordAt ⟨8⟩ σ I :: yankIdWord I :: ⟨334⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
@@ -1174,11 +1176,11 @@ set_option maxHeartbeats 1000000 in
 theorem flopperYankX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨878⟩
       [yankIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   let id := yankIdWord I
   let mem1 := wordAt0Mem id solcFreePtrMem
   let mem2 := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -1188,7 +1190,7 @@ theorem flopperYankX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
-  have rd882 : RD flopperBytecode I g
+  have rd882 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨882⟩
       (solcSlotWordAt ⟨8⟩ σ I :: yankIdWord I :: ⟨334⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
@@ -1247,7 +1249,7 @@ theorem flopperYankX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simp [base, auctionPackedSlot_eq, id]
   rw [hslot2] at rd970pre
   obtain ⟨k971, C971, rd971raw⟩ := rd970pre.sload (by native_decide) (by evm_ov)
-  have rd971 : RD flopperBytecode I g
+  have rd971 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨971⟩
       (solcSlotWordAt (auctionPackedSlot (yankIdWord I)) σ I ::
         yankIdWord I :: ⟨334⟩ :: [sel])
@@ -1295,11 +1297,11 @@ set_option maxHeartbeats 1000000 in
 theorem flopperYankX_readyToSuck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨878⟩
       [yankIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -1312,7 +1314,7 @@ theorem flopperYankX_readyToSuck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
-  have rd882 : RD flopperBytecode I g
+  have rd882 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨882⟩
       (solcSlotWordAt ⟨8⟩ σ I :: yankIdWord I :: ⟨334⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
@@ -1371,7 +1373,7 @@ theorem flopperYankX_readyToSuck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simp [base, auctionPackedSlot_eq, id]
   rw [hslot2] at rd970pre
   obtain ⟨k971, C971, rd971raw⟩ := rd970pre.sload (by native_decide) (by evm_ov)
-  have rd971 : RD flopperBytecode I g
+  have rd971 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨971⟩
       (solcSlotWordAt (auctionPackedSlot (yankIdWord I)) σ I ::
         yankIdWord I :: ⟨334⟩ :: [sel])
@@ -1399,7 +1401,7 @@ theorem flopperYankX_readyToSuck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperYankX_toSuckExtcodesizeGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1050 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
+    (rd1050 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -1410,7 +1412,7 @@ theorem flopperYankX_toSuckExtcodesizeGuard
     let vow := solcAddressSlotWord ⟨9⟩ σ I
     let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
     let bid := solcSlotWordAt (auctionBidSlot id) σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1148⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1148⟩
       (vat :: vat :: yankSuckOutSize :: yankSuckOutPtr :: yankSuckInSize ::
         yankSuckOutPtr :: yankSuckOutSize :: yankSuckEndPtr :: yankSuckSelectorWord ::
         vat :: id :: ⟨334⟩ :: sel :: [])
@@ -1454,14 +1456,14 @@ theorem flopperYankX_toSuckExtcodesizeGuard
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k1055, C1055, rd1055raw⟩ := rd1054pre.sload (by native_decide) (by evm_ov)
-  have rd1055 : RD flopperBytecode I g
+  have rd1055 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1055⟩
       (solcSlotWordAt ⟨2⟩ σ I :: ⟨2⟩ :: id :: ⟨334⟩ :: [sel])
       memHash (UInt256.ofNat 3) ByteArray.empty σ k1055 C1055 := by
     simpa [id, memHash, solcSlotWordAt] using rd1055raw
   have rd1057pre := rd1055.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1058, C1058, rd1058raw⟩ := rd1057pre.sload (by native_decide) (by evm_ov)
-  have rd1058 : RD flopperBytecode I g
+  have rd1058 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1058⟩
       (solcSlotWordAt ⟨9⟩ σ I :: solcSlotWordAt ⟨2⟩ σ I :: ⟨2⟩ ::
         id :: ⟨334⟩ :: [sel])
@@ -1514,7 +1516,7 @@ theorem flopperYankX_toSuckExtcodesizeGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpackedSlot] at rd1076pre
   obtain ⟨k1077, C1077, rd1077raw⟩ := rd1076pre.sload (by native_decide) (by evm_ov)
-  have rd1077 : RD flopperBytecode I g
+  have rd1077 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1077⟩
       (solcSlotWordAt (auctionPackedSlot id) σ I :: ⟨64⟩ :: ⟨0⟩ ::
         solcSlotWordAt ⟨9⟩ σ I :: solcSlotWordAt ⟨2⟩ σ I :: base ::
@@ -1526,7 +1528,7 @@ theorem flopperYankX_toSuckExtcodesizeGuard
     simp [base, auctionBidSlot, auctionBaseSlot_eq, id]
   rw [hbidSlot] at rd1078pre
   obtain ⟨k1079, C1079, rd1079raw⟩ := rd1078pre.sload (by native_decide) (by evm_ov)
-  have rd1079 : RD flopperBytecode I g
+  have rd1079 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1079⟩
       (bid :: ⟨64⟩ :: ⟨0⟩ :: solcSlotWordAt ⟨9⟩ σ I ::
         solcSlotWordAt ⟨2⟩ σ I :: solcSlotWordAt (auctionPackedSlot id) σ I ::
@@ -1638,11 +1640,11 @@ theorem flopperYankX_suckNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) = ⟨0⟩)
-    (rd1050 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
+    (rd1050 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1148⟩ := flopperYankX_toSuckExtcodesizeGuard rd1050
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
     hnoCode

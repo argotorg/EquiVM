@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.WithdrawReservesTailSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -7,8 +9,8 @@ namespace Benchmarks.CompoundIII.Comet
 
 theorem withdrawReservesTrace_source {v : CometWithExtendedAssetListImmutables}
     {evm : EVM.State} {recipient : AccountAddress} {amount : UInt256} {result : Option EVM.State}
-    (ht : WithdrawReservesTrace v recipient amount evm result) :
-    WithdrawReservesBlockResult (withdrawReservesEntry v evm recipient amount) evm
+    (ht : WithdrawReservesTrace fork v recipient amount evm result) :
+    WithdrawReservesBlockResult fork (withdrawReservesEntry v evm recipient amount) evm
       ([.require withdrawReservesAuth, .internalCall "getReserves_body" [] "reserves"] ++
         withdrawReservesTail) result := by
   have hguard := withdrawReservesAuth_eval v evm
@@ -40,23 +42,23 @@ theorem withdrawReservesTrace_source {v : CometWithExtendedAssetListImmutables}
       · rw [if_neg hp] at hb ⊢
         exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) (ExecBlock.consNormal hc hb)
 
-def WithdrawReservesSourceResult (v : CometWithExtendedAssetListImmutables)
+def WithdrawReservesSourceResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (recipient : AccountAddress) (amount : UInt256) (evm : EVM.State)
     (result : Option EVM.State) : Prop :=
   match result with
-  | none => ExecTransitionBody config contract evm (withdrawReservesArgs recipient amount)
+  | none => ExecTransitionBody fork config contract evm (withdrawReservesArgs recipient amount)
       withdrawReservesTransition.body .reverted (immStore v)
   | some evm' => if evm'.executionEnv.perm = true then
-      ∃ final, ExecTransitionBody config contract evm (withdrawReservesArgs recipient amount)
+      ∃ final, ExecTransitionBody fork config contract evm (withdrawReservesArgs recipient amount)
         withdrawReservesTransition.body (.returned final evm' none) (immStore v)
-    else ExecTransitionBody config contract evm (withdrawReservesArgs recipient amount)
+    else ExecTransitionBody fork config contract evm (withdrawReservesArgs recipient amount)
       withdrawReservesTransition.body .staticViolation (immStore v)
 
 theorem withdrawReserves_source {v : CometWithExtendedAssetListImmutables}
     {evm : EVM.State} {recipient : AccountAddress} {amount : UInt256} {result : Option EVM.State}
-    (ht : WithdrawReservesTrace v recipient amount evm result)
+    (ht : WithdrawReservesTrace fork v recipient amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    WithdrawReservesSourceResult v recipient amount evm result := by
+    WithdrawReservesSourceResult fork v recipient amount evm result := by
   have hb := withdrawReservesTrace_source ht
   cases result with
   | none =>

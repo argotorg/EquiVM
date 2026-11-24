@@ -1,32 +1,34 @@
 import Benchmarks.EAS.EAS.MultiDelegatedRevokePrepareRun
 import Benchmarks.EAS.EAS.MultiDelegatedRevokeVerifyLoop
 import Benchmarks.EAS.EAS.MultiDelegatedRevokeCallRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
 
-def MultiDelegatedRevokeAt (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def MultiDelegatedRevokeAt (fork : Ethereum.Fork) (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (n : Nat) (base tag : UInt256) (R : List UInt256) (i : Nat) (L : Store) (evm : EVM.State) : Prop :=
   ∃ (σ : AccountMap) (mem out : ByteArray) (aw : UInt256) (k C : Nat) (heap available : UInt256),
     SourceState s0 ee σ evm ∧ 224 ≤ heap.toNat ∧ heap.toNat ≤ 2^64-1 ∧
     MultiDelegatedRevokeLocals L (delegatedBatchValues .revoke ee.calldata base n) available heap.toNat i ∧
     96 ≤ mem.size ∧ memLoad (UInt256.ofNat 64) mem = heap ∧
     memLoad (UInt256.ofNat 96) (recordPadding mem heap.toNat) = ⟨0⟩ ∧
-    RD (deployedRuntime v) ee g s0 ⟨1298⟩ (multiDelegatedRevokeLoopStack n i base available (tag::R)) mem aw out σ k C
+    RD fork (deployedRuntime v) ee g s0 ⟨1298⟩ (multiDelegatedRevokeLoopStack n i base available (tag::R)) mem aw out σ k C
 
 theorem multiDelegatedRevokeIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {n i : Nat} {base tag : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+52 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size) (hi : i<n)
-    (h : MultiDelegatedRevokeAt v ee g s0 n base tag R i L evm) :
-    (∃ L' evm', ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration
+    (h : MultiDelegatedRevokeAt fork v ee g s0 n base tag R i L evm) :
+    (∃ L' evm', ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration
       (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      MultiDelegatedRevokeAt v ee g s0 n base tag R (i+1) L' evm') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      MultiDelegatedRevokeAt fork v ee g s0 n base tag R (i+1) L' evm') ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeIteration .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   obtain ⟨σ,mem,out,aw,k,C,heap,available,hstate,hlo,hh,hf,hmem,hfree,hzero,rd⟩ := h
   have hn : n<UInt256.size := by omega
   have hprep := multiDelegatedRevokePrepareRun (evm := evm) v (by omega) hf hi hn (by omega)
@@ -39,7 +41,7 @@ theorem multiDelegatedRevokeIterationRun {L : Store} {evm : EVM.State} {ee : Exe
     have hz1 : memLoad (UInt256.ofNat 96) mem1 = ⟨0⟩ :=
       (memLoad_of_prefix hp1 (UInt256.ofNat 96) (by decide) (by change 128 ≤ heap.toNat; omega)
         (by have := recordPadding_covers mem heap.toNat; change 128 ≤ _; omega)).trans hzero
-    have hverify : MultiDelegatedRevokeVerifyAt v ee g s0 (delegatedBatchValues .revoke ee.calldata base n)
+    have hverify : MultiDelegatedRevokeVerifyAt fork v ee g s0 (delegatedBatchValues .revoke ee.calldata base n)
         r n i base available heap (delegatedRevocationDataPtr heap) (delegatedRevocationSigPtr heap r.data)
         mem1 next (UInt256.ofNat i::tag::R) 0 L1 evm := by
       refine ⟨σ,mem1,out,a1,k1,C1,UInt256.ofNat next,hstate,by rw [hn1],by rw [hn1]; exact hh1,

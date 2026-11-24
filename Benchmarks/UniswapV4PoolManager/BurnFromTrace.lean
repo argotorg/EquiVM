@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BurnAllowanceStatic
 import Benchmarks.UniswapV4PoolManager.BurnFromSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete internal burnFrom trace, including allowance and balance failures. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -8,23 +10,23 @@ open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-@[irreducible] def burnFromTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+@[irreducible] def burnFromTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (sender id amount : UInt256) : Prop :=
   if transferFromNeedsAllowance evm sender then
     let allowed := transferFromAllowed evm sender id
-    if allowed = maxAllowanceWord then balanceBurnTraceResult v I g s0 evm sender id amount else
+    if allowed = maxAllowanceWord then balanceBurnTraceResult fork v I g s0 evm sender id amount else
     if amount.toNat ≤ allowed.toNat then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      balanceBurnTraceResult v I g s0 (transferFromAllowancePost evm sender id amount) sender id amount
-    else RDrev (deployedRuntime v) g s0
-  else balanceBurnTraceResult v I g s0 evm sender id amount
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      balanceBurnTraceResult fork v I g s0 (transferFromAllowancePost evm sender id amount) sender id amount
+    else RDrev fork (deployedRuntime v) g s0
+  else balanceBurnTraceResult fork v I g s0 evm sender id amount
 
 theorem burnFromTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw sender id amount extra : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
     (hI : evm.executionEnv = I) (hcs : sender.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨955⟩ (burnFromStack sender id amount (extra :: R)) mem aw rdata evm.accountMap k C) :
-    burnFromTraceResult v I g s0 evm sender id amount := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨955⟩ (burnFromStack sender id amount (extra :: R)) mem aw rdata evm.accountMap k C) :
+    burnFromTraceResult fork v I g s0 evm sender id amount := by
   have hop : operatorWord evm sender (accountWord I.source) =
       UInt256.land (solcSlotWordAt (operatorSlot sender (accountWord I.source)) evm.accountMap I) ⟨255⟩ := by
     rw [operatorWord, storageLoad_codeOwner_eq_solcSlotWordAt evm I _ (by rw [hI])]

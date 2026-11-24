@@ -4,18 +4,20 @@ import Benchmarks.CurveVault.ControllerCache
 import Benchmarks.CurveVault.CreditLocals
 import Benchmarks.CurveVault.TotalAssetsInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
-def vaultCreditBlockOutcome (isDeposit : Bool) (dropN : Nat) (s0 evm : State) (I : ExecutionEnv)
+def vaultCreditBlockOutcome (fork : Ethereum.Fork) (isDeposit : Bool) (dropN : Nat) (s0 evm : State) (I : ExecutionEnv)
     (g : Sat256) (locals : Store) : Prop :=
   (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-    ExecBlock config {contract := contract, locals := locals} evm ((vaultCreditFunction isDeposit).body.drop dropN)
+    ExecBlock fork config {contract := contract, locals := locals} evm ((vaultCreditFunction isDeposit).body.drop dropN)
       (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
     SourceState s0 I σ' evm' ∧
-    RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
-  (ExecBlock config {contract := contract, locals := locals} evm ((vaultCreditFunction isDeposit).body.drop dropN)
-    .reverted ∧ RDrev vaultBytecode g s0)
+    RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
+  (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultCreditFunction isDeposit).body.drop dropN)
+    .reverted ∧ RDrev fork vaultBytecode g s0)
 
 theorem vaultCreditAfterController (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
@@ -25,14 +27,14 @@ theorem vaultCreditAfterController (isDeposit : Bool) {I : ExecutionEnv} {g : Sa
     (hmc : memLoad (UInt256.ofNat 608) mem = codeOwnerStorageWord I σ ⟨3⟩)
     (hcanon : receiver.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
       (UInt256.ofNat 672 :: UInt256.ofNat (if isDeposit then 2190 else 3320) :: R) mem aw rdata σ k C) :
-    vaultCreditBlockOutcome isDeposit (if isDeposit then 0 else 1) s0 evm I g
+    vaultCreditBlockOutcome fork isDeposit (if isDeposit then 0 else 1) s0 evm I g
       (vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)) := by
   let controller := codeOwnerStorageWord I σ ⟨3⟩
   let locals := vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)
   let locals0 := vaultControllerCacheLocals locals controller
-  have hcache := vaultControllerCache (locals := locals) hs (by cases isDeposit <;> simp [locals, vaultCreditLocals])
+  have hcache := vaultControllerCache (fork := fork) (locals := locals) hs (by cases isDeposit <;> simp [locals, vaultCreditLocals])
   have hbody : (vaultCreditFunction isDeposit).body.drop (if isDeposit then 0 else 1) = vaultControllerCacheBody ++
       [.internalCall "_total_assets" [] "total_assets"] ++
         (vaultCreditFunction isDeposit).body.drop (if isDeposit then 3 else 4) := by cases isDeposit <;> rfl
@@ -82,7 +84,7 @@ theorem vaultCreditAfterController (isDeposit : Bool) {I : ExecutionEnv} {g : Sa
     cases isDeposit <;> simp only [locals1, locals0, vaultControllerCacheLocals, locals, vaultCreditLocals,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] <;> rfl
   have ht : locals1.get? "total_assets" = some (.int (Int.ofNat total.toNat)) := store_get_self _ _ _
-  have hcontinuation : vaultCreditBlockOutcome isDeposit (if isDeposit then 3 else 4) s0 evm1 I g locals1 := by
+  have hcontinuation : vaultCreditBlockOutcome fork isDeposit (if isDeposit then 3 else 4) s0 evm1 I g locals1 := by
     cases isDeposit
     · exact vaultMintAfterAssets hs1 hsize1 hr hc hw hb hmax hv ht hrmem hcmem htmem hcanon hperm hstack rdNext
     · exact vaultDepositAfterAssets hs1 hsize1 hr hc hw hb hmax hv ht hrmem hcmem htmem hcanon hperm hstack rdNext

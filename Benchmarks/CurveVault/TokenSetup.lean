@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_014
 import Benchmarks.CurveVault.RuntimeBlocks_017
 import Benchmarks.CurveVault.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -25,8 +27,8 @@ theorem vaultTokenSetup (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 :
     (hc : memLoad (UInt256.ofNat flow.controllerOffset) mem = controller)
     (hr : memLoad (UInt256.ofNat 576) mem = receiver)
     (ha : vaultHookAmount flow I mem = amount) (hstack : R.length + 2 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.hookNext) (unused :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat flow.tokenNext :: R)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.hookNext) (unused :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat flow.tokenNext :: R)
       (vaultTokenArguments mem (codeOwnerStorageWord I σ ⟨0⟩)
         (vaultTokenFlowSender flow I controller) (vaultTokenFlowRecipient flow controller receiver) amount)
       aw' rdata σ k' C' := by
@@ -59,7 +61,7 @@ theorem vaultTokenSetup (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 :
     change memLoad (UInt256.ofNat 608) mem1 = controller at hc1
     change calldataWord I.calldata 4 = amount at ha
     obtain ⟨aw', k', C', rd⟩ := vaultBlocks.vault_block_2718_packed hstack (by native_decide) h
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 2749 :: R)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 2749 :: R)
       (vaultTokenArguments mem token sender (memLoad (UInt256.ofNat 608) mem1) (calldataWord I.calldata 4)) aw' rdata σ k' C' at rd
     rw [hc1, ha] at rd
     exact ⟨aw', k', C', rd⟩
@@ -68,7 +70,7 @@ theorem vaultTokenSetup (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 :
     change memLoad (UInt256.ofNat 672) mem = amount at ha
     change memLoad (UInt256.ofNat 672) (controller.toByteArray.write 0 mem1 128 32) = _ at ha2
     obtain ⟨aw', k', C', rd⟩ := vaultBlocks.vault_block_3722_packed hstack (by native_decide) h
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 3754 :: R)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 3754 :: R)
       (vaultTokenArguments mem token sender (memLoad (UInt256.ofNat 608) mem1)
         (memLoad (UInt256.ofNat 672) ((memLoad (UInt256.ofNat 608) mem1).toByteArray.write 0 mem1 128 32))) aw' rdata σ k' C' at rd
     rw [hc1, ha2, ha] at rd
@@ -78,7 +80,7 @@ theorem vaultTokenSetup (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 :
     change calldataWord I.calldata 4 = amount at ha
     change memLoad (UInt256.ofNat 576) (controller.toByteArray.write 0 mem0 96 32) = receiver at hr1
     obtain ⟨aw', k', C', rd⟩ := vaultBlocks.vault_block_4630_packed hstack (by native_decide) h
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 4664 :: R)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 4664 :: R)
       (vaultTokenArguments mem token (memLoad (UInt256.ofNat 704) mem0)
         (memLoad (UInt256.ofNat 576) ((memLoad (UInt256.ofNat 704) mem0).toByteArray.write 0 mem0 96 32))
         (calldataWord I.calldata 4)) aw' rdata σ k' C' at rd
@@ -91,7 +93,7 @@ theorem vaultTokenSetup (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 :
     change memLoad (UInt256.ofNat 672)
       (receiver.toByteArray.write 0 (controller.toByteArray.write 0 mem0 96 32) 128 32) = _ at ha2
     obtain ⟨aw', k', C', rd⟩ := vaultBlocks.vault_block_5534_packed hstack (by native_decide) h
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 5569 :: R)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (UInt256.ofNat 5569 :: R)
       (vaultTokenArguments mem token (memLoad (UInt256.ofNat 704) mem0)
         (memLoad (UInt256.ofNat 576) ((memLoad (UInt256.ofNat 704) mem0).toByteArray.write 0 mem0 96 32))
         (memLoad (UInt256.ofNat 672)

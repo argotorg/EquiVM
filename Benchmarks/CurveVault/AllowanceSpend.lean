@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.AllowanceSpendEVM
 import Benchmarks.CurveVault.ApproveInternal
 import Benchmarks.CurveVault.AddressWord
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,16 +20,16 @@ theorem vaultAllowanceSpend (flow : VaultAllowanceSpendFlow) {I : ExecutionEnv} 
     (ha : evalExpr? config {contract := contract, locals := locals} evm oldExpr = .ok (.int (Int.ofNat old.toNat)))
     (hv : evalExpr? config {contract := contract, locals := locals} evm valueExpr = .ok (.int (Int.ofNat value.toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.entry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.entry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm
+      ExecStmt fork config {contract := contract, locals := locals} evm
         (.internalCall "_approve" [ownerExpr, .env .caller, sourceCheckedSub256 oldExpr valueExpr] retVar)
         (.ok {contract := contract, locals := locals.insert retVar .unit} evm') ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem mem' 192 UInt256.size ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat flow.next) R mem' aw' rdata σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm
+      RD fork vaultBytecode I g s0 (UInt256.ofNat flow.next) R mem' aw' rdata σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm
       (.internalCall "_approve" [ownerExpr, .env .caller, sourceCheckedSub256 oldExpr valueExpr] retVar) .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      RDrev fork vaultBytecode g s0) := by
   rcases vaultAllowanceSpendEVM flow hsize hmo hma hmv (by omega) h with
     ⟨hsub, aw0, k0, C0, rdApprove⟩ | ⟨hlt, hrev⟩
   swap

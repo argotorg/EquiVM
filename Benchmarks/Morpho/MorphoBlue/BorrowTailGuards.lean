@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.BorrowHealthRefine
 import Benchmarks.Morpho.MorphoBlue.HealthMessage
 import Benchmarks.Morpho.MorphoBlue.MarketLiquidity
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,13 +17,13 @@ def borrowEventTail (id assets shares account receiver : UInt256) (R : List UInt
 theorem morphoBorrowHealthCheck {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw ptr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (z : Bool) (hstack : R.length + 24 ≤ 1024) (hm : MorphoHeap mem ptr 0) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8794)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8794)
       ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: R) mem aw out σ k C) :
     if z then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8811) R
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8811) R
         (morphoHealthMem mem) aw' out σ k' C' ∧ MorphoHeap (morphoHealthMem mem) (ptr + UInt256.ofNat 64) 0 ∧
         HeapAdvance mem ptr (morphoHealthMem mem) (ptr + UInt256.ofNat 64) 64
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd0 := morphoBlocks.morpho_block_8794 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   obtain ⟨a1, k1, C1, rd1⟩ := morphoHealthMessage (v := v)
@@ -45,11 +47,11 @@ theorem morphoBorrowLiquidity {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {mem out : ByteArray} {aw ptr id assets shares account receiver : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 36 ≤ 1024)
     (hm : MorphoHeap mem ptr 0) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8811)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8811)
       (borrowHealthTail id assets shares account receiver R) mem aw out σ k C) :
-    ((marketFieldWord σ ee id 0).toNat < (marketFieldWord σ ee id 2).toNat ∧ RDrev (deployedRuntime v) g s0) ∨
+    ((marketFieldWord σ ee id 0).toNat < (marketFieldWord σ ee id 2).toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
     ((marketFieldWord σ ee id 2).toNat ≤ (marketFieldWord σ ee id 0).toNat ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8850) (borrowEventTail id assets shares account receiver R)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8850) (borrowEventTail id assets shares account receiver R)
         (morphoLiquidityMem (twoWordHashMem id (UInt256.ofNat 3) mem)) aw' out σ k' C' ∧
       MorphoHeap (morphoLiquidityMem (twoWordHashMem id (UInt256.ofNat 3) mem)) (ptr + UInt256.ofNat 64) 0 ∧
       HeapAdvance mem ptr (morphoLiquidityMem (twoWordHashMem id (UInt256.ofNat 3) mem)) (ptr + UInt256.ofNat 64) 64) := by
@@ -57,13 +59,13 @@ theorem morphoBorrowLiquidity {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     (by change R.length + 2 + 13 ≤ 1024; omega) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   have hh := marketSupplySlot_hash id mem
   have hh2 := marketBorrowSlot_hash id mem
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 8841, UInt256.isZero (UInt256.lt
       (UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem)) σ ee) uint128Mask)
       (UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 1) σ ee) uint128Mask))] ++
       borrowEventTail id assets shares account receiver R) (twoWordHashMem id (UInt256.ofNat 3) mem) _ _ _ _ _ at rd1
   rw [hh2, hh] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 8841, UInt256.isZero (UInt256.lt (marketFieldWord σ ee id 0) (marketFieldWord σ ee id 2))] ++
       borrowEventTail id assets shares account receiver R) (twoWordHashMem id (UInt256.ofNat 3) mem) _ _ _ _ _ at rd1
   have hm1 := hm.hash id (UInt256.ofNat 3)

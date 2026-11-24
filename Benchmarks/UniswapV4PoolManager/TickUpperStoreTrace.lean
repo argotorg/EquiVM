@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickUpdateAccounts
 import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,8 +14,8 @@ open poolManagerBlocks in
 theorem tickUpperStoreStatic {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 : UInt256} {R : List UInt256}
     (hstack : R.length + 15 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7205) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7205) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.dup3 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7205⟩ : UInt256), UInt8.ofNat 130, .DUP3, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 340282366920938463463374607431768211455) (width := 16) (op := .PUSH16) (by decide) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7206⟩ : UInt256), UInt8.ofNat 111, .Push .PUSH16, some ((UInt256.ofNat 340282366920938463463374607431768211455), 16), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -36,11 +38,11 @@ theorem tickUpperStoreExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {tick net delta : Int} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hI : evm.executionEnv = I)
     (hg : gross.toNat < 2^128) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7205⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7205⟩
       (tickSlot id tick :: gross :: EVM.wordOfInt net :: flipped :: x4 :: x5 :: x6 :: ptr :: x8 :: x9 :: x10 ::
         EVM.wordOfInt delta :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-      RD (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
         (x4 :: x5 :: x6 :: ptr :: x8 :: x9 :: x10 :: EVM.wordOfInt delta :: R)
         (tickUpperResultMemory mem ptr gross flipped) (M (M aw (ptr+UInt256.ofNat 96) ⟨32⟩) (ptr+UInt256.ofNat 64) ⟨32⟩) rdata (tickLiquidityStore evm id tick gross net).accountMap k' C' := by
   by_cases hp : I.perm = false
@@ -78,11 +80,11 @@ theorem tickUpperStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {tick net delta : Int} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hI : evm.executionEnv = I)
     (hg : gross.toNat < 2^128) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7205⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7205⟩
       (tickSlot id tick :: gross :: EVM.wordOfInt net :: flipped :: x4 :: x5 :: x6 :: ptr :: x8 :: x9 :: x10 ::
         EVM.wordOfInt delta :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-      RD (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+      RD fork (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
         (x4 :: x5 :: x6 :: ptr :: x8 :: x9 :: x10 :: EVM.wordOfInt delta :: R)
         (tickUpperResultMemory mem ptr gross flipped) aw' rdata (tickLiquidityStore evm id tick gross net).accountMap k' C' := by
   have hr := tickUpperStoreExactTrace v hstack hI hg hd h

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.PayableEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,11 +18,11 @@ theorem payableCheckSource {locals imms : Store} {evm evm' : EVM.State} {target 
     {heap : Nat} {success : Bool} {out : ByteArray}
     (hr : locals.get? "resolver" = some (.address target))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
-    (hc : callViaEVM evm target 0 payablePayload (success,evm',out) false) (hout : out.size < 2^255) :
+    (hc : callViaEVM fork evm target 0 payablePayload (success,evm',out) false) (hout : out.size < 2^255) :
     if callBoolAccepted heap success out then
-      ExecBlock config {contract := contract, locals := locals, immutables := imms} evm payableCheckBlock
+      ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm payableCheckBlock
         (.ok {contract := contract, locals := payableProbeLocals locals out heap, immutables := imms} evm')
-    else ExecBlock config {contract := contract, locals := locals, immutables := imms} evm payableCheckBlock .reverted := by
+    else ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm payableCheckBlock .reverted := by
   have hp := payableProbeSource (imms := imms) hr hh hc hout
   have he : evalExpr? config {contract := contract, locals := payableProbeLocals locals out heap, immutables := imms}
       evm' (.var "payableResult") = .ok (.bool (decide (calldataWord out 0 ≠ ⟨0⟩))) := by
@@ -47,13 +49,13 @@ theorem payableGate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {junk word a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+10 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (payableDonePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableDonePC site)
       (junk::word::payableSavedTail site a b c d e target R) mem aw out σ k C) :
     if word ≠ ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableCheckedPC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableCheckedPC site)
         (payableSavedTail site a b c d e target R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
-  have hr : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableGatePC site)
+    else RDrev fork (deployedRuntime v) g s0 := by
+  have hr : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableGatePC site)
       (UInt256.isZero word::payableSavedTail site a b c d e target R) mem aw' out σ k' C' := by
     cases site with
     | single =>
@@ -104,15 +106,15 @@ theorem payableCheckEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     {ptr junk a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+16 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hheap : ptr.toNat ≤ 2^64-1) (hlo : 96 ≤ ptr.toNat) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (payableEntryPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableEntryPC site)
       (junk::payableSavedTail site a b c d e target R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 target) 0 payablePayload (success,evm',out) false ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 payablePayload (success,evm',out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       (if callBoolAccepted ptr.toNat success out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableCheckedPC site)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableCheckedPC site)
           (payableSavedTail site a b c d e target R) (payableOutputMemory mem ptr out) aw' out σ' k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨evm',σ',success,out,hc,hs',hout,hr⟩ := payableEVM v site hstack hs hheap hlo hh rd
   refine ⟨evm',σ',success,out,hc,hs',hout,?_⟩
   by_cases hv : resolverCallValid ptr.toNat success out

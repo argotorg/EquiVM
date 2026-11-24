@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintBeforeBalanceSource
 import Benchmarks.UniswapV3.Pool.Balance
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,20 +14,20 @@ theorem mintBeforeBalance0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p amount0 amount1 key : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (locals : Store)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5915⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5915⟩
       (amount1 :: amount0 :: key :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (ha : locals.get? "amount0" = some (.int (Int.ofNat amount0.toNat)))
     (hz : locals.get? "balance0Before" = some (.int 0))
     (hm : HeapMemory mem aw p) (hsize : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
-    (ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
-        (mintBeforeBalanceStmt false) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
+        (mintBeforeBalanceStmt false) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ evm' σ' out mem' aw' free balance0 k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (mintBeforeBalanceStmt false)
         (.ok (mintBeforeBalanceFrame v locals false amount0 balance0) evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨5949⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5949⟩
         (⟨0⟩ :: balance0 :: amount1 :: amount0 :: amount1 :: amount0 :: R)
         mem' aw' out σ' k' C' ∧ HeapMemory mem' aw' free ∧ MemoryPrefix mem mem' p.toNat ∧
       free.toNat ≤ p.toNat + 2 ^ 138 + 131 ∧ (amount0 = ⟨0⟩ → balance0 = ⟨0⟩)) := by

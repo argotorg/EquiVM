@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeRemoveContinuationEVM
 import Benchmarks.Dss.Clipper.YankSuccessSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -24,7 +26,7 @@ theorem clipperTakeRemoveEquiv
       (List.map Param.name takeTransition.params)
       (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
-    (rd8274 : RD code I (Sat256.ofUInt256 g)
+    (rd8274 : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
       (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
         stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
@@ -34,25 +36,25 @@ theorem clipperTakeRemoveEquiv
     (hAccounts : Eq σCont evmCont.accountMap)
     (hevmEnv : evmCont.executionEnv = I)
     (hsourceReverted :
-      ExecFuncBody config
+      ExecFuncBody fork config
           { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
           evmCont removeFunction.body .reverted →
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperTakeStore I) takeTransition.body .reverted (immStore v))
     (hsourceReturned : ∀ {callee : Frame} {evmRemove : EVM.State},
-      ExecFuncBody config
+      ExecFuncBody fork config
           { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
           evmCont removeFunction.body (.returned callee evmRemove none) →
         evmRemove.executionEnv.perm = true →
         ∃ finalFrame : Frame,
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperTakeStore I) takeTransition.body
             (.returned finalFrame
               (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner
                 ⟨13⟩ ⟨0⟩) none) (immStore v)) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I (immStore v) := by
   have howner : evmCont.executionEnv.codeOwner = I.codeOwner := by rw [hevmEnv]
   have hstorage (slot : UInt256) :
@@ -67,7 +69,7 @@ theorem clipperTakeRemoveEquiv
         evmCont.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
       rw [← hstorage]
       exact hlen
-    have hremove := clipperYankRemoveEmptySourceReverts v evmCont I hlenStele
+    have hremove := clipperYankRemoveEmptySourceReverts (fork := fork) v evmCont I hlenStele
     exact hinvalid.reEquivExecutionInvalid hcode hdispatch hdec
       (hsourceReverted hremove)
   · intro hlen hidEq hret
@@ -107,7 +109,7 @@ theorem clipperTakeRemoveEquiv
         locals := clipperYankRemoveMoveStore I sourceLastIndex
           (Stele.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
             (clipperYankActiveSlot sourceLastIndex)), immutables := immStore v }
-    have hremove : ExecFuncBody config
+    have hremove : ExecFuncBody fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
         evmCont removeFunction.body (.returned calleeFrame evmRemove none) := by
       simpa [sourceLastIndex, evmRemove, calleeFrame] using
@@ -186,7 +188,7 @@ theorem clipperTakeRemoveEquiv
         evmMovePos.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
       rw [← hstorageMove]
       simpa [lastIndex, move, idx] using hlenAfter
-    have hremoveRaw := clipperYankRemoveIdNeMovePopEmptySourceReverts (hperm := (congrArg ExecutionEnv.perm hevmEnv).trans hperm)
+    have hremoveRaw := clipperYankRemoveIdNeMovePopEmptySourceReverts (fork := fork) (hperm := (congrArg ExecutionEnv.perm hevmEnv).trans hperm)
       v evmCont I hlenStele hidNeStele hidxBoundStele
     dsimp only at hremoveRaw
     have hremove := hremoveRaw (by
@@ -275,10 +277,10 @@ theorem clipperTakeRemoveEquiv
           (UInt256.sub
             (Stele.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩)
           move idx, immutables := immStore v }
-    have hremoveRaw := clipperYankRemoveIdNeMoveSource (hperm := (congrArg ExecutionEnv.perm hevmEnv).trans hperm)
+    have hremoveRaw := clipperYankRemoveIdNeMoveSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hevmEnv).trans hperm)
       v evmCont I hacc hlenStele hidNeStele hidxBoundStele
     dsimp only at hremoveRaw
-    have hremove : ExecFuncBody config
+    have hremove : ExecFuncBody fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
         evmCont removeFunction.body (.returned calleeFrame evmRemove none) := by
       have hremoveSource := hremoveRaw (by
@@ -331,7 +333,7 @@ theorem clipperTakeRemoveEquiv
             (clipperYankSalesPosSlot I)).toNat := by
       rw [← hstorage, ← hstorage]
       simpa using hidxBound
-    have hremove := clipperYankRemoveIdNeMoveIndexOobSourceReverts
+    have hremove := clipperYankRemoveIdNeMoveIndexOobSourceReverts (fork := fork)
       v evmCont I hlenStele hidNeStele hidxBoundStele
     exact hinvalid.reEquivExecutionInvalid hcode hdispatch hdec
       (hsourceReverted hremove)

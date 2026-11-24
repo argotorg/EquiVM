@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityParams
 import Benchmarks.UniswapV4PoolManager.SourceComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,7 +35,7 @@ theorem modifyLiquidityPreludeSource {locals imms : Store} {evm : State} {key : 
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hk : locals.get? "key" = some (.tuple (poolKeyValues key)))
     (hp : locals.get? "params" = some (.tuple (modifyLiquidityValues p))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (modifyLiquidityTransition.body.take 7)
       (.ok (modifyLiquidityPreludeFrame locals imms evm key p) evm) := by
   apply nonpayableCalldataBlock hwv hhi

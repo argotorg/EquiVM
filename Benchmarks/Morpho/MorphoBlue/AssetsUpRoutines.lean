@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AssetsUpSource
 import Benchmarks.Morpho.MorphoBlue.MulDivUpRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoAssetsUpReachShares (hstack : R.length + 14 ≤ 1024)
     (ht : t.toNat + 1 < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15459)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15459)
       ((t + UInt256.ofNat 1) :: s :: a :: ret :: R) mem aw out σ k' C' := by
   have hc := checkedAddNoOverflowGt t (UInt256.ofNat 1) ht
   rw [u256_add_comm (UInt256.ofNat 1) t] at hc
@@ -25,9 +27,9 @@ theorem morphoAssetsUpReachShares (hstack : R.length + 14 ≤ 1024)
 
 theorem morphoAssetsUpReachMul (hstack : R.length + 14 ≤ 1024)
     (hs : s.toNat + virtualShares.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15459)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15459)
       ((t + UInt256.ofNat 1) :: s :: a :: ret :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14424)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14424)
       (a :: (t + UInt256.ofNat 1) :: (s + virtualShares) :: UInt256.ofNat 14109 :: ret :: R)
       mem aw out σ k' C' := by
   have hc := checkedAddNoOverflowGt s virtualShares hs
@@ -39,9 +41,9 @@ theorem morphoAssetsUpReachMul (hstack : R.length + 14 ≤ 1024)
 
 theorem morphoAssetsUpOk (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true) (hf : AssetsUpFits a t s)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (assetsUpWord a t s :: R) mem aw out σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (assetsUpWord a t s :: R) mem aw out σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoAssetsUpReachShares (v := v) hstack hf.1 h
   obtain ⟨k2, C2, rd2⟩ := morphoAssetsUpReachMul (v := v) hstack hf.2.1 rd1
   obtain ⟨k3, C3, rd3⟩ := morphoMulDivUpOk (v := v) (by simp; omega)
@@ -49,8 +51,8 @@ theorem morphoAssetsUpOk (hstack : R.length + 14 ≤ 1024)
   exact ⟨_, _, morphoBlocks.morpho_block_14109 (immWords := wordsOf (immStore v)) (by simp; omega) hvalid rd3⟩
 
 theorem morphoAssetsUpReverts (hstack : R.length + 14 ≤ 1024) (hf : ¬ AssetsUpFits a t s)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15445) (a :: t :: s :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases ht : t.toNat + 1 < UInt256.size
   swap
   · have hc := checkedAddOverflowGt t (UInt256.ofNat 1) (Nat.le_of_not_gt ht)

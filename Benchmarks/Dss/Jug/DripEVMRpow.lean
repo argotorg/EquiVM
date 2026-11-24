@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.DripEVMVat
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
@@ -8,13 +10,13 @@ theorem RD.jugDripToRpowRoutine
     {σ σ' σ₀ A I} {g sel fee : UInt256}
     {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size) (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size)
-    (rd1485 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1485 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (fee :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
       (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (jugRay :: UInt256.sub (UInt256.ofNat I.header.timestamp)
           (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) ::
@@ -63,7 +65,7 @@ theorem RD.jugDripToRpowRoutine
     (UInt256.ofNat 6) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   have rd1504 := rd1503.add (by native_decide) (by evm_ov)
   obtain ⟨k1505, C1505, rd1505raw⟩ := rd1504.sload (by native_decide) (by evm_ov)
-  have rd1505 : RD jugBytecode I (Sat256.ofUInt256 g)
+  have rd1505 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1505⟩
       (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I :: fee :: ⟨1524⟩ :: ⟨1530⟩ ::
         dripVatIlksPrevWord out :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -83,11 +85,11 @@ theorem RD.jugDripRpowNZeroReturns
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2153 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: ⟨0⟩ :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (b :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
@@ -189,11 +191,11 @@ theorem RD.jugDripRpowNOneReturns
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2153 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: ⟨1⟩ :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (x :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
@@ -300,11 +302,11 @@ theorem RD.jugDripRpowXZeroNNonzeroReturns
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
-    (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2153 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: n :: ⟨0⟩ :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (⟨0⟩ :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
@@ -349,11 +351,11 @@ theorem RD.jugDripRmulReturns
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : pow.toNat * prev.toNat < UInt256.size)
-    (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1524 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (pow :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
       (UInt256.div (prev * pow) jugRay :: prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd1529 := evm_run rd1524 with [
@@ -447,11 +449,11 @@ theorem RD.jugDripRmulRayReturns
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : jugRay.toNat * prev.toNat < UInt256.size)
-    (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1524 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (jugRay :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
       (prev :: prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hquot : UInt256.div (prev * jugRay) jugRay = prev :=
@@ -540,7 +542,7 @@ theorem RD.jugDripRmulRayReturns
       raw pop (by native_decide) (by evm_ov)]
     have rd1530 := rd2396.jump (by native_decide) (by jump_dest) (by evm_ov)
     exact ⟨_, _, by
-      change RD jugBytecode I (Sat256.ofUInt256 g)
+      change RD fork jugBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
         (UInt256.div (prev * jugRay) jugRay :: prev :: R)
         mem (UInt256.ofNat 6) out acc _ _ at rd1530
@@ -553,11 +555,11 @@ theorem RD.jugDripRmulOverflowReverts
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ pow.toNat * prev.toNat)
-    (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1524 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (pow :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hprevNe : prev ≠ ⟨0⟩ := by
     intro hzero
@@ -610,11 +612,11 @@ theorem RD.jugDripRmulRayOverflowReverts
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ jugRay.toNat * prev.toNat)
-    (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1524 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (jugRay :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hprevNe : prev ≠ ⟨0⟩ := by
     intro hzero
@@ -667,11 +669,11 @@ theorem RD.jugDiffSameReturnsZero
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hvMax : (v.toNat : Int) ≤ Reasoning.Theory.maxInt256)
-    (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2397 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (⟨0⟩ :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hvHi : v.toNat < 2 ^ 255 := by
@@ -726,11 +728,11 @@ theorem RD.jugDiffReturns
     (hRlen : R.length ≤ 1000)
     (hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (hprevMax : (prev.toNat : Int) ≤ Reasoning.Theory.maxInt256)
-    (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2397 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (UInt256.sub rate prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hrateHi : rate.toNat < 2 ^ 255 := by
@@ -791,11 +793,11 @@ theorem RD.jugDiffSameRevertXBound
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hvMaxNot : ¬ (v.toNat : Int) ≤ Reasoning.Theory.maxInt256)
-    (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2397 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hvHi : 2 ^ 255 ≤ v.toNat := by
     have hvInt : ((2 ^ 255 : ℕ) : Int) ≤ (v.toNat : Int) := by
@@ -838,11 +840,11 @@ theorem RD.jugDiffRevertXBound
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hrateMaxNot : ¬ (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
-    (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2397 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hrateHi : 2 ^ 255 ≤ rate.toNat := by
     have hrateInt : ((2 ^ 255 : ℕ) : Int) ≤ (rate.toNat : Int) := by
@@ -886,11 +888,11 @@ theorem RD.jugDiffRevertYBound
     (hRlen : R.length ≤ 1000)
     (hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (hprevMaxNot : ¬ (prev.toNat : Int) ≤ Reasoning.Theory.maxInt256)
-    (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2397 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hrateHi : rate.toNat < 2 ^ 255 := by
     have hrateInt : (rate.toNat : Int) < (2 : Int) ^ 255 := by

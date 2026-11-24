@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.DebitEntry
 import Benchmarks.CurveVault.DebitArguments
 import Benchmarks.CurveVault.UintAddressABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 
 namespace Benchmarks.CurveVault
@@ -10,7 +12,7 @@ namespace Benchmarks.CurveVault
 theorem vaultWithdraw_uint256_addressBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 0) rfl hsel
   have hd : dispatchMsg contract I.calldata = some withdraw_uint256_addressTransition := by
     apply vaultDispatch_withdraw_uint256_address
@@ -37,7 +39,7 @@ theorem vaultWithdraw_uint256_addressBodyCore {σ σ₀ A I} {g : UInt256}
   have hdec : config.externalABI.decodeCalldata? (withdraw_uint256_addressTransition.params.map Param.name)
       (transitionSignature withdraw_uint256_addressTransition).paramTypes I.calldata = some decoded :=
     decodeCalldata_vyper_uint256_address_ok hargs hcanon
-  have hprefix : ExecBlock config {contract := contract, locals := decoded} evm
+  have hprefix : ExecBlock fork config {contract := contract, locals := decoded} evm
       (withdraw_uint256_addressTransition.body.take 2) (.ok {contract := contract, locals := locals} evm) :=
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
       (ExecBlock.consNormal (ExecStmt.letDecl (by simp [evalExpr?, envValue, evm, initState, pure])) ExecBlock.nil)
@@ -56,7 +58,7 @@ theorem vaultWithdraw_uint256_addressBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultWithdraw_uint256_addressBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

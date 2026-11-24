@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_020
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -52,12 +54,12 @@ theorem signatureOffsetAdd {w : UInt256} (h : w.toNat ≤ 2 ^ 64 - 1) :
 
 theorem safeSignatureLegacyHeaderRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDecodePC counted) (scratch :: R)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDecodePC counted) (scratch :: R)
       mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat (signatureAddressHead counted)) = ⟨1⟩)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hov : R.length + 20 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 20 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   cases counted with
   | false =>
     have h₁ := safeRuntime_block_4200_taken (by simp; omega) (by
@@ -76,13 +78,13 @@ theorem safeSignatureLegacyHeaderRevert (counted : Bool)
 
 theorem safeSignatureLegacyStart (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDecodePC counted) (scratch :: R)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDecodePC counted) (scratch :: R)
       mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat (signatureAddressHead counted)) = ⟨0⟩)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 (signatureLegacyOffsetPC counted)
+    ∃ k' C', RD fork safeBytecode I g s0 (signatureLegacyOffsetPC counted)
       (signatureLegacyInitialStack counted scratch R) mem aw rdata σ k' C' := by
   cases counted with
   | false =>
@@ -96,10 +98,10 @@ theorem safeSignatureLegacyStart (counted : Bool)
 
 theorem safeSignatureLegacyDataOffsetRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyOffsetPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyOffsetPC counted)
       (signatureLegacyInitialStack counted scratch R) mem aw rdata σ k C)
     (hoff : 2 ^ 64 - 1 < (calldataWord I.calldata 36).toNat)
-    (hov : R.length + 20 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 20 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hm : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have hcond : UInt256.gt (calldataWord I.calldata 36)
@@ -119,11 +121,11 @@ theorem safeSignatureLegacyDataOffsetRevert (counted : Bool)
 
 theorem safeSignatureLegacyToData (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyOffsetPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyOffsetPC counted)
       (signatureLegacyInitialStack counted scratch R) mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 36).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7083⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7083⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 36).toNat) :: UInt256.ofNat I.calldata.size ::
         signatureLegacyDataPC counted :: signatureLegacyDataSaved counted scratch R)
       mem aw rdata σ k' C' := by
@@ -141,7 +143,7 @@ theorem safeSignatureLegacyToData (counted : Bool)
       (by simp [signatureLegacyInitialStack]; omega) hcond h
     have h₂ := safeRuntime_block_4229
       (by simp [signatureLegacyInitialStack]; omega) (by jump_dest) h₁
-    change RD safeBytecode I g s0 ⟨7083⟩
+    change RD fork safeBytecode I g s0 ⟨7083⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 36) :: UInt256.ofNat I.calldata.size ::
         signatureLegacyDataPC false :: signatureLegacyDataSaved false scratch R)
       mem aw rdata σ _ _ at h₂
@@ -152,7 +154,7 @@ theorem safeSignatureLegacyToData (counted : Bool)
       (by simp [signatureLegacyInitialStack]; omega) hcond h
     have h₂ := safeRuntime_block_6616
       (by simp [signatureLegacyInitialStack]; omega) (by jump_dest) h₁
-    change RD safeBytecode I g s0 ⟨7083⟩
+    change RD fork safeBytecode I g s0 ⟨7083⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 36) :: UInt256.ofNat I.calldata.size ::
         signatureLegacyDataPC true :: signatureLegacyDataSaved true scratch R)
       mem aw rdata σ _ _ at h₂

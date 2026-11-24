@@ -1,24 +1,26 @@
 import Benchmarks.UniswapV4PoolManager.TickBitmapTrace
 import Benchmarks.UniswapV4PoolManager.FunctionTraceMono
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 
-def tickBitmapReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def tickBitmapReturnTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id tick spacing ret : UInt256) (R : List UInt256) :
     State → Option (List Value) → Prop
   | post, none => post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ aw k C,
-    RD (deployedRuntime v) I g s0 ret R
+    RD fork (deployedRuntime v) I g s0 ret R
       (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
         (poolSlot id+⟨5⟩) mem) aw rdata post.accountMap k C
   | _, _ => False
 
-def tickBitmapReturnTraceAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def tickBitmapReturnTraceAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id tick spacing ret : UInt256) (R : List UInt256) (aw : UInt256) :
     State → Option (List Value) → Prop
   | post, none => post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ k C,
-    RD (deployedRuntime v) I g s0 ret R
+    RD fork (deployedRuntime v) I g s0 ret R
       (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
         (poolSlot id+⟨5⟩) mem) aw rdata post.accountMap k C
   | _, _ => False
@@ -28,10 +30,10 @@ theorem tickBitmapExactResultTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : int24Canonical tick) (hs : int24Canonical spacing) (hb : (EVM.signed tick).natAbs ≤ 887272)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (tickBitmapReturnTraceAtAW v I g s0 evm.σ₀ mem rdata id tick spacing ret R (tickBitmapActiveWords aw))
+    functionResultTrace fork (deployedRuntime v) g s0
+      (tickBitmapReturnTraceAtAW fork v I g s0 evm.σ₀ mem rdata id tick spacing ret R (tickBitmapActiveWords aw))
       (tickBitmapResult f evm id (EVM.signed tick) (EVM.signed spacing)) := by
   have hr := tickBitmapExactTrace v hstack hI ht hs hb hret h
   simp only [tickBitmapResult, hI]
@@ -52,10 +54,10 @@ theorem tickBitmapResultTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : int24Canonical tick) (hs : int24Canonical spacing) (hb : (EVM.signed tick).natAbs ≤ 887272)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (tickBitmapReturnTrace v I g s0 evm.σ₀ mem rdata id tick spacing ret R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (tickBitmapReturnTrace fork v I g s0 evm.σ₀ mem rdata id tick spacing ret R)
       (tickBitmapResult f evm id (EVM.signed tick) (EVM.signed spacing)) := by
   have hr := tickBitmapExactResultTrace f v hstack hI ht hs hb hret h
   apply functionResultTrace_mono hr

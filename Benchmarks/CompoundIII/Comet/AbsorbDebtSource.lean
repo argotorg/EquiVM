@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbDebtModel
 import Benchmarks.CompoundIII.Comet.Unsigned256Revert
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,7 +17,7 @@ theorem absorbDebtArithmetic_source (frame : Frame) (evm : State)
     (hn : frame.locals.get? "newBalance" = some (.int (signedWord next)))
     (hp : frame.locals.get? "basePrice" = some (.int price.toNat))
     (hnext : next.toNat < 2^255) :
-    ExecBlock config frame evm absorbDebtArithmeticBlock
+    ExecBlock fork config frame evm absorbDebtArithmeticBlock
       (if AbsorbDebtValid v old next price then
         .ok (absorbDebtFrame frame v old next price) evm else .reverted) := by
   have he : evalExpr? config frame evm (.binary .sub (.var "newBalance") (.var "oldBalance")) =
@@ -34,12 +36,12 @@ theorem absorbDebtArithmetic_source (frame : Frame) (evm : State)
       have hnat : Int.ofNat (absorbPaidWord old next).toNat =
           signedWord next - signedWord old := (signedWord_low hpaid).symm.trans hd
       rw [← hnat] at her
-      have hu := unsigned256_call_ok frame evm (absorbPaidWord old next) _ "basePaidOut" hc her
+      have hu := unsigned256_call_ok (fork := fork) frame evm (absorbPaidWord old next) _ "basePaidOut" hc her
       let paid := absorbPaidFrame frame old next
       have hp' : paid.locals.get? "basePrice" = some (.int price.toNat) := by
         simpa only [paid, absorbPaidFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert] using hp
-      have hm := mulPrice_call paid evm (absorbPaidWord old next) price (collateralBaseScale v)
+      have hm := mulPrice_call (fork := fork) paid evm (absorbPaidWord old next) price (collateralBaseScale v)
         (.var "basePaidOut") (.var "basePrice")
         (.cast (.immutable "baseScale") (.elem (.int (.uint ⟨64, by decide⟩))))
         "valueOfBasePaidOut" hc

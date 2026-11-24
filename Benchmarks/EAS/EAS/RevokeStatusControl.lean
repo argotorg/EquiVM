@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,10 +10,10 @@ theorem easRevokeRevocableCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {packed : UInt256} {R : List UInt256} (v : EASImmutables) (kind : RevokeKind)
     (hstack : R.length+2 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.revocablePC (packed::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.revocablePC (packed::R) mem aw rdata σ k C) :
     if UInt256.land (UInt256.shiftRight packed ⟨160⟩) ⟨255⟩ ≠ ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.timePC R mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.timePC R mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hv : UInt256.land (UInt256.shiftRight packed ⟨160⟩) ⟨255⟩ ≠ ⟨0⟩
   · rw [if_pos hv]
     have hc : UInt256.isZero (UInt256.land (UInt256.ofNat 255) (UInt256.shiftRight packed (UInt256.ofNat 160))) = UInt256.ofNat 0 := by
@@ -24,7 +26,7 @@ theorem easRevokeRevocableCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       have hz : UInt256.land (UInt256.shiftRight packed (UInt256.ofNat 160)) (UInt256.ofNat 255) = UInt256.ofNat 0 := not_ne_iff.mp hv
       rw [u256_land_comm,hz]; decide
     have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 9647) = true := by rw [easPatchedValidJumps v]; jump_dest
-    have hr : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨9647⟩ R mem aw' rdata σ k' C' := by
+    have hr : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨9647⟩ R mem aw' rdata σ k' C' := by
       cases kind with
       | single => exact easBlocks.eas_block_12394_taken_packed (immWords := wordsOf (immStore v)) hstack hc hd rd
       | many => exact easBlocks.eas_block_13028_taken_packed (immWords := wordsOf (immStore v)) hstack hc hd rd
@@ -35,12 +37,12 @@ theorem easRevokeTimeCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {request idx slot schema revoker : UInt256} {R : List UInt256} (v : EASImmutables) (kind : RevokeKind)
     (hstack : R.length+11 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.timePC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.timePC
       (revokePermissionStack kind request idx slot schema revoker R) mem aw rdata σ k C) :
     if UInt256.land (UInt256.shiftRight (solcSlotWord σ ee (slot+⟨2⟩)) ⟨128⟩) ⟨18446744073709551615⟩ = ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.writePC
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.writePC
         (revokeWriteStack kind request idx slot schema revoker R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hv : UInt256.land (UInt256.shiftRight (solcSlotWord σ ee (slot+⟨2⟩)) ⟨128⟩) ⟨18446744073709551615⟩ = ⟨0⟩
   · rw [if_pos hv]
     cases kind with

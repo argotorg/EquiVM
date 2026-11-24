@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `token()`
 
@@ -22,7 +24,7 @@ theorem wrapperTokenBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : imm
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 7) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -40,7 +42,7 @@ theorem wrapperTokenBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : imm
   by_cases hwv : I.weiValue = ⟨0⟩
   · have rd1 := wrapperBlocks.wrapper_block_1651_fallthrough (by simp) (by simpa using hwv) rd
     have rd2 := wrapperBlocks.wrapper_block_1656 (immWords := wordsOf imms) (by simp) rd1
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tokenTransition.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tokenTransition.body
         (.returned (frame imms ∅) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [.address a]))
         (restrictImmutables contract imms) := by
       rw [tokenBody_eq]

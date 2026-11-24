@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintMemory
 import Benchmarks.UniswapV3.Pool.MintPrefixSource
 import Benchmarks.UniswapV3.Pool.SafeCast128Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,18 +13,18 @@ set_option maxRecDepth 10000
 theorem mintModifyEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p len start : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : MintArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5837⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5837⟩
       (⟨0⟩ :: ⟨0⟩ :: len :: start :: a.amount :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: EVM.word a.recipient.val :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hov : R.length + 18 ≤ 1024) :
-    (ExecStmt config (mintInitFrame v a) evm
+    (ExecStmt fork config (mintInitFrame v a) evm
         (.internalCall "SafeCast_toInt128" mintCastExprs "__c0") .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (safeCast128Valid (Int.ofNat a.amount.toNat) ∧
-      ExecStmt config (mintInitFrame v a) evm
+      ExecStmt fork config (mintInitFrame v a) evm
         (.internalCall "SafeCast_toInt128" mintCastExprs "__c0") (.ok (mintCastFrame v a) evm) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16233⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16233⟩
         (p :: ⟨5915⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: len :: start :: a.amount ::
           EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: EVM.word a.recipient.val :: R)
         (wordArrayAllocMem mem p (mintModifyArgs a).words) aw' rdata σ k' C' ∧
@@ -53,7 +55,7 @@ theorem mintModifyEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     u256_add_comm (UInt256.ofNat 32) (p + UInt256.ofNat 64), u256_add_assoc,
     show UInt256.ofNat 64 + UInt256.ofNat 32 = UInt256.ofNat 96 from by decide] at r1
   obtain ⟨k1, C1, r1⟩ := r1.pack
-  have r1' : RD (deployedRuntime v) ee g s0 ⟨16216⟩
+  have r1' : RD fork (deployedRuntime v) ee g s0 ⟨16216⟩
       (EVM.wordOfInt (Int.ofNat a.amount.toNat) :: ⟨5905⟩ ::
         (p + UInt256.ofNat 96) :: p :: ⟨5915⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         len :: start :: a.amount :: EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower ::

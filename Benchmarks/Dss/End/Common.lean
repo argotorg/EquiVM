@@ -13,6 +13,8 @@ import Reasoning.SteleBody
 import Reasoning.ExternalCall
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS End shared proof foundation
 
@@ -41,7 +43,7 @@ theorem endAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -58,7 +60,7 @@ theorem endUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -75,7 +77,7 @@ theorem endAddressGetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf endBytecode entry returnPc routine)
@@ -85,13 +87,13 @@ theorem endAddressGetterBodyCore
     (hretmem : solcReturnAddressFromMemWf endBytecode returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
         (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
@@ -104,7 +106,7 @@ theorem endAddressGetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret endBytecode (Sat256.ofUInt256 g)
+      RDret fork endBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
     simpa [solcAddressSlotWord, solcSlotWordAt] using hret
@@ -119,7 +121,7 @@ theorem endUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf endBytecode entry returnPc routine)
@@ -129,12 +131,12 @@ theorem endUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf endBytecode returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -147,7 +149,7 @@ theorem endUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret endBytecode (Sat256.ofUInt256 g)
+      RDret fork endBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -457,7 +459,7 @@ theorem endEvalExpr_or_false_right {evm : EVM.State} {locals : Store}
 
 theorem endExecAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       addFunction.body
       (.returned { contract := contract, locals := endUintBinaryLocalsZ x y sum } evm
         (some [.int (Int.ofNat sum.toNat)])) := by
@@ -497,7 +499,7 @@ theorem endExecAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
         (.binary .ge (.var "z") (.var "x")) = .ok (.bool true) :=
     endEvalExpr_ge_uint256_true hz hxZ (by rw [hsumNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (u256 (.binary .add (.var "x") (.var "y"))),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -510,7 +512,7 @@ theorem endExecAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
 
 theorem endExecAddFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat + y.toNat) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       addFunction.body .reverted := by
   let locals := endUintBinaryLocals x y
   have hx :
@@ -528,7 +530,7 @@ theorem endExecAddFunctionRevert (evm : EVM.State) {x y : UInt256}
         (u256 (.binary .add (.var "x") (.var "y"))) = .revert :=
     endEvalExpr_add256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (u256 (.binary .add (.var "x") (.var "y"))),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -542,7 +544,7 @@ theorem endInternalAddFunctionReturn (evm : EVM.State) {locals : Store}
       evalExprs? config { contract := contract, locals := locals } evm args =
         .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "add" args retVar)
       (.ok
         (resumeAfterInternalCall { contract := contract, locals := locals } retVar
@@ -563,7 +565,7 @@ theorem endInternalAddFunctionRevert (evm : EVM.State) {locals : Store}
       evalExprs? config { contract := contract, locals := locals } evm args =
         .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
     (hover : UInt256.size ≤ x.toNat + y.toNat) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "add" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := { contract := contract, locals := locals })
@@ -576,7 +578,7 @@ theorem endInternalAddFunctionRevert (evm : EVM.State) {locals : Store}
 
 theorem endExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       mulFunction.body
       (.returned { contract := contract, locals := endUintBinaryLocalsZ x y prod } evm
         (some [.int (Int.ofNat prod.toNat)])) := by
@@ -662,7 +664,7 @@ theorem endExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
         exact endEvalExpr_eq_int_true hDivY hxZ rfl
       exact endEvalExpr_or_false_right hyEqZero hRight
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (u256 (.binary .mul (.var "x") (.var "y"))),
           .require
             (.binary .or
@@ -678,7 +680,7 @@ theorem endExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
 
 theorem endExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       mulFunction.body .reverted := by
   let locals := endUintBinaryLocals x y
   have hx :
@@ -696,7 +698,7 @@ theorem endExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
         (u256 (.binary .mul (.var "x") (.var "y"))) = .revert :=
     endEvalExpr_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (u256 (.binary .mul (.var "x") (.var "y"))),
           .require
             (.binary .or
@@ -710,7 +712,7 @@ theorem endExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
 theorem endExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size)
     (hq : q = UInt256.div prod endRayWord) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       rmulFunction.body
       (.returned { contract := contract, locals := endUintBinaryLocalsM x y prod } evm
         (some [.int (Int.ofNat q.toNat)])) := by
@@ -736,11 +738,11 @@ theorem endExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
         some (endUintBinaryLocals x y) := by
     simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .var "y"] "m")
         (.ok { contract := contract, locals := localsM } evm) := by
     have hbody :=
-      endExecMulFunctionReturn (evm := evm) (x := x) (y := y) (prod := prod)
+      endExecMulFunctionReturn (fork := fork) (evm := evm) (x := x) (y := y) (prod := prod)
         hprod hfit
     have hstmt := internalCallFunctionReturn
       (cfg := config) (caller := { contract := contract, locals := locals })
@@ -768,7 +770,7 @@ theorem endExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
           .ok (.int (Int.ofNat q.toNat)) :=
     endEvalExpr_div_uint256_ok hm hRay (by native_decide) hq
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .var "y"] "m",
           .return [.binary .div (.var "m") (.intLit RAY)] ]
         (.returned { contract := contract, locals := localsM } evm
@@ -779,7 +781,7 @@ theorem endExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
 
 theorem endExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       rmulFunction.body .reverted := by
   let locals := endUintBinaryLocals x y
   have hx :
@@ -802,9 +804,9 @@ theorem endExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         some (endUintBinaryLocals x y) := by
     simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .var "y"] "m") .reverted := by
-    have hbody := endExecMulFunctionRevert (evm := evm) (x := x) (y := y) hover
+    have hbody := endExecMulFunctionRevert (fork := fork) (evm := evm) (x := x) (y := y) hover
     exact internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := locals })
       (evm := evm) (name := "mul") (retVar := "m")
@@ -813,7 +815,7 @@ theorem endExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
       (callee := mulFunction) (locals := endUintBinaryLocals x y)
       hargs (by rfl) hbind hbody
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .var "y"] "m",
           .return [.binary .div (.var "m") (.intLit RAY)] ]
         .reverted := by
@@ -823,7 +825,7 @@ theorem endExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
 theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * endWadWord) (hfit : x.toNat * endWadWord.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩) (hq : q = UInt256.div prod y) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       wdivFunction.body
       (.returned { contract := contract, locals := endUintBinaryLocalsM x y prod } evm
         (some [.int (Int.ofNat q.toNat)])) := by
@@ -850,11 +852,11 @@ theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
         some (endUintBinaryLocals x endWadWord) := by
     simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit WAD] "m")
         (.ok { contract := contract, locals := localsM } evm) := by
     have hbody :=
-      endExecMulFunctionReturn (evm := evm) (x := x) (y := endWadWord) (prod := prod)
+      endExecMulFunctionReturn (fork := fork) (evm := evm) (x := x) (y := endWadWord) (prod := prod)
         hprod hfit
     have hstmt := internalCallFunctionReturn
       (cfg := config) (caller := { contract := contract, locals := locals })
@@ -882,7 +884,7 @@ theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
           .ok (.int (Int.ofNat q.toNat)) :=
     endEvalExpr_div_uint256_ok hm hyExpr hy hq
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .intLit WAD] "m",
           .return [.binary .div (.var "m") (.var "y")] ]
         (.returned { contract := contract, locals := localsM } evm
@@ -893,7 +895,7 @@ theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
 
 theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * endWadWord.toNat) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       wdivFunction.body .reverted := by
   let locals := endUintBinaryLocals x y
   have hx :
@@ -917,10 +919,10 @@ theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         some (endUintBinaryLocals x endWadWord) := by
     simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit WAD] "m") .reverted := by
     have hbody :=
-      endExecMulFunctionRevert (evm := evm) (x := x) (y := endWadWord) hover
+      endExecMulFunctionRevert (fork := fork) (evm := evm) (x := x) (y := endWadWord) hover
     exact internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := locals })
       (evm := evm) (name := "mul") (retVar := "m")
@@ -929,7 +931,7 @@ theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
       (callee := mulFunction) (locals := endUintBinaryLocals x endWadWord)
       hargs (by rfl) hbind hbody
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .intLit WAD] "m",
           .return [.binary .div (.var "m") (.var "y")] ]
         .reverted := by
@@ -939,7 +941,7 @@ theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
 theorem endExecWdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * endWadWord) (hfit : x.toNat * endWadWord.toNat < UInt256.size)
     (hy : y = ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := endUintBinaryLocals x y } evm
       wdivFunction.body .reverted := by
   let locals := endUintBinaryLocals x y
   let localsM := endUintBinaryLocalsM x y prod
@@ -964,11 +966,11 @@ theorem endExecWdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
         some (endUintBinaryLocals x endWadWord) := by
     simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit WAD] "m")
         (.ok { contract := contract, locals := localsM } evm) := by
     have hbody :=
-      endExecMulFunctionReturn (evm := evm) (x := x) (y := endWadWord) (prod := prod)
+      endExecMulFunctionReturn (fork := fork) (evm := evm) (x := x) (y := endWadWord) (prod := prod)
         hprod hfit
     have hstmt := internalCallFunctionReturn
       (cfg := config) (caller := { contract := contract, locals := locals })
@@ -999,7 +1001,7 @@ theorem endExecWdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
         [.binary .div (.var "m") (.var "y")] = .revert := by
     simp [evalExprs?, hDiv, EvalResult.bind, bind]
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .intLit WAD] "m",
           .return [.binary .div (.var "m") (.var "y")] ]
         .reverted := by

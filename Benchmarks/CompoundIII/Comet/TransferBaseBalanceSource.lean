@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseMathFrames
 import Benchmarks.CompoundIII.Comet.PrincipalValueSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,11 +15,11 @@ theorem transferBaseBalances_source (frame : Frame) (evm : EVM.State)
     (hsp : frame.locals.get? "srcPrincipal" = some (.int (signed104 srcPrincipal)))
     (hdp : frame.locals.get? "dstPrincipal" = some (.int (signed104 dstPrincipal)))
     (ha : frame.locals.get? "amount" = some (.int amount.toNat)) :
-    ExecBlock config frame evm transferBaseBalanceBlock
+    ExecBlock fork config frame evm transferBaseBalanceBlock
       (if TransferBaseBalanceFits evm srcPrincipal dstPrincipal amount then
         .ok (transferBaseBalanceFrame frame evm srcPrincipal dstPrincipal amount) evm
       else .reverted) := by
-  have hsrc := baseBalance_source frame evm srcPrincipal amount true
+  have hsrc := baseBalance_source (fork := fork) frame evm srcPrincipal amount true
     "srcPrincipal" "__c1" "__c2" "srcBalance" (by decide) (by decide) hc hsp ha
   simp only [baseBalanceFits_sub, baseBalanceFrame, baseBalanceInt, if_true] at hsrc
   by_cases hs : WithdrawBaseBalanceFits evm srcPrincipal amount
@@ -29,7 +31,7 @@ theorem transferBaseBalances_source (frame : Frame) (evm : EVM.State)
     have ha' : f.locals.get? "amount" = some (.int amount.toNat) := by
       simpa only [f, transferBaseSrcBalanceFrame, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert] using ha
-    have hdst := baseBalance_source f evm dstPrincipal amount false
+    have hdst := baseBalance_source (fork := fork) f evm dstPrincipal amount false
       "dstPrincipal" "__c3" "__c4" "dstBalance" (by decide) (by decide) hc hdp' ha'
     simp only [baseBalanceFits_add, baseBalanceFrame, baseBalanceInt, Bool.false_eq_true,
       if_false] at hdst
@@ -50,7 +52,7 @@ theorem transferBasePrincipals_source (frame : Frame) (evm : EVM.State)
       some (.int (signedWord (withdrawBaseBalance evm srcPrincipal amount))))
     (hdb : frame.locals.get? "dstBalance" =
       some (.int (signedWord (supplyBaseBalance evm dstPrincipal amount)))) :
-    ExecBlock config frame evm transferBasePrincipalBlock
+    ExecBlock fork config frame evm transferBasePrincipalBlock
       (if PrincipalValueFits evm (withdrawBaseBalance evm srcPrincipal amount) ∧
           PrincipalValueFits evm (supplyBaseBalance evm dstPrincipal amount) then
         .ok (transferBasePrincipalFrame frame evm srcPrincipal dstPrincipal amount) evm
@@ -58,7 +60,7 @@ theorem transferBasePrincipals_source (frame : Frame) (evm : EVM.State)
   have hse : evalExpr? config frame evm (.var "srcBalance") =
       .ok (.int (signedWord (withdrawBaseBalance evm srcPrincipal amount))) := by
     simp only [evalExpr?, hsb, EvalResult.ofOption]
-  have hsrc := principalValue_call frame evm (withdrawBaseBalance evm srcPrincipal amount)
+  have hsrc := principalValue_call (fork := fork) frame evm (withdrawBaseBalance evm srcPrincipal amount)
     _ "srcPrincipalNew" hc hse
   by_cases hs : PrincipalValueFits evm (withdrawBaseBalance evm srcPrincipal amount)
   · rw [if_pos hs] at hsrc
@@ -70,7 +72,7 @@ theorem transferBasePrincipals_source (frame : Frame) (evm : EVM.State)
       simp only [evalExpr?, f, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
       change EvalResult.ofOption .unboundVariable (frame.locals.get? "dstBalance") = _
       rw [hdb]; rfl
-    have hdst := principalValue_call f evm (supplyBaseBalance evm dstPrincipal amount)
+    have hdst := principalValue_call (fork := fork) f evm (supplyBaseBalance evm dstPrincipal amount)
       _ "dstPrincipalNew" hc hde
     by_cases hd : PrincipalValueFits evm (supplyBaseBalance evm dstPrincipal amount)
     · rw [if_pos hd] at hdst

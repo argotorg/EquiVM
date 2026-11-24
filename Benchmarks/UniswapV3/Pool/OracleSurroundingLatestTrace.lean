@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.OracleSurroundingResult
 import Benchmarks.UniswapV3.Pool.OracleTransform
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,7 +15,7 @@ theorem oracleSurroundingLatestX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret time target : UInt256} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18782⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18782⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hf : oracleSurroundingFirst time target index σ ee = true)
@@ -27,7 +29,7 @@ theorem oracleSurroundingLatestX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hal : 128 ≤ afterPtr.toNat) (hae : afterPtr.toNat + 128 ≤ p.toNat)
     (hcover : p.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 40 ≤ 1024) :
-    Nonempty (OracleSurroundingExit v ee g s0 σ rdata ret R time target tick index liquidity card
+    Nonempty (OracleSurroundingExit fork v ee g s0 σ rdata ret R time target tick index liquidity card
       mem aw p C) := by
   let last := oracleStoredObservation index σ ee
   have hrun : OracleSurroundingRun time target tick index liquidity card σ ee last

@@ -9,6 +9,8 @@ import Examples.OpenZeppelinBench.ERC6909.Transfer
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -74,14 +76,14 @@ theorem erc6909Dispatch_none_nomatch {cd : ByteArray}
 
 theorem erc6909BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
 theorem erc6909X_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt erc6909BenchBytecode)
     (opC := solcGuardTgtOp erc6909BenchBytecode)
@@ -93,8 +95,8 @@ theorem erc6909X_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem erc6909X_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide)
     (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -114,7 +116,7 @@ theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have heqBalance0 :
       UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc) (erc6909SelWord I) =
         ⟨0⟩ := by
@@ -149,7 +151,7 @@ theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
       (heqHigh0 2 (by omega)) (by simp)
     have h85 := RD.selectorArmNotTakenAuto h74 (erc6909HighArmsWellFormed 3 (by omega))
       (heqHigh0 3 (by omega)) (by simp)
-    have h85' : ∃ k C, RD erc6909BenchBytecode I g
+    have h85' : ∃ k C, RD fork erc6909BenchBytecode I g
         (initState σ σ₀ g A I) ⟨85⟩ [erc6909SelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
@@ -168,7 +170,7 @@ theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
       (heqLowRest0 1 (by omega)) (by simp)
     have h132 := RD.selectorArmNotTakenAuto h121 (erc6909LowRestArmsWellFormed 2 (by omega))
       (heqLowRest0 2 (by omega)) (by simp)
-    have h132' : ∃ k C, RD erc6909BenchBytecode I g
+    have h132' : ∃ k C, RD fork erc6909BenchBytecode I g
         (initState σ σ₀ g A I) ⟨132⟩ [erc6909SelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22 + 22, ?_⟩
@@ -183,7 +185,7 @@ theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem erc6909NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (erc6909X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -206,7 +208,7 @@ theorem erc6909NonPayable {σ σ₀ A I} {g : UInt256}
 theorem erc6909ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (erc6909X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc6909Dispatch_none_short hsz)
@@ -215,7 +217,7 @@ theorem erc6909NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (erc6909X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -227,7 +229,7 @@ theorem erc6909NoDispatch {σ σ₀ A I} {g : UInt256}
 /-- The deployed ERC6909 benchmark runtime bytecode refines the Stele specification. -/
 theorem erc6909Correct :
     runtimeRefinement config erc6909BenchBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize
       => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

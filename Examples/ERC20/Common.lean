@@ -6,6 +6,8 @@ import Reasoning.Dispatch
 import Reasoning.Solc
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -48,9 +50,9 @@ namespace Reasoning.Reach
 theorem RD.erc20Routine0766 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨1894⟩ (v :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc20Bytecode ee g s0 ⟨1894⟩ (v :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 4 ≤ 1024) :
-    RD erc20Bytecode ee g s0 ret (v :: R) mem aw rdata acc (k + 9) (C + 27) :=
+    RD fork erc20Bytecode ee g s0 ret (v :: R) mem aw rdata acc (k + 9) (C + 27) :=
   evm_run h with [
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop,
     jump hret ]
@@ -59,10 +61,10 @@ theorem RD.erc20Routine0766 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C :
 theorem RD.erc20RoutineEncodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
+    (h : RD fork erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD erc20Bytecode ee g s0 ret ((⟨128⟩ + ⟨32⟩) :: R)
+    ∃ k' C', RD fork erc20Bytecode ee g s0 ret ((⟨128⟩ + ⟨32⟩) :: R)
       (solcReturnMem val) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
@@ -97,9 +99,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.erc20DecodeAddrMask {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD erc20Bytecode ee g s0 ⟨1861⟩
+    ∃ k' C', RD fork erc20Bytecode ee g s0 ⟨1861⟩
         (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
             ERC20.erc20AddrMask
           :: uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: ⟨1888⟩
@@ -127,11 +129,11 @@ set_option maxHeartbeats 400000 in
 theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
         < EVM.addressModulus)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD erc20Bytecode ee g s0 ret
+    ∃ k' C', RD fork erc20Bytecode ee g s0 ret
         (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
   obtain ⟨k', C', rd⟩ := RD.erc20DecodeAddrMask h hov
   have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
@@ -150,17 +152,17 @@ theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
 theorem RD.erc20DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
         (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
           ERC20.erc20AddrMask) = ⟨0⟩)
     (hov : R.length + 14 ≤ 1024) :
-    RDrev erc20Bytecode g s0 := by
+    RDrev fork erc20Bytecode g s0 := by
   obtain ⟨k', C', rd⟩ := RD.erc20DecodeAddrMask h hov
   exact (evm_run rd with [
     jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiNT (by rw [hnc]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc20Bytecode g s0)
+    RDrev fork erc20Bytecode g s0)
 
 /-- Bytecode shape for the solc mapping-hash suffix used throughout ERC20.
 
@@ -221,7 +223,7 @@ macro "erc20_mapping_hash_wf" : term =>
 theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc key baseSlot slot : UInt256} {R : List UInt256} {mem memKey memHash : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 pc (key :: ⟨0⟩ :: baseSlot :: R) mem
+    (h : RD fork erc20Bytecode ee g s0 pc (key :: ⟨0⟩ :: baseSlot :: R) mem
         (UInt256.ofNat 3) rdata acc k C)
     (hwf : erc20MappingHashSuffixWf pc)
     (hkey : (UInt256.toByteArray key).write 0 mem 0 32 = memKey)
@@ -231,7 +233,7 @@ theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
         (fromByteArrayBigEndian (Ethereum.KEC (memHash.readWithPadding 0
           ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ⟨0⟩)).toNat))) = slot)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD erc20Bytecode ee g s0 (erc20MappingHashSuffixEndPc pc) (slot :: R)
+    ∃ k' C', RD fork erc20Bytecode ee g s0 (erc20MappingHashSuffixEndPc pc) (slot :: R)
       memHash (UInt256.ofNat 3) rdata acc k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
@@ -258,11 +260,11 @@ namespace ERC20
 theorem erc20RoutineEncodeUint256FromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {mem memout : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
+    (h : RD fork erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD erc20Bytecode ee g s0 ret ((⟨128⟩ + ⟨32⟩) :: R)
+    ∃ k' C', RD fork erc20Bytecode ee g s0 ret ((⟨128⟩ + ⟨32⟩) :: R)
       memout (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,

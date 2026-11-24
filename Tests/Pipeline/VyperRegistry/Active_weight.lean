@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperRegistry.Count
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `active_weight()`
 
@@ -137,18 +139,18 @@ theorem awIter {σ σ₀ A I} {g : UInt256} (hle16 : (solcSlotWordAt (UInt256.of
     (L : Store) {aw : UInt256} {k C : Nat}
     (hi : i < (solcSlotWordAt (UInt256.ofNat 2) σ I).toNat)
     (hM : Minv total mem) (hL : Linv (solcSlotWordAt (UInt256.ofNat 2) σ I) i total L)
-    (rd : RD registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 296)
+    (rd : RD fork registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 296)
       (UInt256.ofNat i :: solcSlotWordAt (UInt256.ofNat 2) σ I :: [solcSelectorWord I]) mem aw ByteArray.empty σ k C) :
     (∃ total' mem' L' aw' k' C', Minv total' mem' ∧ Linv (solcSlotWordAt (UInt256.ofNat 2) σ I) (i + 1) total' L' ∧
-        RD registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 372)
+        RD fork registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 372)
           (UInt256.ofNat i :: solcSlotWordAt (UInt256.ofNat 2) σ I :: [solcSelectorWord I]) mem' aw' ByteArray.empty σ k' C' ∧
         evalExpr? config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond = .ok (.bool true) ∧
-        ∃ L1, ExecBlock config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awBody
+        ∃ L1, ExecBlock fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awBody
             (.ok (frame L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∧
-          ExecBlock config (frame L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awPost
+          ExecBlock fork config (frame L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awPost
             (.ok (frame L') (initState σ σ₀ (Sat256.ofUInt256 g) A I))) ∨
-    (RDrev registryBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∧
-      ExecForLoop config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody .reverted) := by
+    (RDrev fork registryBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∧
+      ExecForLoop fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody .reverted) := by
   obtain ⟨hLi, hLt, hLn, hLids, hLent⟩ := hL
   have hiN : (UInt256.ofNat i).toNat = i := ulit_toNat' i (lt_size_of_lt_sign (by omega))
   have hcT : evalExpr? config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond = .ok (.bool true) := by
@@ -203,7 +205,7 @@ theorem awIter {σ σ₀ A I} {g : UInt256} (hle16 : (solcSlotWordAt (UInt256.of
     rw [awH_load96 _ _ hM1, awM1_load96 hM]
   -- the post statement, from any locals holding `__i0 = i`
   have hpost : ∀ L2 : Store, L2.get? "__i0" = some (uint256Value (UInt256.ofNat i)) →
-      ExecBlock config (frame L2) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awPost
+      ExecBlock fork config (frame L2) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awPost
         (.ok (frame (L2.insert "__i0" (uint256Value (UInt256.ofNat (i + 1))))) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     fun L2 h2 => ExecBlock.consNormal
       (ExecStmt.assign (hperm := by first | assumption | exact Or.inr ‹_› | exact Or.inl rfl) (evalAddOne L2 _ i (lt_size_of_lt_sign (by omega)) h2) (assignLocalVarBase_ok h2)) ExecBlock.nil
@@ -289,15 +291,15 @@ theorem awLoop {σ σ₀ A I} {g : UInt256} (hle16 : (solcSlotWordAt (UInt256.of
     ∀ (i : Nat) (total : UInt256) (mem : ByteArray) (L : Store) (aw : UInt256) (k C : Nat),
     i + 1 + n = (solcSlotWordAt (UInt256.ofNat 2) σ I).toNat →
     Minv total mem → Linv (solcSlotWordAt (UInt256.ofNat 2) σ I) i total L →
-    RD registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 296)
+    RD fork registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 296)
       (UInt256.ofNat i :: solcSlotWordAt (UInt256.ofNat 2) σ I :: [solcSelectorWord I]) mem aw ByteArray.empty σ k C →
     (∃ total' mem' L' x0 aw' k' C', Minv total' mem' ∧ L'.get? "total" = some (uint256Value total') ∧
-        RD registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 383)
+        RD fork registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 383)
           (x0 :: solcSlotWordAt (UInt256.ofNat 2) σ I :: [solcSelectorWord I]) mem' aw' ByteArray.empty σ k' C' ∧
-        ExecForLoop config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody
+        ExecForLoop fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody
           (.ok (frame L') (initState σ σ₀ (Sat256.ofUInt256 g) A I))) ∨
-    (RDrev registryBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∧
-      ExecForLoop config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody .reverted) := by
+    (RDrev fork registryBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∧
+      ExecForLoop fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond awPost awBody .reverted) := by
   induction n with
   | zero =>
     intro i total mem L aw k C hi hM hL rd
@@ -349,7 +351,7 @@ theorem awLoop {σ σ₀ A I} {g : UInt256} (hle16 : (solcSlotWordAt (UInt256.of
 theorem registryActive_weightBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 1) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachActive_weightBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some active_weightTransition :=
@@ -412,7 +414,7 @@ theorem registryActive_weightBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF
       (evalVar _ _ "__n0" _ (by rw [hL1def]; exact store_get_self _ _ _)) (evalExpr_intLit_word _ 16 (by decide))
       (by rw [ulit_toNat' 16 (by decide)]; exact hle16)
   set L2 : Store := L1.insert "__i0" (uint256Value ⟨0⟩) with hL2def
-  have hinit : ExecBlock config (frame L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hinit : ExecBlock fork config (frame L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       [.letDecl "__i0" (some (.elem (.int (.uint ⟨256, by decide⟩)))) (.intLit 0)]
       (.ok (frame L2) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     ExecBlock.consNormal (ExecStmt.letDecl (h0 L1)) ExecBlock.nil
@@ -427,7 +429,7 @@ theorem registryActive_weightBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF
     rw [ulit_toNat' 64 (by decide), ulit_toNat' 32 (by decide), hmem0.1] at rd4
     have hcF : evalExpr? config (frame L2) (initState σ σ₀ (Sat256.ofUInt256 g) A I) awCond = .ok (.bool false) := by
       rw [evalLtVars L2 _ "__i0" "__n0" _ _ hL2inv.1 hL2inv.2.2.1, hpos]; rfl
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         active_weightTransition.body
         (.returned (frame L2) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [uint256Value ⟨0⟩])) := by
       rw [active_weightBody_eq]
@@ -451,7 +453,7 @@ theorem registryActive_weightBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF
     ⟨total', mem', L', x0, aw', k', C', hM', hL't, rd5, hloop⟩ | ⟨hrev, hloop⟩
   · have rd6 := registryBlocks.registry_block_383 (by simp) rd5
     rw [ulit_toNat' 64 (by decide), ulit_toNat' 32 (by decide), hM'.1] at rd6
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         active_weightTransition.body
         (.returned (frame L') (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [uint256Value total'])) := by
       rw [active_weightBody_eq]

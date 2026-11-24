@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralPriceModel
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralMathSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 
 theorem absorbCollateralPrice_source {assetOut : ByteArray} {delta seized : UInt256}
     {evm : State} {result : Option (State × UInt256)}
-    (ht : AbsorbCollateralPriceTrace assetOut delta seized evm result)
+    (ht : AbsorbCollateralPriceTrace fork assetOut delta seized evm result)
     (frame : Frame) (absorber account asset : AccountAddress) (hc : frame.contract = contract)
     (hi : frame.locals.get? "assetInfo" = some (assetValue assetOut))
     (hd : frame.locals.get? "deltaValue" = some (.int delta.toNat))
@@ -18,7 +20,7 @@ theorem absorbCollateralPrice_source {assetOut : ByteArray} {delta seized : UInt
     (hb : frame.locals.get? "account" = some (.address account))
     (he : frame.locals.get? "asset" = some (.address asset))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm absorbCollateralPriceBlock
+    ExecBlock fork config frame evm absorbCollateralPriceBlock
       (absorbCollateralPriceResult frame delta seized assetOut result) := by
   have hfeed : evalExpr? config frame evm (.field (.var "assetInfo") "priceFeed") =
       .ok (.address (AccountAddress.ofNat (calldataWord assetOut 64).toNat)) := by
@@ -35,7 +37,7 @@ theorem absorbCollateralPrice_source {assetOut : ByteArray} {delta seized : UInt
           f1.locals.get? key = frame.locals.get? key := by
         simp only [f1, absorbCollateralPriceFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert, beq_iff_eq, if_neg hk]
-      have hm := absorbCollateralMath_source f1 evm' delta seized price assetOut hc
+      have hm := absorbCollateralMath_source (fork := fork) f1 evm' delta seized price assetOut hc
         ((hget1 _ (by decide)).trans hi) ((hget1 _ (by decide)).trans hn)
         (by simp only [f1, absorbCollateralPriceFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert]; rfl) ((hget1 _ (by decide)).trans hd)
@@ -48,7 +50,7 @@ theorem absorbCollateralPrice_source {assetOut : ByteArray} {delta seized : UInt
           simp only [f2, f1, absorbCollateralMathFrame, absorbCollateralFactorFrame,
             absorbCollateralValueFrame, absorbCollateralPriceFrame, Std.HashMap.get?_eq_getElem?,
             Std.HashMap.getElem?_insert, beq_iff_eq, if_neg hk1, if_neg hk2, if_neg hk3, if_neg hk4]
-        have hev := absorbCollateralEvent_source
+        have hev := absorbCollateralEvent_source (fork := fork)
           (hperm := (congrArg ExecutionEnv.perm (callViaEVM_executionEnv_eq hcall)).trans hperm) f2 evm' absorber account asset seized
           (absorbCollateralValue seized price assetOut)
           ((hget2 _ (by decide) (by decide) (by decide) (by decide)).trans ha)

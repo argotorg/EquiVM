@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.Signed104Source
 import Benchmarks.CompoundIII.Comet.SignedNegation
 import Benchmarks.CompoundIII.Comet.AccountMagnitude
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -46,11 +48,11 @@ theorem principalValueBranch_source (evm : EVM.State) (imms : Store) (present : 
     (borrow : Bool) (hmin : -(2^255 : Int) < signedWord present)
     (hsign : if borrow then signedWord present < 0 else 0 ≤ signedWord present) :
     if PrincipalValueBranchFits evm present borrow then
-      ∃ final, ExecBlock config (principalValueEntry imms present) evm (principalValueBranch borrow)
+      ∃ final, ExecBlock fork config (principalValueEntry imms present) evm (principalValueBranch borrow)
         (.returned final evm (some [.int (if borrow then
           -Int.ofNat (principalValueMagnitude evm present borrow).toNat
           else Int.ofNat (principalValueMagnitude evm present borrow).toNat)]))
-    else ExecBlock config (principalValueEntry imms present) evm (principalValueBranch borrow)
+    else ExecBlock fork config (principalValueEntry imms present) evm (principalValueBranch borrow)
       .reverted := by
   let frame := principalValueEntry imms present
   let index := principalValueIndex evm borrow
@@ -65,7 +67,7 @@ theorem principalValueBranch_source (evm : EVM.State) (imms : Store) (present : 
         cases borrow <;> simp only [frame, principalValueEntry, totalsIndexName,
           Bool.false_eq_true, if_false, if_true, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty] <;> rfl)
-  have hc := principalMagnitude_call borrow frame evm index amount _ _
+  have hc := principalMagnitude_call (fork := fork) borrow frame evm index amount _ _
     (if borrow then "__c2" else "__c0") rfl hi ha
   by_cases hm : PrincipalMagnitudeFits borrow index amount
   · rw [if_pos hm] at hc
@@ -75,7 +77,7 @@ theorem principalValueBranch_source (evm : EVM.State) (imms : Store) (present : 
         .ok (.int value.toNat) := by
       simp only [evalExpr?, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
         beq_self_eq_true, if_true, EvalResult.ofOption]
-    have hs := signed104_call f1 evm value _ (if borrow then "__c3" else "__c1") rfl hv
+    have hs := signed104_call (fork := fork) f1 evm value _ (if borrow then "__c3" else "__c1") rfl hv
     by_cases hval : value.toNat < 2^103
     · rw [if_pos hval] at hs
       rw [if_pos ⟨hm, hval⟩]
@@ -95,7 +97,7 @@ theorem principalValueBranch_source (evm : EVM.State) (imms : Store) (present : 
 
 theorem principalValue_min_source (evm : EVM.State) (imms : Store) (present : UInt256)
     (hmin : ¬ -(2^255 : Int) < signedWord present) :
-    ExecFuncBody config (principalValueEntry imms present) evm principalValueCallable.body
+    ExecFuncBody fork config (principalValueEntry imms present) evm principalValueCallable.body
       .reverted := by
   let frame := principalValueEntry imms present
   have he : evalExpr? config frame evm (.var "presentValue_") = .ok (.int (signedWord present)) := by
@@ -126,7 +128,7 @@ theorem principalValue_min_source (evm : EVM.State) (imms : Store) (present : UI
 
 theorem principalValue_source_ok (evm : EVM.State) (imms : Store) (present : UInt256)
     (hf : PrincipalValueFits evm present) :
-    ∃ final, ExecFuncBody config (principalValueEntry imms present) evm principalValueCallable.body
+    ∃ final, ExecFuncBody fork config (principalValueEntry imms present) evm principalValueCallable.body
       (.returned final evm (some [.int (principalValueInt evm present)])) := by
   let frame := principalValueEntry imms present
   have he : evalExpr? config frame evm (.var "presentValue_") = .ok (.int (signedWord present)) := by
@@ -137,7 +139,7 @@ theorem principalValue_source_ok (evm : EVM.State) (imms : Store) (present : UIn
     simp only [evalExpr?, he, pure, bind, EvalResult.bind, evalBinaryOp?]
   by_cases hpos : 0 ≤ signedWord present
   · have hneg : ¬ signedWord present < 0 := by omega
-    have hb := principalValueBranch_source evm imms present false hf.1 hpos
+    have hb := principalValueBranch_source (fork := fork) evm imms present false hf.1 hpos
     have hbranch : PrincipalValueBranchFits evm present false := by
       simpa only [decide_eq_false hneg] using hf.2
     rw [if_pos hbranch] at hb
@@ -147,7 +149,7 @@ theorem principalValue_source_ok (evm : EVM.State) (imms : Store) (present : UIn
     exact ⟨final, ExecFuncBody.execBlockRet (ExecBlock.consReturn
       (ExecStmt.iteTrue (hg.trans (by rw [decide_eq_true hpos])) hb))⟩
   · have hneg : signedWord present < 0 := by omega
-    have hb := principalValueBranch_source evm imms present true hf.1 hneg
+    have hb := principalValueBranch_source (fork := fork) evm imms present true hf.1 hneg
     have hbranch : PrincipalValueBranchFits evm present true := by
       simpa only [decide_eq_true hneg] using hf.2
     rw [if_pos hbranch] at hb
@@ -159,7 +161,7 @@ theorem principalValue_source_ok (evm : EVM.State) (imms : Store) (present : UIn
 
 theorem principalValue_source_revert (evm : EVM.State) (imms : Store) (present : UInt256)
     (hf : ¬ PrincipalValueFits evm present) :
-    ExecFuncBody config (principalValueEntry imms present) evm principalValueCallable.body
+    ExecFuncBody fork config (principalValueEntry imms present) evm principalValueCallable.body
       .reverted := by
   let frame := principalValueEntry imms present
   have he : evalExpr? config frame evm (.var "presentValue_") = .ok (.int (signedWord present)) := by
@@ -171,14 +173,14 @@ theorem principalValue_source_revert (evm : EVM.State) (imms : Store) (present :
   by_cases hmin : -(2^255 : Int) < signedWord present
   · by_cases hpos : 0 ≤ signedWord present
     · have hneg : ¬ signedWord present < 0 := by omega
-      have hb := principalValueBranch_source evm imms present false hmin hpos
+      have hb := principalValueBranch_source (fork := fork) evm imms present false hmin hpos
       have hbranch : ¬ PrincipalValueBranchFits evm present false := by
         intro hb; apply hf; exact ⟨hmin, by simpa only [decide_eq_false hneg] using hb⟩
       rw [if_neg hbranch] at hb
       exact ExecFuncBody.execBlockRevert (ExecBlock.consRevert
         (ExecStmt.iteTrue (hg.trans (by rw [decide_eq_true hpos])) hb))
     · have hneg : signedWord present < 0 := by omega
-      have hb := principalValueBranch_source evm imms present true hmin hneg
+      have hb := principalValueBranch_source (fork := fork) evm imms present true hmin hneg
       have hbranch : ¬ PrincipalValueBranchFits evm present true := by
         intro hb; apply hf; exact ⟨hmin, by simpa only [decide_eq_true hneg] using hb⟩
       rw [if_neg hbranch] at hb
@@ -188,9 +190,9 @@ theorem principalValue_source_revert (evm : EVM.State) (imms : Store) (present :
 
 theorem principalValue_source (evm : EVM.State) (imms : Store) (present : UInt256) :
     if PrincipalValueFits evm present then
-      ∃ final, ExecFuncBody config (principalValueEntry imms present) evm principalValueCallable.body
+      ∃ final, ExecFuncBody fork config (principalValueEntry imms present) evm principalValueCallable.body
         (.returned final evm (some [.int (principalValueInt evm present)]))
-    else ExecFuncBody config (principalValueEntry imms present) evm principalValueCallable.body
+    else ExecFuncBody fork config (principalValueEntry imms present) evm principalValueCallable.body
       .reverted := by
   split_ifs with hf
   · exact principalValue_source_ok evm imms present hf
@@ -199,11 +201,11 @@ theorem principalValue_source (evm : EVM.State) (imms : Store) (present : UInt25
 theorem principalValue_call (frame : Frame) (evm : EVM.State) (present : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.int (signedWord present))) :
-    ExecStmt config frame evm (.internalCall "principalValue" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "principalValue" [expr] ret)
       (if PrincipalValueFits evm present then
         .ok { frame with locals := frame.locals.insert ret (.int (principalValueInt evm present)) } evm
       else .reverted) := by
-  have hb := principalValue_source evm frame.immutables present
+  have hb := principalValue_source (fork := fork) evm frame.immutables present
   split_ifs with hf
   · rw [if_pos hf] at hb
     obtain ⟨final, hb⟩ := hb

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Main.ContractSignatureEncode
 import Benchmarks.Safe.Main.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -9,7 +11,7 @@ namespace Benchmarks.Safe.Main
 set_option maxRecDepth 100000 in
 theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
     {hash owner ret : UInt256} {words : List UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11834⟩
+    (h : RD fork safeBytecode I g s0 ⟨11834⟩
       (UInt256.ofNat (contractSignatureCallEnd ptr len) :: UInt256.ofNat ptr :: ⟨8785⟩ ::
         UInt256.land solcAddrMask owner :: ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ptr :: ⟨0⟩ ::
         UInt256.ofNat src :: hash :: owner :: ret :: R)
@@ -17,7 +19,7 @@ theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
     (hp : 96 ≤ ptr) (hn : words.length = (len + 31) / 32)
     (hb : contractSignatureCallEnd ptr len + contractSignatureCallLength len + 64 < UInt256.size)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8785⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8785⟩
       (UInt256.ofNat (contractSignatureCallEnd ptr len + contractSignatureCallLength len) ::
         UInt256.land solcAddrMask owner :: ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ptr :: ⟨0⟩ ::
         UInt256.ofNat src :: hash :: owner :: ret :: R)
@@ -56,7 +58,7 @@ theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
 set_option maxRecDepth 100000 in
 theorem safeContractSignaturePrepare (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {hash owner ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8677⟩
+    (h : RD fork safeBytecode I g s0 ⟨8677⟩
       (UInt256.ofNat src :: hash :: owner :: ret :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -66,7 +68,7 @@ theorem safeContractSignaturePrepare (words : List UInt256)
     (ha : src + 32 + 32 * words.length ≤ ptr + 36)
     (hb : contractSignatureCallEnd ptr len + contractSignatureCallLength len + 64 < UInt256.size)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨8796⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨8796⟩
       (gasArg :: UInt256.land solcAddrMask owner ::
         UInt256.ofNat (contractSignatureCallEnd ptr len) ::
         UInt256.ofNat (contractSignatureCallLength len) ::

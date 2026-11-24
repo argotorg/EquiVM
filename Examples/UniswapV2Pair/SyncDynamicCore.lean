@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.Routines
 import Examples.UniswapV2Pair.PairDynamicMemory
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -32,7 +34,7 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
     {R : List UInt256} {mem rdata : ByteArray} {aw awLoad awStore0 awLog ptr : UInt256}
     {mcostLoad mcostStore0 mcostStore1 mcostLoadLog mcostLog : ℕ}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)
       mem aw rdata acc k C)
@@ -64,7 +66,7 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
     (hperm : ee.perm = true)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)) awLog rdata acc k' C' := by
   have rd7342 := evm_run h with [
     push1 ⟨64⟩, dup1,

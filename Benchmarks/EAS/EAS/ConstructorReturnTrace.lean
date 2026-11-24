@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ConstructorReturnMemory
 import Benchmarks.EAS.EAS.ConstructorHashTrace
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables easCreationBlocks
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -41,9 +43,9 @@ theorem easCtorBlock242_stack (registry : AccountAddress) (ee : ExecutionEnv) (R
 
 theorem easCtorSuccessTrace {σ σ₀ A I} {g : Sat256} (registry : AccountAddress)
     (hcode : I.code = easCtorCode registry) (hv : I.weiValue = UInt256.ofNat 0) (hz : registry ≠ ⟨0,by decide⟩) :
-    RDret (easCtorCode registry) g (initState σ σ₀ g A I) σ
+    RDret fork (easCtorCode registry) g (initState σ σ₀ g A I) σ
       (immutableLayout.deployed easBytecode (easCtorImms I.codeOwner registry)) := by
-  obtain ⟨a,j,D,rd⟩ := easCtorReachDomain (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
+  obtain ⟨a,j,D,rd⟩ := easCtorReachDomain (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
   have hne : UInt256.ofNat registry.val ≠ ⟨0⟩ := by
     intro he
     have hn := congrArg UInt256.toNat he
@@ -54,7 +56,7 @@ theorem easCtorSuccessTrace {σ σ₀ A I} {g : Sat256} (registry : AccountAddre
   obtain ⟨a2,j2,D2,r2⟩ := easCreation_block_242_packed (by simp) r1
   rw [easCtorBlock242_memory,easCtorBlock242_stack] at r2
   have hr := easCreation_block_341 (by simp) r2
-  change RDret _ _ _ _ ((easCtorReturnMemory registry I.codeOwner).readWithPadding 704 17208) at hr
+  change RDret fork _ _ _ _ ((easCtorReturnMemory registry I.codeOwner).readWithPadding 704 17208) at hr
   simpa only [easCtorReturnMemory_read] using hr
 
 end Benchmarks.EAS.EAS

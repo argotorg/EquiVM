@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_005
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -11,10 +13,10 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000 in
 theorem safeDecodeAddressMemoryBytesOrRevert {I g s0 σ k C aw mem rdata}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3924⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3924⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 17 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-      ∃ ptr target mem' aw' k' C', RD safeBytecode I g s0 ⟨3977⟩
+    RDrev fork safeBytecode g s0 ∨
+      ∃ ptr target mem' aw' k' C', RD fork safeBytecode I g s0 ⟨3977⟩
         (ptr :: target :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R) mem' aw' rdata σ k' C' := by
   by_cases hlen : UInt256.slt (UInt256.lnot (UInt256.ofNat 3) + UInt256.ofNat I.calldata.size)
       (UInt256.ofNat 64) = UInt256.ofNat 0

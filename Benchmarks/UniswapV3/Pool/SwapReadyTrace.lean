@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapInitAllocationTrace
 import Benchmarks.UniswapV3.Pool.SwapLockTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,7 +12,7 @@ theorem swapReadyBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g
     {s0 : EVM.State} {k C : Nat} {aw p snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2723⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2723⟩
       ([snap, ⟨0⟩, ⟨0⟩] ++ swapWords a dataStart dataLength ++ ret :: R) mem aw rdata σ k C)
     (hstate : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p)
     (ha : BoundedActiveWords aw limit)
@@ -20,7 +22,7 @@ theorem swapReadyBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g
     ∃ aw' k' C',
       let mem' := swapInitializedMem mem p (poolProtocolDivisor (!a.zeroForOne) σ ee) a
         (storeSlot0Unlocked evm false).accountMap σ ee
-      RD (deployedRuntime v) ee g s0 ⟨2991⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
         ([p + UInt256.ofNat 192,
           UInt256.sgt (EVM.wordOfInt a.amountSpecified) (UInt256.ofNat 0), p, snap, ⟨0⟩, ⟨0⟩] ++
           swapWords a dataStart dataLength ++ ret :: R) mem' aw' rdata
@@ -58,7 +60,7 @@ theorem swapReadyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2723⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2723⟩
       ([snap, ⟨0⟩, ⟨0⟩] ++ swapWords a dataStart dataLength ++ ret :: R) mem aw rdata σ k C)
     (hstate : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p)
     (hs : Slot0Memory mem snap σ ee) (hsl : 96 ≤ snap.toNat)
@@ -67,7 +69,7 @@ theorem swapReadyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     ∃ aw' k' C',
       let mem' := swapInitializedMem mem p (poolProtocolDivisor (!a.zeroForOne) σ ee) a
         (storeSlot0Unlocked evm false).accountMap σ ee
-      RD (deployedRuntime v) ee g s0 ⟨2991⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
         ([p + UInt256.ofNat 192,
           UInt256.sgt (EVM.wordOfInt a.amountSpecified) (UInt256.ofNat 0), p, snap, ⟨0⟩, ⟨0⟩] ++
           swapWords a dataStart dataLength ++ ret :: R) mem' aw' rdata

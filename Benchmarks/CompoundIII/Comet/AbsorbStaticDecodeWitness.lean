@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.Common
 import Benchmarks.CompoundIII.Comet.GasBound
 import Stele.Behaviors
 
+variable {fork : Ethereum.Fork}
+
 /-!
 Reproducer for the original modern mode's eager decoding versus lazy element validation.
 The input is a static absorb call with one dirty address, timestamp 1 and empty storage.
@@ -36,15 +38,15 @@ def dirtyData := cometWithExtendedAssetListSelBytes 38 ++ wordBytes 0 ++ wordByt
   wordBytes 1 ++ wordBytes (2^160)
 def zeroEnv := zeroTarget.env zeroTarget.runtime (EVM.address 0x2000) 0 dirtyData false 1
 
-def evmIsStaticError : Bool :=
-  match Ξ zeroTarget.world zeroTarget.world (.ofNat 3000000) default zeroEnv with
+def evmIsStaticError (fork : Ethereum.Fork) : Bool :=
+  match Ξ fork zeroTarget.world zeroTarget.world (.ofNat 3000000) default zeroEnv with
   | .error .StaticModeViolation => true
   | _ => false
 
-theorem evm_static_check : evmIsStaticError = true := by native_decide
+theorem evm_static_check : evmIsStaticError .cancun = true := by native_decide
 
 theorem evm_static :
-    Ξ zeroTarget.world zeroTarget.world (.ofNat 3000000) default zeroEnv =
+    Ξ .cancun zeroTarget.world zeroTarget.world (.ofNat 3000000) default zeroEnv =
       .error .StaticModeViolation := by
   have h := evm_static_check
   unfold evmIsStaticError at h
@@ -71,8 +73,8 @@ theorem no_refinement_of_static_decode_failure
     (hdecode : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none)
     (hreceive : receiveDispatchMsg contract I.calldata = none)
-    (hevm : Ξ σ σ₀ gas A I = .error .StaticModeViolation) :
-    ¬ runtimeRefinementFor cfg contract σ σ₀ gas A I imms := by
+    (hevm : Ξ fork σ σ₀ gas A I = .error .StaticModeViolation) :
+    ¬ runtimeRefinementFor fork cfg contract σ σ₀ gas A I imms := by
   intro h
   rcases runtimeRefinementFor_captured h with hoog | hcaptured
   · rw [hevm] at hoog; cases hoog
@@ -88,7 +90,7 @@ theorem no_refinement_of_static_decode_failure
     | receive hd _ _ _ _ => rw [hreceive] at hd; cases hd
 
 theorem refinement_fails :
-    ¬ runtimeRefinementFor baselineConfig contract zeroTarget.world zeroTarget.world
+    ¬ runtimeRefinementFor .cancun baselineConfig contract zeroTarget.world zeroTarget.world
       (UInt256.ofNat 3000000) default zeroEnv (immStore zeroImms) :=
   no_refinement_of_static_decode_failure calldata_selects calldata_does_not_decode rfl evm_static
 
@@ -98,7 +100,7 @@ theorem runtime_refinement_fails :
   intro h
   cases h with
   | intro h =>
-      exact refinement_fails (h zeroTarget.world zeroTarget.world (.ofNat 3000000)
+      exact refinement_fails (h .cancun (supportedForks_mem _) zeroTarget.world zeroTarget.world (.ofNat 3000000)
         default zeroEnv rfl (by native_decide) trivial gas_within_bound)
 
 #eval (runCase zeroTarget

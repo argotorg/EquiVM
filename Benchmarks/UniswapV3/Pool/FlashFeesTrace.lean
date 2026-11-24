@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashFeesSource
 import Benchmarks.UniswapV3.Pool.FullMathRoundTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,15 +13,15 @@ set_option maxRecDepth 10000
 theorem flashFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw liquidity len start amount0 amount1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6595⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6595⟩
       (liquidity :: len :: start :: amount1 :: amount0 :: R) mem aw rdata σ k C)
     (hov : R.length + 28 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧
       ¬ (fullMathRoundValid amount0 (poolFeeWord v) ⟨1000000⟩ ∧
         fullMathRoundValid amount1 (poolFeeWord v) ⟨1000000⟩)) ∨
     (fullMathRoundValid amount0 (poolFeeWord v) ⟨1000000⟩ ∧
       fullMathRoundValid amount1 (poolFeeWord v) ⟨1000000⟩ ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15572⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15572⟩
         (⟨6715⟩ :: ⟨0⟩ :: fullMathRoundResult amount1 (poolFeeWord v) ⟨1000000⟩ ::
           fullMathRoundResult amount0 (poolFeeWord v) ⟨1000000⟩ :: liquidity :: len :: start ::
           amount1 :: amount0 :: R) mem aw rdata σ k' C') := by

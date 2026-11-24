@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolLPFeeSource
 import Benchmarks.UniswapV4PoolManager.PoolCheckTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_025
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,8 +14,8 @@ open poolManagerBlocks in
 theorem poolLPFeeStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 8656) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 8656) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨8656⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup2 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨8657⟩ : UInt256), UInt8.ofNat 129, .DUP2, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -41,9 +43,9 @@ theorem poolLPFeeStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : 
     {mem rdata : ByteArray} {aw id fee : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (hI : evm.executionEnv = I)
     (hc : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨8656⟩ (fee :: poolSlot id :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      RDret (deployedRuntime v) g s0 (poolSetFeePost evm id fee).accountMap .empty := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8656⟩ (fee :: poolSlot id :: R) mem aw rdata evm.accountMap k C) :
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      RDret fork (deployedRuntime v) g s0 (poolSetFeePost evm id fee).accountMap .empty := by
   by_cases hp : I.perm = false
   · rw [if_pos hp]
     exact poolLPFeeStaticTrace hstack hp h
@@ -51,7 +53,7 @@ theorem poolLPFeeStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : 
     have hr := poolManagerBlocks.poolManager_block_8656 hstack (Bool.eq_true_of_not_eq_false hp) h
     have hword : solcSlotWordAt (poolSlot id) evm.accountMap I = poolSlot0Word evm id :=
       (storageLoad_codeOwner_eq_solcSlotWordAt evm I _ (by rw [hI])).symm
-    change RDret _ _ _ (sstoreAccountMap I.codeOwner evm.accountMap (poolSlot id)
+    change RDret fork _ _ _ (sstoreAccountMap I.codeOwner evm.accountMap (poolSlot id)
       (UInt256.lor (UInt256.land (UInt256.ofNat 6901745935414424457133245323534729813113482726486420146767558386647040)
         (UInt256.shiftLeft fee (UInt256.ofNat 208))) (UInt256.land lpFeeClearMask
           (solcSlotWordAt (poolSlot id) evm.accountMap I)))) .empty at hr
@@ -62,19 +64,19 @@ theorem poolLPFeeStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : 
     rw [hm]
     exact hr
 
-@[irreducible] def poolSetFeeTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+@[irreducible] def poolSetFeeTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (evm : EVM.State) (id fee : UInt256) : Prop :=
-  if poolSqrtPriceWord evm id = ⟨0⟩ then RDrev (deployedRuntime v) g s0 else
-  if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    RDret (deployedRuntime v) g s0 (poolSetFeePost evm id fee).accountMap .empty
+  if poolSqrtPriceWord evm id = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0 else
+  if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    RDret fork (deployedRuntime v) g s0 (poolSetFeePost evm id fee).accountMap .empty
 
 theorem poolLPFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw id fee : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024) (hI : evm.executionEnv = I)
     (hc : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨13686⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13686⟩
       (poolSlot id :: ⟨8656⟩ :: fee :: poolSlot id :: R) mem aw rdata evm.accountMap k C) :
-    poolSetFeeTraceResult v I g s0 evm id fee := by
+    poolSetFeeTraceResult fork v I g s0 evm id fee := by
   have hword : slot0SqrtPriceWord (solcSlotWordAt (poolSlot id) evm.accountMap I) = poolSqrtPriceWord evm id := by
     unfold poolSqrtPriceWord poolSlot0Word
     rw [storageLoad_codeOwner_eq_solcSlotWordAt evm I _ (by rw [hI])]

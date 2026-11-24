@@ -2,13 +2,15 @@ import Benchmarks.UniswapV3.Pool.SignedAmountDeltaPrefix
 import Benchmarks.UniswapV3.Pool.AmountDeltaRoutines
 import Benchmarks.UniswapV3.Pool.SafeCast256Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
 
 theorem signedAmountDeltaCallSource (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : signedAmountDeltaValid second a) :
-    ExecStmt config (signedAmountDeltaReadyFrame imms second a) evm
+    ExecStmt fork config (signedAmountDeltaReadyFrame imms second a) evm
       (.internalCall (amountDeltaName second) (signedAmountDeltaCallArgs a) (signedAmountDeltaCallName a))
       (.ok (signedAmountDeltaCallFrame imms second a) evm) := by
   exact internalCallFunctionReturn (callee := amountDeltaFunction second)
@@ -21,7 +23,7 @@ theorem signedAmountDeltaCallSource (imms : Store) (evm : EVM.State) (second : B
 
 theorem signedAmountDeltaCallReverts (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : ¬signedAmountDeltaValid second a) :
-    ExecStmt config (signedAmountDeltaReadyFrame imms second a) evm
+    ExecStmt fork config (signedAmountDeltaReadyFrame imms second a) evm
       (.internalCall (amountDeltaName second) (signedAmountDeltaCallArgs a) (signedAmountDeltaCallName a))
       .reverted := by
   exact internalCallFunctionRevert (callee := amountDeltaFunction second)
@@ -32,7 +34,7 @@ theorem signedAmountDeltaCallReverts (imms : Store) (evm : EVM.State) (second : 
 
 theorem signedAmountDeltaCastSource (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : signedAmountDeltaValid second a) :
-    ExecStmt config (signedAmountDeltaCallFrame imms second a) evm
+    ExecStmt fork config (signedAmountDeltaCallFrame imms second a) evm
       (.internalCall "SafeCast_toInt256" [.var (signedAmountDeltaCallName a)] (signedAmountDeltaCastName a))
       (.ok (signedAmountDeltaCastFrame imms second a) evm) := by
   have he : evalExpr? config (signedAmountDeltaCallFrame imms second a) evm
@@ -54,7 +56,7 @@ def signedAmountDeltaAssignExpr (a : SignedAmountDeltaArgs) : Expr :=
 
 theorem signedAmountDeltaAssignSource (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : signedAmountDeltaValid second a) :
-    ExecStmt config (signedAmountDeltaCastFrame imms second a) evm
+    ExecStmt fork config (signedAmountDeltaCastFrame imms second a) evm
       (.assign .localVar ⟨"__cond4", []⟩ (signedAmountDeltaAssignExpr a))
       (.ok (signedAmountDeltaReturnFrame imms second a) evm) := by
   have hc : (signedAmountDeltaCastFrame imms second a).locals.get? "__cond4" = some (.int 0) := by

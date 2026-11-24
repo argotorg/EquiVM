@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Routines
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_009
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -16,10 +18,10 @@ theorem safeNonceBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some nonceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xaf 0xfe 0xd0 0xe0 ⟨0xaffed0e0⟩
     hdispatch nonceSelectorBytes (by decide)
-  obtain ⟨k, C, h1187⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1187⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xaffed0e0⟩ 0 ⟨1187⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -27,7 +29,7 @@ theorem safeNonceBodyCore
       (by rw [hvalue]; decide) (by jump_dest) h1187
     obtain ⟨_, _, h974⟩ := safeRuntime_block_1198 (by simp) (by jump_dest) h1198
     have hret := safeReturnWord h974 (by simp)
-    have hbody : ExecTransitionBody config contract
+    have hbody : ExecTransitionBody fork config contract
         (initState σ σ₀ (.ofUInt256 g) A I) ∅ nonceTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (.ofUInt256 g) A I)
@@ -55,7 +57,7 @@ theorem safeNonceRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some nonceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeNonceBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V3_77901a5

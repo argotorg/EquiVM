@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapTargetWords
 import Benchmarks.UniswapV4PoolManager.WordConditionalSource
 import Benchmarks.UniswapV4PoolManager.WordBorrowSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -20,7 +22,7 @@ theorem swapTargetBranchSource {f : Frame} {evm : EVM.State} {next limit : UInt2
     (zeroForOne : Bool)
     (hn : f.locals.get? "sqrtPriceNextX96" = some (.int (Int.ofNat next.toNat)))
     (hl : f.locals.get? "sqrtPriceLimitX96" = some (.int (Int.ofNat limit.toNat))) :
-    ExecBlock config f evm (swapTargetBranchStmts zeroForOne)
+    ExecBlock fork config f evm (swapTargetBranchStmts zeroForOne)
       (.returned f evm (some [.int (Int.ofNat (swapTargetWord zeroForOne next limit).toNat)])) := by
   cases zeroForOne with
   | false =>
@@ -37,7 +39,7 @@ theorem swapTargetBody {f : Frame} {evm : EVM.State} {next limit : UInt256}
     (hb : f.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (hn : f.locals.get? "sqrtPriceNextX96" = some (.int (Int.ofNat next.toNat)))
     (hl : f.locals.get? "sqrtPriceLimitX96" = some (.int (Int.ofNat limit.toNat))) :
-    ExecFuncBody config f evm swapTargetFunction.body
+    ExecFuncBody fork config f evm swapTargetFunction.body
       (.returned f evm (some [.int (Int.ofNat (swapTargetWord zeroForOne next limit).toNat)])) := by
   rw [swapTarget_body_eq]
   apply ExecFuncBody.execBlockRet
@@ -52,7 +54,7 @@ theorem swapTargetCall {f : Frame} {evm : EVM.State} {next limit : UInt256} {eb 
     (hb : evalExpr? config f evm eb = .ok (.bool zeroForOne))
     (hn : evalExpr? config f evm en = .ok (.int (Int.ofNat next.toNat)))
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat limit.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "SwapMath_getSqrtPriceTarget" [eb, en, el] ret)
+    ExecStmt fork config f evm (.internalCall "SwapMath_getSqrtPriceTarget" [eb, en, el] ret)
       (.ok (wordLocal f ret (swapTargetWord zeroForOne next limit)) evm) := by
   let fc : Frame := {f with locals := ((((∅ : Store).insert "sqrtPriceLimitX96" (.int (Int.ofNat limit.toNat))).insert
     "sqrtPriceNextX96" (.int (Int.ofNat next.toNat))).insert "zeroForOne" (.bool zeroForOne))}
@@ -61,7 +63,7 @@ theorem swapTargetCall {f : Frame} {evm : EVM.State} {next limit : UInt256} {eb 
     simp only [evalExprs?, hb, hn, hl, bind, EvalResult.bind, pure]
   have hlookup : lookupCallable? f.contract "SwapMath_getSqrtPriceTarget" = some swapTargetFunction.toCallable := by
     rw [hc]; exact swapTarget_lookup
-  have hbody := swapTargetBody (f := fc) (evm := evm) zeroForOne (store_get_self _ _ _)
+  have hbody := swapTargetBody (fork := fork) (f := fc) (evm := evm) zeroForOne (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("zeroForOne" == "sqrtPriceNextX96") = false)).trans (store_get_self _ _ _))
     ((store_get_ne2 _ _ _ (by decide : ("sqrtPriceNextX96" == "sqrtPriceLimitX96") = false)
       (by decide : ("zeroForOne" == "sqrtPriceLimitX96") = false)).trans (store_get_self _ _ _))

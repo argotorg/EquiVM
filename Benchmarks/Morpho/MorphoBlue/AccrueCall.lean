@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.ZeroValueCallBridge
 import Benchmarks.Morpho.MorphoBlue.BorrowRateABI
 import Benchmarks.Morpho.MorphoBlue.MarketParamsMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -33,20 +35,20 @@ theorem morphoAccrueCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     (hstack : R.length + 22 ≤ 1024) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
     (hlo : 96 ≤ ptr.toNat) (hin : ptr.toNat + 32 ≤ mem.size)
     (hcd : mem.readWithPadding ptr.toNat 356 = borrowRateCalldata p σ ee id)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13393)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13393)
       ([gasArg, p.irm, UInt256.ofNat 0, ptr, UInt256.ofNat 356, ptr, UInt256.ofNat 32,
         elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
     ∃ evm' z out,
-      typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+      typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
         [p.value, marketStateValue σ ee id] (z, evm', out) ∧
       SourceState s0 ee evm'.accountMap evm' ∧ out.size < 2 ^ 138 ∧
       (if z = true ∧ 32 ≤ out.size then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
           ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
             UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, calldataWord out 0] ++ R)
           (accrueCallMem mem out ptr) aw' out evm'.accountMap k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨evm', σ', z, out, k', C', hcall, hs', rd, hout⟩ :=
     zeroValueCallBridge h hs
       (by immutable_decode(immutableLayout, morphoBytecode, wordsOf (immStore v),
@@ -54,7 +56,7 @@ theorem morphoAccrueCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
         morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) hcd
       (by rw [borrowRateCalldata_size]; decide)
       (by simp only [List.append, List.length_cons]; omega)
-  have htyped : typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+  have htyped : typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
       [p.value, marketStateValue σ ee id] (z, evm', out) := by
     refine ⟨borrowRateCalldata p σ ee id, encodeBorrowRate p hc σ ee id, ?_⟩
     simpa only [accountAddress_ofUInt256_eq_ofNat_toNat] using hcall
@@ -68,7 +70,7 @@ theorem morphoAccrueCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     by_cases hlen : 32 ≤ out.size
     · rw [if_pos hlen] at hr ⊢
       obtain ⟨aw2, k2, C2, rd2⟩ := hr
-      change RD _ _ _ _ _
+      change RD fork _ _ _ _ _
         ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
           UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret,
           memLoad ptr (accrueCallMem mem out ptr)] ++ R)

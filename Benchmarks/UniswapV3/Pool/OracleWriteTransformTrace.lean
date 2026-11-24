@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteCardinalityTrace
 import Benchmarks.UniswapV3.Pool.OracleTransform
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,10 +12,10 @@ set_option maxRecDepth 10000
 theorem oracleWriteIndexInvalidRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords {a with time := timeRaw} p ++ R) mem aw rdata σ k C)
     (hz : (oracleWriteCardinality a).toNat = 0) (hov : R.length + 14 ≤ 1024) :
-    RDinvalid (deployedRuntime v) g s0 := by
+    RDinvalid fork (deployedRuntime v) g s0 := by
   have hw : oracleWriteCardinality a = UInt256.ofNat 0 := uint256_toNat_eq_zero hz
   simp only [oracleWriteCardinalityWords, oracleWriteCardinality_setTime,
     List.cons_append, List.nil_append] at rd
@@ -24,10 +26,10 @@ theorem oracleWriteIndexInvalidRawX {σ : AccountMap} {ee : ExecutionEnv} {g : S
 theorem oracleWriteIndexInvalidX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords a p ++ R) mem aw rdata σ k C)
     (hz : (oracleWriteCardinality a).toNat = 0) (hov : R.length + 14 ≤ 1024) :
-    RDinvalid (deployedRuntime v) g s0 := by
+    RDinvalid fork (deployedRuntime v) g s0 := by
   exact oracleWriteIndexInvalidRawX (v := v) (timeRaw := a.time) a rd hz hov
 
 def oracleWriteTransformedWords (a : OracleWriteArgs) (p q : UInt256) : List UInt256 :=
@@ -38,14 +40,14 @@ theorem oracleWriteTransformRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p free ret timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
     (last : OracleObservation)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords {a with time := timeRaw} p ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits)
     (htime : UInt256.land timeRaw (UInt256.ofNat (2 ^ 32 - 1)) = a.time) (hn : (oracleWriteCardinality a).toNat ≠ 0)
     (hh : HeapMemory mem aw free) (hm : ObservationMemory mem p last)
     (hp : 96 ≤ p.toNat) (hl : p.toNat + 128 ≤ free.toNat)
     (hb : free.toNat + 256 ≤ 2 ^ 200) (hov : R.length + 27 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15020⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15020⟩
       (oracleWriteTransformedWords {a with time := timeRaw} p (free + ⟨128⟩) ++ ret :: R)
       (oracleTransformMem mem free last a.time a.tick a.liquidity) aw' rdata σ k' C' ∧
       HeapMemory (oracleTransformMem mem free last a.time a.tick a.liquidity) aw' (free + ⟨256⟩) ∧
@@ -86,13 +88,13 @@ theorem oracleWriteTransformX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
     (last : OracleObservation)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords a p ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hn : (oracleWriteCardinality a).toNat ≠ 0)
     (hh : HeapMemory mem aw free) (hm : ObservationMemory mem p last)
     (hp : 96 ≤ p.toNat) (hl : p.toNat + 128 ≤ free.toNat)
     (hb : free.toNat + 256 ≤ 2 ^ 200) (hov : R.length + 27 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15020⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15020⟩
       (oracleWriteTransformedWords a p (free + ⟨128⟩) ++ ret :: R)
       (oracleTransformMem mem free last a.time a.tick a.liquidity) aw' rdata σ k' C' ∧
       HeapMemory (oracleTransformMem mem free last a.time a.tick a.liquidity) aw' (free + ⟨256⟩) ∧

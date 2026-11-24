@@ -3,6 +3,8 @@ import Benchmarks.Dss.Dog.ConstructorTrace
 import Stele.Refine
 import Reasoning.Immutables
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Dog constructor correctness stub
 
@@ -44,13 +46,13 @@ set_option maxHeartbeats 1000000 in
 theorem dogConstructorCorrect :
     typedConstructorRefinement config dogCreationBytecode contract
       (immutableLayout.deployed dogBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases dogCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = dogCtorCode vat := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := dogInitcodeSuccess
+  · have hrd := dogInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases RDretXiResultAccountMap hcodeCtor hrd with hOOG | ⟨g', A', hsuccess⟩
@@ -84,7 +86,7 @@ theorem dogConstructorCorrect :
         · simpa [evm2s] using hAccountsWards
         · exact (dogDeployed_eq (by simp [dogCtorFinalImms])).symm
       · exact dogCtorFinalImms_fit vat
-  · have hrd := dogInitcodeNonpayableRevert
+  · have hrd := dogInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩

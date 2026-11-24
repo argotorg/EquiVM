@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.PriceArithmetic
 import Benchmarks.CurveVault.ConversionFinishSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -14,7 +16,7 @@ theorem vaultPriceRoundSource {evm : State} {locals : Store} {isFloor : Bool} {x
     (hx : locals.get? "numerator" = some (.int (Int.ofNat x.toNat)))
     (hy : locals.get? "denominator" = some (.int (Int.ofNat y.toNat)))
     (hf : locals.get? "_is_floor" = some (.bool isFloor)) (hy0 : y ≠ ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals} evm (vaultPriceFinishBody.take 2)
+    ExecBlock fork config {contract := contract, locals := locals} evm (vaultPriceFinishBody.take 2)
       (.ok {contract := contract, locals := vaultPriceResultLocals locals isFloor (vaultConversionResult isFloor x y)} evm) := by
   let initial := locals.insert "pps" (.int 0)
   have hevalX := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm)
@@ -31,17 +33,17 @@ theorem vaultPriceRoundSource {evm : State} {locals : Store} {isFloor : Bool} {x
   cases isFloor with
   | true =>
     refine ExecBlock.consNormal (ExecStmt.iteTrue hevalF ?_) ExecBlock.nil
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalExpr_div_uint256_ok hevalX hevalY hy0 rfl)
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalExpr_div_uint256_ok hevalX hevalY hy0 rfl)
       (assignLocalVarBase_ok (old := .int 0) (by simp [initial]))) ExecBlock.nil
   | false =>
-    have hcallee := vaultCeilDivSource (evm := evm) (uintBinaryLocals_get_x x y) (uintBinaryLocals_get_y x y) hy0
+    have hcallee := vaultCeilDivSource (fork := fork) (evm := evm) (uintBinaryLocals_get_x x y) (uintBinaryLocals_get_y x y) hy0
     have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := initial})
       (callee := vaultCeilDivFunction) (name := "math__ceil_div") (args := [.var "numerator", .var "denominator"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)]) (retVar := "__c1")
       (by simp [evalExprs?, hevalX, hevalY, bind, pure, EvalResult.bind]) rfl rfl hcallee
     refine ExecBlock.consNormal (ExecStmt.iteFalse hevalF ?_) ExecBlock.nil
     apply ExecBlock.consNormal hcall
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (value := .int (Int.ofNat (vaultCeilDivWord x y).toNat)) ?_ ?_) ExecBlock.nil
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (value := .int (Int.ofNat (vaultCeilDivWord x y).toNat)) ?_ ?_) ExecBlock.nil
     · simp [resumeAfterInternalCall, collapseReturns, evalExpr?, EvalResult.ofOption, vaultConversionResult]
     · apply assignLocalVarBase_ok
       simp only [resumeAfterInternalCall, collapseReturns, initial, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
@@ -52,7 +54,7 @@ theorem vaultPriceFinishReturns {evm : State} {locals : Store} {isFloor : Bool} 
     (hy : locals.get? "denominator" = some (.int (Int.ofNat y.toNat)))
     (hf : locals.get? "_is_floor" = some (.bool isFloor)) (hy0 : y ≠ ⟨0⟩)
     (hvalue : vaultConversionResult isFloor x y ≠ ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultPriceFinishBody
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultPriceFinishBody
       (.returned {contract := contract, locals := vaultPriceResultLocals locals isFloor (vaultConversionResult isFloor x y)}
         evm (some [.int (Int.ofNat (vaultConversionResult isFloor x y).toNat)])) := by
   have hbody : vaultPriceFinishBody = vaultPriceFinishBody.take 2 ++ vaultPriceFinishBody.drop 2 := rfl
@@ -76,7 +78,7 @@ theorem vaultPriceFinishReverts {evm : State} {locals : Store} {isFloor : Bool} 
     (hy : locals.get? "denominator" = some (.int (Int.ofNat y.toNat)))
     (hf : locals.get? "_is_floor" = some (.bool isFloor)) (hy0 : y ≠ ⟨0⟩)
     (hvalue : vaultConversionResult isFloor x y = ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultPriceFinishBody .reverted := by
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultPriceFinishBody .reverted := by
   have hbody : vaultPriceFinishBody = vaultPriceFinishBody.take 2 ++ vaultPriceFinishBody.drop 2 := rfl
   rw [hbody]
   apply execBlock_append (vaultPriceRoundSource hx hy hf hy0)

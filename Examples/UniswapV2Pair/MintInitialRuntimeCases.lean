@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintInitialBranchRuntimeCases
 import Examples.UniswapV2Pair.MintTailRuntimeCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintInitialRuntimeCases
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (recipient : AccountAddress) (fee : Bool)
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
@@ -41,16 +43,16 @@ theorem uniswapMintInitialRuntimeCases
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock fork config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ liquidity frame' evm' σ',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) (.returned frame' evm'
           (some [uniswapUint256Value liquidity])) ∧
       σ' = evm'.accountMap ∧
-      RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         σ' (UInt256.toByteArray liquidity)) := by
   rcases uniswapMintInitialBranchRuntimeCases evm rd3701 hAccounts henv htotalZero htotal

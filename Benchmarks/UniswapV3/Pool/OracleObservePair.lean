@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveNonzeroModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -18,7 +20,7 @@ theorem oracleObservePairPrefix (imms : Store) (evm : EVM.State)
     (hc : cardinality.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hrun : OracleSurroundingRun time (oracleDelta time secondsAgo) tick index liquidity cardinality
       evm.accountMap evm.executionEnv before after) :
-    ExecBlock config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
+    ExecBlock fork config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm (oracleObserveSingleFunction.body.take 7)
       (.ok (oracleObservePairFrame imms time secondsAgo tick index liquidity cardinality before after)
         evm) := by
@@ -31,7 +33,7 @@ theorem oracleObservePairPrefix (imms : Store) (evm : EVM.State)
     (oracleObserveSurroundingArgs imms evm time secondsAgo tick index liquidity cardinality)
     oracleSurroundingLookup (oracleSurroundingBind time (oracleDelta time secondsAgo)
       tick index liquidity cardinality) hbody
-  have htail : ExecBlock config f evm (oracleObserveSingleFunction.body.drop 4 |>.take 3)
+  have htail : ExecBlock fork config f evm (oracleObserveSingleFunction.body.drop 4 |>.take 3)
       (.ok (oracleObservePairFrame imms time secondsAgo tick index liquidity cardinality before after)
         evm) := by
     refine ExecBlock.consNormal hcall ?_

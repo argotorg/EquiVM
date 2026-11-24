@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObservationStorage
 import Benchmarks.UniswapV3.Pool.ObservationMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -99,11 +101,11 @@ theorem observationReadHeadMem_write (mem : ByteArray) (p : UInt256) (last : Ora
 theorem observationReadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p index : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13226⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13226⟩
       (index :: UInt256.ofNat 8 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
     let last := oracleStoredObservation index σ ee
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨13311⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨13311⟩
       ((if last.initialized then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat 4294967295 :: p :: last.timestamp :: R)
       (observationReadHeadMem mem p last) aw' rdata σ k' C' ∧ ActiveWords aw' := by
   dsimp only

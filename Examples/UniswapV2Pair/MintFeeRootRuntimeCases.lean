@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ZeroSlotMemory
 import Examples.UniswapV2Pair.MintFeeActualHelpers
 import Examples.UniswapV2Pair.MintTailMintCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -14,7 +16,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (evmFeeS : EVM.State) (rd7899 : RD uniswapV2PairBytecode I g
+    (evmFeeS : EVM.State) (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -29,18 +31,18 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0) ∨
     (∃ frame' evm' σ' mem' k' C',
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
       σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ret
         (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
@@ -115,7 +117,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
           · exact Or.inl ⟨uniswapMintFeeAfterRoots_mintCallReverts evmFeeS reserve0 reserve1
               feeTo kLast rootK rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg
               hnumFit hrootFiveFit hdenFit hdenom hliq
-              (uniswapMintFunctionCallRevert_balanceOverflow (hperm := by simpa only [henv] using hperm) rfl hargs hfitSupply
+              (uniswapMintFunctionCallRevert_balanceOverflow (fork := fork) (hperm := by simpa only [henv] using hperm) rfl hargs hfitSupply
                 (Nat.le_of_not_lt hfitBalance)),
               uniswapInternalMintRuntimeBalanceOverflowReverts rd8128 hperm htotalFit
                 (by rw [← hbalanceEq]; exact Nat.le_of_not_lt hfitBalance) hmem hmem64
@@ -155,7 +157,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (evmFeeS : EVM.State) (rd7899 : RD uniswapV2PairBytecode I g
+    (evmFeeS : EVM.State) (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -170,18 +172,18 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0) ∨
     (∃ frame' evm' σ' mem' k' C',
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
       σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ret
         (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
@@ -201,7 +203,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesOfTail
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (evmFeeS : EVM.State) (rd7899 : RD uniswapV2PairBytecode I g
+    (evmFeeS : EVM.State) (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -216,18 +218,18 @@ theorem uniswapMintFeeActualRootRuntimeCasesOfTail
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0) ∨
     (∃ frame' evm' σ' mem' k' C',
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
       σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ret
         (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧

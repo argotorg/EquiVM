@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolLPFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -41,7 +43,7 @@ theorem updateFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKeyWord
     (hk : locals.get? "key" = some (.tuple (poolKeyValues key)))
     (he : locals.get? "newDynamicLPFee" = some (.int (Int.ofNat fee.toNat)))
     (hpools : locals.get? "_pools" = none) :
-    ExecTransitionBody config contract evm locals updateDynamicLPFeeTransition.body
+    ExecTransitionBody fork config contract evm locals updateDynamicLPFeeTransition.body
       (updateFeeResult (calldataFrame contract locals imms evm) evm key fee) imms := by
   let f := calldataFrame contract locals imms evm
   let f1 : Frame := {f with locals := f.locals.insert "key" (poolKeyValue key)}
@@ -49,10 +51,10 @@ theorem updateFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKeyWord
   let f3 : Frame := {f2 with locals := f2.locals.insert "__c1" .unit}
   let f4 : Frame := {f3 with locals := f3.locals.insert "id" (wordBytes32Value (poolKeyId key))}
   let f5 : Frame := {f4 with locals := f4.locals.insert updateFeeAlias (poolRefValue (poolKeyId key))}
-  have hlet : ExecStmt config f evm updateDynamicLPFeeTransition.body[3]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm updateDynamicLPFeeTransition.body[3]! (.ok f1 evm) :=
     ExecStmt.letDecl (poolKeyFromTuple_eval (evalLocalValue
       ((store_get_ne _ _ (by decide : ("__calldata" == "key") = false)).trans hk)))
-  have hdyn := lpFeeDynamicCall (f := f1) (evm := evm) rfl
+  have hdyn := lpFeeDynamicCall (fork := fork) (f := f1) (evm := evm) rfl
     (evalStructField (evalLocalValue (store_get_self _ _ _)) (field := "fee") rfl) "__c0"
   have hk2 : f2.locals.get? "key" = some (poolKeyValue key) :=
     (store_get_ne _ _ (by decide : ("__c0" == "key") = false)).trans (store_get_self _ _ _)
@@ -61,27 +63,27 @@ theorem updateFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKeyWord
   by_cases hauth : dynamicFeeAuthorized evm.executionEnv key
   · rw [if_pos hauth]
     rw [decide_eq_false (not_not.mpr hauth)] at hguard
-    have hite : ExecStmt config f2 evm updateDynamicLPFeeTransition.body[5]! (.ok f2 evm) :=
+    have hite : ExecStmt fork config f2 evm updateDynamicLPFeeTransition.body[5]! (.ok f2 evm) :=
       ExecStmt.iteFalse hguard ExecBlock.nil
     have he2 : f2.locals.get? "newDynamicLPFee" = some (.int (Int.ofNat fee.toNat)) :=
       (store_get_ne3 _ _ _ _ (by decide : ("__calldata" == "newDynamicLPFee") = false)
         (by decide : ("key" == "newDynamicLPFee") = false) (by decide : ("__c0" == "newDynamicLPFee") = false)).trans he
-    have hvalidate := lpFeeValidateCall (f := f2) (evm := evm) rfl (evalLocalValue he2) "__c1"
+    have hvalidate := lpFeeValidateCall (fork := fork) (f := f2) (evm := evm) rfl (evalLocalValue he2) "__c1"
     by_cases hv : fee.toNat ≤ 1000000
     · rw [if_pos hv] at hvalidate ⊢
-      have hid := poolIdCall (f := f3) (evm := evm) rfl hc (evalLocalValue
+      have hid := poolIdCall (fork := fork) (f := f3) (evm := evm) rfl hc (evalLocalValue
         ((store_get_ne _ _ (by decide : ("__c1" == "key") = false)).trans hk2)) "id"
       have hbase : f4.locals.get? "_pools" = none :=
         (store_get_ne5 _ _ _ _ _ _ (by decide : ("__calldata" == "_pools") = false)
           (by decide : ("key" == "_pools") = false) (by decide : ("__c0" == "_pools") = false)
           (by decide : ("__c1" == "_pools") = false) (by decide : ("id" == "_pools") = false)).trans hpools
-      have href : ExecStmt config f4 evm updateDynamicLPFeeTransition.body[8]! (.ok f5 evm) :=
+      have href : ExecStmt fork config f4 evm updateDynamicLPFeeTransition.body[8]! (.ok f5 evm) :=
         ExecStmt.letStorage (poolMappingResolve rfl hbase (evalLocalValue (store_get_self _ _ _)))
       have he5 : f5.locals.get? "newDynamicLPFee" = some (.int (Int.ofNat fee.toNat)) :=
         (store_get_ne3 _ _ _ _ (by decide : ("__c1" == "newDynamicLPFee") = false)
           (by decide : ("id" == "newDynamicLPFee") = false)
           (by decide : (updateFeeAlias == "newDynamicLPFee") = false)).trans he2
-      have hset := poolSetFeeCall (f := f5) (evm := evm) rfl hfee
+      have hset := poolSetFeeCall (fork := fork) (f := f5) (evm := evm) rfl hfee
         (evalLocalValue (store_get_self _ _ _)) (evalLocalValue he5) "__c3"
       have htail := execFuncBody_singleton hset
       simp only [poolSetFeeCallResult, poolSetFeeResult, resumeCallResult_ite, resumeCallResult_reverted,

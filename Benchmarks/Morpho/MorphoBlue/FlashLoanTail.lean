@@ -1,18 +1,20 @@
 import Benchmarks.Morpho.MorphoBlue.FlashLoanRepay
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive FlashLoanTailRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive FlashLoanTailRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (frame : Frame) (evm : EVM.State) : Prop where
-  | reverted : ExecBlock config frame evm (flashLoanTransition.body.drop 6) .reverted →
-      RDrev (deployedRuntime v) g s0 → FlashLoanTailRefines v ee g s0 frame evm
-  | ok {frame' evm' σ'} : ExecBlock config frame evm (flashLoanTransition.body.drop 6) (.ok frame' evm') →
-      SourceState s0 ee σ' evm' → RDret (deployedRuntime v) g s0 σ' ByteArray.empty →
-      FlashLoanTailRefines v ee g s0 frame evm
+  | reverted : ExecBlock fork config frame evm (flashLoanTransition.body.drop 6) .reverted →
+      RDrev fork (deployedRuntime v) g s0 → FlashLoanTailRefines fork v ee g s0 frame evm
+  | ok {frame' evm' σ'} : ExecBlock fork config frame evm (flashLoanTransition.body.drop 6) (.ok frame' evm') →
+      SourceState s0 ee σ' evm' → RDret fork (deployedRuntime v) g s0 σ' ByteArray.empty →
+      FlashLoanTailRefines fork v ee g s0 frame evm
 
 theorem morphoFlashLoanTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {mem out data : ByteArray} {aw ptr srcOff len assets : UInt256} {σ : AccountMap}
@@ -24,9 +26,9 @@ theorem morphoFlashLoanTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
       [srcOff, len, UInt256.ofNat 0, assets, UInt256.ofNat token.val, UInt256.ofNat 0] mem aw out σ k C) :
-    FlashLoanTailRefines v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
+    FlashLoanTailRefines fork v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
   by_cases hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = UInt256.ofNat 0
   · exact .reverted (flashLoanCallbackSourceNoCode _ evm (by rw [← hs.accounts, hs.env]; exact hc))
       (morphoFlashLoanCallbackNoCode (R := []) (by decide) hc h)
@@ -53,9 +55,9 @@ theorem morphoFlashLoanTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
       (by rw [UInt256.toNat_ofNat_of_lt hfit]; exact hcd) hsmall (by simp)
     have hmout : callOutputMem (flashLoanCallbackMem ee mem ptr assets srcOff len) result ptr (UInt256.ofNat 0) =
         flashLoanCallbackMem ee mem ptr assets srcOff len := callOutputMem_zero _ _ _
-    change RD _ _ _ _ (UInt256.ofNat 1186) _ _ _ _ _ _ _ at rd2
+    change RD fork _ _ _ _ (UInt256.ofNat 1186) _ _ _ _ _ _ _ at rd2
     rw [hmout] at rd2
-    have hcall' : typedCallViaEVM config evm evm.executionEnv.source "onMorphoFlashLoan" 0
+    have hcall' : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoFlashLoan" 0
         [.int (Int.ofNat assets.toNat), .bytes data] (z, evm1, result) := by
       refine ⟨_, flashLoanCallback_encode assets data, ?_⟩
       simpa only [accountAddress_roundtrip, hs.env] using hcall

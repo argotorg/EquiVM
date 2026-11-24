@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -101,7 +103,7 @@ theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
     (price slice owe0 owe : UInt256)
     (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead
       (.letDecl "tabNew" (some uint256) (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
@@ -199,7 +201,7 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
     (price slice owe0 owe tabNew : UInt256)
     (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe tabNew) (immStore v))
       evmRead
       (.letDecl "lotNew" (some uint256)
@@ -230,7 +232,7 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
 theorem clipperTakeNoAdjustAssignTabFromTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe tabNew lotNew : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustLotNew evmLoc evmRead I price slice owe0 owe tabNew
           lotNew) (immStore v))
       evmRead (.assign .localVar (varRef "tab") (.var "tabNew"))
@@ -264,7 +266,7 @@ theorem clipperTakeNoAdjustAssignTabFromTabNew (v : ClipperImmutables)
 theorem clipperTakeNoAdjustAssignLotFromLotNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe tabNew lotNew : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustTabAssigned evmLoc evmRead I price slice owe0 owe tabNew
           lotNew) (immStore v))
       evmRead (.assign .localVar (varRef "lot") (.var "lotNew"))
@@ -302,7 +304,7 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
     (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead
       (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -327,14 +329,14 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
     Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe tabNew
         lotNew) (immStore v)
   have htabNew :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.letDecl "tabNew" (some uint256)
           (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
         (.ok tabNewFrame evmRead) := by
     simpa [oweFrame, tabNewFrame, tabNew] using
       clipperTakeNoAdjustLetTabNew v evmLoc evmRead I price slice owe0 owe howeTab
   have hlotNew :
-      ExecStmt config tabNewFrame evmRead
+      ExecStmt fork config tabNewFrame evmRead
         (.letDecl "lotNew" (some uint256)
           (wrap256 (.binary .sub (.var "lot") (.var "slice"))))
         (.ok lotNewFrame evmRead) := by
@@ -342,14 +344,14 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
       clipperTakeNoAdjustLetLotNew v evmLoc evmRead I price slice owe0 owe tabNew
         hsliceLot
   have hassignTab :
-      ExecStmt config lotNewFrame evmRead
+      ExecStmt fork config lotNewFrame evmRead
         (.assign .localVar (varRef "tab") (.var "tabNew"))
         (.ok tabFrame evmRead) := by
     simpa [lotNewFrame, tabFrame] using
       clipperTakeNoAdjustAssignTabFromTabNew v evmLoc evmRead I price slice owe0 owe
         tabNew lotNew
   have hassignLot :
-      ExecStmt config tabFrame evmRead
+      ExecStmt fork config tabFrame evmRead
         (.assign .localVar (varRef "lot") (.var "lotNew"))
         (.ok lotFrame evmRead) := by
     simpa [tabFrame, lotFrame] using
@@ -451,7 +453,7 @@ theorem clipperTakeNoAdjustVatFluxBuyerNoCodeBlock (v : ClipperImmutables)
     (hnoVatCode :
       (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe
           tabNew lotNew) (immStore v))
       evmRead
@@ -483,9 +485,9 @@ theorem clipperTakeNoAdjustVatFluxBuyerCallFailureBlock (v : ClipperImmutables)
             tabNew lotNew) (immStore v))
         evmRead [ilkExpr, thisAddr, .var "who", .var "slice"] = .ok argVals)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0 argVals
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0 argVals
         (false, evmVat, outVat) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe
           tabNew lotNew) (immStore v))
       evmRead
@@ -504,7 +506,7 @@ theorem clipperTakeNoAdjustVatFluxBuyerCallFailureBlock (v : ClipperImmutables)
   simpa [checkedExternalCallStmts] using
     (ExecBlock.consNormal (ExecStmt.requireTrue hguard)
       (ExecBlock.consRevert
-        (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalVat v evmRead
             (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe
               tabNew lotNew))
@@ -523,9 +525,9 @@ theorem clipperTakeNoAdjustVatFluxBuyerCallSuccessBlock (v : ClipperImmutables)
             tabNew lotNew) (immStore v))
         evmRead [ilkExpr, thisAddr, .var "who", .var "slice"] = .ok argVals)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0 argVals
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0 argVals
         (true, evmVat, outVat) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe
           tabNew lotNew) (immStore v))
       evmRead
@@ -547,7 +549,7 @@ theorem clipperTakeNoAdjustVatFluxBuyerCallSuccessBlock (v : ClipperImmutables)
   simpa [checkedExternalCallStmts, clipperTakeLocalsNoAdjustFluxBuyerRet, collapseReturns] using
     (ExecBlock.consNormal (ExecStmt.requireTrue hguard)
       (ExecBlock.consNormal
-        (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalVat v evmRead
             (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe
               tabNew lotNew))
@@ -563,7 +565,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
     (hnoVatCode :
       (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead
       (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -581,7 +583,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
     Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe tabNew
         lotNew) (immStore v)
   have hsubBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
           wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
           [ .assign .localVar (varRef "tab") (.var "tabNew"),
@@ -591,7 +593,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
       clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe howeTab
         hsliceLot
   have hvatRevert :
-      ExecBlock config postSubFrame evmRead
+      ExecBlock fork config postSubFrame evmRead
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet")
         .reverted := by
@@ -609,13 +611,13 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
           .int (Int.ofNat slice.toNat)]
         (false, evmVat, outVat) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead
       (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -633,7 +635,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables
     Frame.mk contract (clipperTakeLocalsNoAdjustLotAssigned evmLoc evmRead I price slice owe0 owe tabNew
         lotNew) (immStore v)
   have hsubBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
           wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
           [ .assign .localVar (varRef "tab") (.var "tabNew"),
@@ -654,7 +656,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables
       clipperEvalTakeNoAdjustVatFluxBuyerArgs v evmLoc evmRead I price slice owe0 owe
         tabNew lotNew
   have hvatRevert :
-      ExecBlock config postSubFrame evmRead
+      ExecBlock fork config postSubFrame evmRead
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet")
         .reverted := by
@@ -672,7 +674,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -680,7 +682,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
         (true, evmVat, outVat) true) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead
       (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -703,7 +705,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
     Frame.mk contract (clipperTakeLocalsNoAdjustFluxBuyerRet evmLoc evmRead I price slice owe0 owe tabNew
         lotNew) (immStore v)
   have hsubBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
           wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
           [ .assign .localVar (varRef "tab") (.var "tabNew"),
@@ -724,7 +726,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
       clipperEvalTakeNoAdjustVatFluxBuyerArgs v evmLoc evmRead I price slice owe0 owe
         tabNew lotNew
   have hvatOk :
-      ExecBlock config postSubFrame evmRead
+      ExecBlock fork config postSubFrame evmRead
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet")
         (.ok fluxFrame evmVat) := by
@@ -741,7 +743,7 @@ theorem clipperTakeNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
     (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
-      ExecStmt config
+      ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok
@@ -750,7 +752,7 @@ theorem clipperTakeNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
     (hnoVatCode :
       (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -764,19 +766,19 @@ theorem clipperTakeNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
   let oweFrame : Frame :=
     Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   have hmulBlock :
-      ExecBlock config sliceFrame evmRead
+      ExecBlock fork config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [.letDecl "owe" (some uint256) (.var "owe0")])
         (.ok oweFrame evmRead) := by
     simpa [sliceFrame, oweFrame, owe0] using
       clipperTakeOwe0MulSuccessBlock v evmLoc evmRead I price slice hmul
   have hpost :
-      ExecBlock config oweFrame evmRead (clipperTakePostOweFluxStmts) .reverted := by
+      ExecBlock fork config oweFrame evmRead (clipperTakePostOweFluxStmts) .reverted := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, owe0] using
       clipperTakeNoAdjustPostSubVatFluxNoCodeBlock v evmLoc evmRead I price slice owe0
         owe0 howeTab hsliceLot hnoVatCode
   have hafterIte :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts) .reverted :=
     ExecBlock.consNormal (by simpa [oweFrame, owe0] using hite) hpost
   simpa [sliceFrame, clipperTakePostOweFluxStmts, List.append_assoc] using
@@ -790,7 +792,7 @@ theorem clipperTakeNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables)
     (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
-      ExecStmt config
+      ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok
@@ -800,13 +802,13 @@ theorem clipperTakeNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables)
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
           .int (Int.ofNat slice.toNat)]
         (false, evmVat, outVat) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -820,19 +822,19 @@ theorem clipperTakeNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables)
   let oweFrame : Frame :=
     Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   have hmulBlock :
-      ExecBlock config sliceFrame evmRead
+      ExecBlock fork config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [.letDecl "owe" (some uint256) (.var "owe0")])
         (.ok oweFrame evmRead) := by
     simpa [sliceFrame, oweFrame, owe0] using
       clipperTakeOwe0MulSuccessBlock v evmLoc evmRead I price slice hmul
   have hpost :
-      ExecBlock config oweFrame evmRead (clipperTakePostOweFluxStmts) .reverted := by
+      ExecBlock fork config oweFrame evmRead (clipperTakePostOweFluxStmts) .reverted := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, owe0] using
       clipperTakeNoAdjustPostSubVatFluxCallFailureBlock v evmLoc evmRead evmVat I price
         slice owe0 owe0 howeTab hsliceLot hvatCode hcallVat
   have hafterIte :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts) .reverted :=
     ExecBlock.consNormal (by simpa [oweFrame, owe0] using hite) hpost
   simpa [sliceFrame, clipperTakePostOweFluxStmts, List.append_assoc] using
@@ -846,7 +848,7 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
     (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
-      ExecStmt config
+      ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok
@@ -856,7 +858,7 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -865,7 +867,7 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
     let owe0 := UInt256.mul slice price
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -885,20 +887,20 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
     Frame.mk contract (clipperTakeLocalsNoAdjustFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 tabNew
         lotNew) (immStore v)
   have hmulBlock :
-      ExecBlock config sliceFrame evmRead
+      ExecBlock fork config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [.letDecl "owe" (some uint256) (.var "owe0")])
         (.ok oweFrame evmRead) := by
     simpa [sliceFrame, oweFrame, owe0] using
       clipperTakeOwe0MulSuccessBlock v evmLoc evmRead I price slice hmul
   have hpost :
-      ExecBlock config oweFrame evmRead (clipperTakePostOweFluxStmts)
+      ExecBlock fork config oweFrame evmRead (clipperTakePostOweFluxStmts)
         (.ok fluxFrame evmVat) := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, fluxFrame, owe0, tabNew, lotNew] using
       clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock v evmLoc evmRead evmVat I price
         slice owe0 owe0 howeTab hsliceLot hvatCode hcallVat
   have hafterIte :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts)
         (.ok fluxFrame evmVat) :=
     ExecBlock.consNormal (by simpa [oweFrame, owe0] using hite) hpost

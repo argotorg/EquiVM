@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListPayload
 import Benchmarks.CompoundIII.Comet.Solc0815Decode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -63,7 +65,7 @@ theorem CreateAssetListLoopState.next {factory : AccountAddress} {assets : List 
 theorem createAssetListLoop_step {factory : AccountAddress} {assets : List ConstructorAsset}
     {i : Nat} {frame : Frame} (h : CreateAssetListLoopState factory assets i frame)
     (evm : EVM.State) (hi : i < assets.length) :
-    ExecBlock config frame evm createAssetListLoopBody
+    ExecBlock fork config frame evm createAssetListLoopBody
       (.ok (createAssetListNextFrame frame assets i hi) evm) := by
   refine .consNormal (.letDecl (h.entry evm hi)) ?_
   refine .consNormal (stele' := { frame with locals :=
@@ -102,7 +104,7 @@ theorem createAssetListLoop_step {factory : AccountAddress} {assets : List Const
 theorem createAssetListLoop_exec {factory : AccountAddress} {assets : List ConstructorAsset}
     {i : Nat} {frame : Frame} (h : CreateAssetListLoopState factory assets i frame)
     (evm : EVM.State) (hi : i ≤ assets.length) :
-    ∃ frame', ExecStmt config frame evm (.while createAssetListLoopCond createAssetListLoopBody)
+    ∃ frame', ExecStmt fork config frame evm (.while createAssetListLoopCond createAssetListLoopBody)
       (.ok frame' evm) ∧ CreateAssetListLoopState factory assets assets.length frame' := by
   generalize hv : assets.length - i = v
   induction v generalizing i frame with

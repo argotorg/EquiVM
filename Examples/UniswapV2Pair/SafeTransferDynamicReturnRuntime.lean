@@ -3,6 +3,8 @@ import Examples.UniswapV2Pair.ReturnDataMemory
 import Examples.UniswapV2Pair.SafeTransferEmptyReturnCore
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -12,14 +14,14 @@ theorem RD.uniswapSafeTransferDynamicEmptyReturnToRet
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {base out : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
+    (rd6595 : RD fork uniswapV2PairBytecode I g s0 ⟨6595⟩
       (⟨1⟩ :: (ptr + ⟨232⟩) :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) out σ k C)
     (hout : out.size = 0) (hin : 128 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size)
     (hptrLo : 128 ≤ ptr.toNat) (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)
     (hzero : base.readWithPadding 96 32 = (⟨0⟩ : UInt256).toByteArray)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret R
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) out σ k' C' := by
   exact RD.uniswapSafeTransferDynamicEmptyReturnToRet_of_zeroSlot rd6595 hout (by omega)
     hgap hptrLo haw hptr
@@ -32,14 +34,14 @@ theorem RD.uniswapSafeTransferNonemptyReturnStored
     {σ : AccountMap}
     {mem out : ByteArray} {ptr aw status callRet maskedToken value toWord token ret : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
+    (rd6595 : RD fork uniswapV2PairBytecode I g s0 ⟨6595⟩
       (status :: callRet :: maskedToken :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       mem aw out σ k C)
     (houtNe : out.size ≠ 0) (hout : out.size < 2 ^ 255)
     (hload : memoryWordLoad mem ⟨64⟩ = ptr)
     (hptrLo : 96 ≤ ptr.toNat) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6652⟩ (ptr :: status :: value :: toWord :: token :: ret :: R)
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6652⟩ (ptr :: status :: value :: toWord :: token :: ret :: R)
       (solcReturnDataMem mem ptr out) (solcReturnDataActiveWords aw ptr out) out σ k' C' := by
   have haw64 : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw :=
     UInt256_M_same_of_cover _ _ haw (by change 64 + 32 ≤ _; omega)
@@ -53,7 +55,7 @@ theorem uniswapSafeTransferNonemptyReturnRuntimeCases
     {σ : AccountMap}
     {mem out : ByteArray} {ptr aw callRet maskedToken value toWord token ret : UInt256} {z : Bool}
     {R : List UInt256} {k C : Nat}
-    (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
+    (rd6595 : RD fork uniswapV2PairBytecode I g s0 ⟨6595⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: callRet :: maskedToken :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       mem aw out σ k C)
     (houtNe : out.size ≠ 0) (hout : out.size < 2 ^ 255)
@@ -63,9 +65,9 @@ theorem uniswapSafeTransferNonemptyReturnRuntimeCases
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hfit : ptr.toNat + out.size + 95 < UInt256.size)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
     ((z = false ∨ out.size < 32 ∨ UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩) ∧
-      RDrev uniswapV2PairBytecode g s0) ∨
+      RDrev fork uniswapV2PairBytecode g s0) ∨
     (z = true ∧ 32 ≤ out.size ∧ UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩ ∧
-      ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
+      ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret R
         (solcReturnDataMem mem ptr out) (solcReturnDataActiveWords aw ptr out) out σ k' C') := by
   obtain ⟨_, _, rd6652⟩ := RD.uniswapSafeTransferNonemptyReturnStored rd6595 houtNe hout hload hptrLo haw hcover hov
   cases hz : z with

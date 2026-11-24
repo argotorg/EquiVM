@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepInputPartialSource
 import Benchmarks.UniswapV4PoolManager.SwapStepSelectWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,7 +31,7 @@ theorem swapStepInputSelectSource {f : Frame} {evm : EVM.State}
     (hn : f.locals.get? "sqrtPriceNextX96" = some oldNext)
     (hfee : f.locals.get? "feeAmount" = some oldFee)
     (hfPips : f.locals.get? "_feePips" = some (.int (Int.ofNat fee.toNat))) :
-    ExecStmt config f evm swapStepInputSelectStmt
+    ExecStmt fork config f evm swapStepInputSelectStmt
       (if swapStepInputSelectFits price liquidity available desired fee zeroForOne then
         .ok (swapStepInputSelectFrame f price target liquidity remaining available desired fee zeroForOne) evm
        else .reverted) := by
@@ -39,10 +41,10 @@ theorem swapStepInputSelectSource {f : Frame} {evm : EVM.State}
   by_cases hreach : swapStepReachesTarget available desired
   · simp only [swapStepInputSelectFits, swapStepInputSelectFrame, if_pos hreach]
     let f1 := wordLocal f "sqrtPriceNextX96" target
-    have hn1 : ExecStmt config f evm
+    have hn1 : ExecStmt fork config f evm
         (.assign .localVar {base := "sqrtPriceNextX96"} (.var "sqrtPriceTargetX96")) (.ok f1 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ht) (assignLocalValue hn)
-    have hcalc := swapStepTargetFeeSource (f := f1) (evm := evm) hf
+    have hcalc := swapStepTargetFeeSource (fork := fork) (f := f1) (evm := evm) hf
       ((store_get_ne _ _ (by decide : ("sqrtPriceNextX96" == "amountIn") = false)).trans hi)
       ((store_get_ne _ _ (by decide : ("sqrtPriceNextX96" == "_feePips") = false)).trans hfPips)
       ((store_get_ne _ _ (by decide : ("sqrtPriceNextX96" == "feeAmount") = false)).trans hfee)
@@ -55,7 +57,7 @@ theorem swapStepInputSelectSource {f : Frame} {evm : EVM.State}
     · rw [if_neg hfit] at hcalc ⊢
       exact ExecStmt.iteTrue htrue (ExecBlock.consNormal hn1 hcalc)
   · simp only [swapStepInputSelectFits, swapStepInputSelectFrame, if_neg hreach]
-    have hcalc := swapStepInputPartialSource (evm := evm) zeroForOne hf hp hs hl hr ha hb hi hn hfee
+    have hcalc := swapStepInputPartialSource (fork := fork) (evm := evm) zeroForOne hf hp hs hl hr ha hb hi hn hfee
     have hfalse := (show evalExpr? config f evm
         (.binary .ge (.var "amountRemainingLessFee") (.var "amountIn")) = .ok (.bool false) by
       simpa only [decide_eq_false hreach] using hg)

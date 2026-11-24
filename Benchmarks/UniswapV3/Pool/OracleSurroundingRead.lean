@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingReadCost
 import Benchmarks.UniswapV3.Pool.OracleSearchBefore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem oracleSurroundingHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p index : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18675⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18675⟩
       (index :: UInt256.ofNat 8 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 8 ≤ 1024) :
     let last := oracleStoredObservation index σ ee
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨18761⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨18761⟩
         (p :: UInt256.ofNat 96 :: (if last.initialized then ⟨1⟩ else ⟨0⟩) ::
           p :: last.timestamp :: R)
         (observationReadHeadMem mem p last) (oracleReadHeadAw mem aw) rdata σ k' C' := by
@@ -55,12 +57,12 @@ theorem oracleSurroundingFallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr cardRaw liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18966⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18966⟩
       (afterPtr :: beforePtr :: cardRaw :: liquidity :: index :: tickRaw :: targetRaw ::
         timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 17 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadFullAw mem aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨19052⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨19052⟩
         (afterPtr :: p :: cardRaw :: liquidity :: index :: tickRaw :: targetRaw ::
           timeRaw :: ⟨8⟩ :: ret :: R)
         (wordArrayAllocMem mem p (oracleStoredObservation ⟨0⟩ σ ee).words)

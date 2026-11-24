@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepPriceSource
 import Benchmarks.UniswapV4PoolManager.SwapStepSelectWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -35,7 +37,7 @@ theorem swapStepOutputSelectSource {f : Frame} {evm : EVM.State}
     (hb : f.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (ho : f.locals.get? "amountOut" = some (.int (Int.ofNat desired.toNat)))
     (hn : f.locals.get? "sqrtPriceNextX96" = some oldNext) :
-    ExecStmt config f evm swapStepOutputSelectStmt
+    ExecStmt fork config f evm swapStepOutputSelectStmt
       (if swapStepOutputSelectFits price liquidity remaining desired zeroForOne then
         .ok (swapStepOutputSelectFrame f price target liquidity remaining desired zeroForOne) evm else .reverted) := by
   have he := swapStepOutputRemainingSource (evm := evm) hr
@@ -45,12 +47,12 @@ theorem swapStepOutputSelectSource {f : Frame} {evm : EVM.State}
   by_cases hreach : swapStepReachesTarget remaining desired
   · simp only [swapStepOutputSelectFits, swapStepOutputSelectFrame, if_pos hreach, if_true]
     exact ExecStmt.iteTrue (by simpa only [decide_eq_true hreach] using hg)
-      (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ht) (assignLocalValue hn)))
+      (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ht) (assignLocalValue hn)))
   · simp only [swapStepOutputSelectFits, swapStepOutputSelectFrame, if_neg hreach]
     let f1 := wordLocal f "amountOut" remaining
-    have h1 : ExecStmt config f evm (.assign .localVar {base := "amountOut"} swapStepOutputRemainingExpr)
-        (.ok f1 evm) := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ho)
-    have hprice := swapStepPriceSource (f := f1) (evm := evm) (ea := .var "amountOut") false zeroForOne hf hp
+    have h1 : ExecStmt fork config f evm (.assign .localVar {base := "amountOut"} swapStepOutputRemainingExpr)
+        (.ok f1 evm) := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ho)
+    have hprice := swapStepPriceSource (fork := fork) (f := f1) (evm := evm) (ea := .var "amountOut") false zeroForOne hf hp
       ((store_get_ne _ _ (by decide : ("amountOut" == "sqrtPriceCurrentX96") = false)).trans hs)
       ((store_get_ne _ _ (by decide : ("amountOut" == "liquidity") = false)).trans hl)
       wordLocal_eval

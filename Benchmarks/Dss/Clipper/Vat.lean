@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -102,7 +104,7 @@ theorem clipperEvalVat (v : ClipperImmutables) (evm : EVM.State) (locals : Store
 
 theorem clipperVatBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals vatTransition.body
+    ExecTransitionBody fork config contract evm locals vatTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm (some [(.address v.vat)])) (immStore v) := by
   simpa [vatTransition] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
@@ -115,12 +117,12 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 25)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨744⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨744⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperVatSelectorWord hsz hsel
-  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -143,7 +145,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (fork := fork) (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -414,14 +416,14 @@ theorem clipperVatBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 25)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 25) (by native_decide) hsel
   have hvatAddr :
       AccountAddress.ofNat (EVM.Word.ofNat (↑v.vat : Nat)).toNat = v.vat :=
     addressOfWordOfNat v.vat
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -431,7 +433,7 @@ theorem clipperVatBody (v : ClipperImmutables) {code : ByteArray}
       clipperVatBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv)
-  have hreach := clipperReachVatBody
+  have hreach := clipperReachVatBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hroutine : (D_J code 0).contains (⟨3143⟩ : UInt256) = true := by

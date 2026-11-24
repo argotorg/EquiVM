@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,12 +16,12 @@ def cometDispatchPrefixSelectors : List UInt256 :=
 theorem cometDispatchLastSelector {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hm : cometDispatchPrefixSelectors.all (fun w ↦ UInt256.eq w (solcSelectorWord I) == ⟨0⟩) = true) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨768⟩ [solcSelectorWord I]
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨768⟩ [solcSelectorWord I]
       solcFreePtrMem (M ⟨0⟩ ⟨64⟩ ⟨32⟩) ByteArray.empty σ k C := by
   have hmiss (w : UInt256) (hw : w ∈ cometDispatchPrefixSelectors) :
       UInt256.eq w (solcSelectorWord I) = ⟨0⟩ := by
     simpa only [beq_iff_eq] using List.all_eq_true.mp hm w hw
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetList_block_0_taken
     (immWords := wordsOf (immStore v))
     (by decide) (by rw [lt_four_eq_zero_of_ge hsz hsize]; decide)

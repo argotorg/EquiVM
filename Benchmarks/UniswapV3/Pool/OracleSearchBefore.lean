@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleReadMemory
 import Benchmarks.UniswapV3.Pool.OracleSearchSource
 import Benchmarks.UniswapV3.Pool.OracleLteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -21,7 +23,7 @@ theorem oracleSearchBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p i left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret card : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20441⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20441⟩
       (oracleSearchStack i left right beforePtr afterPtr cardRaw indexRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hcard : UInt256.land cardRaw (UInt256.ofNat 65535) = card)
@@ -30,7 +32,7 @@ theorem oracleSearchBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     let before := oracleSearchBefore left right card σ ee
     let mid := oracleSearchMiddle left right
     ∃ k' C', C + 1 + (Cₘ (oracleReadFullAw mem aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if before.initialized then ⟨20581⟩ else ⟨20441⟩)
+      RD fork (deployedRuntime v) ee g s0 (if before.initialized then ⟨20581⟩ else ⟨20441⟩)
         (oracleSearchStack mid (if before.initialized then left else mid + ⟨1⟩) right p afterPtr
           cardRaw indexRaw targetRaw timeRaw ret R)
         (wordArrayAllocMem mem p before.words) (oracleReadFullAw mem aw p) rdata σ k' C' := by
@@ -45,7 +47,7 @@ theorem oracleSearchBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by evm_ov) (by rw [ult_one hbound]; decide)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rdMod
   obtain ⟨kh, Ch, hCh, rdHead⟩ := oracleReadHeadX (v := v) false rdRead hm hb (by evm_ov)
-  change RD _ _ _ _ ⟨20560⟩
+  change RD fork _ _ _ _ ⟨20560⟩
     (p :: ⟨96⟩ :: (if (oracleSearchBefore left right card σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
       p :: oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
         cardRaw indexRaw targetRaw timeRaw ret R)
@@ -66,7 +68,7 @@ theorem oracleSearchBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       omega
     · simp only [uniswapV3Pool_block_20560_taken_memory] at r
       rw [show (p + (⟨96⟩ : UInt256)).toNat = p.toNat + 96 from hp96] at r
-      change RD _ _ _ _ _ _
+      change RD fork _ _ _ _ _ _
         (writeWord (observationReadHeadMem mem p _) (p.toNat + 96) _) _ _ _ _ _ at r
       rw [observationReadHeadMem_write] at r
       simpa only [oracleSearchStack, uniswapV3Pool_block_20560_taken_stack,
@@ -86,7 +88,7 @@ theorem oracleSearchBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       omega
     · simp only [uniswapV3Pool_block_20560_fallthrough_memory] at r'
       rw [show (p + (⟨96⟩ : UInt256)).toNat = p.toNat + 96 from hp96] at r'
-      change RD _ _ _ _ _ _
+      change RD fork _ _ _ _ _ _
         (writeWord (observationReadHeadMem mem p _) (p.toNat + 96) _) _ _ _ _ _ at r'
       rw [observationReadHeadMem_write] at r'
       simpa only [oracleSearchStack, uniswapV3Pool_block_20571_stack,

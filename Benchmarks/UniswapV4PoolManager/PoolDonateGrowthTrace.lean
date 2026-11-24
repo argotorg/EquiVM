@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolDonateModel
 import Benchmarks.UniswapV4PoolManager.PoolDonateStatic
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,11 +13,11 @@ theorem poolDonateGrowth0Trace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id hook key src amount0 amount1 len liquidity junk : UInt256}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨10246⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10246⟩
       (amount1 :: UInt256.sub ⟨0⟩ amount0 :: liquidity :: id :: hook :: key :: src :: amount1 ::
         amount0 :: len :: poolSlot id :: ⟨32⟩ :: junk :: R) mem aw rdata evm.accountMap k C) :
-    if amount0 ≠ ⟨0⟩ ∧ I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨10278⟩
+    if amount0 ≠ ⟨0⟩ ∧ I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨10278⟩
         (poolSlot id :: liquidity :: id :: hook :: key :: src :: amount1 :: amount0 :: len ::
           poolDonateDelta amount0 amount1 :: ⟨32⟩ :: junk :: R)
         mem aw rdata (poolDonateStep evm id false amount0 liquidity).accountMap k' C' := by
@@ -46,11 +48,11 @@ theorem poolDonateGrowth1Trace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id hook key src amount0 amount1 len liquidity delta junk : UInt256}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+14 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨10278⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10278⟩
       (poolSlot id :: liquidity :: id :: hook :: key :: src :: amount1 :: amount0 :: len ::
         delta :: ⟨32⟩ :: junk :: R) mem aw rdata evm.accountMap k C) :
-    if amount1 ≠ ⟨0⟩ ∧ I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ j0 j1 k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨10284⟩
+    if amount1 ≠ ⟨0⟩ ∧ I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ j0 j1 k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨10284⟩
         (j0 :: j1 :: id :: hook :: key :: src :: amount1 :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
         mem aw rdata (poolDonateStep evm id true amount1 liquidity).accountMap k' C' := by
   by_cases hz : amount1 = ⟨0⟩

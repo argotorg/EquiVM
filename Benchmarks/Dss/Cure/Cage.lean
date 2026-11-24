@@ -2,6 +2,8 @@ import Reasoning.SteleArithmetic
 import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cure.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -144,7 +146,7 @@ theorem evalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
 
 theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y sum } evm
         (some [.int (Int.ofNat sum.toNat)])) := by
@@ -181,7 +183,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
         (.binary .ge (.var "z") (.var "x")) = .ok (.bool true) :=
     evalExpr_ge_uint256_true hz hxZ (by rw [hsumNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -194,7 +196,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
 
 theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat + y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -212,7 +214,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
         (add256 (.var "x") (.var "y")) = .revert :=
     evalExpr_add256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -222,7 +224,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
 
 theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
     (hdiff : diff = UInt256.sub x y) (hle : y.toNat ≤ x.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       subFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y diff } evm
         (some [.int (Int.ofNat diff.toNat)])) := by
@@ -259,7 +261,7 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
         (.binary .le (.var "z") (.var "x")) = .ok (.bool true) :=
     evalExpr_le_uint256_true hz hxZ (by rw [hdiffNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (sub256 (.var "x") (.var "y")),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -272,7 +274,7 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
 
 theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hlt : x.toNat < y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       subFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -290,7 +292,7 @@ theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
         (sub256 (.var "x") (.var "y")) = .revert :=
     evalExpr_sub256_revert hx hy hlt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (sub256 (.var "x") (.var "y")),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -302,7 +304,7 @@ theorem cureReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 1)) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨632⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨632⟩
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x69245009⟩ :=
     cureSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
@@ -346,14 +348,14 @@ theorem cureCageSourceLiveStorePrefixSplit {σ σ₀ A I} {g : UInt256}
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmLive := Stele.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
-    (I.perm = true → ExecBlock config { contract := contract, locals := locals } evm0
+    (I.perm = true → ExecBlock fork config { contract := contract, locals := locals } evm0
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
         [ .assign .storage liveRef (.intLit 0) ])
       (.ok { contract := contract, locals := locals } evmLive)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals cageTransition.body .staticViolation) := by
+      ExecTransitionBody fork config contract evm0 locals cageTransition.body .staticViolation) := by
   intro locals evm0 evmLive
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -370,8 +372,8 @@ theorem cureCageSourceLiveStorePrefixSplit {σ σ₀ A I} {g : UInt256}
     simpa [evmLive] using
       assign_cageLiveStorage evm0 (locals := locals) (⟨0⟩ : UInt256) (by simp [locals])
   have hprefix {rest : List Stmt} {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := locals } evm0 rest result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := locals } evm0 rest result) :
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
           .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
           .require (.binary .eq (.storage liveRef) (.intLit 1)) :: rest) result := by
@@ -384,7 +386,7 @@ theorem cureCageSourceLiveStorePrefixSplit {σ σ₀ A I} {g : UInt256}
       (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
   constructor
   · intro hperm
-    exact hprefix (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hzero hassignLive) ExecBlock.nil)
+    exact hprefix (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hzero hassignLive) ExecBlock.nil)
   · intro hperm
     exact ExecFuncBody.execBlockStatic (hprefix
       (ExecBlock.consStatic (ExecStmt.assignStatic hzero hassignLive
@@ -398,7 +400,7 @@ theorem cureCageSourceLiveStorePrefix {σ σ₀ A I} {g : UInt256}
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmLive := Stele.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
-    ExecBlock config { contract := contract, locals := locals } evm0
+    ExecBlock fork config { contract := contract, locals := locals } evm0
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
@@ -482,10 +484,10 @@ theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}
     let sum := cageWhenWord σ I
     let localsWhen := locals.insert "when_" (.int (Int.ofNat sum.toNat))
     let evmWhen := Stele.EVM.storageStore evmLive I.codeOwner ⟨4⟩ sum
-    ExecTransitionBody config contract evm0 locals cageTransition.body
+    ExecTransitionBody fork config contract evm0 locals cageTransition.body
       (.returned { contract := contract, locals := localsWhen } evmWhen none) := by
   intro locals evm0 evmLive sum localsWhen evmWhen
-  have hprefix := cureCageSourceLiveStorePrefix (hperm := hperm)
+  have hprefix := cureCageSourceLiveStorePrefix (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have htimestamp :
       evalExpr? config { contract := contract, locals := locals } evmLive (.env .timestamp) =
@@ -512,10 +514,10 @@ theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals (cageTimestampWord I) (cageWaitWord σ I)) := by
     simp [addFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall :
-      ExecStmt config { contract := contract, locals := locals } evmLive
+      ExecStmt fork config { contract := contract, locals := locals } evmLive
         (.internalCall "_add" [.env .timestamp, .storage waitRef] "when_")
         (.ok { contract := contract, locals := localsWhen } evmLive) := by
-    have hbody := execAddFunctionReturn (evm := evmLive)
+    have hbody := execAddFunctionReturn (fork := fork) (evm := evmLive)
       (x := cageTimestampWord I) (y := cageWaitWord σ I) (sum := sum)
       (by simp [sum, cageWhenWord]) hfit
     simpa [locals, localsWhen, sum, resumeAfterInternalCall] using
@@ -550,14 +552,14 @@ theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}
       assign_cageWhenStorage evmLive (locals := localsWhen) sum
       hbaseWhen
   have htail :
-      ExecBlock config { contract := contract, locals := locals } evmLive
+      ExecBlock fork config { contract := contract, locals := locals } evmLive
         [ .internalCall "_add" [.env .timestamp, .storage waitRef] "when_",
           .assign .storage whenRef (.var "when_") ]
         (.ok { contract := contract, locals := localsWhen } evmWhen) := by
     refine ExecBlock.consNormal hcall ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmLive, storageStore_executionEnv] using hperm)) hwhenVar hassignWhen) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmLive, storageStore_executionEnv] using hperm)) hwhenVar hassignWhen) ExecBlock.nil
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 cageTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 cageTransition.body
         (.ok { contract := contract, locals := localsWhen } evmWhen) := by
     simpa [cageTransition, nonpayable, auth, evm0, evmLive] using
       execBlock_append hprefix htail
@@ -571,10 +573,10 @@ theorem cureCageSourceBodyReverts_add {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals cageTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals cageTransition.body .reverted := by
   intro locals evm0
   let evmLive := Stele.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
-  have hprefix := cureCageSourceLiveStorePrefix (hperm := hperm)
+  have hprefix := cureCageSourceLiveStorePrefix (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have htimestamp :
       evalExpr? config { contract := contract, locals := locals } evmLive (.env .timestamp) =
@@ -601,9 +603,9 @@ theorem cureCageSourceBodyReverts_add {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals (cageTimestampWord I) (cageWaitWord σ I)) := by
     simp [addFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall :
-      ExecStmt config { contract := contract, locals := locals } evmLive
+      ExecStmt fork config { contract := contract, locals := locals } evmLive
         (.internalCall "_add" [.env .timestamp, .storage waitRef] "when_") .reverted := by
-    have hbody := execAddFunctionRevert (evm := evmLive)
+    have hbody := execAddFunctionRevert (fork := fork) (evm := evmLive)
       (x := cageTimestampWord I) (y := cageWaitWord σ I) hover
     exact internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := locals })
@@ -615,12 +617,12 @@ theorem cureCageSourceBodyReverts_add {σ σ₀ A I} {g : UInt256}
       (locals := uintBinaryLocals (cageTimestampWord I) (cageWaitWord σ I))
       hargs (by rfl) hbind hbody
   have htail :
-      ExecBlock config { contract := contract, locals := locals } evmLive
+      ExecBlock fork config { contract := contract, locals := locals } evmLive
         [ .internalCall "_add" [.env .timestamp, .storage waitRef] "when_",
           .assign .storage whenRef (.var "when_") ] .reverted :=
     ExecBlock.consRevert hcall
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 cageTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 cageTransition.body
         .reverted := by
     simpa [cageTransition, nonpayable, auth, evm0, evmLive] using
       execBlock_append hprefix htail
@@ -645,14 +647,14 @@ theorem RD.cureCageLiveStoreSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureCageLiveStoreWf code pc)
     (hov : R.length + 3 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD code ee g s0 (cureCageLiveStoreOutPc pc) (ret :: R) mem
+      ∃ k' C', RD fork code ee g s0 (cureCageLiveStoreOutPc pc) (ret :: R) mem
         (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ ⟨1⟩ ⟨0⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with ⟨hd0, hd1, hd3, hd5⟩
   have rdPrefix := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -673,13 +675,13 @@ theorem cureCageReachAfterLiveStoreSplit {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
     (I.perm = true ∧
-      ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
+      ∃ k C, RD fork cureBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2742⟩
         [⟨484⟩, cureSelWord I]
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
         (UInt256.ofNat 3) ByteArray.empty
         (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C) ∨
-      (I.perm = false ∧ RDstatic cureBytecode (Sat256.ofUInt256 g)
+      (I.perm = false ∧ RDstatic fork cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 1) rfl hsel
@@ -730,14 +732,14 @@ abbrev cureCageEventTopic : UInt256 :=
 
 theorem RD.cureCageSuccessTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD cureBytecode I g s0 ⟨2742⟩ [⟨484⟩, sel]
+    (h : RD fork cureBytecode I g s0 ⟨2742⟩ [⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C)
     (hperm : I.perm = true)
     (hfit :
       (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat < UInt256.size) :
-    RDret cureBytecode g s0
+    RDret fork cureBytecode g s0
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩)
         ⟨4⟩ (cageWhenWord σ I))
       ByteArray.empty := by
@@ -808,13 +810,13 @@ theorem RD.cureCageSuccessTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem RD.cureCageAddRevertTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD cureBytecode I g s0 ⟨2742⟩ [⟨484⟩, sel]
+    (h : RD fork cureBytecode I g s0 ⟨2742⟩ [⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C)
     (hover : UInt256.size ≤
       (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat) :
-    RDrev cureBytecode g s0 := by
+    RDrev fork cureBytecode g s0 := by
   let mem := twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
   have hwaitLive :
       (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).get? I.codeOwner).option
@@ -869,7 +871,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let callerSlot := cureCallerWardsSlot I
   let locals : Store := ∅
@@ -919,7 +921,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         let localsWhen := locals.insert "when_" (.int (Int.ofNat sumStele.toNat))
         let evmWhen := Stele.EVM.storageStore evmLive I.codeOwner ⟨4⟩ sumStele
         have hbody :
-            ExecTransitionBody config contract evm0 locals cageTransition.body
+            ExecTransitionBody fork config contract evm0 locals cageTransition.body
               (.returned { contract := contract, locals := localsWhen } evmWhen none) := by
           simpa [locals, evm0, evmLive, sumStele, localsWhen, evmWhen] using
             cureCageSourceBodyOk (hperm := hperm) (σ := σ)
@@ -943,7 +945,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
             UInt256.size ≤ (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat :=
           Nat.le_of_not_lt hfitEvm
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hbody : ExecTransitionBody config contract evm0 locals cageTransition.body .reverted := by
+        have hbody : ExecTransitionBody fork config contract evm0 locals cageTransition.body .reverted := by
           simpa [locals, evm0] using
             cureCageSourceBodyReverts_add (hperm := hperm)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -954,7 +956,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
           (sel := sel) hafterLiveStore hoverEvm
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals cageTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals cageTransition.body .reverted := by
         have hguardAuth := cureAuthGuardEval_true
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
@@ -964,7 +966,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals]) hliveEvm
         have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
+            ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1000,12 +1002,12 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         hliveSolc hmemAuth hread64 (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals cageTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals cageTransition.body .reverted := by
       have hguard := cureAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthEvm
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))

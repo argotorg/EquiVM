@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolFeesUpdateStatic
 import Benchmarks.UniswapV4PoolManager.MappingScratchMemory
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -19,10 +21,10 @@ theorem protocolFeesUpdateTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x16 : UInt256}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I) (hperm : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨2003⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2003⟩
       ([accountWord currency, amount, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11,
         x12, x13, x14, UInt256.ofNat 32, x16]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨1766⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨1766⟩
       ([x16, x16, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14,
         UInt256.ofNat 32, x16]++R)
       (protocolFeesUpdateMemory mem currency) (protocolFeesUpdateAW aw) rdata
@@ -40,7 +42,7 @@ theorem protocolFeesUpdateTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_2003_stack,
     poolManagerBlocks.poolManager_block_2003_memory, hclean] at rd
-  change RD _ _ _ _ ⟨1766⟩ _ (protocolFeesUpdateMemory mem currency) _ _
+  change RD fork _ _ _ _ ⟨1766⟩ _ (protocolFeesUpdateMemory mem currency) _ _
     (sstoreAccountMap I.codeOwner evm.accountMap
       (keccakWord ⟨0⟩ (UInt256.ofNat 64) (protocolFeesUpdateMemory mem currency))
       ((evm.accountMap.get? I.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD

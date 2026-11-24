@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.HealSuccess
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -22,7 +24,7 @@ theorem vowHealSourceHealNoCode
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -36,7 +38,7 @@ theorem vowHealSourceHealNoCode
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -59,7 +61,7 @@ theorem vowHealSourceHealNoCode
           0) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
   let locals2 := healLocalsVatDaiVatSin I vatDai vatSin
@@ -80,7 +82,7 @@ theorem vowHealSourceHealNoCode
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmDai) := by
@@ -119,7 +121,7 @@ theorem vowHealSourceHealNoCode
       simpa [evm0] using typedCallViaEVM_executionEnv_eq hcallDai
     simpa [locals1, henvDai, evm0, initState] using evalExprs_kissThis evmDai locals1
   have hcallSinStmt :
-      ExecStmt config { contract := contract, locals := locals1 } evmDai
+      ExecStmt fork config { contract := contract, locals := locals1 } evmDai
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         (.ok { contract := contract, locals := locals2 } evmSin) := by
@@ -151,10 +153,10 @@ theorem vowHealSourceHealNoCode
         some (uintBinaryLocals vatSin SinVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hfreeStmt :
-      ExecStmt config { contract := contract, locals := locals2 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
         (.ok { contract := contract, locals := locals3 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := vatSin) (y := SinVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := vatSin) (y := SinVal)
       (diff := freeSin) hfree hfreeOk
     simpa [locals2, locals3, healLocalsVatDaiVatSinFreeSin, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -191,10 +193,10 @@ theorem vowHealSourceHealNoCode
         some (uintBinaryLocals freeSin AshVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hdebtStmt :
-      ExecStmt config { contract := contract, locals := locals3 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")
         (.ok { contract := contract, locals := locals4 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := freeSin) (y := AshVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := freeSin) (y := AshVal)
       (diff := healDebt) hdebt hdebtOk
     simpa [locals3, locals4, healLocalsVatDaiVatSinFreeSinHealDebt,
       resumeAfterInternalCall] using
@@ -238,7 +240,7 @@ theorem vowHealSourceHealNoCode
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_kissVatCodeGuard_false hvatHeal hvatNoCodeHeal
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -263,7 +265,7 @@ theorem vowHealHealNoCodeBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd4997 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4997 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) outSin acc k C)
     (hmem : mem.size = 164)
@@ -276,7 +278,7 @@ theorem vowHealHealNoCodeBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -291,7 +293,7 @@ theorem vowHealHealNoCodeBodyCore
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -314,7 +316,7 @@ theorem vowHealHealNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowHealHealNoCode rd4997 hmem hread64 hcodeSizeEvm
   have hbody := vowHealSourceHealNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -336,7 +338,7 @@ theorem vowHealSourceHealCallFailure
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -350,7 +352,7 @@ theorem vowHealSourceHealCallFailure
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -371,11 +373,11 @@ theorem vowHealSourceHealCallFailure
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (false, evmHeal, outHeal) true) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
   let locals2 := healLocalsVatDaiVatSin I vatDai vatSin
@@ -396,7 +398,7 @@ theorem vowHealSourceHealCallFailure
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmDai) := by
@@ -435,7 +437,7 @@ theorem vowHealSourceHealCallFailure
       simpa [evm0] using typedCallViaEVM_executionEnv_eq hcallDai
     simpa [locals1, henvDai, evm0, initState] using evalExprs_kissThis evmDai locals1
   have hcallSinStmt :
-      ExecStmt config { contract := contract, locals := locals1 } evmDai
+      ExecStmt fork config { contract := contract, locals := locals1 } evmDai
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         (.ok { contract := contract, locals := locals2 } evmSin) := by
@@ -467,10 +469,10 @@ theorem vowHealSourceHealCallFailure
         some (uintBinaryLocals vatSin SinVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hfreeStmt :
-      ExecStmt config { contract := contract, locals := locals2 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
         (.ok { contract := contract, locals := locals3 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := vatSin) (y := SinVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := vatSin) (y := SinVal)
       (diff := freeSin) hfree hfreeOk
     simpa [locals2, locals3, healLocalsVatDaiVatSinFreeSin, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -507,10 +509,10 @@ theorem vowHealSourceHealCallFailure
         some (uintBinaryLocals freeSin AshVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hdebtStmt :
-      ExecStmt config { contract := contract, locals := locals3 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")
         (.ok { contract := contract, locals := locals4 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := freeSin) (y := AshVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := freeSin) (y := AshVal)
       (diff := healDebt) hdebt hdebtOk
     simpa [locals3, locals4, healLocalsVatDaiVatSinFreeSinHealDebt,
       resumeAfterInternalCall] using
@@ -561,12 +563,12 @@ theorem vowHealSourceHealCallFailure
         (locals := healLocalsVatDaiVatSinFreeSinHealDebt I vatDai vatSin freeSin healDebt)
         (healLocalsVatDaiVatSinFreeSinHealDebt_get_rad I vatDai vatSin freeSin healDebt)
   have hcallHealStmt :
-      ExecStmt config { contract := contract, locals := locals4 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals4 } evmSin
         (.externalCall (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvatHeal (by simp [evalExpr?, pure]) hargsHeal hcallHeal
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -593,7 +595,7 @@ theorem vowHealSourceSuccess
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -607,7 +609,7 @@ theorem vowHealSourceSuccess
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -628,12 +630,12 @@ theorem vowHealSourceSuccess
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some []) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body
+    ExecTransitionBody fork config contract evm0 locals healTransition.body
       (.returned
         { contract := contract, locals := healLocalsDone I vatDai vatSin freeSin healDebt }
         evmHeal none) := by
@@ -657,7 +659,7 @@ theorem vowHealSourceSuccess
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmDai) := by
@@ -696,7 +698,7 @@ theorem vowHealSourceSuccess
       simpa [evm0] using typedCallViaEVM_executionEnv_eq hcallDai
     simpa [locals1, henvDai, evm0, initState] using evalExprs_kissThis evmDai locals1
   have hcallSinStmt :
-      ExecStmt config { contract := contract, locals := locals1 } evmDai
+      ExecStmt fork config { contract := contract, locals := locals1 } evmDai
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         (.ok { contract := contract, locals := locals2 } evmSin) := by
@@ -728,10 +730,10 @@ theorem vowHealSourceSuccess
         some (uintBinaryLocals vatSin SinVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hfreeStmt :
-      ExecStmt config { contract := contract, locals := locals2 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
         (.ok { contract := contract, locals := locals3 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := vatSin) (y := SinVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := vatSin) (y := SinVal)
       (diff := freeSin) hfree hfreeOk
     simpa [locals2, locals3, healLocalsVatDaiVatSinFreeSin, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -768,10 +770,10 @@ theorem vowHealSourceSuccess
         some (uintBinaryLocals freeSin AshVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hdebtStmt :
-      ExecStmt config { contract := contract, locals := locals3 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")
         (.ok { contract := contract, locals := locals4 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := freeSin) (y := AshVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := freeSin) (y := AshVal)
       (diff := healDebt) hdebt hdebtOk
     simpa [locals3, locals4, healLocalsVatDaiVatSinFreeSinHealDebt,
       resumeAfterInternalCall] using
@@ -822,7 +824,7 @@ theorem vowHealSourceSuccess
         (locals := healLocalsVatDaiVatSinFreeSinHealDebt I vatDai vatSin freeSin healDebt)
         (healLocalsVatDaiVatSinFreeSinHealDebt_get_rad I vatDai vatSin freeSin healDebt)
   have hcallHealStmt :
-      ExecStmt config { contract := contract, locals := locals4 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals4 } evmSin
         (.externalCall (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet")
         (.ok
           { contract := contract, locals := healLocalsDone I vatDai vatSin freeSin healDebt }
@@ -831,7 +833,7 @@ theorem vowHealSourceSuccess
       ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvatHeal (by simp [evalExpr?, pure]) hargsHeal hcallHeal
         hdecHeal
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         (.ok
           { contract := contract, locals := healLocalsDone I vatDai vatSin freeSin healDebt }
           evmHeal) := by
@@ -860,7 +862,7 @@ theorem vowHealHealCallFailureBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd1919 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1919 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
       (⟨0⟩ :: kissHealEndPtr :: kissHealSelector :: target ::
         healRad I :: ⟨412⟩ :: sel :: [])
@@ -871,7 +873,7 @@ theorem vowHealHealCallFailureBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -886,7 +888,7 @@ theorem vowHealHealCallFailureBodyCore
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -910,9 +912,9 @@ theorem vowHealHealCallFailureBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (false, evmHeal, outHeal) true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowKissHealCallFailure (by simpa [kissRad] using rd1919) hrdataSize
   have hbody := vowHealSourceHealCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -935,7 +937,7 @@ theorem vowHealHealSuccessBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd1919 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1919 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target ::
         healRad I :: ⟨412⟩ :: sel :: [])
@@ -945,7 +947,7 @@ theorem vowHealHealSuccessBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -960,7 +962,7 @@ theorem vowHealHealSuccessBodyCore
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -984,11 +986,11 @@ theorem vowHealHealSuccessBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some [])
     (hAccountsFinal : Eq acc evmHeal.accountMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hret := RD.vowKissHealCallSuccess (by simpa [kissRad] using rd1919)
   have hbody := vowHealSourceSuccess
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

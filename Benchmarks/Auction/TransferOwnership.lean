@@ -3,6 +3,8 @@ import Benchmarks.Auction.AddressDecoder
 import Benchmarks.Auction.AddressSource
 import Benchmarks.Auction.ErrorMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -13,7 +15,7 @@ theorem transferOwnershipBodySplit (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hc : value.toNat < EVM.addressModulus) (hz : value ≠ ⟨0⟩) :
-    (evm.executionEnv.perm = true → ExecTransitionBody auctionConfig auctionContract evm
+    (evm.executionEnv.perm = true → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "newOwner" (.address (AccountAddress.ofNat value.toNat)))
       transferOwnershipTransition.body
       (.returned
@@ -22,7 +24,7 @@ theorem transferOwnershipBodySplit (evm : EVM.State) (value : UInt256)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨151⟩
           (setAddressOffset0Word
             (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) value)) none)) ∧
-      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm
+      (evm.executionEnv.perm = false → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "newOwner" (.address (AccountAddress.ofNat value.toNat)))
       transferOwnershipTransition.body .staticViolation) := by
   let locals := (∅ : Store).insert "newOwner" (.address (AccountAddress.ofNat value.toNat))
@@ -31,9 +33,9 @@ theorem transferOwnershipBodySplit (evm : EVM.State) (value : UInt256)
     simp [locals, evalExpr?, EvalResult.ofOption]
   have hassign := assignOwner evm locals value (by simp [locals]) hc
   have hprefix {result : ExecResult}
-      (htail : ExecBlock auctionConfig { contract := auctionContract, locals := locals }
+      (htail : ExecBlock fork auctionConfig { contract := auctionContract, locals := locals }
         evm (transferOwnershipTransition.body.drop 3) result) :
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals }
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals }
         evm transferOwnershipTransition.body result := by
     apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
     apply ExecBlock.consNormal (ExecStmt.requireTrue (evalOwnerEq_true evm _ (by simp [locals]) ho))
@@ -53,7 +55,7 @@ theorem transferOwnershipBody (evm : EVM.State) (value : UInt256)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hc : value.toNat < EVM.addressModulus) (hz : value ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody auctionConfig auctionContract evm
+    ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "newOwner" (.address (AccountAddress.ofNat value.toNat)))
       transferOwnershipTransition.body
       (.returned
@@ -68,7 +70,7 @@ theorem transferOwnershipZeroBodyReverts (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hz : value = ⟨0⟩) :
-    ExecTransitionBody auctionConfig auctionContract evm
+    ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "newOwner" (.address (AccountAddress.ofNat value.toNat)))
       transferOwnershipTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
@@ -78,15 +80,15 @@ theorem transferOwnershipZeroBodyReverts (evm : EVM.State) (value : UInt256)
       (by simp [evalExpr?, EvalResult.ofOption]) (by rw [hz]; rfl))
 
 theorem transferOwnershipNonzeroXSplit {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2740⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2740⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hc : value.toNat < EVM.addressModulus) (hz : value ≠ ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
         rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
           (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have rd2841 := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push2 ⟨2841⟩, jumpiT (by
@@ -100,11 +102,11 @@ theorem transferOwnershipNonzeroXSplit {I g s0 value ret R rdata σ k C}
   exact ⟨_, _, evm_run rd2850 with [jumpdest, pop, jump hret]⟩
 
 theorem transferOwnershipNonzeroX {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2740⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2740⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hc : value.toNat < EVM.addressModulus) (hz : value ≠ ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
       rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
         (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' :=
   permSplit_true hperm (transferOwnershipNonzeroXSplit h hc hz hret hov)
@@ -115,9 +117,9 @@ def zeroOwnerErrorFirst : UInt256 :=
 def zeroOwnerErrorSecond : UInt256 := UInt256.shiftLeft ⟨0x646472657373⟩ ⟨208⟩
 
 theorem transferOwnershipZeroX {I g s0 value R rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨2740⟩ (value :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2740⟩ (value :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
-    (hz : value = ⟨0⟩) (hov : R.length + 7 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hz : value = ⟨0⟩) (hov : R.length + 7 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd2755 := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push2 ⟨2841⟩, jumpiNT (by rw [hz]; decide) ]
@@ -160,8 +162,8 @@ theorem transferOwnershipZeroX {I g s0 value R rdata acc k C}
 theorem transferOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 19))
-    (hreach : EntryReached 19 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 19 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 19 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 19) (entryBytes_size 19) hsel
@@ -184,7 +186,7 @@ theorem transferOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
           by_cases ho : solcSourceWord I = ownerWord σ I
           · obtain ⟨_, _, rd2740⟩ := ownerAllowed 6 rd2698 ho (by evm_ov)
             by_cases hz : calldataWord I.calldata 4 = ⟨0⟩
-            · have hbody := transferOwnershipZeroBodyReverts
+            · have hbody := transferOwnershipZeroBodyReverts (fork := fork)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (calldataWord I.calldata 4) hwv ho hz
               exact (transferOwnershipZeroX rd2740 hz (by evm_ov)).reEquivExecutionRevert
@@ -197,7 +199,7 @@ theorem transferOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
                   ((transferOwnershipBodySplit
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (calldataWord I.calldata 4) hwv ho hc hz).2 hperm)
-              have hbody := transferOwnershipBody (hperm := _hperm)
+              have hbody := transferOwnershipBody (fork := fork) (hperm := _hperm)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (calldataWord I.calldata 4) hwv ho hc hz
               exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
@@ -205,7 +207,7 @@ theorem transferOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
                   rw [storageStore_accountMap]
                   rfl)
                 (.fallthrough rfl rfl (by native_decide))
-          · have hbody : ExecTransitionBody auctionConfig auctionContract
+          · have hbody : ExecTransitionBody fork auctionConfig auctionContract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 ((∅ : Store).insert "newOwner"
                   (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)))

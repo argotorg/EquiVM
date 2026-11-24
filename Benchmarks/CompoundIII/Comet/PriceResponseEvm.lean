@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.MemoryAllocate
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,8 +17,8 @@ theorem cometPriceCallFailed {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9411⟩ (⟨0⟩ :: ptr :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9411⟩ (⟨0⟩ :: ptr :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9411_taken
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 4 ≤ 1024; omega)
     (by decide) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -31,9 +33,9 @@ theorem cometPriceResponseStart {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9411⟩ (⟨1⟩ :: ptr :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9411⟩ (⟨1⟩ :: ptr :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
       mem aw out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9411_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 4 ≤ 1024; omega)
@@ -48,8 +50,8 @@ theorem cometPriceResponseShort {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hptr : ptr.toNat + 160 < 2^64)
     (hshort : out.size < 160)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hsize : out.size < UInt256.size := by change out.size < 2^256; omega
   have r1 := cometWithExtendedAssetList_block_9457_taken
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 6 ≤ 1024; omega)
@@ -77,9 +79,9 @@ theorem cometPriceResponseFull {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hptr : ptr.toNat + 160 < 2^64)
     (hout : 160 ≤ out.size) (hhi : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9457⟩ (ptr :: ⟨0⟩ :: ret :: R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨9491⟩ (⟨0⟩ :: ptr :: ret :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨9491⟩ (⟨0⟩ :: ptr :: ret :: R)
       (writeWord mem 64 (ptr + ⟨160⟩)) aw' out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9457_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 6 ≤ 1024; omega)
@@ -103,12 +105,12 @@ theorem cometPriceResponse {v : CometWithExtendedAssetListImmutables}
     (hgap : ptr.toNat ≤ mem.size + 32) (hptr : ptr.toNat + 160 < 2^64)
     (hhi : out.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9411⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9411⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: ret :: R)
       (priceCopyMemory mem ptr out) aw out σ k C) :
     if z = true ∧ PriceValid out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
         (priceReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases z with
   | false =>
       rw [if_neg (by simp)]

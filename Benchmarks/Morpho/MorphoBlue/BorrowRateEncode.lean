@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.MarketParamsMemory
 import Benchmarks.Morpho.MorphoBlue.MarketStateCommon
 import Benchmarks.Morpho.MorphoBlue.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -69,9 +71,9 @@ theorem morphoBorrowRateArguments {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     (hgap : dest.toNat + 160 - mem.size < USize.size)
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12367)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12367)
       (dest :: src :: solcMappingSlot ⟨3⟩ id :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret ((dest + UInt256.ofNat 352) :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret ((dest + UInt256.ofNat 352) :: R)
       (writeCascade mem (returnWordWrites dest.toNat (p.toList ++ marketStateWords σ ee id)))
       aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_12367_packed

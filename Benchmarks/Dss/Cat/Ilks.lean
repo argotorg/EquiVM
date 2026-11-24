@@ -2,6 +2,8 @@ import Reasoning.ABIViews
 import Benchmarks.Dss.Cat.Common
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -294,12 +296,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catIlksStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) ::
         UInt256.land (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key)) solcAddrMask ::
@@ -430,7 +432,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc first second third ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (third :: second :: first :: ret :: R)
+    (h : RD fork code ee g s0 pc (third :: second :: first :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : catIlksReturnFromMemWf code pc)
     (hmload64 :
@@ -441,7 +443,7 @@ theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 10 ≤ 1024) :
-    RDret code g s0 acc
+    RDret fork code g s0 acc
       (UInt256.toByteArray (UInt256.land first solcAddrMask) ++
         UInt256.toByteArray second ++ UInt256.toByteArray third) := by
   rcases hwf with
@@ -528,7 +530,7 @@ theorem catReachIlksBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨635⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨3647180086⟩ :=
@@ -555,7 +557,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = (∅ : Store).insert "arg0" (ilksArgValue I)) :
-    ExecTransitionBody config contract evm locals ilksTransition.body
+    ExecTransitionBody fork config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
               (UInt256.land (solcSlotWordAt (ilksFlipSlotFor I) evm.accountMap evm.executionEnv)
@@ -664,10 +666,10 @@ theorem catIlksBodyCoreOk
       config.externalABI.decodeCalldata? (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (ilksArgValue I)))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let flipSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let chopSlot := flipSlot + ⟨1⟩
   let dunkSlot := flipSlot + ⟨2⟩
@@ -682,7 +684,7 @@ theorem catIlksBodyCoreOk
   have hdunkSlot : ilksDunkSlotFor I = dunkSlot := by
     simp [dunkSlot, flipSlot, ilksDunkSlotFor_eq hsz36]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -702,7 +704,7 @@ theorem catIlksBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have htoRoutine : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+  have htoRoutine : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3215⟩
       (ilksArgWord I :: ⟨664⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -722,7 +724,7 @@ theorem catIlksBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret catBytecode (Sat256.ofUInt256 g)
+      RDret fork catBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (UInt256.land flipWord solcAddrMask) ++
           UInt256.toByteArray chopWord ++ UInt256.toByteArray dunkWord) := by
@@ -776,10 +778,10 @@ theorem catIlksBodyCoreDecodeFailed_short
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -801,12 +803,12 @@ theorem catIlksBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     catDispatch_ilks hsel
-  have hreach := catReachIlksBody (σ := σ)
+  have hreach := catReachIlksBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

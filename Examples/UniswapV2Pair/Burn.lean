@@ -8,6 +8,8 @@ import Examples.UniswapV2Pair.SafeTransferFinalMemory
 import Examples.UniswapV2Pair.BurnTransfersSource
 import Examples.UniswapV2Pair.BurnSecondBalanceRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -19,7 +21,7 @@ theorem uniswapBurnBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
@@ -32,7 +34,7 @@ theorem uniswapBurnBody
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=
         calldata_size_ge_of_selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ rfl hsel
-      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      have hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
           [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k C :=
@@ -65,7 +67,7 @@ theorem uniswapBurnBody
       by_cases hnoCode : extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
             (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) = ⟨0⟩
-      · have hbody := uniswapBurnBodyReverts_firstNoCode (hperm := hperm) evmS I
+      · have hbody := uniswapBurnBodyReverts_firstNoCode (fork := fork) (hperm := hperm) evmS I
           (by simpa only [evmS, initState] using hwv) hunlockedStele
           (by simpa only [hnoCode] using hguard)
         exact (uniswapBurnRuntimeFirstBalanceOfMissingCodeReverts rd4267 hnoCode
@@ -93,20 +95,20 @@ theorem uniswapBurnBody
               (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
                 storageStore_σ0, evmS, initState])
               he hdepth (balanceOfThisCalldataMem_encode I.codeOwner) hΘ
-          have hcall : typedCallViaEVM config evmL
+          have hcall : typedCallViaEVM fork config evmL
               (EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)) "balanceOf" 0
               [.address evmL.executionEnv.codeOwner] (z, evm0, out) false := by
             rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost he]
             exact hcallRaw
           cases hz : z with
           | false =>
-            have hfirst := checkedExternalCallFailure (hperm := Or.inl rfl) (retVar := "balance0")
+            have hfirst := checkedExternalCallFailure (fork := fork) (hperm := Or.inl rfl) (retVar := "balance0")
               hguard hreceiver hargs (by simpa only [hz] using hcall)
             exact (hrev hz).reEquivExecutionRevert hcode hdispatch (uniswapDecode_burn_ok hsz36)
-              (uniswapBurnBodyReverts_firstBalanceBlock (hperm := hperm) evmS I
+              (uniswapBurnBodyReverts_firstBalanceBlock (fork := fork) (hperm := hperm) evmS I
                 (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst)
           | true =>
-            have hcall0 : typedCallViaEVM config evmL
+            have hcall0 : typedCallViaEVM fork config evmL
                 (EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)) "balanceOf" 0
                 [.address evmL.executionEnv.codeOwner] (true, evm0, out) false := by
               simpa only [hz] using hcall
@@ -115,11 +117,11 @@ theorem uniswapBurnBody
                 change uniswapExternalABI.decode? "balanceOf" out = none
                 simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
                   decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out) hshort
-              have hfirst := checkedExternalCallDecodeRevert (hperm := Or.inl rfl) (retVar := "balance0")
+              have hfirst := checkedExternalCallDecodeRevert (fork := fork) (hperm := Or.inl rfl) (retVar := "balance0")
                 hguard hreceiver hargs hcall0 hdec
               exact (hshortRev hz hshort).reEquivExecutionRevert hcode hdispatch
                 (uniswapDecode_burn_ok hsz36)
-                (uniswapBurnBodyReverts_firstBalanceBlock (hperm := hperm) evmS I
+                (uniswapBurnBodyReverts_firstBalanceBlock (fork := fork) (hperm := hperm) evmS I
                   (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst)
             · have hout32 : 32 ≤ out.size := by omega
               obtain ⟨_, _, rd4324⟩ := hcont hz hout32
@@ -128,7 +130,7 @@ theorem uniswapBurnBody
                 (solcSlotWordAt ⟨7⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
               have hdec0 : config.externalABI.decode? "balanceOf" out =
                   some [uniswapUint256Value balance0] := uniswapBalanceOfDecode_ok hout32
-              have hfirst : ExecBlock config { contract := contract, locals := locals } evmL
+              have hfirst : ExecBlock fork config { contract := contract, locals := locals } evmL
                   (balanceOfThisStmts (.var "_token0") "balance0")
                   (.ok { contract := contract, locals := burnBalance0Store evmL I balance0 } evm0) :=
                 checkedExternalCallSuccess (hperm := Or.inl rfl) (value := [uniswapUint256Value balance0])
@@ -152,13 +154,13 @@ theorem uniswapBurnBody
               have hguard1 := evalExpr_uniswap_codeGuard ha0.symm haddr1 hreceiver1
               have hargs1 := evalExprs_uniswap_this_single evm0 (burnBalance0Store evmL I balance0)
               by_cases hnoCode1 : extCodeSizeWord σ0 token1 = ⟨0⟩
-              · have hsecond := checkedExternalCallVarNoCode (retVar := "balance1")
+              · have hsecond := checkedExternalCallVarNoCode (fork := fork) (retVar := "balance1")
                   (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
                   (by simpa only [hnoCode1] using hguard1)
                 exact (uniswapBurnRuntimeSecondBalanceOfMissingCodeReverts rd4387 hnoCode1
                   (by simp only [List.length_cons, List.length_nil]; omega)).reEquivExecutionRevert
                     hcode hdispatch (uniswapDecode_burn_ok hsz36)
-                    (uniswapBurnBodyReverts_secondBalanceBlock (hperm := hperm) evmS evm0 I balance0
+                    (uniswapBurnBodyReverts_secondBalanceBlock (fork := fork) (hperm := hperm) evmS evm0 I balance0
                       (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst hsecond)
               · have hpos1 : 0 < (extCodeSizeWord σ0 token1).toNat :=
                   Nat.pos_of_ne_zero (fun hz => hnoCode1 (uint256_toNat_eq_zero hz))
@@ -177,20 +179,20 @@ theorem uniswapBurnBody
                     ha0.symm hs0 he0I hdepth
                     (balanceOfThisRebuiltCalldataMem_encode I.codeOwner out hout32 houtSize)
                     (by simpa [hσ0L, initState] using hΘ1)
-                have hcall1 : typedCallViaEVM config evm0
+                have hcall1 : typedCallViaEVM fork config evm0
                     (EVM.address (uniswapAddressAtSlot evmL ⟨7⟩)) "balanceOf" 0
                     [.address evm0.executionEnv.codeOwner] (z1, evm1, out1) false := by
                   rw [address_of_val, haddr1]
                   exact hcallRaw1
                 cases hz1 : z1 with
                 | false =>
-                  have hsecond := checkedExternalCallFailure (hperm := Or.inl rfl) (retVar := "balance1")
+                  have hsecond := checkedExternalCallFailure (fork := fork) (hperm := Or.inl rfl) (retVar := "balance1")
                     hguard1 hreceiver1 hargs1 (by simpa only [hz1] using hcall1)
                   exact (hrev1 hz1).reEquivExecutionRevert hcode hdispatch (uniswapDecode_burn_ok hsz36)
-                    (uniswapBurnBodyReverts_secondBalanceBlock (hperm := hperm) evmS evm0 I balance0
+                    (uniswapBurnBodyReverts_secondBalanceBlock (fork := fork) (hperm := hperm) evmS evm0 I balance0
                       (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst hsecond)
                 | true =>
-                  have hcall1True : typedCallViaEVM config evm0
+                  have hcall1True : typedCallViaEVM fork config evm0
                       (EVM.address (uniswapAddressAtSlot evmL ⟨7⟩)) "balanceOf" 0
                       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false := by
                     simpa only [hz1] using hcall1
@@ -199,24 +201,24 @@ theorem uniswapBurnBody
                       change uniswapExternalABI.decode? "balanceOf" out1 = none
                       simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
                         decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out1) hshort1
-                    have hsecond := checkedExternalCallDecodeRevert (hperm := Or.inl rfl) (retVar := "balance1")
+                    have hsecond := checkedExternalCallDecodeRevert (fork := fork) (hperm := Or.inl rfl) (retVar := "balance1")
                       hguard1 hreceiver1 hargs1 hcall1True hdec
                     exact (hshortRev1 hz1 hshort1).reEquivExecutionRevert hcode hdispatch
                       (uniswapDecode_burn_ok hsz36)
-                      (uniswapBurnBodyReverts_secondBalanceBlock (hperm := hperm) evmS evm0 I balance0
+                      (uniswapBurnBodyReverts_secondBalanceBlock (fork := fork) (hperm := hperm) evmS evm0 I balance0
                         (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst hsecond)
                   · have hout132 : 32 ≤ out1.size := by omega
                     obtain ⟨_, _, rd4444⟩ := hcont1 hz1 hout132
                     let balance1 := UInt256.ofNat (fromByteArrayBigEndian (out1.extract 0 32))
                     have hdec1 : config.externalABI.decode? "balanceOf" out1 =
                         some [uniswapUint256Value balance1] := uniswapBalanceOfDecode_ok hout132
-                    have hsecond : ExecBlock config
+                    have hsecond : ExecBlock fork config
                         { contract := contract, locals := burnBalance0Store evmL I balance0 }
                         evm0 (balanceOfThisStmts (.var "_token1") "balance1")
                         (.ok { contract := contract, locals := burnBalanceStore evmL I balance0 balance1 } evm1) :=
                       checkedExternalCallSuccess (hperm := Or.inl rfl) (value := [uniswapUint256Value balance1])
                         (retVar := "balance1") hguard1 hreceiver1 hargs1 hcall1True hdec1
-                    have hprefix := uniswapBurnBeforeFeePrefix (hperm := hperm) evmS evm0 evm1 I balance0 balance1
+                    have hprefix := uniswapBurnBeforeFeePrefix (fork := fork) (hperm := hperm) evmS evm0 evm1 I balance0 balance1
                       (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst hsecond
                     have he1I := he1.trans he0I
                     have hbaseSize := balanceOfThisRebuiltStaticcallMem_size_of_size_ge
@@ -497,19 +499,19 @@ theorem uniswapBurnBody
                                       (returnEquiv.returned rfl (uniswapUint256PairReturnEncoding _ _))
         · have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
           let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
-          have hcall : typedCallViaEVM config evmL target "balanceOf" 0
+          have hcall : typedCallViaEVM fork config evmL target "balanceOf" 0
               [.address evmL.executionEnv.codeOwner]
-              (false, { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork
+              (false, { evmL with substate := (Ethereum.EVM.callSubstate fork
                 evmL.accountMap target evmL.substate) },
                 ByteArray.empty) false :=
             callNotMade_depthLimit (balanceOfThisCalldataMem_encode evmL.executionEnv.codeOwner)
               (by simpa only [evmL, he] using hdepth1024)
-          have hfirst := checkedExternalCallFailure (hperm := Or.inl rfl) (retVar := "balance0")
+          have hfirst := checkedExternalCallFailure (fork := fork) (hperm := Or.inl rfl) (retVar := "balance0")
             hguard hreceiver hargs hcall
           exact (uniswapBurnRuntimeFirstBalanceOfDepthReverts rd4267 hdepth1024 hnoCode
             (by simp only [List.length_cons, List.length_nil]; omega)).reEquivExecutionRevert
               hcode hdispatch (uniswapDecode_burn_ok hsz36)
-              (uniswapBurnBodyReverts_firstBalanceBlock (hperm := hperm) evmS I
+              (uniswapBurnBodyReverts_firstBalanceBlock (fork := fork) (hperm := hperm) evmS I
                 (by simpa only [evmS, initState] using hwv) hunlockedStele hfirst)
   · exact uniswapBurnBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
@@ -520,7 +522,7 @@ theorem uniswapBurnBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapBurnBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
@@ -536,7 +538,7 @@ theorem uniswapBurnBodyAnyPerm
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=
         calldata_size_ge_of_selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ rfl hsel
-      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      have hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
           [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k C :=

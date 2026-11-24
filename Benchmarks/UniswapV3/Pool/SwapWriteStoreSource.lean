@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapWriteCall
 import Benchmarks.UniswapV3.Pool.SwapSlotStorage
 import Benchmarks.UniswapV3.Pool.SourceTuples
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -61,39 +63,39 @@ theorem swapWriteStoresSource {frame : Frame} {evm : EVM.State}
     (hr : frame.locals.get? "__c16" = some (.tuple
       [.int (Int.ofNat index.toNat), .int (Int.ofNat cardinality.toNat)]))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm (swapWriteBody.drop 1)
+    ExecBlock fork config frame evm (swapWriteBody.drop 1)
       (.ok (swapWriteStoreFrame frame s index cardinality)
         (swapSlotFieldsState evm s.price (EVM.wordOfInt s.tick) index cardinality)) := by
-  have h1 : ExecStmt config frame evm swapWriteBody[1]!
+  have h1 : ExecStmt fork config frame evm swapWriteBody[1]!
       (.ok (swapWriteIndexFrame frame index) evm) :=
     ExecStmt.letDecl (evalExpr_tupleGet (evalExpr_var_get hr) rfl)
   have hr1 : (swapWriteIndexFrame frame index).locals.get? "__c16" = some (.tuple
       [.int (Int.ofNat index.toNat), .int (Int.ofNat cardinality.toNat)]) := by
     swap_write_temp_get
     exact hr
-  have h2 : ExecStmt config (swapWriteIndexFrame frame index) evm swapWriteBody[2]!
+  have h2 : ExecStmt fork config (swapWriteIndexFrame frame index) evm swapWriteBody[2]!
       (.ok (swapWriteCardinalityFrame frame index cardinality) evm) :=
     ExecStmt.letDecl (evalExpr_tupleGet (evalExpr_var_get hr1) rfl)
   have hs2 : (swapWriteCardinalityFrame frame index cardinality).locals.get? "state" =
       some s.value := by swap_write_temp_get; exact hs
-  have h3 : ExecStmt config (swapWriteCardinalityFrame frame index cardinality) evm
+  have h3 : ExecStmt fork config (swapWriteCardinalityFrame frame index cardinality) evm
       swapWriteBody[3]! (.ok (swapWritePriceFrame frame s index cardinality) evm) :=
     ExecStmt.letDecl
       (evalExpr_structField (name := "sqrtPriceX96") (evalExpr_var_get hs2) rfl)
   have hs3 : (swapWritePriceFrame frame s index cardinality).locals.get? "state" =
       some s.value := by swap_write_temp_get; exact hs
-  have h4 : ExecStmt config (swapWritePriceFrame frame s index cardinality) evm
+  have h4 : ExecStmt fork config (swapWritePriceFrame frame s index cardinality) evm
       swapWriteBody[4]! (.ok (swapWriteTickFrame frame s index cardinality) evm) :=
     ExecStmt.letDecl (evalExpr_structField (name := "tick") (evalExpr_var_get hs3) rfl)
   have hi4 : (swapWriteTickFrame frame s index cardinality).locals.get? "observationIndex" =
       some (.int (Int.ofNat index.toNat)) := by swap_write_temp_get
-  have h5 : ExecStmt config (swapWriteTickFrame frame s index cardinality) evm
+  have h5 : ExecStmt fork config (swapWriteTickFrame frame s index cardinality) evm
       swapWriteBody[5]! (.ok (swapWriteIndexTempFrame frame s index cardinality) evm) :=
     ExecStmt.letDecl (evalExpr_var_get hi4)
   have hc5 : (swapWriteIndexTempFrame frame s index cardinality).locals.get?
       "observationCardinality" = some (.int (Int.ofNat cardinality.toNat)) := by
     swap_write_temp_get
-  have h6 : ExecStmt config (swapWriteIndexTempFrame frame s index cardinality) evm
+  have h6 : ExecStmt fork config (swapWriteIndexTempFrame frame s index cardinality) evm
       swapWriteBody[6]! (.ok (swapWriteStoreFrame frame s index cardinality) evm) :=
     ExecStmt.letDecl (evalExpr_var_get hc5)
   have hframe := (swapWriteStoreFrame_parts frame s index cardinality).1.trans hf
@@ -106,20 +108,20 @@ theorem swapWriteStoresSource {frame : Frame} {evm : EVM.State}
       some (.int (Int.ofNat index.toNat)) := by swap_write_temp_get
   have hcard : (swapWriteStoreFrame frame s index cardinality).locals.get? "__t20" =
       some (.int (Int.ofNat cardinality.toNat)) := by swap_write_temp_get
-  have h7 : ExecStmt config (swapWriteStoreFrame frame s index cardinality) evm
+  have h7 : ExecStmt fork config (swapWriteStoreFrame frame s index cardinality) evm
       swapWriteBody[7]!
       (.ok (swapWriteStoreFrame frame s index cardinality) (swapSlotFieldState evm false s.price))
         :=
     ExecStmt.assign (hperm := Or.inr hperm) (evalExpr_var_get hprice) (by
       simpa only [wordOfInt_ofNat_toNat] using
         assignSwapSlotField_frame evm false (Int.ofNat s.price.toNat) hframe hb)
-  have h8 := ExecStmt.assign (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
+  have h8 := ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
     (evm := swapSlotFieldState evm false s.price) htick)
     (assignSwapSlotField_frame _ true s.tick hframe hb)
-  have h9 := ExecStmt.assign (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
+  have h9 := ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
     (evm := swapSlotFieldState (swapSlotFieldState evm false s.price) true (EVM.wordOfInt s.tick))
     hindex) (assignSlot0ObservationField_frame _ false index hframe hb)
-  have h10 := ExecStmt.assign (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
+  have h10 := ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [swapSlotFieldState, storeSlot0ObservationField, modifyStorageWord, storageStore_executionEnv] using hperm)) (evalExpr_var_get (cfg := config)
     (evm := storeSlot0ObservationField
       (swapSlotFieldState (swapSlotFieldState evm false s.price) true (EVM.wordOfInt s.tick))
       false index) hcard) (assignSlot0ObservationField_frame _ true cardinality hframe hb)

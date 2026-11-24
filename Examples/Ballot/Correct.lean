@@ -16,6 +16,8 @@ import Reasoning.Dispatch
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -226,12 +228,12 @@ theorem ballotPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 theorem ballotReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ballotSplitPc
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ballotSplitPc
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
     solc_dispatch_prefix
   simpa [ballotSelWord, solcSelectorWord] using
-    (solcDispatchReachSelector (σ := σ) (σ₀ := σ₀)
+    (solcDispatchReachSelector (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix (by jump_dest))
 
 /-- Reach a body in Ballot's high selector half. -/
@@ -249,7 +251,7 @@ theorem ballotReachHighBody {σ σ₀ A I} {g : Sat256}
         (ballotSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J ballotBytecode 0).contains bodyPC = true)
     (hbody : armTgt ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) bodyPC
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
     solc_dispatch_prefix
@@ -291,7 +293,7 @@ theorem ballotReachLowBody {σ σ₀ A I} {g : Sat256}
         (ballotSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J ballotBytecode 0).contains bodyPC = true)
     (hbody : armTgt ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) bodyPC
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
     solc_dispatch_prefix
@@ -323,10 +325,10 @@ theorem ballotReachLowBody {σ σ₀ A I} {g : Sat256}
 theorem ballotVoteBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x01, 0x21, 0xb9, 0x3f]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotVoteBodyCore hcode hsize hwv hsel hreach
 
@@ -334,10 +336,10 @@ theorem ballotVoteBody {σ σ₀ A I} {g : UInt256}
 theorem ballotProposalsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotProposalsBodyCore hcode hsize hwv hsel hreach
 
@@ -345,10 +347,10 @@ theorem ballotProposalsBody {σ σ₀ A I} {g : UInt256}
 theorem ballotChairpersonBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotChairpersonBodyCore hcode hwv hsel hreach
 
@@ -356,10 +358,10 @@ theorem ballotChairpersonBody {σ σ₀ A I} {g : UInt256}
 theorem ballotDelegateBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotDelegateBodyCoreComplete hcode hsize hwv hsel hreach
 
@@ -368,10 +370,10 @@ theorem ballotDelegateBody {σ σ₀ A I} {g : UInt256}
 theorem ballotWinningProposalBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotWinningProposalBodyCore hcode hsize hwv hsel hreach
 
@@ -379,10 +381,10 @@ theorem ballotWinningProposalBody {σ σ₀ A I} {g : UInt256}
 theorem ballotGiveRightToVoteBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotGiveRightToVoteBodyCore hcode hsize hwv hsel hreach
 
@@ -390,10 +392,10 @@ theorem ballotGiveRightToVoteBody {σ σ₀ A I} {g : UInt256}
 theorem ballotVotersBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotVotersBodyCore hcode hsize hwv hsel hreach
 
@@ -401,10 +403,10 @@ theorem ballotVotersBody {σ σ₀ A I} {g : UInt256}
 theorem ballotWinnerNameBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotWinnerNameBodyCore hcode hsize hwv hsel hreach
 
@@ -452,7 +454,7 @@ theorem ballotDispatch_none_nomatch {cd : ByteArray}
 /-- Every Ballot transition body reverts when the non-payable guard sees non-zero callvalue. -/
 theorem ballotBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ ballotContract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody ballotConfig ballotContract evm locals t.body .reverted := by
+    ExecTransitionBody fork ballotConfig ballotContract evm locals t.body .reverted := by
   simp [ballotContract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
@@ -460,7 +462,7 @@ theorem ballotBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ ballotCont
 /-- EVM non-payable guard reverts when `callvalue ≠ 0`. -/
 theorem ballotX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt ballotBytecode) (opC := solcGuardTgtOp ballotBytecode)
     (wC := solcGuardTgtWidth ballotBytecode)
@@ -471,8 +473,8 @@ theorem ballotX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 /-- EVM calldata-size guard reverts when calldata is shorter than a selector. -/
 theorem ballotX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ballotBytecode) (opC := solcGuardTgtOp ballotBytecode)
@@ -491,7 +493,7 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 8 → (ballotSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have heqLow0 : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc j))
@@ -506,10 +508,10 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
     intro j hj
     rw [ballotHighArmEq I hsz j hj, hnm (j + 4) (by omega)]
     rfl
-  obtain ⟨kS, CS, hsplit⟩ := ballotReachSplit
+  obtain ⟨kS, CS, hsplit⟩ := ballotReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   by_cases hpivot : UInt256.gt (armSelNat ballotBytecode ballotSplitPc) (ballotSelWord I) = ⟨0⟩
-  · have h41 := RD.selectorSplitNotTakenAuto hsplit ballotSplitWellFormed hpivot (by simp)
+  · have h41 := RD.selectorSplitNotTakenAuto (fork := fork) hsplit ballotSplitWellFormed hpivot (by simp)
     have h85 := h41
       |>.selectorArmNotTakenAuto (ballotHighArmsWellFormed 0 (by omega))
           (heqHigh0 0 (by omega)) (by simp)
@@ -519,7 +521,7 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqHigh0 2 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (ballotHighArmsWellFormed 3 (by omega))
           (heqHigh0 3 (by omega)) (by simp)
-    have h85' : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨85⟩
+    have h85' : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨85⟩
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [ballotHighFirstArmPc, ballotSplitPc, nthArmPc, selArmNextPc, armTgtWidth,
@@ -537,7 +539,7 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqLow0 2 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (ballotLowArmsWellFormed 3 (by omega))
           (heqLow0 3 (by omega)) (by simp)
-    have h133' : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨133⟩
+    have h133' : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨133⟩
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22 + 22, ?_⟩
       simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, nthArmPc, selArmNextPc,
@@ -550,7 +552,7 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable global guard). -/
 theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact (ballotX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -574,7 +576,7 @@ theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
 theorem ballotShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   exact (ballotX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (ballotDispatch_none_short hsz)
@@ -584,7 +586,7 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (ballotSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (ballotX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
@@ -598,7 +600,7 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
 /-- The deployed Ballot runtime bytecode refines the Stele specification, for every initial state. -/
 theorem ballotCorrect :
     runtimeRefinement ballotConfig ballotBytecode ballotContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · -- callvalue = 0, size ≥ 4: dispatch on the selector

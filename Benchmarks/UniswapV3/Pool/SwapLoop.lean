@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.SwapIteration
 import Benchmarks.UniswapV3.Pool.SwapLoopGuardMono
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
 
-structure SwapLoopExit (v : UniswapV3PoolImmutables) (a : SwapArgs) (ee : ExecutionEnv) (g : Sat256)
+structure SwapLoopExit (fork : Ethereum.Fork) (v : UniswapV3PoolImmutables) (a : SwapArgs) (ee : ExecutionEnv) (g : Sat256)
     (s0 : EVM.State) (rdata : ByteArray) (p cache snap : UInt256) (stack : List UInt256)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
     (initMem : ByteArray) (initAw initFree : UInt256) (initCost : Nat) where
@@ -20,7 +22,7 @@ structure SwapLoopExit (v : UniswapV3PoolImmutables) (a : SwapArgs) (ee : Execut
   free : UInt256
   k : Nat
   cost : Nat
-  source : ExecStmt config frame evm swapTransition.body[13]! (.ok frame' evm')
+  source : ExecStmt fork config frame evm swapTransition.body[13]! (.ok frame' evm')
   stopped : swapContinues a stateData = false
   source_state : SourceState s0 ee accounts evm'
   contract_eq : frame'.contract = frame.contract
@@ -31,7 +33,7 @@ structure SwapLoopExit (v : UniswapV3PoolImmutables) (a : SwapArgs) (ee : Execut
     frame'.locals.get? name = frame.locals.get? name
   cache_fits : cacheData.Fits
   state_fits : stateData.Fits
-  rd : RD (deployedRuntime v) ee g s0 ⟨3999⟩ stack mem aw rdata accounts k cost
+  rd : RD fork (deployedRuntime v) ee g s0 ⟨3999⟩ stack mem aw rdata accounts k cost
   heap : HeapMemory mem aw free
   cache_mem : SwapCacheMemory mem cache cacheData
   state_mem : SwapStateMemory mem p stateData
@@ -48,7 +50,7 @@ theorem swapLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2991⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -70,10 +72,10 @@ theorem swapLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hcp : cache.toNat + 192 ≤ p.toNat) (hpq : p.toNat + 224 ≤ q.toNat)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : q.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 67 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecStmt config frame evm swapTransition.body[13]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    Nonempty (SwapLoopExit v a ee g s0 rdata p cache snap
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecStmt fork config frame evm swapTransition.body[13]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    Nonempty (SwapLoopExit fork v a ee g s0 rdata p cache snap
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       initial frame evm mem aw q C) := by
   generalize hfuel : g.toNat + 1 - C = fuel

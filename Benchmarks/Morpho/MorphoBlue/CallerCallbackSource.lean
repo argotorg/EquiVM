@@ -1,6 +1,8 @@
 import Reasoning.ExternalCall
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -31,7 +33,7 @@ theorem callerCallback_guard (cfg : Config) (frame : Frame) (evm : EVM.State) :
 
 theorem callerCallbackPrelude (cfg : Config) (frame : Frame) (evm : EVM.State)
     (name : Ident) (args : List Expr) (retVar : Ident) (tail : List Stmt) :
-    ABlock cfg evm frame (callerCallbackBody name args retVar ++ tail)
+    ABlock fork cfg evm frame (callerCallbackBody name args retVar ++ tail)
       (callerCallbackFrame frame evm.executionEnv.source) ((callerCallbackBody name args retVar).drop 1 ++ tail) := by
   exact ABlock.start.letStep (show evalExpr? cfg frame evm (.env .caller) =
     .ok (.address evm.executionEnv.source) by simp only [evalExpr?, envValue, pure])
@@ -39,7 +41,7 @@ theorem callerCallbackPrelude (cfg : Config) (frame : Frame) (evm : EVM.State)
 theorem callerCallbackSourceNoCode (cfg : Config) (frame : Frame) (evm : EVM.State)
     (name : Ident) (args : List Expr) (retVar : Ident) (tail : List Stmt)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) = UInt256.ofNat 0) :
-    ExecBlock cfg frame evm (callerCallbackBody name args retVar ++ tail) .reverted := by
+    ExecBlock fork cfg frame evm (callerCallbackBody name args retVar ++ tail) .reverted := by
   apply (callerCallbackPrelude cfg frame evm name args retVar tail).requireRevert
   rw [callerCallback_guard, hc]
   rfl
@@ -47,7 +49,7 @@ theorem callerCallbackSourceNoCode (cfg : Config) (frame : Frame) (evm : EVM.Sta
 theorem callerCallbackSourceGuard (cfg : Config) (frame : Frame) (evm : EVM.State)
     (name : Ident) (args : List Expr) (retVar : Ident) (tail : List Stmt)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0) :
-    ABlock cfg evm frame (callerCallbackBody name args retVar ++ tail)
+    ABlock fork cfg evm frame (callerCallbackBody name args retVar ++ tail)
       (callerCallbackFrame frame evm.executionEnv.source) ((callerCallbackBody name args retVar).drop 2 ++ tail) := by
   apply (callerCallbackPrelude cfg frame evm name args retVar tail).requireStep
   rw [callerCallback_guard]
@@ -59,8 +61,8 @@ theorem callerCallbackSourceFailure (cfg : Config) (frame : Frame) (evm evm' : E
     (name : Ident) (args : List Expr) (retVar : Ident) (tail : List Stmt) (vals : List Value) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
     (he : evalExprs? cfg (callerCallbackFrame frame evm.executionEnv.source) evm args = .ok vals)
-    (hcall : typedCallViaEVM cfg evm evm.executionEnv.source name 0 vals (false, evm', out)) :
-    ExecBlock cfg frame evm (callerCallbackBody name args retVar ++ tail) .reverted := by
+    (hcall : typedCallViaEVM fork cfg evm evm.executionEnv.source name 0 vals (false, evm', out)) :
+    ExecBlock fork cfg frame evm (callerCallbackBody name args retVar ++ tail) .reverted := by
   apply (callerCallbackSourceGuard cfg frame evm name args retVar tail hc).run
   apply ExecBlock.consRevert
   exact ExecStmt.externalCallFailure (hperm := Or.inl rfl) (sendVal := 0) (callerCallback_receiver cfg frame evm)
@@ -70,10 +72,10 @@ theorem callerCallbackSourceSuccess (cfg : Config) (frame : Frame) (evm evm' : E
     (name : Ident) (args : List Expr) (retVar : Ident) (tail : List Stmt) (vals : List Value) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
     (he : evalExprs? cfg (callerCallbackFrame frame evm.executionEnv.source) evm args = .ok vals)
-    (hcall : typedCallViaEVM cfg evm evm.executionEnv.source name 0 vals (true, evm', out))
+    (hcall : typedCallViaEVM fork cfg evm evm.executionEnv.source name 0 vals (true, evm', out))
     (hd : cfg.externalABI.decode? name out = some []) {result : ExecResult}
-    (htail : ExecBlock cfg (callerCallbackCalledFrame frame evm.executionEnv.source retVar) evm' tail result) :
-    ExecBlock cfg frame evm (callerCallbackBody name args retVar ++ tail) result := by
+    (htail : ExecBlock fork cfg (callerCallbackCalledFrame frame evm.executionEnv.source retVar) evm' tail result) :
+    ExecBlock fork cfg frame evm (callerCallbackBody name args retVar ++ tail) result := by
   apply (callerCallbackSourceGuard cfg frame evm name args retVar tail hc).run
   apply ExecBlock.consNormal (stele' := callerCallbackCalledFrame frame evm.executionEnv.source retVar) (evm' := evm') ?_ htail
   exact ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (value := []) (callerCallback_receiver cfg frame evm)

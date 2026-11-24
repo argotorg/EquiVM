@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.TickSpacingSource
 import Benchmarks.UniswapV4PoolManager.ConditionalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -49,7 +51,7 @@ theorem poolModifyLimitsResult_get {f f' : Frame} {evm post : State} {delta spac
 theorem poolModifyLimitsChecks {f : Frame} {evm : State} {fl fu : Bool} {gl gu : UInt256} {limit : Int}
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu))
     (hm : f.locals.get? "maxLiquidityPerTick" = some (.int limit)) :
-    ExecBlock config f evm (poolModifyLimitsBlock.drop 1)
+    ExecBlock fork config f evm (poolModifyLimitsBlock.drop 1)
       (if limit < Int.ofNat gl.toNat ∨ limit < Int.ofNat gu.toNat then .reverted else .ok f evm) := by
   have hl : evalExpr? config f evm
       (.binary .gt (.field (.var "state") "liquidityGrossAfterLower") (.var "maxLiquidityPerTick")) =
@@ -63,8 +65,8 @@ theorem poolModifyLimitsChecks {f : Frame} {evm : State} {fl fu : Bool} {gl gu :
     rw [evalExpr_binary_nonshort (by decide) (by decide),
       evalStructField (evalLocalValue hs) rfl, evalLocalValue hm]
     rfl
-  have hsl := execStmt_rejectIf hl
-  have hsu := execStmt_rejectIf hu
+  have hsl := execStmt_rejectIf (fork := fork) hl
+  have hsu := execStmt_rejectIf (fork := fork) hu
   by_cases hlo : limit < Int.ofNat gl.toNat
   · rw [if_pos (Or.inl hlo)]
     exact ExecBlock.consRevert (by simpa only [decide_eq_true hlo, if_true] using hsl)
@@ -81,7 +83,7 @@ theorem poolModifyLimits {f : Frame} {evm : State} {p : PoolModifyParams} {fl fu
     (hp : f.locals.get? "params" = some (poolModifyParamsValue p))
     (hd : f.locals.get? "liquidityDelta" = some (.int p.delta))
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu)) :
-    ExecStmt config f evm poolModifyLimitsStmt
+    ExecStmt fork config f evm poolModifyLimitsStmt
       (poolModifyLimitsResult f evm p.delta (EVM.signed p.spacing) gl gu) := by
   have hc : evalExpr? config f evm (.binary .ge (.var "liquidityDelta") (.intLit 0)) =
       .ok (.bool (decide (0 ≤ p.delta))) := by
@@ -90,9 +92,9 @@ theorem poolModifyLimits {f : Frame} {evm : State} {p : PoolModifyParams} {fl fu
   by_cases hdelta : 0 ≤ p.delta
   · rw [poolModifyLimitsResult, if_pos hdelta]
     apply ExecStmt.iteTrue (by simpa only [decide_eq_true hdelta] using hc)
-    have hcall := tickSpacingCall (f := f) (evm := evm) hf
+    have hcall := tickSpacingCall (fork := fork) (f := f) (evm := evm) hf
       (evalStructField (evalLocalValue hp) (field := "tickSpacing") rfl) "maxLiquidityPerTick"
-    have htail := poolModifyLimitsChecks (f := poolModifyLimitsFrame f (EVM.signed p.spacing)) (evm := evm)
+    have htail := poolModifyLimitsChecks (fork := fork) (f := poolModifyLimitsFrame f (EVM.signed p.spacing)) (evm := evm)
       ((store_get_ne _ _ (by decide : ("maxLiquidityPerTick" == "state") = false)).trans hs)
       (store_get_self _ _ _)
     by_cases hbad : tickSpacingLimit (EVM.signed p.spacing) < Int.ofNat gl.toNat ∨

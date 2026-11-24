@@ -16,6 +16,8 @@ import Examples.UniswapV2Pair.UpdateRoutines
 import Reasoning.ExternalCall
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -206,17 +208,17 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
         (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
-          I.fork σ1 σ₀ A_in2
+          fork σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute I.fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          (toExecute fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem)
             |>.readWithPadding 128 4)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S
+      typedCallViaEVM fork config evm1S
         (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (z2, evm2S, out2) false ∧
       Eq σ2 evm2S.accountMap ∧
@@ -260,10 +262,10 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
     simp [uniswapExternalABI]
   have hΘE :
       (σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ evm1S.executionEnv.fork evm1S.accountMap evm1S.σ₀ A_in2
+        Ethereum.EVM.Θ fork evm1S.accountMap evm1S.σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat evm1S.executionEnv.codeOwner))
           evm1S.executionEnv.sender (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute evm1S.executionEnv.fork evm1S.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evm1S.accountMap (AccountAddress.ofUInt256
             (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat evm1S.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
@@ -304,17 +306,17 @@ theorem uniswapMintFeeToTypedCall_source
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
         (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
-          I.fork σ1 σ₀ A_in2
+          fork σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute I.fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          (toExecute fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
             |>.readWithPadding 128 4)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S
+      typedCallViaEVM fork config evm1S
         (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (z2, evm2S, out2) false ∧
       Eq σ2 evm2S.accountMap ∧
@@ -594,10 +596,10 @@ theorem mintFunctionTotalSupplyWord_eq_slot
     the external mint routine at pc 3283. -/
 theorem uniswapMintX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1041⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3283⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1063⟩ := RD.uniswapOneAddressExternalLenOk
@@ -613,10 +615,10 @@ theorem uniswapMintX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapMintX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1041⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.uniswapOneAddressExternalShort
     (entry := ⟨1041⟩) (ret := ⟨861⟩) (routine := ⟨3283⟩)
     hreach uniswap_one_address_external_entry_wf hsz4 hsize hshort
@@ -627,11 +629,11 @@ theorem uniswapMintX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3283⟩ := hdecoded
   have rd3286 := evm_run rd3283 with [jumpdest, push1 ⟨0⟩]
   exact RD.uniswapLockEnterBodyLocked
@@ -646,11 +648,11 @@ theorem uniswapMintX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hunlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3368⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3368⟩
       [⟨0⟩, ⟨0⟩, mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
@@ -669,11 +671,11 @@ theorem uniswapMintX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt25
     (hunlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3283⟩ := hdecoded
   have rd3286 := evm_run rd3283 with [jumpdest, push1 ⟨0⟩]
   exact RD.uniswapLockEnterBodyOkStatic
@@ -685,9 +687,9 @@ theorem uniswapMintX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt25
 theorem uniswapMintBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (mintStore I) mintTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (mintStore I) mintTransition.body .reverted := by
   have hlock :=
-    uniswapLockEnterLockedRevert evm (mintStore I) hwv (by simp [mintStore]) hlocked
+    uniswapLockEnterLockedRevert (fork := fork) evm (mintStore I) hwv (by simp [mintStore]) hlocked
   exact ExecFuncBody.execBlockRevert (by
     simpa [mintTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
@@ -696,9 +698,9 @@ theorem uniswapMintBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (mintStore I) mintTransition.body
+    ExecTransitionBody fork config contract evm (mintStore I) mintTransition.body
       .staticViolation := by
-  have hlock := uniswapLockEnterStatic evm (mintStore I) hwv (by simp [mintStore]) hunlocked hperm
+  have hlock := uniswapLockEnterStatic (fork := fork) evm (mintStore I) hwv (by simp [mintStore]) hunlocked hperm
   exact ExecFuncBody.execBlockStatic (by
     simpa [mintTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
@@ -707,13 +709,13 @@ theorem uniswapMintLockEnterPrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := mintStore I } evm lockEnter
+    ExecBlock fork config { contract := contract, locals := mintStore I } evm lockEnter
       (.ok { contract := contract, locals := mintStore I } (uniswapLockEnteredState evm)) := by
   exact uniswapLockEnterPrefix (hperm := by assumption) evm (mintStore I) hwv (by simp [mintStore]) hunlocked
 
 theorem uniswapMintLockExitSuffix (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := mintStore I } evm lockExit
+    ExecBlock fork config { contract := contract, locals := mintStore I } evm lockExit
       (.ok { contract := contract, locals := mintStore I } (uniswapLockExitedState evm)) := by
   exact uniswapLockExitSuffix (hperm := by assumption) evm (mintStore I) (by simp [mintStore])
 
@@ -998,14 +1000,14 @@ theorem uniswapMintReservePrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := mintStore I } evm
+    ExecBlock fork config { contract := contract, locals := mintStore I } evm
       (lockEnter ++
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ])
       (.ok { contract := contract, locals := mintReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   let evmL := uniswapLockEnteredState evm
-  have hlock := uniswapMintLockEnterPrefix (hperm := by assumption) evm I hwv hunlocked
+  have hlock := uniswapMintLockEnterPrefix (fork := fork) (hperm := by assumption) evm I hwv hunlocked
   have hreserve0 :
       evalExpr? config { contract := contract, locals := mintStore I } evmL
         (.storage reserve0Ref) = .ok (.int (Int.ofNat (uniswapReserve0Word evmL).toNat)) := by
@@ -1020,14 +1022,14 @@ theorem uniswapMintReservePrefix (evm : EVM.State) (I : ExecutionEnv)
       ((mintStore I).insert "_reserve0" (.int (Int.ofNat (uniswapReserve0Word evmL).toNat)))
       (by simp [mintStore])
   have hreserves :
-      ExecBlock config { contract := contract, locals := mintStore I } evmL
+      ExecBlock fork config { contract := contract, locals := mintStore I } evmL
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ]
         (.ok { contract := contract, locals := mintReserveStore evmL I } evmL) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hreserve0) ?_
     exact ExecBlock.consNormal (ExecStmt.letDecl hreserve1) (by
       simpa [mintReserveStore] using
-        (ExecBlock.nil : ExecBlock config
+        (ExecBlock.nil : ExecBlock fork config
           { contract := contract, locals := mintReserveStore evmL I } evmL []
           (.ok { contract := contract, locals := mintReserveStore evmL I } evmL)))
   simpa [evmL, List.append_assoc] using execBlock_append hlock hreserves
@@ -1370,7 +1372,7 @@ theorem evalExpr_mint_totalSupply_of_get
 theorem uniswapMintTotalSupplyLet
     (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "totalSupply" = none) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef) ]
       (.ok
         { contract := contract,

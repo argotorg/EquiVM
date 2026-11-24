@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -59,7 +61,7 @@ theorem evalMulDivDownReverts {cfg : Config} {frame : Frame} {evm : EVM.State} {
 
 theorem morphoMulDivDownBodyOk (x y d : UInt256) (evm : EVM.State) (imms : Store)
     (hfit : x.toNat * y.toNat < UInt256.size) (hn : d ≠ ⟨0⟩) :
-    ExecFuncBody config (mulDivFrame x y d imms) evm mulDivDownFunction.body
+    ExecFuncBody fork config (mulDivFrame x y d imms) evm mulDivDownFunction.body
       (.returned (mulDivFrame x y d imms) evm
         (some [.int (Int.ofNat (UInt256.div (UInt256.mul x y) d).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -70,7 +72,7 @@ theorem morphoMulDivDownBodyOk (x y d : UInt256) (evm : EVM.State) (imms : Store
 
 theorem morphoMulDivDownBodyReverts (x y d : UInt256) (evm : EVM.State) (imms : Store)
     (hbad : UInt256.size ≤ x.toNat * y.toNat ∨ d = ⟨0⟩) :
-    ExecFuncBody config (mulDivFrame x y d imms) evm mulDivDownFunction.body .reverted := by
+    ExecFuncBody fork config (mulDivFrame x y d imms) evm mulDivDownFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.returnRevert
@@ -88,7 +90,7 @@ theorem morphoMulDivDownCallOk (x y d : UInt256) (evm : EVM.State) (locals imms 
     (hd : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ed =
       .ok (.int (Int.ofNat d.toNat)))
     (hfit : x.toNat * y.toNat < UInt256.size) (hn : d ≠ ⟨0⟩) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_mulDivDown" [ex, ey, ed] retVar)
       (.ok { contract := contract, locals := (locals.insert retVar
           (.int (Int.ofNat (UInt256.div (UInt256.mul x y) d).toNat))), immutables := imms } evm) := by
@@ -109,7 +111,7 @@ theorem morphoMulDivDownCallReverts (x y d : UInt256) (evm : EVM.State) (locals 
     (hd : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ed =
       .ok (.int (Int.ofNat d.toNat)))
     (hbad : UInt256.size ≤ x.toNat * y.toNat ∨ d = ⟨0⟩) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_mulDivDown" [ex, ey, ed] retVar) .reverted := by
   apply internalCallFunctionRevert (callee := mulDivDownFunction)
     (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat), .int (Int.ofNat d.toNat)])

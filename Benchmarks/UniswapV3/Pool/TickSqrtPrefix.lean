@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -70,7 +72,7 @@ theorem evalTickSqrtAbs {frame : Frame} {evm : EVM.State} (tick : Int)
 
 theorem tickSqrtPrefixSource (imms : Store) (evm : EVM.State) (tick : Int)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23) :
-    ExecBlock config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 2)
+    ExecBlock fork config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 2)
       (.ok (tickSqrtAbsFrame imms tick) evm) := by
   refine ExecBlock.consNormal (stele' := tickSqrtZeroFrame imms tick)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -96,7 +98,7 @@ theorem evalTickSqrtGuard (imms : Store) (evm : EVM.State) (tick : Int)
 theorem tickSqrtReverts (imms : Store) (evm : EVM.State) (tick : Int)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23)
     (h : ¬ tick.natAbs ≤ 887272) :
-    ExecFuncBody config (tickSqrtFrame imms tick) evm tickSqrtFunction.body .reverted := by
+    ExecFuncBody fork config (tickSqrtFrame imms tick) evm tickSqrtFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 tickSqrtFunction.body]
   apply execBlock_append_ok (tickSqrtPrefixSource imms evm tick hlo hhi)

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedAttestTailRun
 import Benchmarks.EAS.EAS.DelegatedAttestBounds
 import Benchmarks.EAS.EAS.VerifyAttestRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,10 +15,10 @@ theorem delegatedAttestRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm 
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat (delegatedAttestCopyHeap ee.calldata root+96))))
     (hc : delegatedAttestReady ee.calldata root) (hsize : ee.calldata.size < 2^255+4)
     (href : requestReferenceValid ee.calldata root (root+UInt256.ofNat 32))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13494⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13494⟩
       (UInt256.ofNat 224::delegatedAttestSavedStack ee.calldata root R)
       (delegatedAttestInputMemory ee.calldata root) aw rdata σ k C) :
-    PublicWordRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    PublicWordRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm (delegatedAttestVerify ++ delegatedAttestTail) := by
   let r := delegatedAttestRecord ee.calldata root
   let heap := delegatedAttestCopyHeap ee.calldata root+96
@@ -48,9 +50,9 @@ theorem delegatedAttestRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm 
       (by simpa only [hn1] using hf1) (by rw [hn1]; omega) (by rw [hn1]; exact hhi) hfree
       (by have := hprefix.size; omega) hz hsize hc.1 href r1
     exact ht.prepend hsrc
-  · exact PublicWordRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock config
+  · exact PublicWordRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock fork config
       {contract := contract,locals := L,immutables := immStore v} evm delegatedAttestVerify .reverted) hrev
-  · exact PublicWordRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock config
+  · exact PublicWordRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock fork config
       {contract := contract,locals := L,immutables := immStore v} evm delegatedAttestVerify .staticViolation) hstatic
 
 end Benchmarks.EAS.EAS

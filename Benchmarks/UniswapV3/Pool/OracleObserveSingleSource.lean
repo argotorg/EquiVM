@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveInterpolation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -38,7 +40,7 @@ theorem oracleObserveSingleReturns (imms : Store) (evm : EVM.State)
     (hc : card.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hrun : OracleObserveSingleRun time secondsAgo tick index liquidity card
       evm.accountMap evm.executionEnv values) :
-    ∃ frame, ExecFuncBody config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity card)
+    ∃ frame, ExecFuncBody fork config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity card)
       evm oracleObserveSingleFunction.body (.returned frame evm (some values)) := by
   cases hrun with
   | zero hz hi =>
@@ -56,7 +58,7 @@ theorem oracleObserveSingleReverts (imms : Store) (evm : EVM.State)
     (hc : card.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hfail : OracleObserveSingleFailure time secondsAgo tick index liquidity card
       evm.accountMap evm.executionEnv) :
-    ExecFuncBody config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity card)
+    ExecFuncBody fork config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity card)
       evm oracleObserveSingleFunction.body .reverted := by
   cases hfail with
   | zeroIndex hz hi =>

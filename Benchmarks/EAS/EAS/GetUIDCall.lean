@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.GetUIDEVM
 import Benchmarks.EAS.EAS.GetUIDSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,18 +15,18 @@ theorem getUIDCallRun {locals : Store} {args : List Expr} {retVar : Ident} {evm 
     (hstack : R.length+30 ≤ 1024) (hview : AttestationMemoryView mem src dataPtr a)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hdisj : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ heap.toNat) (hbump : bump.toNat < 2^32)
-    (rd : RD (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
     (∃ (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       heap.toNat ≤ allocateNext heap.toNat (157+a.data.size) ∧ allocateNext heap.toNat (157+a.data.size) ≤ 2^64-1 ∧
       MemoryPrefix mem mem' heap.toNat ∧ memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (allocateNext heap.toNat (157+a.data.size)) ∧
-      ExecStmt config {contract := contract,locals := locals,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := locals,immutables := immStore v} evm
         (.internalCall "_getUID" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := immStore v} retVar
           (some [wordBytes32Value (getUIDWord a bump),.int (Int.ofNat (allocateNext heap.toNat (157+a.data.size)))])) evm) ∧
-      RD (deployedRuntime v) ee g s0 (uidDonePC site) (getUIDWord a bump::bump::uidSaved site src R) mem' aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := locals,immutables := immStore v} evm
-      (.internalCall "_getUID" args retVar) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
-  have hsrc := getUIDBodySource (cfg := config) (locals := getUIDArgs a bump heap.toNat) (imms := immStore v)
+      RD fork (deployedRuntime v) ee g s0 (uidDonePC site) (getUIDWord a bump::bump::uidSaved site src R) mem' aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := locals,immutables := immStore v} evm
+      (.internalCall "_getUID" args retVar) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
+  have hsrc := getUIDBodySource (fork := fork) (cfg := config) (locals := getUIDArgs a bump heap.toNat) (imms := immStore v)
     (evm := evm) (a := a) (bump := bump) (heap := heap.toNat)
     (by simp only [getUIDArgs,store_get_self])
     (by simp only [getUIDArgs,store_get_ne _ _ (by decide : ("attestation" == "bump") = false),store_get_self])

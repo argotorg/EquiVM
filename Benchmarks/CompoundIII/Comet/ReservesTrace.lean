@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ReservesInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -22,14 +24,14 @@ abbrev reservesResponseWord (v : CometWithExtendedAssetListImmutables) (evm : EV
   reservesWord v (reservesSnapshot evm ⟨0⟩) (reservesSnapshot evm ⟨1⟩)
     (timestampWord evm.executionEnv) (calldataWord out 0)
 
-inductive ReservesTrace (v : CometWithExtendedAssetListImmutables) (evm : EVM.State) :
+inductive ReservesTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (evm : EVM.State) :
     Option (EVM.State × UInt256) → Prop where
-  | indicesFailed (hv : ¬ ReservesIndicesValid v evm) : ReservesTrace v evm none
+  | indicesFailed (hv : ¬ ReservesIndicesValid v evm) : ReservesTrace fork v evm none
   | response {evm' : EVM.State} {z : Bool} {out : ByteArray}
       (hi : ReservesIndicesValid v evm)
-      (hc : callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+      (hc : callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
         (z, evm', out) false) (hh : out.size < 2^255) :
-      ReservesTrace v evm (if ReservesResponseValid v evm z out then
+      ReservesTrace fork v evm (if ReservesResponseValid v evm z out then
         some (evm', reservesResponseWord v evm out) else none)
 
 def reservesCallOutcome (frame : Frame) (ret : Ident)
@@ -41,9 +43,9 @@ def reservesCallOutcome (frame : Frame) (ret : Ident)
 
 theorem reservesTrace_call {v : CometWithExtendedAssetListImmutables}
     {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : ReservesTrace v evm result) (frame : Frame) (ret : Ident)
+    (ht : ReservesTrace fork v evm result) (frame : Frame) (ret : Ident)
     (hf : frame.contract = contract) (hi : frame.immutables = immStore v) :
-    ExecStmt config frame evm (.internalCall "getReserves_body" [] ret)
+    ExecStmt fork config frame evm (.internalCall "getReserves_body" [] ret)
       (reservesCallOutcome frame ret result) := by
   cases ht with
   | indicesFailed hv => exact reserves_call_early_revert v frame evm ret hf hi hv
@@ -63,14 +65,14 @@ theorem reservesTrace_call {v : CometWithExtendedAssetListImmutables}
       rw [if_neg hr] at hb
       exact hb
 
-def ReservesRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def ReservesRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret free : UInt256) (R : List UInt256)
     (result : Option (EVM.State × UInt256)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', value) => ∃ σ' mem aw out k C, SourceState s0 ee σ' evm' ∧
       memLoad ⟨64⟩ mem = free + ⟨32⟩ ∧
-      RD (deployedRuntime v) ee g s0 ret (value :: R) mem aw out σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (value :: R) mem aw out σ' k C
 
 theorem cometReservesTrace {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
@@ -79,8 +81,8 @@ theorem cometReservesTrace {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 36 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ result, ReservesTrace v evm result ∧ ReservesRun v ee g s0 ret ptr R result := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ result, ReservesTrace fork v evm result ∧ ReservesRun fork v ee g s0 ret ptr R result := by
   have hsnap (slot : UInt256) : reservesSnapshot evm slot = solcSlotWordAt slot σ ee :=
     hs.storageRead slot
   have hr := cometReservesInternal (v := v) hstack hfree hlo hptr hret hs h

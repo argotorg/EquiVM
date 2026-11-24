@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,10 +20,10 @@ theorem cometStoreUserBasic {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = true)
     (hm : UserBasicMemory mem ptr basic) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11578⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11578⟩
       (userBasicSlot addr :: ptr :: ret :: R) mem aw rdata σ k C) :
     ∃ σ' aw' k' C', SourceState s0 ee σ' (storeUserBasic evm addr basic) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem aw' rdata σ' k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ret R mem aw' rdata σ' k' C' := by
   obtain ⟨_, _, r1⟩ := cometWithExtendedAssetList_block_11578
     (immWords := wordsOf (immStore v)) (by simpa using (show R.length + 1 + 9 ≤ 1024 by omega)) h
   dsimp only [cometWithExtendedAssetList_block_11578_stack] at r1
@@ -62,8 +64,8 @@ theorem cometStoreUserBasicStatic {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {slot ptr : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11578⟩ (slot :: ptr :: R)
-      mem aw rdata σ k C) : RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11578⟩ (slot :: ptr :: R)
+      mem aw rdata σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
   obtain ⟨_, _, r1⟩ := cometWithExtendedAssetList_block_11578
     (immWords := wordsOf (immStore v)) hstack h
   dsimp only [cometWithExtendedAssetList_block_11578_stack] at r1

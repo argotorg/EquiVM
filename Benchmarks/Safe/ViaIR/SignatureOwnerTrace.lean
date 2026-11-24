@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.SignatureOwnerSource
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -9,19 +11,19 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000
 
 theorem safeSignatureOwnerReject {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7836⟩ (scratch :: ⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨7836⟩ (scratch :: ⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_7836_taken (by simp; omega) (by decide) (by jump_dest) h
   exact safeRuntime_block_7852 (by simp [safeRuntime_block_7836_taken_stack]; omega) h₁
 
 theorem safeSignatureOwnerTrace {I g s0 σ k C aw mem rdata i}
     {src hash current last : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7803⟩
+    (h : RD fork safeBytecode I g s0 ⟨7803⟩
       (last :: current :: src :: hash :: UInt256.ofNat i :: R) mem aw rdata σ k C)
     (hm : 64 ≤ mem.size) (hov : R.length + 13 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬signatureOwnerValid σ I current last) ∨
+    (RDrev fork safeBytecode g s0 ∧ ¬signatureOwnerValid σ I current last) ∨
     ∃ aw' k' C', signatureOwnerValid σ I current last ∧
-      RD safeBytecode I g s0 ⟨7553⟩
+      RD fork safeBytecode I g s0 ⟨7553⟩
         (current :: src :: hash :: UInt256.ofNat (i + 1) :: R)
         (twoWordHashMem (UInt256.land solcAddrMask current) ⟨2⟩ mem) aw' rdata σ k' C' := by
   by_cases hgt : (UInt256.land solcAddrMask last).toNat <
@@ -59,7 +61,7 @@ theorem safeSignatureOwnerTrace {I g s0 σ k C aw mem rdata i}
         ac.storage.getD (mapSlot (UInt256.land solcAddrMask current) ⟨2⟩) ⟨0⟩)) =
       ownerLinkAt σ I (UInt256.land solcAddrMask current) := u256_land_comm _ _
   rw [hload] at h₂
-  change RD safeBytecode I g s0 ⟨7829⟩
+  change RD fork safeBytecode I g s0 ⟨7829⟩
     (UInt256.land solcAddrMask current ::
       UInt256.isZero (ownerLinkAt σ I (UInt256.land solcAddrMask current)) ::
       current :: src :: hash :: UInt256.ofNat i :: R)

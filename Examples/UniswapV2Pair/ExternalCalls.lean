@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -606,7 +608,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {o : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
@@ -655,7 +657,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
     (hPopLen : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hMload128 : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.MLOAD, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
@@ -672,7 +674,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {o : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
@@ -735,7 +737,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
                 ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩) =
         some (.REVERT, .none))
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
     (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_lt self o hshort hhi)
@@ -746,7 +748,7 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {oPrev o : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
@@ -796,7 +798,7 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
     (hPopLen : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hMload128 : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.MLOAD, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
@@ -815,7 +817,7 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {oPrev o : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
@@ -879,7 +881,7 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
                 ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩) =
         some (.REVERT, .none))
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
     (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt self oPrev o

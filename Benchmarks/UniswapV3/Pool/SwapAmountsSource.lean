@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapMemoryModel
 import Benchmarks.UniswapV3.Pool.SourceSignedBits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -89,7 +91,7 @@ theorem swapAmountsSource {frame : Frame} {evm : EVM.State} {old0 old1 : Value}
     (hs : frame.locals.get? "state" = some s.value)
     (h0 : frame.locals.get? "amount0" = some old0)
     (h1 : frame.locals.get? "amount1" = some old1) :
-    ExecStmt config frame evm swapTransition.body[17]! (.ok (swapAmountsFrame frame a s) evm) := by
+    ExecStmt fork config frame evm swapTransition.body[17]! (.ok (swapAmountsFrame frame a s) evm) := by
   have hguard := evalExpr_bool_eq
     (evalExpr_var_get (cfg := config) (evm := evm) hz) (evalExpr_var_get he)
   have hd := evalSwapAmountDifference (evm := evm) a s ha hs
@@ -114,14 +116,14 @@ theorem swapAmountsSource {frame : Frame} {evm : EVM.State} {old0 old1 : Value}
   · rw [show decide (a.zeroForOne = swapExactInput a) = true from decide_eq_true h] at hguard
     apply ExecStmt.iteTrue hguard
     exact ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount0, h, if_true] using hd) has0)
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount0, h, if_true] using hd) has0)
       (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount1, h, if_true] using hc1) has1) .nil)
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount1, h, if_true] using hc1) has1) .nil)
   · rw [show decide (a.zeroForOne = swapExactInput a) = false from decide_eq_false h] at hguard
     apply ExecStmt.iteFalse hguard
     exact ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount0, h, if_false] using hc) has0)
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount0, h, if_false] using hc) has0)
       (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount1, h, if_false] using hd1) has1) .nil)
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simpa only [swapAmount1, h, if_false] using hd1) has1) .nil)
 
 end Benchmarks.UniswapV3.Pool

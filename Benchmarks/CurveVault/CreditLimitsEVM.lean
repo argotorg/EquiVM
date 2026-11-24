@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_013
 import Benchmarks.CurveVault.RuntimeBlocks_014
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -25,15 +27,15 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
     (hmt : memLoad (UInt256.ofNat 640) (vaultCreditLimitsMemory isDeposit mem) = total)
     (hma : vaultCreditLimitsAssets isDeposit I (vaultCreditLimitsMemory isDeposit mem) = assets)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsEntry isDeposit)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsEntry isDeposit)) R mem aw rdata σ k C) :
     (total.toNat + assets.toNat < UInt256.size ∧ 10000 ≤ (total + assets).toNat ∧
       (total + assets).toNat ≤ (codeOwnerStorageWord I σ ⟨5⟩).toNat ∧
-      ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsNext isDeposit)) R
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsNext isDeposit)) R
         (vaultCreditLimitsMemory isDeposit mem) aw' rdata σ k' C') ∨
-    (UInt256.size ≤ total.toNat + assets.toNat ∧ RDrev vaultBytecode g s0) ∨
-    (total.toNat + assets.toNat < UInt256.size ∧ (total + assets).toNat < 10000 ∧ RDrev vaultBytecode g s0) ∨
+    (UInt256.size ≤ total.toNat + assets.toNat ∧ RDrev fork vaultBytecode g s0) ∨
+    (total.toNat + assets.toNat < UInt256.size ∧ (total + assets).toNat < 10000 ∧ RDrev fork vaultBytecode g s0) ∨
     (total.toNat + assets.toNat < UInt256.size ∧ 10000 ≤ (total + assets).toNat ∧
-      (codeOwnerStorageWord I σ ⟨5⟩).toNat < (total + assets).toNat ∧ RDrev vaultBytecode g s0) := by
+      (codeOwnerStorageWord I σ ⟨5⟩).toNat < (total + assets).toNat ∧ RDrev fork vaultBytecode g s0) := by
   let prepared := vaultCreditLimitsMemory isDeposit mem
   let limit := codeOwnerStorageWord I σ ⟨5⟩
   by_cases hfit : total.toNat + assets.toNat < UInt256.size
@@ -41,7 +43,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
   · have hover : UInt256.size ≤ total.toNat + assets.toNat := by omega
     have hcond : UInt256.lt (total + assets) total ≠ ⟨0⟩ := by
       rw [u256_add_overflow_lt _ _ hover]; decide +kernel
-    have hrev : RDrev vaultBytecode g s0 := by
+    have hrev : RDrev fork vaultBytecode g s0 := by
       cases isDeposit with
       | false =>
         change memLoad (UInt256.ofNat 640) prepared = total at hmt
@@ -67,7 +69,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
     exact Or.inr (Or.inl ⟨hover, hrev⟩)
   have hno : UInt256.lt (total + assets) total = ⟨0⟩ :=
     ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hfit]; omega)
-  have rdMinimum : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditMinimumPc isDeposit))
+  have rdMinimum : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditMinimumPc isDeposit))
       ((total + assets) :: assets :: total :: UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' := by
     cases isDeposit with
     | false =>
@@ -78,7 +80,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
           change UInt256.lt (memLoad (UInt256.ofNat 640) prepared + memLoad (UInt256.ofNat 672) prepared)
             (memLoad (UInt256.ofNat 640) prepared) = _
           rw [hmt, hma]; exact hno) h
-      change RD vaultBytecode I g s0 (UInt256.ofNat 3389)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 3389)
         ((memLoad (UInt256.ofNat 640) prepared + memLoad (UInt256.ofNat 672) prepared) ::
           memLoad (UInt256.ofNat 672) prepared :: memLoad (UInt256.ofNat 640) prepared ::
           UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' at rd
@@ -92,7 +94,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
           change UInt256.lt (memLoad (UInt256.ofNat 640) prepared + calldataWord I.calldata 4)
             (memLoad (UInt256.ofNat 640) prepared) = _
           rw [hmt, hma]; exact hno) h
-      change RD vaultBytecode I g s0 (UInt256.ofNat 2219)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 2219)
         ((memLoad (UInt256.ofNat 640) prepared + calldataWord I.calldata 4) :: calldataWord I.calldata 4 ::
           memLoad (UInt256.ofNat 640) prepared :: UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' at rd
       rw [hmt, hma] at rd
@@ -103,7 +105,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
   · have hlt : (total + assets).toNat < 10000 := by omega
     have hcond : UInt256.isZero (UInt256.lt (total + assets) (UInt256.ofNat 10000)) = ⟨0⟩ := by
       rw [ult_one (by exact hlt)]; decide +kernel
-    have hrev : RDrev vaultBytecode g s0 := by
+    have hrev : RDrev fork vaultBytecode g s0 := by
       cases isDeposit with
       | false =>
         obtain ⟨_, _, _, rdFail⟩ := vaultBlocks.vault_block_3389_fallthrough_packed (by omega) hcond rdMinimum
@@ -114,13 +116,13 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
     exact Or.inr (Or.inr (Or.inl ⟨hfit, hlt, hrev⟩))
   have hminCond : UInt256.isZero (UInt256.lt (total + assets) (UInt256.ofNat 10000)) ≠ ⟨0⟩ := by
     rw [ult_zero (by exact hmin)]; decide +kernel
-  have rdCapacity : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditCapacityPc isDeposit))
+  have rdCapacity : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditCapacityPc isDeposit))
       R prepared aw' rdata σ k' C' := by
     cases isDeposit
     · exact vaultBlocks.vault_block_3389_taken_packed (by omega) hminCond (by native_decide) rdMinimum
     · exact vaultBlocks.vault_block_2219_taken_packed (by omega) hminCond (by native_decide) rdMinimum
   obtain ⟨aw1, k1, C1, rdCapacity⟩ := rdCapacity
-  have rdMaximum : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditMaximumPc isDeposit))
+  have rdMaximum : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditMaximumPc isDeposit))
       ((total + assets) :: assets :: total :: limit :: R) prepared aw' rdata σ k' C' := by
     cases isDeposit with
     | false =>
@@ -142,7 +144,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
           change UInt256.lt (memLoad (UInt256.ofNat 640) prepared + calldataWord I.calldata 4)
             (memLoad (UInt256.ofNat 640) prepared) = _
           rw [hmt, hma]; exact hno) rdCapacity
-      change RD vaultBytecode I g s0 (UInt256.ofNat 2369)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 2369)
         ((memLoad (UInt256.ofNat 640) prepared + calldataWord I.calldata 4) :: calldataWord I.calldata 4 ::
           memLoad (UInt256.ofNat 640) prepared :: limit :: R) prepared aw' rdata σ k' C' at rd
       rw [hmt, hma] at rd
@@ -158,7 +160,7 @@ theorem vaultCreditLimitsEVM (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} 
   · have hlt : limit.toNat < (total + assets).toNat := by omega
     have hcond : UInt256.isZero (UInt256.gt (total + assets) limit) = ⟨0⟩ := by
       rw [ugt_one hlt]; decide +kernel
-    have hrev : RDrev vaultBytecode g s0 := by
+    have hrev : RDrev fork vaultBytecode g s0 := by
       cases isDeposit with
       | false =>
         obtain ⟨_, _, _, rdFail⟩ := vaultBlocks.vault_block_3540_fallthrough_packed (by omega) hcond rdMaximum

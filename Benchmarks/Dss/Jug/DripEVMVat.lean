@@ -1,16 +1,18 @@
 import Benchmarks.Dss.Jug.DripSourceFold
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
 theorem RD.jugDripToVatIlksExtcodesizeGuard
     {σ σ₀ A I} {g sel : UInt256} {k C : ℕ}
-    (rd1323 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1323 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1323⟩
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1384⟩
       (dripVatTargetWord σ I :: dripVatTargetWord σ I :: ⟨0⟩ :: dripVatIlksOutPtr ::
         dripVatIlksInSize :: dripVatIlksOutPtr :: ⟨64⟩ :: dripVatIlksEndPtr ::
@@ -57,7 +59,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
   have rd1324 := rd1323.jumpdest (by native_decide) (by evm_ov)
   have rd1326 := rd1324.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1327, C1327, rd1327raw⟩ := rd1326.sload (by native_decide) (by evm_ov)
-  have rd1327 : RD jugBytecode I (Sat256.ofUInt256 g)
+  have rd1327 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1327⟩
       (rawTarget :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1327 C1327 := by
@@ -124,13 +126,13 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
 
 theorem RD.jugDripVatIlksNoCode
     {σ σ₀ A I} {g sel : UInt256} {k C : ℕ}
-    (rd1323 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1323 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1323⟩
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1384⟩ := RD.jugDripToVatIlksExtcodesizeGuard rd1323
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
@@ -141,13 +143,13 @@ theorem RD.jugDripVatIlksNoCode
 
 theorem RD.jugDripVatIlksCallReady
     {σ σ₀ A I} {g sel : UInt256} {k C : ℕ}
-    (rd1323 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1323 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1323⟩
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (gasWord :: dripVatTargetWord σ I :: ⟨0⟩ :: dripVatIlksOutPtr ::
         dripVatIlksInSize :: dripVatIlksOutPtr :: ⟨64⟩ :: dripVatIlksEndPtr ::
@@ -166,7 +168,7 @@ theorem RD.jugDripVatIlksCallReady
 
 theorem RD.jugDripVatIlksPostCall
     {σ σ₀ A I} {g sel gasWord : UInt256} {k C : ℕ}
-    (rd1399 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1399 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (gasWord :: dripVatTargetWord σ I :: ⟨0⟩ :: dripVatIlksOutPtr ::
         dripVatIlksInSize :: dripVatIlksOutPtr :: ⟨64⟩ :: dripVatIlksEndPtr ::
@@ -178,15 +180,15 @@ theorem RD.jugDripVatIlksPostCall
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD jugBytecode I (Sat256.ofUInt256 g)
+      ∧ RD fork jugBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: dripVatIlksEndPtr :: dripVatIlksSelectorWord ::
             dripVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
@@ -208,7 +210,7 @@ theorem RD.jugDripVatIlksPostCall
 
 theorem RD.jugDripVatIlksCallDepthLimit
     {σ σ₀ A I} {g sel gasWord : UInt256} {k C : ℕ}
-    (rd1399 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1399 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (gasWord :: dripVatTargetWord σ I :: ⟨0⟩ :: dripVatIlksOutPtr ::
         dripVatIlksInSize :: dripVatIlksOutPtr :: ⟨64⟩ :: dripVatIlksEndPtr ::
@@ -217,7 +219,7 @@ theorem RD.jugDripVatIlksCallDepthLimit
       (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
       ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨0⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -241,13 +243,13 @@ theorem RD.jugDripVatIlksCallDepthLimit
 
 theorem RD.jugDripVatIlksCallFailed
     {σ σ' σ₀ A I} {g sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1400 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨0⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
     rfl
@@ -259,12 +261,12 @@ theorem RD.jugDripVatIlksCallFailed
 theorem RD.jugDripVatIlksCallSucceeded
     {σ σ₀ A I} {g sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1400 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨1⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1418⟩
       (dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -279,13 +281,13 @@ theorem RD.jugDripVatIlksReturnDecodeShortReverts
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd1418 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1418 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1418⟩
       (dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rdPop0 := RD.pop rd1418 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -331,13 +333,13 @@ theorem RD.jugDripVatIlksReturnDecodeOk
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd1418 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1418 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1418⟩
       (dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1446⟩
       (dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I ::
         ⟨357⟩ :: sel :: [])
@@ -401,14 +403,14 @@ theorem RD.jugDripVatIlksReturnDecodeOk
 theorem RD.jugDripLoadBaseDuty
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out : ByteArray} {k C : ℕ}
-    (rd1446 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1446 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1446⟩
       (dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I ::
         ⟨357⟩ :: sel :: [])
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1465⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
         solcSlotWordAt ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -425,7 +427,7 @@ theorem RD.jugDripLoadBaseDuty
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨k1449, C1449, rd1449raw⟩ := rd1448.sload (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd1449 : RD jugBytecode I (Sat256.ofUInt256 g)
+  have rd1449 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1449⟩
       (solcSlotWordAt ⟨4⟩ σ' I :: dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -467,13 +469,13 @@ theorem RD.jugDripLoadBaseDuty
 theorem RD.jugDripToAddRoutine
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out : ByteArray} {k C : ℕ}
-    (rd1465 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1465 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1465⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
         solcSlotWordAt ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
       (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
@@ -501,13 +503,13 @@ theorem RD.jugDripAddOverflowReverts
     (hover :
       UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
         (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat)
-    (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2131 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    RDrev jugBytecode (Sat256.ofUInt256 g)
+    RDrev fork jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let base := solcSlotWordAt ⟨4⟩ σ' I
   let duty := solcSlotWordAt (fileDutyDutySlotFor I) σ' I
@@ -536,13 +538,13 @@ theorem RD.jugDripAddReturns
     (hno :
       ¬ UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
         (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat)
-    (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2131 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       ((solcSlotWordAt ⟨4⟩ σ' I + solcSlotWordAt (fileDutyDutySlotFor I) σ' I) ::
         ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::

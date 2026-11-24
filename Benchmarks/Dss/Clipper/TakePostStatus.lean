@@ -3,6 +3,8 @@ import Benchmarks.Dss.Clipper.StatusPriceCall
 import Benchmarks.Dss.Clipper.TakeStatus
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -923,13 +925,13 @@ theorem RD.clipperTakeStatusDoneTrueReverts {code : ByteArray} (v : ClipperImmut
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap}
     {price : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨3852⟩
+    (h : RD fork code ee g s0 ⟨3852⟩
       (price :: ⟨1⟩ :: ⟨0⟩ :: ⟨0⟩ :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd3863 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw swap3 (by clipper_runtime_decode) (by evm_ov),
@@ -1009,7 +1011,7 @@ theorem RD.clipperTakeStatusFalseTooExpensiveReverts {code : ByteArray}
     {σ : AccountMap}
     {price tic packed stopped dataLen dataStart who max : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨3852⟩
+    (h : RD fork code ee g s0 ⟨3852⟩
       (price :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
@@ -1017,7 +1019,7 @@ theorem RD.clipperTakeStatusFalseTooExpensiveReverts {code : ByteArray}
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd3929pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw swap3 (by clipper_runtime_decode) (by evm_ov),
@@ -1114,13 +1116,13 @@ theorem RD.clipperTakeStatusFalseMaxOk {code : ByteArray}
     {σ : AccountMap}
     {price tic packed stopped dataLen dataStart who max : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨3852⟩
+    (h : RD fork code ee g s0 ⟨3852⟩
       (price :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
     (hmax : price.toNat ≤ max.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4007⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4007⟩
       (price :: tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: R)
       mem (UInt256.ofNat 7) rdata σ k' C' := by
   have rd3929pre := evm_run h with [
@@ -1160,7 +1162,7 @@ theorem RD.clipperTakeAfterMaxToMul {code : ByteArray}
     {σ : AccountMap}
     {price tic packed stopped dataLen dataStart who max amt id : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4007⟩
+    (h : RD fork code ee g s0 ⟨4007⟩
       (price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
@@ -1170,7 +1172,7 @@ theorem RD.clipperTakeAfterMaxToMul {code : ByteArray}
     let lot : UInt256 := solcSlotWord σ ee (base + ⟨2⟩)
     let tab : UInt256 := solcSlotWord σ ee (base + ⟨1⟩)
     let slice : UInt256 := clipperMinWord amt lot
-    ∃ k' C', RD code ee g s0 ⟨8686⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8686⟩
       (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1200,7 +1202,7 @@ theorem RD.clipperTakeAfterMaxToMul {code : ByteArray}
     raw dup2 (by clipper_runtime_decode) (by evm_ov),
     raw add (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨kLot, CLot, rdLotRaw⟩ := rdHash.sload (by clipper_runtime_decode) (by evm_ov)
-  have rdLot : RD code ee g s0 ⟨4027⟩
+  have rdLot : RD fork code ee g s0 ⟨4027⟩
       (lot :: base :: ⟨0⟩ :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: R)
       (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata σ kLot CLot := by
@@ -1211,7 +1213,7 @@ theorem RD.clipperTakeAfterMaxToMul {code : ByteArray}
     raw swap2 (by clipper_runtime_decode) (by evm_ov),
     raw add (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨kTab, CTab, rdTabRaw⟩ := rdTabSlot.sload (by clipper_runtime_decode) (by evm_ov)
-  have rdTab : RD code ee g s0 ⟨4033⟩
+  have rdTab : RD fork code ee g s0 ⟨4033⟩
       (tab :: lot :: ⟨0⟩ :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: R)
       (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata σ kTab CTab := by
@@ -1250,14 +1252,14 @@ theorem RD.clipperTakeOwe0MulSuccess {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 ⟨8686⟩
+    (h : RD fork code ee g s0 ⟨8686⟩
       (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
       mem aw rdata acc k C)
     (hmul : price.toNat * slice.toNat < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4057⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1272,14 +1274,14 @@ theorem RD.clipperTakeOweGtTabToJoin {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
       mem aw rdata acc k C)
     (hgt : tab.toNat < (UInt256.mul price slice).toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4223⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4223⟩
       (UInt256.div tab price :: tab :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1331,7 +1333,7 @@ theorem RD.clipperTakeOweEqTabToJoin {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1339,7 +1341,7 @@ theorem RD.clipperTakeOweEqTabToJoin {code : ByteArray}
     (hle : (UInt256.mul price slice).toNat ≤ tab.toNat)
     (hge : tab.toNat ≤ (UInt256.mul price slice).toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4223⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4223⟩
       (slice :: UInt256.mul price slice :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1391,7 +1393,7 @@ theorem RD.clipperTakeOweLtTabSliceGeLotToJoin {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1400,7 +1402,7 @@ theorem RD.clipperTakeOweLtTabSliceGeLotToJoin {code : ByteArray}
     (hlt : (UInt256.mul price slice).toNat < tab.toNat)
     (hsliceGe : lot.toNat ≤ slice.toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4223⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4223⟩
       (slice :: UInt256.mul price slice :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -1463,14 +1465,14 @@ theorem RD.clipperTakeVatFluxExtcodesizeGuard {code : ByteArray}
     {σ : AccountMap}
     {price slice owe tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4223⟩
+    (h : RD fork code ee g s0 ⟨4223⟩
       (slice :: owe :: tab :: lot :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4380⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4380⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: slice :: owe :: UInt256.sub tab owe ::
@@ -1630,7 +1632,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
     {R : List UInt256} {baseMem rdata : ByteArray} (v : ClipperImmutables)
     {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4380 : RD code I g (initState σStart σ₀ g A I) ⟨4380⟩
+    (rd4380 : RD fork code I g (initState σStart σ₀ g A I) ⟨4380⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
@@ -1644,7 +1646,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4396⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -1655,7 +1657,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "flux" 0
@@ -1718,7 +1720,7 @@ theorem RD.clipperTakeVatFluxNoCode {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd4380 : RD code ee g s0 ⟨4380⟩
+    (rd4380 : RD fork code ee g s0 ⟨4380⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
@@ -1727,7 +1729,7 @@ theorem RD.clipperTakeVatFluxNoCode {code : ByteArray}
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4380⟩) (okPc := ⟨4392⟩)
     rd4380 hcodeSizeVat
     (by clipper_runtime_decode) (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1741,10 +1743,10 @@ theorem RD.clipperTakeVatFluxCallFailure {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd : RD code ee g s0 ⟨4396⟩ (⟨0⟩ :: R) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨4396⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4396⟩) (okPc := ⟨4412⟩)
     rd (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1763,13 +1765,13 @@ theorem RD.clipperTakeVatFluxCallSuccessToPostGuard {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4396⟩
+    (rd : RD fork code ee g s0 ⟨4396⟩
       (⟨1⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: R)
       mem aw o acc k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4414⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4414⟩
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: R)
@@ -1792,14 +1794,14 @@ theorem RD.clipperTakeSkipClipperCallDataEmpty {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4414⟩
+    (rd : RD fork code ee g s0 ⟨4414⟩
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw o σ k C)
     (hdataLen : dataLen = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4701⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4701⟩
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)

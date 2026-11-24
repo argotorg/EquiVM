@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.SafeMulSource
 import Benchmarks.Safe.V3_77901a5.SignatureValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -44,13 +46,13 @@ def signatureLoopBody : List Stmt :=
 
 theorem safeSignatureRequiredBytes (p : SignatureInput) (evm : EVM.State)
     (hfit : p.requiredBytes < UInt256.size) :
-    ExecStmt config p.frame evm
+    ExecStmt fork config p.frame evm
       (.internalCall "_mul" [.var "requiredSignatures", .intLit 65] "requiredBytes")
       (.ok p.requiredFrame evm) := by
   have hm : (UInt256.mul p.required ⟨65⟩).toNat = p.requiredBytes := by
     rw [u256_mul_toNat]
     exact Nat.mod_eq_of_lt hfit
-  have h := safeInternalMul (caller := p.frame) (evm := evm) (a := p.required) (b := ⟨65⟩)
+  have h := safeInternalMul (fork := fork) (caller := p.frame) (evm := evm) (a := p.required) (b := ⟨65⟩)
     (lhs := .var "requiredSignatures") (rhs := .intLit 65) (retVar := "requiredBytes") rfl
     (evalLocalValue (by simp [SignatureInput.frame, SignatureInput.args,
       Std.HashMap.getElem_insert])) (by simp [evalExpr?, uint256Value]; rfl) hfit
@@ -73,7 +75,7 @@ theorem evalSignatureLengthBound (p : SignatureInput) (evm : EVM.State) :
 
 theorem safeSignatureBoundsFailed (p : SignatureInput) (evm : EVM.State)
     (hbad : p.signatures.size < p.requiredBytes) :
-    ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body .reverted := by
   by_cases hfit : p.requiredBytes < UInt256.size
   · apply ExecFuncBody.execBlockRevert
     exact .consNormal (safeSignatureRequiredBytes p evm hfit) (.consRevert
@@ -91,9 +93,9 @@ theorem safeSignatureBoundsFailed (p : SignatureInput) (evm : EVM.State)
 theorem safeSignatureSourcePrefix (p : SignatureInput) (evm : EVM.State)
     {result : ExecResult} (hn : p.signatures.size < UInt256.size)
     (hbound : p.requiredBytes ≤ p.signatures.size)
-    (htail : ExecBlock config p.loopFrame evm
+    (htail : ExecBlock fork config p.loopFrame evm
       [.while signatureLoopCondition signatureLoopBody] result) :
-    ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body
+    ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body
       (match result with
       | .ok f e => .returned f e none
       | .break f e => .returned f e none
@@ -107,7 +109,7 @@ theorem safeSignatureSourcePrefix (p : SignatureInput) (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat 0)) := by
     simp [zeroAddr, evalExpr?, castValue?, addrSt, EvalResult.ofOption,
       EvalResult.bind, bind, pure, intToNat?]
-  have hr : ExecBlock config p.frame evm checkNSignaturesImplFunction.body result := by
+  have hr : ExecBlock fork config p.frame evm checkNSignaturesImplFunction.body result := by
     apply ExecBlock.consNormal (safeSignatureRequiredBytes p evm (by omega))
     apply ExecBlock.consNormal (.requireTrue (by
       simpa only [hbound, decide_true] using evalSignatureLengthBound p evm))

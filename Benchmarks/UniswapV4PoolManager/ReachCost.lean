@@ -1,12 +1,14 @@
 import Reasoning.Reach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
 -- LIBRARY CANDIDATE: any two fuel allowances above the remaining gas give the same run.
 theorem X_fuel_eq_of_gas_lt {a b : Nat} {vj : Array UInt256} {s : State}
     (ha : s.machineState.gasAvailable.toNat < a) (hb : s.machineState.gasAvailable.toNat < b) :
-    X a vj s = X b vj s := by
+    X fork a vj s = X fork b vj s := by
   induction a generalizing b s with
   | zero => omega
   | succ a ih =>
@@ -14,7 +16,7 @@ theorem X_fuel_eq_of_gas_lt {a b : Nat} {vj : Array UInt256} {s : State}
     | zero => omega
     | succ b =>
       rw [X, X]
-      cases hs : Xstep vj s with
+      cases hs : Xstep fork vj s with
       | error e => rfl
       | ok result =>
         rcases result with ⟨post, halted⟩
@@ -31,9 +33,9 @@ theorem X_fuel_eq_of_gas_lt {a b : Nat} {vj : Array UInt256} {s : State}
 theorem RD_liftRebased {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 s : State}
     {pc aw : UInt256} {stk : List UInt256} {mem rdata : ByteArray} {σ : AccountMap}
     {k C kr Cr : Nat} (hk : k ≤ C) (hC : C ≤ g.toNat) (hσ : s.σ₀ = s0.σ₀)
-    (hX : X (g.toNat+1) (D_J code 0) s0 = X ((g.subNat C).toNat+1) (D_J code 0) s)
-    (h : RD code I (g.subNat C) s pc stk mem aw rdata σ kr Cr) :
-    RD code I g s0 pc stk mem aw rdata σ (k+kr) (C+Cr) := by
+    (hX : X fork (g.toNat+1) (D_J code 0) s0 = X fork ((g.subNat C).toNat+1) (D_J code 0) s)
+    (h : RD fork code I (g.subNat C) s pc stk mem aw rdata σ kr Cr) :
+    RD fork code I g s0 pc stk mem aw rdata σ (k+kr) (C+Cr) := by
   rcases h with hog | ⟨post, hrun, hcode, hpc, hstk, hgas, hkr, hCr, hmem, haw, hrdata, hacc, hI, hσr⟩
   · exact .inl (hX.trans hog)
   have hgas' : post.machineState.gasAvailable = g.subNat (C+Cr) := by
@@ -54,18 +56,18 @@ theorem RD_retainCost {code : ByteArray} {I J : ExecutionEnv} {g : Sat256} {s0 :
     {pc pc' aw aw' : UInt256} {stk stk' : List UInt256} {mem mem' rdata rdata' : ByteArray}
     {σ σ' : AccountMap} {k C : Nat}
     (routine : ∀ (budget : Sat256) (start : State),
-      RD code I budget start pc stk mem aw rdata σ 0 0 →
-      ∃ kr Cr, RD code J budget start pc' stk' mem' aw' rdata' σ' kr Cr)
-    (h : RD code I g s0 pc stk mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD code J g s0 pc' stk' mem' aw' rdata' σ' k' C' := by
+      RD fork code I budget start pc stk mem aw rdata σ 0 0 →
+      ∃ kr Cr, RD fork code J budget start pc' stk' mem' aw' rdata' σ' kr Cr)
+    (h : RD fork code I g s0 pc stk mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork code J g s0 pc' stk' mem' aw' rdata' σ' k' C' := by
   rcases h with hog | ⟨s, hrun, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hI, hσ⟩
   · exact ⟨k, C, Nat.le_refl _, .inl hog⟩
-  have hs : RD code I (g.subNat C) s pc stk mem aw rdata σ 0 0 := by
+  have hs : RD fork code I (g.subNat C) s pc stk mem aw rdata σ 0 0 := by
     apply RD.startWith hcode hpc hstk
       (by rw [Sat256.subNat_zero]; exact hgas) (Nat.le_refl _) (Nat.zero_le _) (by rw [Nat.sub_zero])
       hmem haw hrdata hacc hI rfl
   obtain ⟨kr, Cr, hr⟩ := routine (g.subNat C) s hs
-  have hX : X (g.toNat+1) (D_J code 0) s0 = X ((g.subNat C).toNat+1) (D_J code 0) s := by
+  have hX : X fork (g.toNat+1) (D_J code 0) s0 = X fork ((g.subNat C).toNat+1) (D_J code 0) s := by
     apply hrun.trans
     apply X_fuel_eq_of_gas_lt
     · rw [hgas, Sat256.subNat_toNat]; omega

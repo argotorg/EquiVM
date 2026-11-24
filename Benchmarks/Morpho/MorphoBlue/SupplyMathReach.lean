@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyAccrueRefine
 import Benchmarks.Morpho.MorphoBlue.AssetsUpRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,9 +29,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoSupplyReachShares (p : MarketParamsWords) (hstack : R.length + 28 ≤ 1024)
     (hn : assets ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3948)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3948)
       (supplyAccrueTail p.id assets shares account srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15336)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15336)
       ([assets, marketFieldWord σ ee p.id 0, marketFieldWord σ ee p.id 1, UInt256.ofNat 3982,
         p.id, account, srcOff, len, UInt256.ofNat 0, UInt256.ofNat 128, UInt256.ofNat 32,
         uint128Mask, assets, solcAddrMask] ++ R)
@@ -41,7 +43,7 @@ theorem morphoSupplyReachShares (p : MarketParamsWords) (hstack : R.length + 28 
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
   have hh := marketSupplySlot_hash p.id mem
   simp only [morphoBlocks.morpho_block_3953_stack, morphoBlocks.morpho_block_3953_memory] at rd2
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([assets, UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem p.id (UInt256.ofNat 3) mem)) σ ee) uint128Mask,
       UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
@@ -53,9 +55,9 @@ theorem morphoSupplyReachShares (p : MarketParamsWords) (hstack : R.length + 28 
 
 theorem morphoSupplyReachAssets (p : MarketParamsWords) (hstack : R.length + 28 ≤ 1024)
     (hz : assets = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3948)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3948)
       (supplyAccrueTail p.id assets shares account srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15445)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15445)
       ([shares, marketFieldWord σ ee p.id 0, marketFieldWord σ ee p.id 1, UInt256.ofNat 4360,
         p.id, account, srcOff, len, UInt256.ofNat 0, UInt256.ofNat 128, UInt256.ofNat 32,
         shares, uint128Mask, solcAddrMask] ++ R)
@@ -68,7 +70,7 @@ theorem morphoSupplyReachAssets (p : MarketParamsWords) (hstack : R.length + 28 
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
   have hh := marketSupplySlot_hash p.id mem
   simp only [morphoBlocks.morpho_block_4327_stack, morphoBlocks.morpho_block_4327_memory] at rd2
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([shares, UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem p.id (UInt256.ofNat 3) mem)) σ ee) uint128Mask,
       UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)

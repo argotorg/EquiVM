@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Routines
 import Benchmarks.UniswapV3.Pool.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `feeGrowthGlobal1X128()`
 
@@ -21,7 +23,7 @@ set_option maxRecDepth 2000000
 theorem uniswapV3PoolFeeGrowthGlobal1X128Returns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "feeGrowthGlobal1X128" = none) :
-    ExecTransitionBody config contract evm locals feeGrowthGlobal1X128Transition.body
+    ExecTransitionBody fork config contract evm locals feeGrowthGlobal1X128Transition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (Int.ofNat
           (solcSlotWordAt ⟨2⟩ evm.accountMap evm.executionEnv).toNat)])) (immStore v) := by
@@ -33,7 +35,7 @@ theorem uniswapV3PoolFeeGrowthGlobal1X128X {σ σ₀ A I} {g : Sat256} (v : Unis
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 8)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (solcSlotWordAt ⟨2⟩ σ I)) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachFeeGrowthGlobal1X128Body (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -51,7 +53,7 @@ theorem uniswapV3PoolFeeGrowthGlobal1X128Body {σ σ₀ A I} {g : UInt256} (v : 
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 8) rfl hsel
   have hd : dispatchMsg contract I.calldata = some feeGrowthGlobal1X128Transition := by
     apply uniswapV3PoolDispatch_feeGrowthGlobal1X128 <;>

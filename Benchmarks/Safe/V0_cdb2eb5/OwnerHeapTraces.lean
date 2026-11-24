@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.OwnerGuards
 import Benchmarks.Safe.V0_cdb2eb5.MemoryPreserves
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -24,13 +26,13 @@ theorem safeCanAddOwnerHeapCheckWord (σ : AccountMap) (I : ExecutionEnv) (key :
 
 theorem safeCanAddOwnerHeapTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 96 ≤ mem.size) (hv : validOwner σ I key) (he : ownerLinkAt σ I key = ⟨0⟩) :
     ∃ mem' aw' k' C', mem'.size = mem.size ∧
       (∀ off count, 64 ≤ off → off + count ≤ mem.size →
         mem'.readWithPadding off count = mem.readWithPadding off count) ∧
-      RD safeBytecode I g s0 ⟨1845⟩ (top :: key :: R) mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ⟨1845⟩ (top :: key :: R) mem' aw' rdata σ k' C' := by
   obtain ⟨_, _, h₂⟩ := safeValidOwnerTrace h (by omega) hc hv
   have hword := safeCanAddOwnerHeapCheckWord σ I key mem hc
   simp only [safeRuntime_block_1797_taken_memory] at hword
@@ -47,10 +49,10 @@ theorem safeCanAddOwnerHeapTrace {I g s0 σ k C aw mem rdata} {key top : UInt256
 
 theorem safeCanAddOwnerHeapTraceExisting {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : 96 ≤ mem.size) (hv : validOwner σ I key) (he : ownerLinkAt σ I key ≠ ⟨0⟩) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h₂⟩ := safeValidOwnerTrace h (by omega) hc hv
   have hword := safeCanAddOwnerHeapCheckWord σ I key mem hc
   simp only [safeRuntime_block_1797_taken_memory] at hword

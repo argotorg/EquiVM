@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AccrueHeap
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceFeeWrites
 import Benchmarks.Morpho.MorphoBlue.AccrueSupplyShares
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -51,10 +53,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 evm : State
 theorem morphoAccrueFeeWritesOk (hstack : R.length + 32 ≤ 1024) (hp : ee.perm = true)
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp spare) (hb : 64 ≤ spare)
     (hfit : AccrueFeeWritesFit evm id shares)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([shares, interest, solcAddrMask] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
     ∃ σ' aw' k' C', SourceState s0 ee σ' (accrueFeeSharesState evm id shares) ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
         ([interest, shares] ++ accrueMathTail id rate ret R)
         (accrueFeeWritesMem σ ee id mem) aw' rdata σ' k' C' := by
   have hpos : (solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee).toNat + shares.toNat < UInt256.size := by
@@ -78,9 +80,9 @@ theorem morphoAccrueFeeWritesOk (hstack : R.length + 32 ≤ 1024) (hp : ee.perm 
 theorem morphoAccrueFeeWritesReverts (hstack : R.length + 32 ≤ 1024) (hp : ee.perm = true)
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp spare) (hb : 64 ≤ spare)
     (hbad : ¬ AccrueFeeWritesFit evm id shares)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([shares, interest, solcAddrMask] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   by_cases hpos : (solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee).toNat + shares.toNat < UInt256.size
   · obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccruePositionAddOk (v := v) (by omega) hpos h
     obtain ⟨k2, C2, rd2⟩ := morphoAccruePositionStore (v := v) (by omega) hp rd1

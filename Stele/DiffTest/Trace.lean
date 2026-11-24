@@ -36,7 +36,7 @@ def isCallOpcode : Operation → Bool
 
 /-- Execute `initial` to completion (the loop of `X`, with its depth bookkeeping), recording
     call boundaries and `GAS` results.  `fuel` bounds the number of steps; `Ξ` uses `g + 1`. -/
-def runTrace (initial : EVM.State) (fuel : Nat) : Trace := Id.run do
+def runTrace (fork : Ethereum.Fork) (initial : EVM.State) (fuel : Nat) : Trace := Id.run do
   let jumps := D_J initial.executionEnv.code 0
   let mut state := initial
   let mut boundaries : Array CallBoundary := #[]
@@ -45,7 +45,7 @@ def runTrace (initial : EVM.State) (fuel : Nat) : Trace := Id.run do
   for _ in [:fuel] do
     steps := steps + 1
     let opcode := (decode state.executionEnv.code state.machineState.pc).map Prod.fst |>.getD .STOP
-    match Xstep jumps state with
+    match Xstep fork jumps state with
     | .error e =>
         return { result := .error e, boundaries := boundaries.toList, gasWords := gasWords.toList, steps }
     | .ok (next, halt) =>

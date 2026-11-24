@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PositionUpdateResult
 import Benchmarks.UniswapV4PoolManager.CallContinuation
 import Benchmarks.UniswapV4PoolManager.TupleLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,17 +28,17 @@ theorem poolModifyPositionUpdate {f : Frame} {evm : State} {id : UInt256} {p : P
     (hp : f.locals.get? "position" = some (positionRefValue id key))
     (h0 : f.locals.get? "feeGrowthInside0X128" = some (.int (Int.ofNat fee0.toNat)))
     (h1 : f.locals.get? "feeGrowthInside1X128" = some (.int (Int.ofNat fee1.toNat))) :
-    ExecBlock config f evm ((poolModifyFunction.body.drop 15).take 4)
+    ExecBlock fork config f evm ((poolModifyFunction.body.drop 15).take 4)
       (poolModifyPositionUpdateResult f evm id key p.delta fee0 fee1) := by
   let fa := poolModifyUpdateAliasFrame f id key
-  have ha : ExecStmt config f evm poolModifyFunction.body[15]! (.ok fa evm) :=
+  have ha : ExecStmt fork config f evm poolModifyFunction.body[15]! (.ok fa evm) :=
     ExecStmt.letStorage (resolveStorageAlias hp)
   have hca : PoolModifyContext fa id p := hc.insert poolModifyUpdateAlias _ (by decide)
   have h0a : fa.locals.get? "feeGrowthInside0X128" = some (.int (Int.ofNat fee0.toNat)) :=
     (store_get_ne _ _ (by decide : (poolModifyUpdateAlias == "feeGrowthInside0X128") = false)).trans h0
   have h1a : fa.locals.get? "feeGrowthInside1X128" = some (.int (Int.ofNat fee1.toNat)) :=
     (store_get_ne _ _ (by decide : (poolModifyUpdateAlias == "feeGrowthInside1X128") = false)).trans h1
-  have hcall := positionUpdateCall (f := fa) (evm := evm) hca.contract
+  have hcall := positionUpdateCall (fork := fork) (f := fa) (evm := evm) hca.contract
     (evalLocalValue (store_get_self _ _ _)) (evalLocalValue hca.liquidityDelta)
     (evalLocalValue h0a) (evalLocalValue h1a) "__c8"
   apply ExecBlock.consNormal ha

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapLoopGuardTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_018
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -21,11 +23,11 @@ theorem swapPaymentGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (amount0 amount1 : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4526⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4526⟩
       ([EVM.wordOfInt amount1, EVM.wordOfInt amount0] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapTransferEntry a.zeroForOne)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapTransferEntry a.zeroForOne)
       (swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)
       mem aw rdata σ k' C' := by
   cases hz : a.zeroForOne
@@ -48,17 +50,17 @@ theorem swapTransferBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (a : SwapArgs) (amount0 amount1 : Int)
-    (rd : RD (deployedRuntime v) ee g s0 (swapTransferEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapTransferEntry second)
       (swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)
       mem aw rdata σ k C)
     (hfit : -(2 ^ 255 : Int) ≤ (if second then amount1 else amount0) ∧
       (if second then amount1 else amount0) < 2 ^ 255) (hov : R.length + 18 ≤ 1024) :
     (¬ (if second then amount1 else amount0) < 0) ∧
-      (∃ k' C', RD (deployedRuntime v) ee g s0 (swapTransferExit second)
+      (∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapTransferExit second)
         (swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)
         mem aw rdata σ k' C') ∨
     (if second then amount1 else amount0) < 0 ∧
-      (∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15238⟩
+      (∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
         ([swapTransferValue (if second then amount1 else amount0), EVM.word a.recipient.val,
             EVM.word (poolToken v second).val, swapTransferExit second] ++
           swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)

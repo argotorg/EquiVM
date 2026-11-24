@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.ListReturnMem
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -23,11 +25,11 @@ set_option maxHeartbeats 1000000 in
 theorem clipperListStorageArrayGetterToBranch {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
+    (h : RD fork code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
       (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨1853⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨1853⟩ : UInt256)
       ((⟨1890⟩ : UInt256) :: UInt256.isZero (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayDataPtr ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
@@ -84,7 +86,7 @@ theorem clipperListStorageArrayGetterToBranch {code : ByteArray} {g : Sat256} {s
 theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1853⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨1853⟩ : UInt256)
       ((⟨1890⟩ : UInt256) :: UInt256.isZero (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayDataPtr ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
@@ -96,7 +98,7 @@ theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 :
     (hret : (D_J code 0).contains ret = true)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
+    ∃ k' C', RD fork code ee g s0 ret (clipperListArrayBasePtr :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
       σ k' C' := by
   have hwfAll := hwf
@@ -112,14 +114,14 @@ theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 :
 theorem clipperListStorageArrayGetter_empty {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
+    (h : RD fork code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
       (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1890 : (D_J code 0).contains (⟨1890⟩ : UInt256) = true)
     (hret : (D_J code 0).contains ret = true)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
+    ∃ k' C', RD fork code ee g s0 ret (clipperListArrayBasePtr :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
       σ k' C' := by
   obtain ⟨_, _, rd1853⟩ := clipperListStorageArrayGetterToBranch h hwf hov
@@ -128,7 +130,7 @@ theorem clipperListStorageArrayGetter_empty {code : ByteArray} {g : Sat256} {s0 
 theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1853⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨1853⟩ : UInt256)
       ((⟨1890⟩ : UInt256) :: UInt256.isZero (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayDataPtr ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
@@ -138,7 +140,7 @@ theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat2
     (hwf : clipperListStorageArrayGetterWf code)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨1870⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨1870⟩ : UInt256)
       (clipperListArrayDataPtr :: activeDataSlot ::
         clipperListArrayEndPtr (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
@@ -173,12 +175,12 @@ theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat2
 theorem clipperListStorageArrayGetter_nonempty_to_loop {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
+    (h : RD fork code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
       (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨1870⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨1870⟩ : UInt256)
       (clipperListArrayDataPtr :: activeDataSlot ::
         clipperListArrayEndPtr (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
@@ -193,11 +195,11 @@ theorem clipperListStorageArrayLoopStepToBranch {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1870⟩ : UInt256) (dest :: slot :: endp :: R)
+    (h : RD fork code ee g s0 (⟨1870⟩ : UInt256) (dest :: slot :: endp :: R)
       mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨1889⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨1889⟩ : UInt256)
       ((⟨1870⟩ : UInt256) :: UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ::
         ((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
@@ -234,14 +236,14 @@ theorem clipperListStorageArrayLoopStepBack {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1870⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨1870⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1870 : (D_J code 0).contains (⟨1870⟩ : UInt256) = true)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ≠ ⟨0⟩)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨1870⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨1870⟩ : UInt256)
       (((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp ::
         a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
@@ -259,14 +261,14 @@ theorem clipperListStorageArrayLoopStepExit {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD code ee g s0 (⟨1870⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨1870⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) = ⟨0⟩)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (base :: R)
+    ∃ k' C', RD fork code ee g s0 ret (base :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
       rdata σ k' C' := by
   have hwfAll := hwf
@@ -292,14 +294,14 @@ theorem clipperListStorageArrayLoopFrom {code : ByteArray} {g : Sat256}
     ∀ m k,
       (solcSlotWord σ ee ⟨11⟩).toNat = k + m + 1 →
       (∀ k₀ C₀,
-        RD code ee g s0 (⟨1870⟩ : UInt256)
+        RD fork code ee g s0 (⟨1870⟩ : UInt256)
           (clipperListArrayDest k :: clipperListArraySlot k ::
             clipperListArrayEndPtr (solcSlotWord σ ee ⟨11⟩) ::
             solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
             (⟨96⟩ : UInt256) :: ret :: R)
           (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩) k)
           (clipperListArrayCopiedAw k) rdata σ k₀ C₀ →
-        ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
+        ∃ k' C', RD fork code ee g s0 ret (clipperListArrayBasePtr :: R)
           (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩)
             (solcSlotWord σ ee ⟨11⟩).toNat)
           (clipperListArrayCopiedAw (solcSlotWord σ ee ⟨11⟩).toNat)
@@ -371,7 +373,7 @@ theorem clipperListStorageArrayLoopFrom {code : ByteArray} {g : Sat256}
         clipperListArrayCopyStepMem_eq_copied (σ := σ) (ee := ee)
           (len := solcSlotWord σ ee ⟨11⟩) (n := k) hboundK
       have rdnext :
-          RD code ee g s0 (⟨1870⟩ : UInt256)
+          RD fork code ee g s0 (⟨1870⟩ : UInt256)
             (clipperListArrayDest (k + 1) :: clipperListArraySlot (k + 1) ::
               clipperListArrayEndPtr (solcSlotWord σ ee ⟨11⟩) ::
               solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::

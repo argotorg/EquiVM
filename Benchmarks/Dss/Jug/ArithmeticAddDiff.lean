@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ArithmeticLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -8,7 +10,7 @@ namespace Benchmarks.Dss.Jug
 
 theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y sum } evm
         (some [.int (Int.ofNat sum.toNat)])) := by
@@ -45,7 +47,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
         (.binary .ge (.var "z") (.var "x")) = .ok (.bool true) :=
     evalExpr_ge_uint256_true hz hxZ (by rw [hsumNat]; omega)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -58,7 +60,7 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
 
 theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat + y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       addFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -76,7 +78,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
         (add256 (.var "x") (.var "y")) = .revert :=
     evalExpr_add256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
           .require (.binary .ge (.var "z") (.var "x")),
           .return [.var "z"] ]
@@ -87,7 +89,7 @@ theorem execAddFunctionRevert (evm : EVM.State) {x y : UInt256}
 theorem execDiffFunctionReturn (evm : EVM.State) {x y : UInt256}
     (hxMax : (x.toNat : Int) ≤ Reasoning.Theory.maxInt256)
       (hyMax : (y.toNat : Int) ≤ Reasoning.Theory.maxInt256) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       diffFunction.body
       (.returned
         { contract := contract,
@@ -158,7 +160,7 @@ theorem execDiffFunctionReturn (evm : EVM.State) {x y : UInt256}
         (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)) = .ok (.bool true) :=
     evalExpr_le_int_true hyZ hMaxLit hyMax
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
           .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
           .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),
@@ -173,7 +175,7 @@ theorem execDiffFunctionReturn (evm : EVM.State) {x y : UInt256}
 theorem execDiffFunctionRevertCast (evm : EVM.State) {x y : UInt256}
     (hbad : (x.toNat : Int) - (y.toNat : Int) < -((2 : Int) ^ 255) ∨
       (x.toNat : Int) - (y.toNat : Int) ≥ (2 : Int) ^ 255) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       diffFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   let z : Int := (x.toNat : Int) - (y.toNat : Int)
@@ -196,7 +198,7 @@ theorem execDiffFunctionRevertCast (evm : EVM.State) {x y : UInt256}
         (s256 (.binary .sub (.var "x") (.var "y"))) = .revert := by
     exact evalExpr_s256_revert hSub (by simpa [z] using hbad)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
           .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
           .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),
@@ -209,7 +211,7 @@ theorem execDiffFunctionRevertXBound (evm : EVM.State) {x y : UInt256}
     (hlo : -((2 : Int) ^ 255) ≤ (x.toNat : Int) - (y.toNat : Int))
     (hhi : (x.toNat : Int) - (y.toNat : Int) < (2 : Int) ^ 255)
     (hxGt : Reasoning.Theory.maxInt256 < (x.toNat : Int)) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       diffFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   let z : Int := (x.toNat : Int) - (y.toNat : Int)
@@ -248,7 +250,7 @@ theorem execDiffFunctionRevertXBound (evm : EVM.State) {x y : UInt256}
         (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)) = .ok (.bool false) :=
     evalExpr_le_int_false hxZ hMaxLit hxGt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
           .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
           .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),
@@ -263,7 +265,7 @@ theorem execDiffFunctionRevertYBound (evm : EVM.State) {x y : UInt256}
     (hhi : (x.toNat : Int) - (y.toNat : Int) < (2 : Int) ^ 255)
     (hxMax : (x.toNat : Int) ≤ Reasoning.Theory.maxInt256)
       (hyGt : Reasoning.Theory.maxInt256 < (y.toNat : Int)) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       diffFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   let z : Int := (x.toNat : Int) - (y.toNat : Int)
@@ -312,7 +314,7 @@ theorem execDiffFunctionRevertYBound (evm : EVM.State) {x y : UInt256}
         (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)) = .ok (.bool false) :=
     evalExpr_le_int_false hyZ hMaxLit hyGt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
           .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
           .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),

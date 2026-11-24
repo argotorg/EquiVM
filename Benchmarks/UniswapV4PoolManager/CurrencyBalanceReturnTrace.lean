@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.AllocationTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_042
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,8 +15,8 @@ theorem balanceReturnAllocateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} 
     {aw ptr len ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hf : ptr.toNat+len.toNat+31 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨15112⟩ (ptr :: len :: ptr :: ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨15125⟩ (len :: ptr :: ⟨32⟩ :: ptr :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15112⟩ (ptr :: len :: ptr :: ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨15125⟩ (len :: ptr :: ⟨32⟩ :: ptr :: ret :: R)
       (writeWord mem 64 (allocationEnd ptr len)) aw' out σ k' C' := by
   have hr := poolManagerBlocks.poolManager_block_15112 (by simp; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -28,11 +30,11 @@ theorem currencyBalanceReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} 
     (hmem : ptr.toNat+32 ≤ mem.size) (ho : out.size < UInt256.size)
     (hread : 32 ≤ out.size → mem.readWithPadding ptr.toNat 32 = (returnedBalanceWord out).toByteArray)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15082⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: ret :: R) mem aw out σ k C) :
-    (¬(z = true ∧ 32 ≤ out.size) ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15082⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: ret :: R) mem aw out σ k C) :
+    (¬(z = true ∧ 32 ≤ out.size) ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (z = true ∧ 32 ≤ out.size ∧ ∃ mem' aw' k' C',
       96 ≤ mem'.size ∧ (memLoad ⟨64⟩ mem').toNat ≤ mem'.size ∧
-      RD (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out σ k' C') := by
+      RD fork (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out σ k' C') := by
   have hsize : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt ho
   cases z with
   | false =>
@@ -63,7 +65,7 @@ theorem currencyBalanceReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} 
         (.inr ⟨by omega, hmem⟩)
       have hm : memLoad ptr (writeWord mem 64 (allocationEnd ptr ⟨32⟩)) = returnedBalanceWord out :=
         mloadWordValue_of_readWithPadding (by rw [hs]; omega) (hr.trans (hread hlo))
-      change RD _ _ _ _ ret (memLoad ptr (writeWord mem 64 (allocationEnd ptr ⟨32⟩)) :: R) _ _ _ _ _ _ at rd6
+      change RD fork _ _ _ _ ret (memLoad ptr (writeWord mem 64 (allocationEnd ptr ⟨32⟩)) :: R) _ _ _ _ _ _ at rd6
       rw [hm] at rd6
       have hmfree : memLoad ⟨64⟩ (writeWord mem 64 (allocationEnd ptr ⟨32⟩)) = allocationEnd ptr ⟨32⟩ :=
         mloadWordValue_of_readWithPadding (by change 64 < _; rw [hs]; omega) (writeWord_read_back mem 64 _ hgap)

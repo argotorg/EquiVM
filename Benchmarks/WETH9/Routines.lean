@@ -1,6 +1,8 @@
 import Reasoning.SolcRoutines
 import Benchmarks.WETH9.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 shared routine lemmas
 
@@ -33,16 +35,16 @@ theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : Transi
     {o : ByteArray} {callargs cs retVal}
     {acc : AccountMap} {evm'' : EVM.State}
     (hcode : I.code = weth9Bytecode)
-    (h : RDret weth9Bytecode g (initState σ σ₀ g A I) acc o)
+    (h : RDret fork weth9Bytecode g (initState σ σ₀ g A I) acc o)
     (hsel : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal))
     (hAccountMap : acc = evm''.accountMap)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -51,7 +53,7 @@ theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : Transi
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
     have hbody' :
-        ExecTransitionBody cfg contract
+        ExecTransitionBody fork cfg contract
           (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
@@ -64,16 +66,16 @@ theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : Transi
 theorem weth9ReEquivExecStatic {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl} {σ σ₀ A I} {g : Sat256} {callargs}
     (hcode : I.code = weth9Bytecode)
-    (h : RDstatic weth9Bytecode g (initState σ σ₀ g A I))
+    (h : RDstatic fork weth9Bytecode g (initState σ σ₀ g A I))
     (hsel : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
       (initState σ σ₀ g A I) callargs t.body .staticViolation) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I := by
   apply h.reEquivElim hcode
   intro hstatic
-  have hbody' : ExecTransitionBody cfg contract
+  have hbody' : ExecTransitionBody fork cfg contract
       (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
       callargs t.body .staticViolation := by
     simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
@@ -86,13 +88,13 @@ theorem weth9ReEquivExecStatic {cfg : Config} {contract : ContractDecl}
 theorem weth9ReEquivExecRev {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256} {callargs}
     (hcode : I.code = weth9Bytecode)
-    (h : RDrev weth9Bytecode g (initState σ σ₀ g A I))
+    (h : RDrev fork weth9Bytecode g (initState σ σ₀ g A I))
     (hsel : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body .reverted) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | ⟨g', o, hrev⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -101,7 +103,7 @@ theorem weth9ReEquivExecRev {cfg : Config} {contract : ContractDecl} {t : Transi
       rw [← hcode] at hrev
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hrev)
     have hbody' :
-        ExecTransitionBody cfg contract
+        ExecTransitionBody fork cfg contract
           (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body .reverted := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
@@ -113,11 +115,11 @@ theorem weth9ReEquivExecRev {cfg : Config} {contract : ContractDecl} {t : Transi
 theorem weth9ReEquivDecodeFailed {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode)
-    (h : RDrev weth9Bytecode g (initState σ σ₀ g A I))
+    (h : RDrev fork weth9Bytecode g (initState σ σ₀ g A I))
     (hsel : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = none) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | ⟨g', o, hrev⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -134,14 +136,14 @@ theorem weth9ReEquivDecodeFailed {cfg : Config} {contract : ContractDecl} {t : T
 theorem weth9NonpayableRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode)
-    (h : RDrev weth9Bytecode g (initState σ σ₀ g A I))
+    (h : RDrev fork weth9Bytecode g (initState σ σ₀ g A I))
     (hsel : selectorDispatchMsg contract I.calldata = some t)
     (hbodyRev : ∀ callargs,
       cfg.externalABI.decodeCalldata? (t.params.map Param.name)
         (transitionSignature t).paramTypes I.calldata = some callargs →
-      ExecTransitionBody cfg contract (initState σ σ₀ g A I) callargs t.body
+      ExecTransitionBody fork cfg contract (initState σ σ₀ g A I) callargs t.body
         .reverted) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I := by
   by_cases hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none
   · exact weth9ReEquivDecodeFailed hcode h hsel hdec

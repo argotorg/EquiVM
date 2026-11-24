@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRequestArrayLoop
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,17 +16,17 @@ theorem copyRequestArrayRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     (∃ L' mem' aw' k' C' next,
       heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       AttestationRequestArrayRegion mem' heap rs heap.toNat next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body
         (.returned {contract := contract,locals := L',immutables := immStore v} evm
           (some [.tuple [],.int (Int.ofNat next)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
-    (ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
+    (ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   have hb := hc.extent
   have hlenfit : rs.length < UInt256.size := by change _ < 2^256; omega
   have hlen : (UInt256.ofNat rs.length).toNat = rs.length := ulit_toNat' _ hlenfit
@@ -40,7 +42,7 @@ theorem copyRequestArrayRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
     rw [ulit_toNat' _ (by change _ < 2^256; omega),ulit_toNat' _ (by change _ < 2^256; omega)]
     exact hb
   have hhead := easCopyRequestArrayHead v (by omega) hfree rd
-  have hprefix := copyRequestArrayPrefixSource (imms := immStore v) (evm := evm) hd hf
+  have hprefix := copyRequestArrayPrefixSource (fork := fork) (imms := immStore v) (evm := evm) hd hf
   dsimp only at hprefix
   by_cases hv : rs.length ≤ 2^64-1 ∧
       (allocateNext heap.toNat (32+32*rs.length) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*rs.length))
@@ -58,7 +60,7 @@ theorem copyRequestArrayRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
       apply u256_inj
       rw [uadd_word_ofNat_toNat _ _ (by change _ < 2^256; omega),ulit_toNat' _ (by change _ < 2^256; omega)]
     rw [hdptr] at r1
-    have hr1 : RD (deployedRuntime v) ee g s0 ⟨5594⟩
+    have hr1 : RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
         (UInt256.ofNat (heap.toNat+32+32*0)::UInt256.ofNat (offset.toNat+32*0)::offset::
           UInt256.ofNat (offset.toNat+32*rs.length)::UInt256.ofNat ee.calldata.size::ret::heap::R) m1 a1 rdata σ k1 C1 := by
       simpa only [Nat.mul_zero,Nat.add_zero,u256_ofNat_toNat] using r1
@@ -70,12 +72,12 @@ theorem copyRequestArrayRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
     rcases copyRequestArrayLoop v hstack hc hsize hret rs.length (by omega) hf1 hm1 hh1 hf0 hr1 with
       ⟨L2,m2,a2,k2,C2,last,hlo2,hhi2,hpre2,hfl,hml,hfree2,hsol2,r2⟩ | ⟨hsol2,hrev⟩
     · rw [hn] at hlo2
-      have hreturn : ExecBlock config {contract := contract,locals := L2,immutables := immStore v} evm copyRequestReturn
+      have hreturn : ExecBlock fork config {contract := contract,locals := L2,immutables := immStore v} evm copyRequestReturn
           (.returned {contract := contract,locals := L2,immutables := immStore v} evm (some [.tuple [],.int (Int.ofNat last)])) := by
         apply ExecBlock.consReturn
         apply ExecStmt.return
         simp only [evalExprs?,evalExpr?,evalExprList?,hfl.heap,EvalResult.ofOption,EvalResult.bind,bind,pure]
-      have hsol : ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body
+      have hsol : ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm copyRequestArrayFunction.body
           (.returned {contract := contract,locals := L2,immutables := immStore v} evm (some [.tuple [],.int (Int.ofNat last)])) := by
         rw [copyRequestArray_body]
         apply ExecFuncBody.execBlockRet

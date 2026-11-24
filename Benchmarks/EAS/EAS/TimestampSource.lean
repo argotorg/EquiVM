@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.WordExpr
 import Benchmarks.EAS.EAS.Time
 import Benchmarks.EAS.EAS.LowPacked
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -37,16 +39,16 @@ theorem timestampSource_ok {evm : EVM.State} {locals imms : Store} {word time : 
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hz : timestampWord evm word = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body
       (.returned {contract := contract, locals := locals, immutables := imms} (timestampStore evm word time)
         (some [.tuple [], .int (Int.ofNat heap)])) := by
   rw [timestamp_body]
   apply ExecFuncBody.execBlockRet
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · simpa only [timestampGuard, hz, decide_true] using evalWordEqZero (timestamp_read (evm := evm) (imms := imms) hnone hkey)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (value := .int (Int.ofNat time.toNat))
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (value := .int (Int.ofNat time.toNat))
     (by simp only [evalExpr?, ht, EvalResult.ofOption]) (timestamp_write (time := time) hnone hkey)) ?_
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [timestampStore, storageStore_executionEnv] using hperm) (vals := [wordBytes32Value word, .int (Int.ofNat time.toNat)]) ?_) ?_
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [timestampStore, storageStore_executionEnv] using hperm) (vals := [wordBytes32Value word, .int (Int.ofNat time.toNat)]) ?_) ?_
   · simp only [evalExprs?, evalExpr?, hkey, ht, EvalResult.ofOption, EvalResult.bind, bind, pure]
   apply ExecBlock.consReturn
   apply ExecStmt.return
@@ -56,7 +58,7 @@ theorem timestampSource_revert {evm : EVM.State} {locals imms : Store} {word : U
     (hnone : locals.get? "_timestamps" = none)
     (hkey : locals.get? "data" = some (wordBytes32Value word))
     (hz : timestampWord evm word ≠ ⟨0⟩) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body .reverted := by
   rw [timestamp_body]
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
@@ -68,7 +70,7 @@ theorem timestampSource_static {evm : EVM.State} {locals imms : Store} {word tim
     (hkey : locals.get? "data" = some (wordBytes32Value word))
     (ht : locals.get? "time" = some (.int (Int.ofNat time.toNat)))
     (hz : timestampWord evm word = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body .staticViolation := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm timestampFunction.body .staticViolation := by
   rw [timestamp_body]
   apply ExecFuncBody.execBlockStatic
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -107,20 +109,20 @@ theorem timestampCall_ok {locals imms : Store} {evm : EVM.State}
       .ok [wordBytes32Value word, .int (Int.ofNat time.toNat), .int (Int.ofNat heap)])
     (hz : timestampWord evm word = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_timestamp" args retVar)
       (.ok {contract := contract, locals := locals.insert retVar (.tuple [.tuple [], .int (Int.ofNat heap)]), immutables := imms}
         (timestampStore evm word time)) := by
   have hf := timestampArgs_facts word time heap
   exact internalCallFunctionReturn hargs timestamp_lookup (timestamp_bind word time heap)
-    (timestampSource_ok (hperm := by assumption) hf.1 hf.2.1 hf.2.2.1 hf.2.2.2 hz)
+    (timestampSource_ok (fork := fork) (hperm := by assumption) hf.1 hf.2.1 hf.2.2.1 hf.2.2.2 hz)
 
 theorem timestampCall_revert {locals imms : Store} {evm : EVM.State}
     {args : List Expr} {word time : UInt256} {heap : Nat} {retVar : Ident}
     (hargs : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [wordBytes32Value word, .int (Int.ofNat time.toNat), .int (Int.ofNat heap)])
     (hz : timestampWord evm word ≠ ⟨0⟩) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_timestamp" args retVar) .reverted := by
   have hf := timestampArgs_facts word time heap
   exact internalCallFunctionRevert hargs timestamp_lookup (timestamp_bind word time heap)
@@ -133,8 +135,8 @@ theorem internalCallFunctionStatic {cfg : Config} {caller : Frame} {evm : EVM.St
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg {caller with locals := locals} evm callee.body .staticViolation) :
-    ExecStmt cfg caller evm (.internalCall name args retVar) .staticViolation := by
+    (hbody : ExecFuncBody fork cfg {caller with locals := locals} evm callee.body .staticViolation) :
+    ExecStmt fork cfg caller evm (.internalCall name args retVar) .staticViolation := by
   exact ExecStmt.internalCallStatic hargs hlookup hbind hbody
 
 theorem timestampCall_static {locals imms : Store} {evm : EVM.State}
@@ -142,7 +144,7 @@ theorem timestampCall_static {locals imms : Store} {evm : EVM.State}
     (hargs : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [wordBytes32Value word, .int (Int.ofNat time.toNat), .int (Int.ofNat heap)])
     (hz : timestampWord evm word = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_timestamp" args retVar) .staticViolation := by
   have hf := timestampArgs_facts word time heap
   exact internalCallFunctionStatic hargs timestamp_lookup (timestamp_bind word time heap)

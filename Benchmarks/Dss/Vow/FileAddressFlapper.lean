@@ -1,6 +1,8 @@
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Vow.FileAddress
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -221,7 +223,7 @@ theorem fileAddressFlapperSourceNopeNoCode
             (fun acc => acc.code.size))).toNat = 0) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
   intro locals evm0
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -244,7 +246,7 @@ theorem fileAddressFlapperSourceNopeNoCode
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_fileAddressVatCodeGuard_false hvatNope (by simpa [evm0] using hvatNoCode)
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage vatRef) "nope" (.intLit 0)
             [.storage flapperRef] "_nopeRet" ++
           [ .assign .storage flapperRef (.var "data") ] ++
@@ -254,7 +256,7 @@ theorem fileAddressFlapperSourceNopeNoCode
     simp only [checkedExternalCallStmts, List.cons_append, List.nil_append]
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNope)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileAddressTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileAddressTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -275,7 +277,7 @@ theorem fileAddressFlapperSourceNopeCallFailure
             (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
@@ -283,7 +285,7 @@ theorem fileAddressFlapperSourceNopeCallFailure
         (false, evmNope, outNope) true) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
   intro locals evm0
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -312,13 +314,13 @@ theorem fileAddressFlapperSourceNopeCallFailure
       evalExprs_fileAddressNopeArgs evm0 (locals := locals)
         (by simp [locals, fileAddressLocals])
   have hcallNopeStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "nope" (.intLit 0) [.storage flapperRef] "_nopeRet")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvatNope (by simp [evalExpr?, pure]) hargsNope
       hcallNope
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage vatRef) "nope" (.intLit 0)
             [.storage flapperRef] "_nopeRet" ++
           [ .assign .storage flapperRef (.var "data") ] ++
@@ -329,7 +331,7 @@ theorem fileAddressFlapperSourceNopeCallFailure
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNope) ?_
     exact ExecBlock.consRevert hcallNopeStmt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileAddressTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileAddressTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -350,7 +352,7 @@ theorem fileAddressFlapperSourceHopeNoCode
             (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
@@ -364,7 +366,7 @@ theorem fileAddressFlapperSourceHopeNoCode
     (hperm : I.perm = true) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
   have hpNope : evmNope.executionEnv.perm = true := by
     rw [typedCallViaEVM_executionEnv_eq hcallNope]
     exact hperm
@@ -398,7 +400,7 @@ theorem fileAddressFlapperSourceHopeNoCode
       evalExprs_fileAddressNopeArgs evm0 (locals := locals)
         (by simp [locals, fileAddressLocals])
   have hcallNopeStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "nope" (.intLit 0) [.storage flapperRef] "_nopeRet")
         (.ok { contract := contract, locals := localsNope } evmNope) := by
     simpa [locals, localsNope, fileAddressLocalsNope, collapseReturns, config, vowExternalABI,
@@ -431,7 +433,7 @@ theorem fileAddressFlapperSourceHopeNoCode
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_fileAddressVatCodeGuard_false hvatHope (by simpa [evmSet] using hvatNoCodeHope)
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage vatRef) "nope" (.intLit 0)
             [.storage flapperRef] "_nopeRet" ++
           [ .assign .storage flapperRef (.var "data") ] ++
@@ -441,10 +443,10 @@ theorem fileAddressFlapperSourceHopeNoCode
     simp only [checkedExternalCallStmts, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNope) ?_
     refine ExecBlock.consNormal hcallNopeStmt ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpNope) hdataNope hassign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpNope) hdataNope hassign) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardHope)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileAddressTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileAddressTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -466,7 +468,7 @@ theorem fileAddressFlapperSourceHopeCallFailure
             (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
@@ -478,13 +480,13 @@ theorem fileAddressFlapperSourceHopeCallFailure
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hcallHope :
-      typedCallViaEVM config (fileAddressSetFlapperEVM evmNope I)
+      typedCallViaEVM fork config (fileAddressSetFlapperEVM evmNope I)
         (EVM.address (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I)))
         "hope" 0 [.address (fileAddressData I)] (false, evmHope, outHope) true)
     (hperm : I.perm = true) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
   have hpNope : evmNope.executionEnv.perm = true := by
     rw [typedCallViaEVM_executionEnv_eq hcallNope]
     exact hperm
@@ -518,7 +520,7 @@ theorem fileAddressFlapperSourceHopeCallFailure
       evalExprs_fileAddressNopeArgs evm0 (locals := locals)
         (by simp [locals, fileAddressLocals])
   have hcallNopeStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "nope" (.intLit 0) [.storage flapperRef] "_nopeRet")
         (.ok { contract := contract, locals := localsNope } evmNope) := by
     simpa [locals, localsNope, fileAddressLocalsNope, collapseReturns, config, vowExternalABI,
@@ -557,13 +559,13 @@ theorem fileAddressFlapperSourceHopeCallFailure
       evalExprs_fileAddressHopeArgs (evm := evmSet) (I := I) (locals := localsNope)
         (by simpa [localsNope] using fileAddressLocalsNope_get_data I)
   have hcallHopeStmt :
-      ExecStmt config { contract := contract, locals := localsNope } evmSet
+      ExecStmt fork config { contract := contract, locals := localsNope } evmSet
         (.externalCall (.storage vatRef) "hope" (.intLit 0) [.var "data"] "_hopeRet")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvatHope (by simp [evalExpr?, pure]) hargsHope
       hcallHope
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage vatRef) "nope" (.intLit 0)
             [.storage flapperRef] "_nopeRet" ++
           [ .assign .storage flapperRef (.var "data") ] ++
@@ -573,11 +575,11 @@ theorem fileAddressFlapperSourceHopeCallFailure
     simp only [checkedExternalCallStmts, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNope) ?_
     refine ExecBlock.consNormal hcallNopeStmt ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpNope) hdataNope hassign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpNope) hdataNope hassign) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardHope) ?_
     exact ExecBlock.consRevert hcallHopeStmt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileAddressTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileAddressTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -588,7 +590,7 @@ theorem fileAddressFlapperSourceHopeCallFailure
 
 theorem RD.vowFileAddressNopeCallDepthLimit
     {σ σ₀ A I} {g sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4197⟩
       (fileAddressDataKey I :: calldataWord I.calldata 4 :: ⟨412⟩ :: sel :: []) mem
       (UInt256.ofNat 3) rdata σ k C)
@@ -598,7 +600,7 @@ theorem RD.vowFileAddressNopeCallDepthLimit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4300⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ I :: fileAddressDataKey I ::
@@ -620,7 +622,7 @@ theorem RD.vowFileAddressNopeCallDepthLimit
   have hmin : (min fileAddressCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold fileAddressCallOutSize
     rfl
-  have rd4300 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd4300 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4300⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ I :: fileAddressDataKey I ::
@@ -637,14 +639,14 @@ theorem RD.vowFileAddressNopeNoCode
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4197⟩ (data :: what :: ret :: sel :: []) mem
+    (rd : RD fork vowBytecode ee g s0 ⟨4197⟩ (data :: what :: ret :: sel :: []) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileAddressFlapperBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) = ⟨0⟩) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd4284⟩ :=
     RD.vowFileAddressFlapperToNopeExtcodesizeGuard rd hmatch hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4284⟩) (okPc := ⟨4296⟩) rd4284
@@ -657,23 +659,23 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTargetSplit
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4300⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4300⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C) :
     (ee.perm = true ∧
-    ∃ k' C', RD vowBytecode ee g s0 ⟨4350⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata
       (fileAddressSetFlapperAccountMap σ ee data) k' C') ∨
-      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork vowBytecode g s0) := by
   obtain ⟨k4318, C4318, rd4318⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
-  have rd4318' : RD vowBytecode ee g s0 ⟨4318⟩
+  have rd4318' : RD fork vowBytecode ee g s0 ⟨4318⟩
       (fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k4318 C4318 := by
@@ -743,12 +745,12 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4300⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4300⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
     (hperm : ee.perm = true) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨4350⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata
@@ -760,13 +762,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ ee :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨4407⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨4407⟩
       (fileAddressVatTargetWord σ ee :: fileAddressVatTargetWord σ ee ::
         fileAddressCallOutSize :: fileAddressCallOutPtr :: fileAddressCallInSize ::
         fileAddressCallOutPtr :: fileAddressCallOutSize :: fileAddressCallEndPtr ::
@@ -776,7 +778,7 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
       (UInt256.ofNat 6) rdata σ k' C' := by
   have rd4352 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by native_decide) (by evm_ov)
-  have rd4353 : RD vowBytecode ee g s0 ⟨4353⟩
+  have rd4353 : RD fork vowBytecode ee g s0 ⟨4353⟩
       (solcSlotWordAt ⟨1⟩ σ ee :: UInt256.land solcAddrMask data :: solcAddrMask ::
         ⟨3696042234⟩ :: fileAddressVatTargetWord σ ee :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k4353 C4353 := by
@@ -873,13 +875,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨4407⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨4407⟩
       (fileAddressVatTargetWord σ ee :: fileAddressVatTargetWord σ ee ::
         fileAddressCallOutSize :: fileAddressCallOutPtr :: fileAddressCallInSize ::
         fileAddressCallOutPtr :: fileAddressCallOutSize :: fileAddressCallEndPtr ::
@@ -889,7 +891,7 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
       (UInt256.ofNat 6) rdata σ k' C' := by
   have rd4352 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by native_decide) (by evm_ov)
-  have rd4353 : RD vowBytecode ee g s0 ⟨4353⟩
+  have rd4353 : RD fork vowBytecode ee g s0 ⟨4353⟩
       (solcSlotWordAt ⟨1⟩ σ ee :: UInt256.land solcAddrMask data :: solcAddrMask ::
         ⟨3696042234⟩ :: target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k4353 C4353 := by
@@ -985,7 +987,7 @@ theorem RD.vowFileAddressFlapperToHopeCall
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ ee :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
@@ -993,7 +995,7 @@ theorem RD.vowFileAddressFlapperToHopeCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨4422⟩
+    ∃ gasWord k' C', RD fork vowBytecode ee g s0 ⟨4422⟩
       (gasWord :: fileAddressVatTargetWord σ ee :: fileAddressCallOutSize ::
         fileAddressCallOutPtr :: fileAddressCallInSize :: fileAddressCallOutPtr ::
         fileAddressCallOutSize :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
@@ -1014,7 +1016,7 @@ theorem RD.vowFileAddressFlapperToHopeCallWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
@@ -1022,7 +1024,7 @@ theorem RD.vowFileAddressFlapperToHopeCallWithTarget
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨4422⟩
+    ∃ gasWord k' C', RD fork vowBytecode ee g s0 ⟨4422⟩
       (gasWord :: fileAddressVatTargetWord σ ee :: fileAddressCallOutSize ::
         fileAddressCallOutPtr :: fileAddressCallInSize :: fileAddressCallOutPtr ::
         fileAddressCallOutSize :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
@@ -1043,7 +1045,7 @@ theorem RD.vowFileAddressHopeNoCode
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ ee :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
@@ -1051,7 +1053,7 @@ theorem RD.vowFileAddressHopeNoCode
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) = ⟨0⟩) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd4407⟩ :=
     RD.vowFileAddressFlapperToHopeExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
@@ -1064,7 +1066,7 @@ theorem RD.vowFileAddressHopeNoCodeWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (rd : RD vowBytecode ee g s0 ⟨4350⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ k C)
@@ -1072,7 +1074,7 @@ theorem RD.vowFileAddressHopeNoCodeWithTarget
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) = ⟨0⟩) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd4407⟩ :=
     RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
@@ -1085,7 +1087,7 @@ theorem RD.vowFileAddressHopePostCall
     {σ σ₀ A I} {g sel data what ret : UInt256}
     {σ' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
@@ -1098,13 +1100,13 @@ theorem RD.vowFileAddressHopePostCall
     (hperm : I.perm = true) :
     ∃ (σ'' : AccountMap) (z : Bool)
       (out : ByteArray) (A'' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
           fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
         (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
         (UInt256.ofNat 6) out σ'' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σ' }
         (EVM.address (AccountAddress.ofNat (fileAddressVatTargetWord σ' I).toNat))
@@ -1128,7 +1130,7 @@ theorem RD.vowFileAddressHopePostCall
     have hmin : (min fileAddressCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold fileAddressCallOutSize
       rfl
-    have rd4423 : RD vowBytecode I (Sat256.ofUInt256 g)
+    have rd4423 : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
           fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
@@ -1152,7 +1154,7 @@ theorem RD.vowFileAddressHopePostCallWithTarget
     {σ σ₀ A I} {g sel target data what ret : UInt256}
     {σ' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
@@ -1165,13 +1167,13 @@ theorem RD.vowFileAddressHopePostCallWithTarget
     (hperm : I.perm = true) :
     ∃ (σ'' : AccountMap) (z : Bool)
       (out : ByteArray) (A'' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
           fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
         (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
         (UInt256.ofNat 6) out σ'' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σ' }
         (EVM.address (AccountAddress.ofNat (fileAddressVatTargetWord σ' I).toNat))
@@ -1195,7 +1197,7 @@ theorem RD.vowFileAddressHopePostCallWithTarget
     have hmin : (min fileAddressCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold fileAddressCallOutSize
       rfl
-    have rd4423 : RD vowBytecode I (Sat256.ofUInt256 g)
+    have rd4423 : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
           fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
@@ -1219,7 +1221,7 @@ theorem RD.vowFileAddressHopeCallDepthLimitWithTarget
     {σ σ₀ A I} {g sel target data what ret : UInt256}
     {σ' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
@@ -1229,7 +1231,7 @@ theorem RD.vowFileAddressHopeCallDepthLimitWithTarget
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (fileAddressVatTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
@@ -1250,7 +1252,7 @@ theorem RD.vowFileAddressHopeCallDepthLimitWithTarget
   have hmin : (min fileAddressCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold fileAddressCallOutSize
     rfl
-  have rd4423 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd4423 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         fileAddressVatTargetWord σ' I :: data :: what :: ret :: sel :: [])
@@ -1266,7 +1268,7 @@ theorem RD.vowFileAddressNopeSuccessToHopePostCall
     {σ σ₀ A I} {g sel target data what ret : UInt256}
     {σNope : AccountMap}
     {mem outNope : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4300⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
@@ -1281,14 +1283,14 @@ theorem RD.vowFileAddressNopeSuccessToHopePostCall
     (hdepth : I.depth.val < 1024) :
     ∃ (σHope : AccountMap) (z : Bool)
       (outHope : ByteArray) (AHope : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
           fileAddressVatTargetWord (fileAddressSetFlapperAccountMap σNope I data) I ::
           data :: what :: ret :: sel :: [])
         (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
         (UInt256.ofNat 6) outHope σHope k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := fileAddressSetFlapperAccountMap σNope I data }
         (EVM.address (AccountAddress.ofNat
@@ -1307,13 +1309,13 @@ theorem RD.vowFileAddressHopeCallFailure
     {σ σ₀ A I} {g sel target data what ret : UInt256}
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         target :: data :: what :: ret :: sel :: [])
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4423⟩) (okPc := ⟨4439⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
@@ -1326,13 +1328,13 @@ theorem RD.vowFileAddressHopeCallSuccessToReturn
     {σ σ₀ A I} {g sel target data what ret : UInt256}
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         target :: data :: what :: ret :: sel :: [])
       mem aw rdata acc k C)
     (hret : (D_J vowBytecode 0).contains ret = true) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ret
       [sel] mem aw rdata acc k' C' := by
   obtain ⟨_, _, rd4441⟩ := RD.solcCallSuccessGuardOk
@@ -1354,12 +1356,12 @@ theorem RD.vowFileAddressHopeCallSuccess
     {σ σ₀ A I} {g sel target data what : UInt256}
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         target :: data :: what :: ⟨412⟩ :: sel :: [])
       mem aw rdata acc k C) :
-    RDret vowBytecode (Sat256.ofUInt256 g)
+    RDret fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd412⟩ := RD.vowFileAddressHopeCallSuccessToReturn rd (by jump_dest)
   have rd413 := rd412.jumpdest (by native_decide) (by evm_ov)
@@ -1375,7 +1377,7 @@ theorem vowFileAddressFlapperNopeNoCodeBodyCore
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨737⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
@@ -1383,7 +1385,7 @@ theorem vowFileAddressFlapperNopeNoCodeBodyCore
     (hcodeSizeNope :
       Reasoning.Theory.extCodeSizeWord σ
         (fileAddressVatTargetWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let callerSlot := vowCallerWardsSlot I
   have hauthStele : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
@@ -1408,7 +1410,7 @@ theorem vowFileAddressFlapperNopeNoCodeBodyCore
         (addr := fileAddressVatAddressOf evm0) haddr hcodeSizeStele
     simpa [evm0, initState, State.lookupAccount] using hlookup
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
       (fileAddressFlapperSourceNopeNoCode
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1440,14 +1442,14 @@ theorem vowFileAddressFlapperNopeCallFailureBodyCore
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
-    (rd4300 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4300 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4300⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         fileAddressVatTargetWord σ I :: fileAddressDataKey I ::
         calldataWord I.calldata 4 :: ⟨412⟩ :: sel :: [])
       mem aw rdata acc k C)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
@@ -1462,11 +1464,11 @@ theorem vowFileAddressFlapperNopeCallFailureBodyCore
           (fileAddressVatAddressOf
             (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
             (fun acc => acc.code.size))).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
       (fileAddressFlapperSourceNopeCallFailure
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1485,7 +1487,7 @@ theorem vowFileAddressFlapperHopeNoCodeBodyCore
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
-    (rd4350 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4350 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
@@ -1495,7 +1497,7 @@ theorem vowFileAddressFlapperHopeNoCodeBodyCore
     (hcodeSizeHope :
       Reasoning.Theory.extCodeSizeWord σSet (fileAddressVatTargetWord σSet I) = ⟨0⟩)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
@@ -1515,13 +1517,13 @@ theorem vowFileAddressFlapperHopeNoCodeBodyCore
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat = 0)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
-      (fileAddressFlapperSourceHopeNoCode (hperm := by assumption)
+      (fileAddressFlapperSourceHopeNoCode (fork := fork) (hperm := by assumption)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmNope := evmNope) (outNope := outNope)
         hwv hauthStele hwhat hvatCodeNope hcallNope hvatNoCodeHope)
@@ -1538,20 +1540,20 @@ theorem vowFileAddressFlapperHopeCallFailureBodyCore
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
-    (rd4423 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4423 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨0⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         target :: data :: what :: ret :: sel :: [])
       mem aw rdata acc k C)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))]
         (true, evmNope, outNope) true)
     (hcallHope :
-      typedCallViaEVM config (fileAddressSetFlapperEVM evmNope I)
+      typedCallViaEVM fork config (fileAddressSetFlapperEVM evmNope I)
         (EVM.address (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I)))
         "hope" 0 [.address (fileAddressData I)] (false, evmHope, outHope) true)
     (hrdataSize : rdata.size < UInt256.size)
@@ -1569,13 +1571,13 @@ theorem vowFileAddressFlapperHopeCallFailureBodyCore
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
-      (fileAddressFlapperSourceHopeCallFailure (hperm := by assumption)
+      (fileAddressFlapperSourceHopeCallFailure (fork := fork) (hperm := by assumption)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmNope := evmNope) (evmHope := evmHope) (outNope := outNope)
         (outHope := outHope) hwv hauthStele hwhat hvatCodeNope hcallNope hvatCodeHope
@@ -1594,20 +1596,20 @@ theorem vowFileAddressFlapperHopeSuccessBodyCore
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
-    (rd4423 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4423 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4423⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: fileAddressHopeSelector ::
         target :: data :: what :: ⟨412⟩ :: sel :: [])
       mem aw rdata acc k C)
     (hcallNope :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileAddressVatAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "nope" 0
         [.address (fileAddressFlapperAddressOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))]
         (true, evmNope, outNope) true)
     (hcallHope :
-      typedCallViaEVM config (fileAddressSetFlapperEVM evmNope I)
+      typedCallViaEVM fork config (fileAddressSetFlapperEVM evmNope I)
         (EVM.address (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I)))
         "hope" 0 [.address (fileAddressData I)] (true, evmHope, outHope) true)
     (hauthStele : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
@@ -1625,14 +1627,14 @@ theorem vowFileAddressFlapperHopeSuccessBodyCore
             (fun acc => acc.code.size))).toNat)
     (hfinal : acc = evmHope.accountMap)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+      ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
         (.returned { contract := contract, locals := fileAddressLocalsNopeHope I } evmHope none) := by
     simpa [evm0, locals] using
-      (fileAddressFlapperSourceSuccess (hperm := hperm)
+      (fileAddressFlapperSourceSuccess (fork := fork) (hperm := hperm)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmNope := evmNope) (evmHope := evmHope) (outNope := outNope)
         (outHope := outHope) hwv hauthStele hwhat hvatCodeNope hcallNope hvatCodeHope

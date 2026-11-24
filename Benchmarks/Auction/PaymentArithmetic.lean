@@ -3,6 +3,8 @@ import Reasoning.ExternalCall
 import Benchmarks.Auction.RawEthRoutine
 import Benchmarks.Auction.ReturnReserve
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -11,7 +13,7 @@ theorem advanceFreePtrSource {evm : EVM.State} {locals : Store} {ptr delta : UIn
     (hp : locals.get? "_freePtr" = some (.int (Int.ofNat ptr.toNat)))
     (he : evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm e =
       .ok (.int (Int.ofNat delta.toNat))) (hb : ptr.toNat + delta.toNat < UInt256.size) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm (advanceFreePtr e)
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm (advanceFreePtr e)
       (.ok
         { contract := auctionContract
           locals := locals.insert "_freePtr" (.int (Int.ofNat (ptr + delta).toNat)) } evm) := by

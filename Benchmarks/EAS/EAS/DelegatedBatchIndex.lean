@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedRevocationDecode
 import Benchmarks.EAS.EAS.RuntimeBlocks_024
 import Benchmarks.EAS.EAS.MultiRequestControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,11 +13,11 @@ theorem easDelegatedBatchIndex {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {base ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hi : i<n) (hn : n < UInt256.size) (hb : base.toNat+32*i < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6041⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6041⟩
       (base::UInt256.ofNat n::UInt256.ofNat i::ret::R) mem aw rdata σ k C) :
     if delegatedBatchReferenceValid ee.calldata base i then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (multiRequestRoot ee.calldata base i::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (multiRequestRoot ee.calldata base i::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' _ (by omega)
   have hshift : UInt256.shiftLeft (UInt256.ofNat i) (UInt256.ofNat 5) = UInt256.ofNat (32*i) :=
     shiftLeft5_ofNat_eq (by omega)

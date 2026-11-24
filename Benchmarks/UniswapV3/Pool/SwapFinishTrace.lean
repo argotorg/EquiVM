@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.WordArrayHeap
 import Benchmarks.UniswapV3.Pool.HeapWordPairReturn
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,13 +16,13 @@ theorem swapFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat}
     {aw free p exactWord cache snap amount0 amount1 len start limit amount zero recipient : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5137⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5137⟩
       ([p, exactWord, cache, snap, amount1, amount0, len, start, limit, amount, zero, recipient,
         ⟨621⟩] ++ R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw free) (hb : free.toNat + 160 ≤ 2 ^ 200)
     (hp : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 22 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
       (amount0.toByteArray ++ amount1.toByteArray) := by
   have hoff (n : Nat) (hn : n ≤ 192) : (p + UInt256.ofNat n).toNat = p.toNat + n :=
     uadd_word_ofNat_toNat p n (by change _ < 2 ^ 256; omega)

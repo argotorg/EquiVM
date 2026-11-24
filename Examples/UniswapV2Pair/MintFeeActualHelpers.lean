@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintFeeActualRoots
 import Examples.UniswapV2Pair.MintFeeAfterRootsRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -38,13 +40,13 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hliq : mintFeeLiquidityInt evm rootK rootKLast > 0)
-    (hmint : ExecStmt config
+    (hmint : ExecStmt fork config
       (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint") .reverted) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt] .reverted := by
-  have hnumStmt : ExecStmt config
+  have hnumStmt : ExecStmt fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "numerator" (some uint256)
         (u256 (.binary .mul (.storage totalSupplyRef)
@@ -53,7 +55,7 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
         evm) := ExecStmt.letDecl
     (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
       hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit)
-  have hdenStmt : ExecStmt config
+  have hdenStmt : ExecStmt fork config
       (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "denominator" (some uint256)
         (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
@@ -62,7 +64,7 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
         evm) := ExecStmt.letDecl
     (evalExpr_mintFee_denominator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
       hrootKNonneg hrootKLastNonneg hrootFiveFit hdenFit)
-  have hliqStmt : ExecStmt config
+  have hliqStmt : ExecStmt fork config
       (mintFeeAfterDenominatorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "liquidity" (some uint256)
         (.binary .div (.var "numerator") (.var "denominator")))

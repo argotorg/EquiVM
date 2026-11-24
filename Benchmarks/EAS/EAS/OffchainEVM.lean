@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.OffchainStorage
 import Benchmarks.EAS.EAS.MappingHash
 import Benchmarks.EAS.EAS.RuntimeBlocks_027
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -37,9 +39,9 @@ theorem easOffchain_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hz : UInt256.land (solcSlotWord σ ee (offchainSlot (keyValueToWord (.address revoker)) word)) easUint64Mask = ⟨0⟩)
     (hperm : ee.perm = true)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7001⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7001⟩
       (keyValueToWord (.address revoker) :: word :: time :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem word (solcMappingSlot ⟨3⟩ (keyValueToWord (.address revoker)))
         (offchainMemory revoker word mem)) aw' rdata (offchainAccounts σ ee revoker word time) k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_7001_fallthrough_packed (immWords := wordsOf (immStore v))
@@ -61,9 +63,9 @@ theorem easOffchain_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {revoker : AccountAddress} {word time : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 7 ≤ 1024)
     (hz : UInt256.land (solcSlotWord σ ee (offchainSlot (keyValueToWord (.address revoker)) word)) easUint64Mask ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7001⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7001⟩
       (keyValueToWord (.address revoker) :: word :: time :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_7001_taken_packed (immWords := wordsOf (immStore v))
     hstack (by simpa only [offchainAddress_clean, mappingHash] using hz)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -75,8 +77,8 @@ theorem easOffchain_store_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 9 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7068⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7068⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.pushConst (UInt256.ofNat 18446744073709551615) (width := 8) (op := .PUSH8) (by decide) (by immutable_decode(immutableLayout, easBytecode, wordsOf (immStore v), (⟨7068⟩ : UInt256), UInt8.ofNat 103, .Push .PUSH8, some ((UInt256.ofNat 18446744073709551615), 8), easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap2 (by immutable_decode(immutableLayout, easBytecode, wordsOf (immStore v), (⟨7077⟩ : UInt256), UInt8.ofNat 145, .SWAP2, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -107,9 +109,9 @@ theorem easOffchain_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 9 ≤ 1024)
     (hz : UInt256.land (solcSlotWord σ ee (offchainSlot (keyValueToWord (.address revoker)) word)) easUint64Mask = ⟨0⟩)
     (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7001⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7001⟩
       (keyValueToWord (.address revoker) :: word :: time :: ret :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_7001_fallthrough_packed (immWords := wordsOf (immStore v))
     (x0 := keyValueToWord (.address revoker)) (x1 := word) (x2 := time) (R := ret :: R) (mem := mem)
     (by simp only [List.length_cons]; omega)

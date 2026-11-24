@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.OwnerCount
 import Benchmarks.Safe.Runs1e6.LocalArrays
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -40,9 +42,9 @@ theorem safeGetOwnersCountGuard (evm : EVM.State) :
 theorem safeGetOwnersPrefix (evm : EVM.State) {result : ExecResult}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hlen : (ownerCount evm).toNat ≤ 2 ^ 64 - 1)
-    (htail : ExecBlock config { contract := contract, locals := getOwnersInitialLocals evm }
+    (htail : ExecBlock fork config { contract := contract, locals := getOwnersInitialLocals evm }
       evm [getOwnersLoop, .return [.var "array"]] result) :
-    ExecBlock config { contract := contract, locals := ∅ } evm getownersTransition.body
+    ExecBlock fork config { contract := contract, locals := ∅ } evm getownersTransition.body
       result := by
   have hnew : evalExpr? config { contract := contract, locals := ∅ } evm
       (.newArray addrSt (.storage ownerCountRef)) =
@@ -60,7 +62,7 @@ theorem safeGetOwnersPrefix (evm : EVM.State) {result : ExecResult}
 theorem safeGetOwnersCountRevert (evm : EVM.State)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hlen : ¬(ownerCount evm).toNat ≤ 2 ^ 64 - 1) :
-    ExecTransitionBody config contract evm ∅ getownersTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm ∅ getownersTransition.body .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consRevert (.requireFalse (by
       simpa only [hlen, decide_false] using safeGetOwnersCountGuard evm))))
@@ -94,7 +96,7 @@ theorem safeGetOwnersLoopStep (evm : EVM.State) {locals words i current}
     (hl : GetOwnersLocals locals words i current)
     (hc : current.toNat < EVM.addressModulus) (hi : i < words.length)
     (hfit : i + 1 < UInt256.size) :
-    ExecBlock config { contract := contract, locals := locals } evm getOwnersLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm getOwnersLoopBody
       (.ok { contract := contract, locals := getOwnersNextLocals evm locals words i current } evm)
         := by
   let locals₁ := locals.insert "array" (.array ((words.set i current).map addressArrayValue))
@@ -120,7 +122,7 @@ theorem safeGetOwnersLoopStep (evm : EVM.State) {locals words i current}
 
 theorem safeGetOwnersLoopBounds (evm : EVM.State) {locals words i current}
     (hl : GetOwnersLocals locals words i current) (hi : words.length ≤ i) :
-    ExecBlock config { contract := contract, locals := locals } evm getOwnersLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm getOwnersLoopBody
       .reverted :=
   .consRevert (.assignStoreRevert (evalLocalValue hl.currentOwner)
     (assignLocalArrayRevert (addressArrayValue current) hl.array
@@ -128,7 +130,7 @@ theorem safeGetOwnersLoopBounds (evm : EVM.State) {locals words i current}
 
 theorem safeGetOwnersReturn (evm : EVM.State) {locals words i current}
     (hl : GetOwnersLocals locals words i current) :
-    ExecBlock config { contract := contract, locals := locals } evm [.return [.var "array"]]
+    ExecBlock fork config { contract := contract, locals := locals } evm [.return [.var "array"]]
       (.returned { contract := contract, locals := locals } evm
         (some [.array (words.map addressArrayValue)])) :=
   .consReturn (.return (evalExprs?_singleton (evalLocalValue hl.array)))

@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapAdjustmentSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,7 +11,7 @@ theorem uniswapSwapAdjustmentsCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr amount1In amount0In balance1 balance0 : UInt256}
     {R : List UInt256} {k C : Nat} {caller : Frame} (evm : EVM.State)
-    (rd2491 : RD uniswapV2PairBytecode I g s0 ⟨2491⟩
+    (rd2491 : RD fork uniswapV2PairBytecode I g s0 ⟨2491⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hb0 : caller.locals.get? "balance0" = some (uniswapUint256Value balance0))
     (hb1 : caller.locals.get? "balance1" = some (uniswapUint256Value balance1))
@@ -20,12 +22,12 @@ theorem uniswapSwapAdjustmentsCases
     (hfitPtr : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hawLo : 96 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 20 ≤ 1024) :
-    (ExecBlock config caller evm swapAdjustmentStmts .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
-    (ExecBlock config caller evm swapAdjustmentStmts
+    (ExecBlock fork config caller evm swapAdjustmentStmts .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config caller evm swapAdjustmentStmts
         (.ok (swapAfterAdjustmentsFrame caller (swapAdjustedWord balance0 amount0In)
           (swapAdjustedWord balance1 amount1In)) evm) ∧
       balance0.toNat * 1000 < UInt256.size ∧ balance1.toNat * 1000 < UInt256.size ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨2570⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨2570⟩
         (swapAdjustedWord balance1 amount1In :: swapAdjustedWord balance0 amount0In ::
           amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata σ k' C') := by
   have rd2492 := evm_run rd2491 with [jumpdest]

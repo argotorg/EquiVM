@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapAdjustmentRuntime
 import Examples.UniswapV2Pair.StackRoutines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000
@@ -27,13 +29,13 @@ theorem RD.uniswapSwapInvariantProductEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw adjusted1 adjusted0 amount1In amount0In balance1 balance0 reserve1 reserve0 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd2570 : RD uniswapV2PairBytecode I g s0 ⟨2570⟩
+    (rd2570 : RD fork uniswapV2PairBytecode I g s0 ⟨2570⟩
       (adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
       mem aw rdata σ k C)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hc1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 23 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6780⟩
       (adjusted1 :: adjusted0 :: ⟨2632⟩ :: swapInvariantReserveWord reserve0 reserve1 ::
         adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
       mem aw rdata σ k' C' := by
@@ -70,7 +72,7 @@ theorem uniswapSwapInvariantRuntimeCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr adjusted1 adjusted0 amount1In amount0In balance1 balance0 reserve1 reserve0 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd2570 : RD uniswapV2PairBytecode I g s0 ⟨2570⟩
+    (rd2570 : RD fork uniswapV2PairBytecode I g s0 ⟨2570⟩
       (adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
       mem aw rdata σ k C)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -79,9 +81,9 @@ theorem uniswapSwapInvariantRuntimeCases
     (hfitPtr : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hawLo : 96 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 23 ≤ 1024) :
-    (¬ swapInvariantValid adjusted0 adjusted1 reserve0 reserve1) ∧ RDrev uniswapV2PairBytecode g s0 ∨
+    (¬ swapInvariantValid adjusted0 adjusted1 reserve0 reserve1) ∧ RDrev fork uniswapV2PairBytecode g s0 ∨
     swapInvariantValid adjusted0 adjusted1 reserve0 reserve1 ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨2701⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨2701⟩
         (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
         mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdMul⟩ := RD.uniswapSwapInvariantProductEntry rd2570 hc0 hc1 hov

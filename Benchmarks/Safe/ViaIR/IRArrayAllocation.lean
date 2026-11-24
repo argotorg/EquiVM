@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.GetOwnersSource
 import Benchmarks.Safe.ViaIR.Calldata
 import Benchmarks.Safe.ViaIR.IRLengthCheck
 
+variable {fork : Ethereum.Fork}
+
 /-! Regression witness for the IR owner-array allocation-pointer check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -53,26 +55,26 @@ theorem safeIROwnerAllocationDecoding :
     (by decide) (by decide)
 
 theorem safeIROwnerAllocationExecution :
-    (match Ξ safeIROwnerAllocationAccounts safeIROwnerAllocationAccounts ⟨100000⟩
+    (match Ξ .cancun safeIROwnerAllocationAccounts safeIROwnerAllocationAccounts ⟨100000⟩
         default safeIROwnerAllocationEnv with
       | .ok (.revert gas out) => gas == ⟨97240⟩ &&
           out == (⟨#[0x4e, 0x48, 0x7b, 0x71]⟩ ++ (⟨0x41⟩ : UInt256).toByteArray)
       | _ => false) = true := by native_decide
 
 theorem safeIROwnerAllocationSourceReverts :
-    ExecTransitionBody config contract safeIROwnerAllocationState ∅
+    ExecTransitionBody fork config contract safeIROwnerAllocationState ∅
       getownersTransition.body .reverted := by
   apply safeGetOwnersCountRevert safeIROwnerAllocationState rfl
   rw [safeIROwnerAllocationStorage.1]
   decide
 
 theorem safeIROwnerAllocationRefines :
-    runtimeRefinementFor config contract safeIROwnerAllocationAccounts
+    runtimeRefinementFor .cancun config contract safeIROwnerAllocationAccounts
       safeIROwnerAllocationAccounts ⟨100000⟩ default safeIROwnerAllocationEnv := by
   have hex := safeIROwnerAllocationExecution
-  have hbody := safeIROwnerAllocationSourceReverts
+  have hbody := safeIROwnerAllocationSourceReverts (fork := .cancun)
   have hsel := safeIROwnerAllocationPremises.2.2.2
-  cases he : Ξ safeIROwnerAllocationAccounts safeIROwnerAllocationAccounts ⟨100000⟩
+  cases he : Ξ .cancun safeIROwnerAllocationAccounts safeIROwnerAllocationAccounts ⟨100000⟩
       default safeIROwnerAllocationEnv with
   | error => rw [he] at hex; cases hex
   | ok result =>

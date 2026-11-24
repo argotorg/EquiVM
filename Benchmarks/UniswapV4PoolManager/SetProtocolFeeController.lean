@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Authorization
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_027
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_028
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -32,7 +34,7 @@ theorem setProtocolFeeControllerBodyReturns (evm : EVM.State) (locals imms : Sto
     (hbase : locals.get? "protocolFeeController" = none)
     (howner : locals.get? "owner" = none) (hauth : ownerAuthorized evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm locals setProtocolFeeControllerTransition.body
+    ExecTransitionBody fork config contract evm locals setProtocolFeeControllerTransition.body
       (.returned (calldataFrame contract locals imms evm) (setProtocolFeeControllerPost evm controller) none) imms := by
   have hn := (store_get_ne locals (.bytes evm.executionEnv.calldata) (by decide : ("__calldata" == "controller") = false)).trans hnew
   apply ExecFuncBody.execBlockOK
@@ -40,9 +42,9 @@ theorem setProtocolFeeControllerBodyReturns (evm : EVM.State) (locals imms : Sto
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact (ownerGuard_eval rfl ((store_get_ne locals _ (by decide : ("__calldata" == "owner") = false)).trans howner)).trans
       (by rw [decide_eq_true hauth])
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (evalLocalValue hn)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalLocalValue hn)
     (setProtocolFeeControllerAssign evm locals imms controller hc hbase)) ?_
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [setProtocolFeeControllerPost, storageStore_executionEnv] using hperm)
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [setProtocolFeeControllerPost, storageStore_executionEnv] using hperm)
     (vals := [.address (AccountAddress.ofNat controller.toNat)]) ?_) ExecBlock.nil
   simp only [evalExprs?, evalExpr?, calldataFrame, hn, EvalResult.ofOption,
     bind, EvalResult.bind, pure, setProtocolFeeControllerPost]
@@ -55,7 +57,7 @@ theorem setProtocolFeeControllerBodyStatic (evm : EVM.State) (locals imms : Stor
     (hbase : locals.get? "protocolFeeController" = none)
     (howner : locals.get? "owner" = none) (hauth : ownerAuthorized evm)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm locals setProtocolFeeControllerTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm locals setProtocolFeeControllerTransition.body .staticViolation imms := by
   apply ExecFuncBody.execBlockStatic
   apply nonpayableCalldataBlock hwv hhi
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -70,8 +72,8 @@ open poolManagerBlocks in
 theorem setProtocolFeeControllerStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9899) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 9899) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9899⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨9900⟩ : UInt256), UInt8.ofNat 22, .AND, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -89,15 +91,15 @@ theorem setProtocolFeeControllerStaticTrace {immWords : String → UInt256} {ee 
 theorem poolManagerSetProtocolFeeControllerBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 10) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setProtocolFeeControllerTransition := by
     apply poolManagerDispatch_setProtocolFeeController <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetProtocolFeeControllerBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetProtocolFeeControllerBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9809⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -139,7 +141,7 @@ theorem poolManagerSetProtocolFeeControllerBodyCore {σ σ₀ A I} {g : UInt256}
                   _ hwv hhi hcanon (store_get_self _ _ _) hpfc hbase hauth hperm)
             | true =>
               have hret := poolManagerBlocks.poolManager_block_9899 (by simp) hperm rdStore
-              have hbody := setProtocolFeeControllerBodyReturns (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
+              have hbody := setProtocolFeeControllerBodyReturns (fork := fork) (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
                 (immStore v) _ hwv hhi hcanon (store_get_self _ _ _) hpfc hbase hauth
               exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (storageStore_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner ⟨2⟩
@@ -169,7 +171,7 @@ theorem poolManagerSetProtocolFeeControllerBody {σ σ₀ A I} {g : UInt256} (v 
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerSetProtocolFeeControllerBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

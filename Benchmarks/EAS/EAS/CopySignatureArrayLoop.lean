@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CopySignatureArrayControl
 import Benchmarks.EAS.EAS.CopyRevocationArrayLoop
 import Benchmarks.EAS.EAS.SignatureArrayDecode
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,17 +29,17 @@ theorem copySignatureArrayLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hm : CopySignatureArrayMemory mem array ss i cursor)
     (hbefore : ∀ j (hj : j<ss.length),j < i → signatureClean ss[j])
     (hh : cursor ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat cursor)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1492⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1492⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat (offset.toNat+96*i)::UInt256.ofNat (offset.toNat+96*ss.length)::R)
         mem aw rdata σ k C) :
     if (∀ s∈ss,signatureClean s) ∧ cursor+96*n ≤ 2^64-1 then
       ∃ mem' aw' k' C', MemoryPrefix mem mem' array.toNat ∧
         CopySignatureArrayMemory mem' array ss ss.length (cursor+96*n) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (cursor+96*n) ∧
-        RD (deployedRuntime v) ee g s0 ⟨1500⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨1500⟩
           (UInt256.ofNat (array.toNat+32+32*ss.length)::UInt256.ofNat (offset.toNat+96*ss.length)::UInt256.ofNat (offset.toNat+96*ss.length)::R)
           mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   induction n generalizing i cursor mem aw k C with
   | zero =>
     have hi : i=ss.length := by omega

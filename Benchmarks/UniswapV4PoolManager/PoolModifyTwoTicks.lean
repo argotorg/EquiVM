@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyTickFrames
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -57,9 +59,9 @@ theorem poolModifyTwoTicks {f : Frame} {evm : State} {id : UInt256} {p : PoolMod
     (hu : f.locals.get? "tickUpper" = some (.int (EVM.signed p.upper)))
     (hd : f.locals.get? "liquidityDelta" = some (.int p.delta))
     (hstate : f.locals.get? "state" = some (poolModifyStateValue false ⟨0⟩ false ⟨0⟩)) :
-    ExecBlock config f evm (poolModifyTickBlock false ++ poolModifyTickBlock true)
+    ExecBlock fork config f evm (poolModifyTickBlock false ++ poolModifyTickBlock true)
       (poolModifyTwoTicksResult f evm id p) := by
-  have hlo := poolModifyTick (upper := false) (f := f) (evm := evm) hf hs hl hd hstate
+  have hlo := poolModifyTick (fork := fork) (upper := false) (f := f) (evm := evm) hf hs hl hd hstate
   apply execBlock_continue hlo
   intro f1 post hpost
   obtain ⟨values, rfl⟩ := poolModifyTickResult_frame hpost

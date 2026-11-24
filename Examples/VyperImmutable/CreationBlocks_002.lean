@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Examples.VyperImmutable.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -14,8 +16,8 @@ private abbrev j := Reasoning.Theory.D_J_contains_append_left Examples.VyperImmu
 theorem immutableCreation_block_176_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 176) (x0 :: R) mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 176) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -31,8 +33,8 @@ theorem immutableCreation_block_176_fallthrough {tail : ByteArray} {ee : Executi
 theorem immutableCreation_block_176_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1597203657)) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 176) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 176) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutableCreation_block_176_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -41,8 +43,8 @@ theorem immutableCreation_block_188_taken {tail : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Examples.VyperImmutable.immutableCreationBytecode 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 131) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -60,8 +62,8 @@ theorem immutableCreation_block_188_taken_packed {tail : ByteArray} {ee : Execut
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Examples.VyperImmutable.immutableCreationBytecode 0).contains (UInt256.ofNat 131) = true)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 131) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutableCreation_block_188_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -69,8 +71,8 @@ theorem immutableCreation_block_188_taken_packed {tail : ByteArray} {ee : Execut
 theorem immutableCreation_block_188_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
-    : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
+    : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -87,16 +89,16 @@ theorem immutableCreation_block_188_fallthrough {tail : ByteArray} {ee : Executi
 theorem immutableCreation_block_188_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (immutableCreation_block_188_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 198. -/
 theorem immutableCreation_block_198 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ (((UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableCreationBytecode ++ tail).write (UInt256.ofNat 175).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 32).toNat))).toByteArray.write 0 ((Examples.VyperImmutable.immutableCreationBytecode ++ tail).write (UInt256.ofNat 175).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 32).toNat) (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 198) R mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ (((UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (memLoad (⟨0⟩ : UInt256) ((Examples.VyperImmutable.immutableCreationBytecode ++ tail).write (UInt256.ofNat 175).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 32).toNat))).toByteArray.write 0 ((Examples.VyperImmutable.immutableCreationBytecode ++ tail).write (UInt256.ofNat 175).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 32).toNat) (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -117,8 +119,8 @@ theorem immutableCreation_block_198 {tail : ByteArray} {ee : ExecutionEnv} {g : 
 /-- Automatically generated RD summary for bytecode block at pc 219. -/
 theorem immutableCreation_block_219 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 219) R mem aw rdata σ k C)
-    : RDrev (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 219) R mem aw rdata σ k C)
+    : RDrev fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -129,8 +131,8 @@ theorem immutableCreation_block_219 {tail : ByteArray} {ee : ExecutionEnv} {g : 
 /-- Automatically generated RD summary for bytecode block at pc 223. -/
 theorem immutableCreation_block_223 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 223) R mem aw rdata σ k C)
-    : RDrev (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 223) R mem aw rdata σ k C)
+    : RDrev fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -141,8 +143,8 @@ theorem immutableCreation_block_223 {tail : ByteArray} {ee : ExecutionEnv} {g : 
 /-- Automatically generated RD summary for bytecode block at pc 227. -/
 theorem immutableCreation_block_227 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 0 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 227) R mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 227) R mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   exact r0.stop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -150,8 +152,8 @@ theorem immutableCreation_block_227 {tail : ByteArray} {ee : ExecutionEnv} {g : 
 /-- Automatically generated RD summary for bytecode block at pc 228. -/
 theorem immutableCreation_block_228 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 228) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 228) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   have r1 := r0.xor (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -160,8 +162,8 @@ theorem immutableCreation_block_228 {tail : ByteArray} {ee : ExecutionEnv} {g : 
 /-- Automatically generated RD summary for bytecode block at pc 230. -/
 theorem immutableCreation_block_230 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (h : RD (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 230) (x0 :: R) mem aw rdata σ k C)
-    : RDret (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
+    (h : RD fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 230) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork (Examples.VyperImmutable.immutableCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
   let r0 := h
   have hcreationCodeSize : Examples.VyperImmutable.immutableCreationBytecode.size = 235 := by native_decide
   obtain ⟨_, _, r1⟩ := RD.sload r0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)

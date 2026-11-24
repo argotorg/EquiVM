@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_033
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,15 +16,15 @@ theorem poolKeyDecodePrepareWords {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hlen : 164 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit) (hsize : I.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨11905⟩ (UInt256.ofNat I.calldata.size :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11905⟩ (UInt256.ofNat I.calldata.size :: ret :: R)
       entryMemory aw rdata σ k C) :
-    ∃ aw' k' C', aw'.toNat ≤ max aw.toNat 3 ∧ RD (deployedRuntime v) I g s0 ⟨11960⟩ (ret :: ⟨160⟩ :: R)
+    ∃ aw' k' C', aw'.toNat ≤ max aw.toNat 3 ∧ RD fork (deployedRuntime v) I g s0 ⟨11960⟩ (ret :: ⟨160⟩ :: R)
       poolKeyAllocationMemory aw' rdata σ k' C' := by
   have rd1 := poolManagerBlocks.poolManager_block_11905_fallthrough (by simp; omega)
     (viaIRStaticLenCheckOk (words := 5) hlen hhi hsize) h
   have rd2 := poolManagerBlocks.poolManager_block_11948 (by simp; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-  change RD _ _ _ _ ⟨11794⟩ (memLoad ⟨64⟩ entryMemory :: ⟨11960⟩ :: ret :: memLoad ⟨64⟩ entryMemory :: R)
+  change RD fork _ _ _ _ ⟨11794⟩ (memLoad ⟨64⟩ entryMemory :: ⟨11960⟩ :: ret :: memLoad ⟨64⟩ entryMemory :: R)
     entryMemory _ _ _ _ _ at rd2
   rw [entryMemory_load64] at rd2
   have rd3 := poolManagerBlocks.poolManager_block_11794_fallthrough (by simp; omega) (by native_decide) rd2
@@ -39,11 +41,11 @@ theorem decodePoolKeyTraceWords {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hlen : 164 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit) (hsize : I.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11905⟩ (UInt256.ofNat I.calldata.size :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11905⟩ (UInt256.ofNat I.calldata.size :: ret :: R)
       entryMemory aw rdata σ k C) :
-    (¬PoolKeyCanonical (poolKeyOfCalldata I.calldata) ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬PoolKeyCanonical (poolKeyOfCalldata I.calldata) ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (PoolKeyCanonical (poolKeyOfCalldata I.calldata) ∧ ∃ aw' k' C', aw'.toNat ≤ max aw.toNat 10 ∧
-      RD (deployedRuntime v) I g s0 ret (⟨160⟩ :: R) (poolKeyMemory (poolKeyOfCalldata I.calldata))
+      RD fork (deployedRuntime v) I g s0 ret (⟨160⟩ :: R) (poolKeyMemory (poolKeyOfCalldata I.calldata))
         aw' rdata σ k' C') := by
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
     rw [deployedRuntime_jumps v]; jump_dest

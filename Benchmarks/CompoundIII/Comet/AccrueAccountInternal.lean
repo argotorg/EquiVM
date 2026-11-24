@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.UserBasicLoadEvm
 import Benchmarks.CompoundIII.Comet.MemoryAllocate
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,20 +14,20 @@ namespace Benchmarks.CompoundIII.Comet
 set_option maxRecDepth 2000
 
 -- LIBRARY CANDIDATE: terminal EVM outcomes corresponding to a void source function.
-def voidOutcomeRun (code : ByteArray) (g : Sat256) (s0 : EVM.State)
+def voidOutcomeRun (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : EVM.State)
     (result : InternalOutcome) : Prop :=
   match result with
-  | .ok evm' => RDret code g s0 evm'.accountMap ByteArray.empty
-  | .reverted => RDrev code g s0
-  | .staticViolation => RDstatic code g s0
+  | .ok evm' => RDret fork code g s0 evm'.accountMap ByteArray.empty
+  | .reverted => RDrev fork code g s0
+  | .staticViolation => RDstatic fork code g s0
 
 theorem cometAccrueAccountUpdate {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} (addr : AccountAddress)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5313⟩ [EVM.word addr.val, ⟨22⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5313⟩ [EVM.word addr.val, ⟨22⟩]
       solcFreePtrMem aw rdata σ k C) :
-    voidOutcomeRun (deployedRuntime v) g s0 (accrueAccountUpdate v evm addr) := by
+    voidOutcomeRun fork (deployedRuntime v) g s0 (accrueAccountUpdate v evm addr) := by
   let mem := twoWordHashMem (EVM.word addr.val) ⟨5⟩ solcFreePtrMem
   have hclean : UInt256.land (EVM.word addr.val)
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
@@ -42,7 +44,7 @@ theorem cometAccrueAccountUpdate {v : CometWithExtendedAssetListImmutables}
   dsimp only [cometWithExtendedAssetList_block_5313_stack,
     cometWithExtendedAssetList_block_5313_memory] at r1
   rw [hclean] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (memLoad (UInt256.ofNat 64) mem :: UInt256.ofNat 160 :: UInt256.ofNat 5353 ::
       keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem :: UInt256.ofNat 5416 ::
       memLoad (UInt256.ofNat 64) mem :: EVM.word addr.val :: [⟨22⟩]) mem _ _ _ _ _ at r1
@@ -65,7 +67,7 @@ theorem cometAccrueAccountUpdate {v : CometWithExtendedAssetListImmutables}
   rw [hp, signextend104_idem] at r4
   have hr := cometUpdateBasePrincipal (v := v) addr (by decide) hm3 (by decide) hs
     (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r4
-  change internalMemoryRun _ _ _ _ _ _ _ _ (accrueAccountUpdate v evm addr) at hr
+  change internalMemoryRun fork _ _ _ _ _ _ _ _ (accrueAccountUpdate v evm addr) at hr
   cases hx : accrueAccountUpdate v evm addr with
   | ok evm' =>
       rw [hx] at hr

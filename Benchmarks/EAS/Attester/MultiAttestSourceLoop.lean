@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.MultiAttestSourceRow
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -32,10 +34,10 @@ theorem attestOuterRun {C : ContractDecl} {imms : Store} {evm : State}
     (hfilled : ∀ k < i, requests[k]? = expected[k]?)
     (hviews : ∀ k < n, AttestRowView schemas rows expected counts values k) :
     ((∃ k, i ≤ k ∧ k < n ∧ rows[k]? = some (.array [])) ∧
-      ExecForLoop config ⟨C, locals, imms⟩ evm attestOuterCond attestOuterPost attestOuterBody
+      ExecForLoop fork config ⟨C, locals, imms⟩ evm attestOuterCond attestOuterPost attestOuterBody
           .reverted) ∨
     ((∀ k, i ≤ k → k < n → rows[k]? ≠ some (.array [])) ∧
-      ∃ result, ExecForLoop config ⟨C, locals, imms⟩ evm attestOuterCond attestOuterPost
+      ∃ result, ExecForLoop fork config ⟨C, locals, imms⟩ evm attestOuterCond attestOuterPost
           attestOuterBody
         (.ok ⟨C, result, imms⟩ evm) ∧ result.get? "multiRequests" = some (.array expected) ∧
         result.get? "allocationEnd" =
@@ -71,7 +73,7 @@ theorem attestOuterRun {C : ContractDecl} {imms : Store} {evm : State}
         have hi1 : l1.get? "i" = some (.int (Int.ofNat i)) :=
           (hsame "i" (by simp [attestRowUntouched])).trans hindex
         let l2 := l1.insert "i" (.int (Int.ofNat (i + 1)))
-        have hpost : ExecBlock config ⟨C, l1, imms⟩ evm attestOuterPost
+        have hpost : ExecBlock fork config ⟨C, l1, imms⟩ evm attestOuterPost
             (.ok ⟨C, l2, imms⟩ evm) := execLocalIncrement hi1 (by omega)
         have hpreserved (name : Ident) (hname : attestOuterUntouched name) :
             l2.get? name = locals.get? name := by
@@ -125,22 +127,22 @@ theorem attestOuterFor {C : ContractDecl} {imms : Store} {evm : State}
     (hlen : requests.length = n) (hexpected : expected.length = n)
     (hviews : ∀ k < n, AttestRowView schemas rows expected counts values k) :
     ((∃ k < n, rows[k]? = some (.array [])) ∧
-      ExecStmt config ⟨C, locals, imms⟩ evm
+      ExecStmt fork config ⟨C, locals, imms⟩ evm
         (.for [.letDecl "i" (some uint256) (.intLit 0)] attestOuterCond attestOuterPost
             attestOuterBody)
         .reverted) ∨
     ((∀ k < n, rows[k]? ≠ some (.array [])) ∧
-      ∃ result, ExecStmt config ⟨C, locals, imms⟩ evm
+      ∃ result, ExecStmt fork config ⟨C, locals, imms⟩ evm
         (.for [.letDecl "i" (some uint256) (.intLit 0)] attestOuterCond attestOuterPost
             attestOuterBody)
         (.ok ⟨C, result, imms⟩ evm) ∧ result.get? "multiRequests" = some (.array expected) ∧
         result.get? "allocationEnd" =
           some (.int (Int.ofNat (attestAllocationEnd allocation counts 0 n))) ∧
         ∀ name, attestOuterUntouched name → result.get? name = locals.get? name) := by
-  have hinit : ExecBlock config ⟨C, locals, imms⟩ evm [.letDecl "i" (some uint256) (.intLit 0)]
+  have hinit : ExecBlock fork config ⟨C, locals, imms⟩ evm [.letDecl "i" (some uint256) (.intLit 0)]
       (.ok ⟨C, locals.insert "i" (.int 0), imms⟩ evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil
-  have hrun := attestOuterRun (C := C) (imms := imms) (evm := evm)
+  have hrun := attestOuterRun (fork := fork) (C := C) (imms := imms) (evm := evm)
     (locals := locals.insert "i" (.int 0)) (schemas := schemas) (rows := rows)
     (requests := requests) (expected := expected) (i := 0) (remaining := n)
     hn (by omega) (by simp)

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.PositionGetMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,10 +13,10 @@ set_option maxHeartbeats 1000000 in
 theorem positionGetBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p lower upper : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (owner : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16867⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16867⟩
       (upper :: lower :: EVM.word owner.val :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 87 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16952⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16952⟩
       (⟨26⟩ :: ⟨64⟩ :: ⟨32⟩ :: (⟨32⟩ + p) :: R)
       (positionBuildMem mem p owner lower upper) aw' rdata σ k' C' ∧
       HeapMemory (positionBuildMem mem p owner lower upper) aw' (p + ⟨58⟩) := by
@@ -57,11 +59,11 @@ set_option maxHeartbeats 1000000 in
 theorem positionGetX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p lower upper slot ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (owner : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16867⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16867⟩
       (upper :: lower :: EVM.word owner.val :: slot :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 87 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (solcMappingSlot slot (positionKey owner lower upper) :: R)
       (positionGetMem mem p owner lower upper slot) aw' rdata σ k' C' ∧
       HeapMemory (positionGetMem mem p owner lower upper slot) aw' (p + ⟨58⟩) := by

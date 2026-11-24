@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickCallEquiv
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -13,21 +15,21 @@ set_option linter.unusedTactic false
 inside `getFeedPrice`.  Each intermediate constructor records only the facts
 needed by the following call. -/
 
-inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
+inductive ClipperKickIlksOutcome (fork : Ethereum.Fork) (v : ClipperImmutables) (code : ByteArray)
     (g : UInt256) (s0 : EVM.State) (I : ExecutionEnv)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt config { contract := contract, locals := callerLocals, immutables := immStore v }
+      (hsource : ExecStmt fork config { contract := contract, locals := callerLocals, immutables := immStore v }
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
-      (hevm : RDrev code (Sat256.ofUInt256 g) s0)
+      (hevm : RDrev fork code (Sat256.ofUInt256 g) s0)
   | ready
       (σ : AccountMap)
       (outIlks : ByteArray) (evmIlks : EVM.State) (mem : ByteArray) (k C : ℕ)
       (hcode : 0 < (UInt256.ofNat ((sourceEvm.lookupAccount
         (clipperGetFeedPriceSpotterAddress sourceEvm)).option 0
           (fun acc => acc.code.size))).toNat)
-      (hcall : typedCallViaEVM config sourceEvm
+      (hcall : typedCallViaEVM fork config sourceEvm
         (EVM.address (clipperGetFeedPriceSpotterAddress sourceEvm))
         "spotterIlks" 0 [v.ilk] (true, evmIlks, outIlks))
       (hdec : config.externalABI.decode? "spotterIlks" outIlks =
@@ -35,7 +37,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
       (halign : ClipperKickCallAligned s0 σ I evmIlks)
       (hout : outIlks.size < UInt256.size)
       (hlo : 64 ≤ outIlks.size)
-      (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8937⟩
+      (hrd : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8937⟩
         (clipperSpotterIlksPipTarget outIlks ::
           clipperSpotterIlksPipTarget outIlks :: ⟨0⟩ :: ⟨128⟩ :: ⟨4⟩ ::
           ⟨128⟩ :: ⟨64⟩ :: ⟨132⟩ :: clipperPipPeekSelectorWord ::
@@ -56,7 +58,7 @@ theorem clipperKickSimulateSpotterIlks
     {I : ExecutionEnv} {callerLocals : Store}
     {ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
+    (hrd : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (halign : ClipperKickCallAligned s0 σ I sourceEvm)
@@ -64,7 +66,7 @@ theorem clipperKickSimulateSpotterIlks
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 101 ≤ 1024) :
-    ClipperKickIlksOutcome v code g s0 I callerLocals sourceEvm
+    ClipperKickIlksOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R := by
   by_cases hspotter : extCodeSizeWord σ (clipperSpotterTarget σ I) = ⟨0⟩
   · have hevm := RD.clipperKickGetFeedPriceSpotterIlksNoCode
@@ -133,25 +135,25 @@ theorem clipperKickSimulateSpotterIlks
           (by simpa [hevmeq] using halignIlks) houtIlks hlo
           (by simpa [memPeek] using rd8937) hmemPeek hreadPeek hcalldata
 
-inductive ClipperKickPeekOutcome (v : ClipperImmutables) (code : ByteArray)
+inductive ClipperKickPeekOutcome (fork : Ethereum.Fork) (v : ClipperImmutables) (code : ByteArray)
     (g : UInt256) (s0 : EVM.State) (I : ExecutionEnv)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt config { contract := contract, locals := callerLocals, immutables := immStore v }
+      (hsource : ExecStmt fork config { contract := contract, locals := callerLocals, immutables := immStore v }
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
-      (hevm : RDrev code (Sat256.ofUInt256 g) s0)
+      (hevm : RDrev fork code (Sat256.ofUInt256 g) s0)
   | ready
       (σ : AccountMap)
       (outIlks outPeek : ByteArray) (evmPeek : EVM.State)
       (mem : ByteArray) (k C : ℕ)
-      (hprefix : ExecBlock config { contract := contract, locals := ∅, immutables := immStore v }
+      (hprefix : ExecBlock fork config { contract := contract, locals := ∅, immutables := immStore v }
         sourceEvm (clipperGetFeedPriceSuccessPrefixStmts)
         (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
       (halign : ClipperKickCallAligned s0 σ I evmPeek)
       (hout : outPeek.size < UInt256.size)
       (hlo : 64 ≤ outPeek.size)
-      (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨9079⟩
+      (hrd : RD fork code I (Sat256.ofUInt256 g) s0 ⟨9079⟩
         (clipperPipPeekHasWord outPeek :: clipperPipPeekValueWord outPeek ::
           clipperSpotterIlksPipWord outIlks :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
         mem (UInt256.ofNat 6) outPeek σ k C)
@@ -165,9 +167,9 @@ theorem clipperKickSimulatePipPeek
     {callerLocals : Store} {ret scratch lot tab : UInt256} {R : List UInt256}
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hov : R.length + 101 ≤ 1024)
-    (hilks : ClipperKickIlksOutcome v code g s0 I callerLocals sourceEvm
+    (hilks : ClipperKickIlksOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R) :
-    ClipperKickPeekOutcome v code g s0 I callerLocals sourceEvm
+    ClipperKickPeekOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R := by
   cases hilks with
   | reverted hsource hevm => exact .reverted hsource hevm
@@ -264,28 +266,28 @@ theorem clipperKickSimulatePipPeek
               (by simpa [hevmeq] using halignPeek) houtPeek hlo
               (by simpa [memPost] using rd9079) hmemPost hreadPost
 
-inductive ClipperKickFeedPriceOutcome (v : ClipperImmutables) (code : ByteArray)
+inductive ClipperKickFeedPriceOutcome (fork : Ethereum.Fork) (v : ClipperImmutables) (code : ByteArray)
     (g : UInt256) (s0 : EVM.State) (I : ExecutionEnv)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
+      (hsource : ExecStmt fork config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
-      (hevm : RDrev code (Sat256.ofUInt256 g) s0)
+      (hevm : RDrev fork code (Sat256.ofUInt256 g) s0)
   | invalid
-      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
+      (hsource : ExecStmt fork config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
-      (hevm : RDinvalid code (Sat256.ofUInt256 g) s0)
+      (hevm : RDinvalid fork code (Sat256.ofUInt256 g) s0)
   | returned
       (feedPrice : UInt256)
       (σ : AccountMap)
       (sourceAfter : EVM.State) (mem : ByteArray) (out : ByteArray) (k C : ℕ)
-      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
+      (hsource : ExecStmt fork config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice")
         (.ok (Frame.mk contract (callerLocals.insert "feedPrice"
           (.int (Int.ofNat feedPrice.toNat))) (immStore v)) sourceAfter))
       (halign : ClipperKickCallAligned s0 σ I sourceAfter)
-      (hrd : RD code I (Sat256.ofUInt256 g) s0 ret
+      (hrd : RD fork code I (Sat256.ofUInt256 g) s0 ret
         (feedPrice :: scratch :: lot :: tab :: R)
         mem (UInt256.ofNat 6) out σ k C)
       (hmem : mem.size = 192)
@@ -299,9 +301,9 @@ theorem clipperKickFinishFeedPrice
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 101 ≤ 1024)
-    (hpeek : ClipperKickPeekOutcome v code g s0 I callerLocals sourceEvm
+    (hpeek : ClipperKickPeekOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R) :
-    ClipperKickFeedPriceOutcome v code g s0 I callerLocals sourceEvm
+    ClipperKickFeedPriceOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R := by
   cases hpeek with
   | reverted hsource hevm => exact .reverted hsource hevm
@@ -312,7 +314,7 @@ theorem clipperKickFinishFeedPrice
     · have hevm := RD.clipperGetFeedPriceValBlnOverflowReverts
         v hpatch hrd hoverVal
           (by simp only [List.length_cons, List.length_nil]; omega)
-      have htail := clipperGetFeedPriceTailRevertsValBlnOverflow
+      have htail := clipperGetFeedPriceTailRevertsValBlnOverflow (fork := fork)
         v evmPeek outIlks outPeek (by omega) hoverVal
       have hsource := clipperGetFeedPriceSuccessCallRevertsOfTail
         v callerLocals "feedPrice" hprefix htail
@@ -330,7 +332,7 @@ theorem clipperKickFinishFeedPrice
             (by simp only [List.length_cons, List.length_nil]; omega)
         have haddr := clipperKickSpotterAddress_eq_of_aligned halign
         have hnoCode := clipperKickNoCode_of_aligned halign haddr hspotter
-        have htail := clipperGetFeedPriceTailRevertsParNoCode
+        have htail := clipperGetFeedPriceTailRevertsParNoCode (fork := fork)
           v evmPeek outIlks outPeek (by omega) hmulVal hnoCode
         have hsource := clipperGetFeedPriceSuccessCallRevertsOfTail
           v callerLocals "feedPrice" hprefix htail
@@ -411,7 +413,7 @@ theorem clipperKickFinishFeedPrice
             · have hevm := RD.clipperGetFeedPriceRdivOverflowReverts
                 v hpatch (by simpa [valBln] using rd9290) hoverRdiv
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              have hrdiv := clipperGetFeedPriceRdivRevertsMul
+              have hrdiv := clipperGetFeedPriceRdivRevertsMul (fork := fork)
                 v evmPar outIlks outPeek outPar (by simpa [valBln] using hoverRdiv)
               have htail := clipperGetFeedPriceTailOfParSuccess
                 v outIlks outPeek (by omega) hmulVal hcodePar
@@ -425,7 +427,7 @@ theorem clipperKickFinishFeedPrice
               · have hevm := RD.clipperGetFeedPriceRdivZeroInvalid
                   v hpatch (by simpa [valBln] using rd9290) hmulRdiv hzero
                     (by simp only [List.length_cons, List.length_nil]; omega)
-                have hrdiv := clipperGetFeedPriceRdivRevertsDivZero
+                have hrdiv := clipperGetFeedPriceRdivRevertsDivZero (fork := fork)
                   v evmPar outIlks outPeek outPar (by simpa [valBln] using hmulRdiv)
                     hzero
                 have htail := clipperGetFeedPriceTailOfParSuccess
@@ -439,7 +441,7 @@ theorem clipperKickFinishFeedPrice
                     (by simp only [List.length_cons, List.length_nil]; omega)
                 let feedPrice := UInt256.div (UInt256.mul valBln clipperRayWord)
                   (clipperSpotterParWord outPar)
-                have hrdiv := clipperGetFeedPriceRdivReturns
+                have hrdiv := clipperGetFeedPriceRdivReturns (fork := fork)
                   v evmPar outIlks outPeek outPar (by simpa [valBln] using hmulRdiv)
                     hzero
                 have htail := clipperGetFeedPriceTailOfParSuccess
@@ -447,7 +449,7 @@ theorem clipperKickFinishFeedPrice
                     (by simpa [haddr] using hcallParStele) hdec hrdiv
                 have hsourceRaw := clipperGetFeedPriceSuccessCallReturnsOfTail
                   v callerLocals "feedPrice" hprefix htail
-                have hsource : ExecStmt config
+                have hsource : ExecStmt fork config
                     (Frame.mk contract callerLocals (immStore v)) sourceEvm
                     (.internalCall "getFeedPrice" [] "feedPrice")
                     (.ok (Frame.mk contract (callerLocals.insert "feedPrice"
@@ -466,7 +468,7 @@ theorem clipperKickSimulateGetFeedPrice
     {I : ExecutionEnv} {callerLocals : Store}
     {ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
+    (hrd : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (halign : ClipperKickCallAligned s0 σ I sourceEvm)
@@ -475,7 +477,7 @@ theorem clipperKickSimulateGetFeedPrice
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 101 ≤ 1024) :
-    ClipperKickFeedPriceOutcome v code g s0 I callerLocals sourceEvm
+    ClipperKickFeedPriceOutcome fork v code g s0 I callerLocals sourceEvm
       ret scratch lot tab R := by
   have hilks := clipperKickSimulateSpotterIlks v hpatch
     (callerLocals := callerLocals) hrd halign hdepth hperm hmem hread64 hov

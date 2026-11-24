@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vat.Common
 import Benchmarks.Dss.Vat.Signed
 
+variable {fork : Ethereum.Fork}
+
 namespace Benchmarks.Dss.Vat
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -978,24 +980,24 @@ theorem vatFoldSourceRevertAfterDaiBlock (evm evmRate : EVM.State) (I : Executio
       evalExpr? config { contract := contract, locals := foldStore I } evm
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true))
     (hrateOk :
-      ExecBlock config { contract := contract, locals := foldStore I } evm
+      ExecBlock fork config { contract := contract, locals := foldStore I } evm
         (checkedAddSignedInto "rateNew" (.storage (ilksF (.var "i") "rate")) (.var "rate") ++
           [ .assign .storage (ilksF (.var "i") "rate") (.var "rateNew") ])
         (.ok { contract := contract, locals := foldStoreRateNew I rateNew } evmRate))
     (hradOk :
-      ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evmRate
+      ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evmRate
         (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
         (.ok { contract := contract, locals := foldStoreRad I rateNew rad } evmRate))
     (hdaiRevert :
-      ExecBlock config { contract := contract, locals := foldStoreRad I rateNew rad } evmRate
+      ExecBlock fork config { contract := contract, locals := foldStoreRad I rateNew rad } evmRate
         (checkedAddSignedInto "daiNew" (.storage (daiRef (.var "u"))) (.var "rad"))
         .reverted) :
-    ExecTransitionBody config contract evm (foldStore I) foldTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (foldStore I) foldTransition.body .reverted := by
   have hprefix :
-      ExecBlock config { contract := contract, locals := foldStore I } evm
+      ExecBlock fork config { contract := contract, locals := foldStore I } evm
         (nonpayable ++ auth ++ requireLive)
         (.ok { contract := contract, locals := foldStore I } evm) := by
-    change ExecBlock config { contract := contract, locals := foldStore I } evm
+    change ExecBlock fork config { contract := contract, locals := foldStore I } evm
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ]
@@ -1027,32 +1029,32 @@ theorem vatFoldSourceRevertAfterDebtBlock
       evalExpr? config { contract := contract, locals := foldStore I } evm
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true))
     (hrateOk :
-      ExecBlock config { contract := contract, locals := foldStore I } evm
+      ExecBlock fork config { contract := contract, locals := foldStore I } evm
         (checkedAddSignedInto "rateNew" (.storage (ilksF (.var "i") "rate")) (.var "rate") ++
           [ .assign .storage (ilksF (.var "i") "rate") (.var "rateNew") ])
         (.ok { contract := contract, locals := foldStoreRateNew I rateNew } evmRate))
     (hradOk :
-      ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evmRate
+      ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evmRate
         (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
         (.ok { contract := contract, locals := foldStoreRad I rateNew rad } evmRate))
     (hdaiOk :
-      ExecBlock config { contract := contract, locals := foldStoreRad I rateNew rad } evmRate
+      ExecBlock fork config { contract := contract, locals := foldStoreRad I rateNew rad } evmRate
         (checkedAddSignedInto "daiNew" (.storage (daiRef (.var "u"))) (.var "rad"))
         (.ok { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew } evmRate))
     (hdaiAssign :
-      ExecBlock config { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew }
+      ExecBlock fork config { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew }
         evmRate [ .assign .storage (daiRef (.var "u")) (.var "daiNew") ]
         (.ok { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew } evmDai))
     (hdebtRevert :
-      ExecBlock config { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew }
+      ExecBlock fork config { contract := contract, locals := foldStoreDaiNew I rateNew rad daiNew }
         evmDai (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "rad"))
         .reverted) :
-    ExecTransitionBody config contract evm (foldStore I) foldTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (foldStore I) foldTransition.body .reverted := by
   have hprefix :
-      ExecBlock config { contract := contract, locals := foldStore I } evm
+      ExecBlock fork config { contract := contract, locals := foldStore I } evm
         (nonpayable ++ auth ++ requireLive)
         (.ok { contract := contract, locals := foldStore I } evm) := by
-    change ExecBlock config { contract := contract, locals := foldStore I } evm
+    change ExecBlock fork config { contract := contract, locals := foldStore I } evm
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ]
@@ -1101,7 +1103,7 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
           (.binary .eq (.binary .div (.var "rad") (.var "rate"))
             (.storage (ilksF (.var "i") "Art")))) =
         .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
+    ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evm
       (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
       .reverted := by
   have hart :
@@ -1125,7 +1127,7 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))) =
         .ok (.int rad) :=
     evalExpr_fold_s256_ok hmul hradLo hradHi
-  change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
+  change ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
       .require (.binary .le (.storage (ilksF (.var "i") "Art"))
@@ -1146,7 +1148,7 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
     (hbad :
       Int.ofNat artOld.toNat * foldRateInt I < -((2 : Int) ^ 255) ∨
         Int.ofNat artOld.toNat * foldRateInt I ≥ (2 : Int) ^ 255) :
-    ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
+    ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evm
       (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
       .reverted := by
   let prod := Int.ofNat artOld.toNat * foldRateInt I
@@ -1166,7 +1168,7 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
         (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate")) =
         .ok (.int prod) :=
     evalExpr_fold_mul_int_ok hart hrate rfl
-  change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
+  change ExecBlock fork config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
       .require (.binary .le (.storage (ilksF (.var "i") "Art"))
@@ -1216,7 +1218,7 @@ theorem foldStoreDebtNew_get_debtNew (I : ExecutionEnv)
 theorem RD.vatFoldDaiStoreOk
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [rad, ⟨0⟩, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
@@ -1231,7 +1233,7 @@ theorem RD.vatFoldDaiStoreOk
           (rad + solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
           (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩
         (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem))
@@ -1345,7 +1347,7 @@ theorem RD.vatFoldDaiStoreOk
 theorem RD.vatFoldDaiStoreRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [rad, ⟨0⟩, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
@@ -1362,7 +1364,7 @@ theorem RD.vatFoldDaiStoreRevert
           UInt256.lt
             (rad + solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
             (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let daiSlotWord := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
   let old := solcSlotWord σ I daiSlotWord
   let sum := rad + old
@@ -1427,7 +1429,7 @@ theorem RD.vatFoldDaiStoreRevert
 theorem RD.vatFoldDebtStoreReturnOk
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hneg :
@@ -1441,7 +1443,7 @@ theorem RD.vatFoldDebtStoreReturnOk
           (rad + solcSlotWord σ I ⟨7⟩)
           (solcSlotWord σ I ⟨7⟩) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩ [sel]
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨7⟩
         (rad + solcSlotWord σ I ⟨7⟩)) k' C' := by
@@ -1481,7 +1483,7 @@ theorem RD.vatFoldDebtStoreReturnOk
 theorem RD.vatFoldDebtStoreRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hfail :
@@ -1491,7 +1493,7 @@ theorem RD.vatFoldDebtStoreRevert
         UInt256.gt (rad + solcSlotWord σ I ⟨7⟩) (solcSlotWord σ I ⟨7⟩) = ⟨0⟩) ∧
         ¬ (UInt256.sgt rad ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt (rad + solcSlotWord σ I ⟨7⟩) (solcSlotWord σ I ⟨7⟩) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let old := solcSlotWord σ I ⟨7⟩
   let sum := rad + old
   have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)

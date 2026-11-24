@@ -2,6 +2,8 @@ import Benchmarks.Auction.BidMinimumCheck
 import Benchmarks.Auction.BidAfter
 import Benchmarks.Auction.ReentrancyGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -14,21 +16,21 @@ theorem bidBody_eq : createBidTransition.body =
       (bidInitialGuardStmts ++ (.require bidMinimumGuard :: bidAfterStmts)) := rfl
 
 theorem bidRoutineSplit {I g s0 noun ret R mem aw rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hm : HeapMemory mem aw ⟨128⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 28 ≤ 1024) :
     ((∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := bidParams noun } evm
         createBidTransition.body (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
-      createBidTransition.body .reverted ∧ RDrev auctionBytecode g s0)) ∨
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := bidParams noun } evm
+      createBidTransition.body .reverted ∧ RDrev fork auctionBytecode g s0)) ∨
       (I.perm = false ∧
-        ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
-          createBidTransition.body .staticViolation ∧ RDstatic auctionBytecode g s0) := by
+        ExecBlock fork auctionConfig { contract := auctionContract, locals := bidParams noun } evm
+          createBidTransition.body .staticViolation ∧ RDstatic fork auctionBytecode g s0) := by
   rw [bidBody_eq]
   have hstatus := statusGuardSource (locals := bidParams noun) hs (by simp [bidParams])
   by_cases hentered : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
@@ -40,7 +42,7 @@ theorem bidRoutineSplit {I g s0 noun ret R mem aw rdata σ k C evm}
     have rd1204 := evm_run rd1199 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
     have hstoreDec : decode auctionBytecode ⟨1204⟩ = some (.SSTORE, none) := by
       native_decide
-    have hstoreSplit := statusStoreSourceSplit (evm := evm) (locals := bidParams noun)
+    have hstoreSplit := statusStoreSourceSplit (fork := fork) (evm := evm) (locals := bidParams noun)
       (word := ⟨2⟩) (e := entered) (by simp [bidParams])
       (by simp only [entered, evalExpr?, pure]; rfl)
     by_cases hperm : I.perm = true
@@ -65,7 +67,7 @@ theorem bidRoutineSplit {I g s0 noun ret R mem aw rdata σ k C evm}
     have hstore := hstoreSplit.1 (by rw [hs.env]; exact hperm)
     have hsnap := snapshotSourceRead (statusState evm ⟨2⟩) (bidParams noun) (by simp [bidParams])
     rw [snapshotSourceState hs2] at hsnap
-    have hprefix : ExecBlock auctionConfig
+    have hprefix : ExecBlock fork auctionConfig
         { contract := auctionContract, locals := bidParams noun } evm
         [.require (.binary .ne (.storage statusRef) entered), .assign .storage statusRef entered,
           .letDecl "_auction" none (.storage auctionRef)]
@@ -91,18 +93,18 @@ theorem bidRoutineSplit {I g s0 noun ret R mem aw rdata σ k C evm}
     · exact Or.inr ⟨execBlock_append hprefix (execBlock_append_term hchecks (by simp)), hr⟩
 
 theorem bidRoutine {I g s0 noun ret R mem aw rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ⟨128⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 28 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := bidParams noun } evm
         createBidTransition.body (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
-      createBidTransition.body .reverted ∧ RDrev auctionBytecode g s0) :=
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := bidParams noun } evm
+      createBidTransition.body .reverted ∧ RDrev fork auctionBytecode g s0) :=
   (bidRoutineSplit h hs hm hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 end Auction

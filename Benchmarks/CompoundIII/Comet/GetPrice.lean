@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.GetPriceEvm
 import Benchmarks.CompoundIII.Comet.PriceExternal
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `getPrice(address)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 10000
 theorem cometWithExtendedAssetListGetPriceBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 21) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some getPriceTransition :=
     cometSelectorDispatch ⟨21, by decide⟩ hsel
@@ -31,7 +33,7 @@ theorem cometWithExtendedAssetListGetPriceBody {σ σ₀ A I} {g : UInt256} (v :
       (transitionSignature getPriceTransition).paramTypes I.calldata =
       decodeCalldata ["priceFeed"] [.elem .address] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
-  have hX := getPriceX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := getPriceX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2^255 + 4

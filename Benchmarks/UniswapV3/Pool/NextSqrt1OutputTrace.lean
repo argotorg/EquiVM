@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.LowGasSafeAdd
 import Benchmarks.UniswapV3.Pool.SafeCast160Trace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,13 +15,13 @@ theorem nextSqrt1OutputX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (if a.add then ⟨19792⟩ else ⟨19898⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if a.add then ⟨19792⟩ else ⟨19898⟩)
       (nextSqrt1Quotient a :: ⟨0⟩ :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) ::
         a.amount :: liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
-    (¬nextSqrt1OutputValid a ∧ RDrev (deployedRuntime v) g s0) ∨
-      (nextSqrt1OutputValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (¬nextSqrt1OutputValid a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (nextSqrt1OutputValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (nextSqrt1Result a :: R) mem aw rdata σ k' C') := by
   have hp' : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) priceRaw = a.price := by
     rw [u256_land_comm]; exact hp

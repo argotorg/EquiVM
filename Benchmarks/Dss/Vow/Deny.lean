@@ -1,6 +1,8 @@
 import Reasoning.SolcRoutines
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -113,14 +115,14 @@ abbrev vowNotAuthorizedRawWord : UInt256 :=
 theorem RD.vowAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcAuthTailPc pc) ⟨18⟩
       vowNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ≠ ⟨1⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   Reasoning.Reach.RD.solcAuthCheckRevert18 h hwf htail hauth hov
 
 
@@ -167,7 +169,7 @@ theorem vowReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨608⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨2622662641⟩ :=
@@ -202,10 +204,10 @@ theorem vowDenyBodyCore
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (denyUsr I))))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨608⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := vowCallerWardsSlot I
@@ -260,9 +262,9 @@ theorem vowDenyBodyCore
             denyEvaledRef, denySlotFor])
         (hstore := hstore)
     have hbody (hperm : I.perm = true) :
-        ExecTransitionBody config contract evm0 locals denyTransition.body
+        ExecTransitionBody fork config contract evm0 locals denyTransition.body
           (.returned { contract := contract, locals := locals } evm1 none) := by
-      have hblock := nonpayableRequireAssignStorageBlock (hperm := hperm)
+      have hblock := nonpayableRequireAssignStorageBlock (fork := fork) (hperm := hperm)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0) (evm' := evm1)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -313,7 +315,7 @@ theorem vowDenyBodyCore
     obtain ⟨_, _, hretPc⟩ := permSplit_true hperm hstore
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
-        RDret vowBytecode (Sat256.ofUInt256 g)
+        RDret fork vowBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -329,12 +331,12 @@ theorem vowDenyBodyCore
       intro hstele
       exact hauthEvm (by rw [hcallerWord, hstele])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals denyTransition.body .reverted := by
       have hguard := vowAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -363,7 +365,7 @@ theorem vowDenyBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowDenyBodyCore hcode hwv hsz36 hsize (vowDispatch_deny hsel)
     (vowDecode_deny_ok hsz36)
@@ -374,9 +376,9 @@ theorem vowDenyShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachDenyBody (σ := σ)
+    vowReachDenyBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

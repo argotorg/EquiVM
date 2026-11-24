@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.UpdateBaseFinishSource
 import Benchmarks.CompoundIII.Comet.AccountRewardSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000
 
 theorem updateBase_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.State)
     (addr : AccountAddress) (basic : UserBasicData) (newPrincipal : UInt256) :
-    internalBlockResult config (updateBaseEntry v addr basic newPrincipal) evm
+    internalBlockResult fork config (updateBaseEntry v addr basic newPrincipal) evm
       updateBaseCallable.body (updateBaseOutcome v evm addr basic newPrincipal) := by
   let f0 := updateBaseEntry v addr basic newPrincipal
   let f1 : Frame :=
@@ -32,7 +34,7 @@ theorem updateBase_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.S
   have hb1 : f1.locals.get? "basic" = some (userBasicValue basic) := by
     simp only [f1, f0, updateBaseEntry, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
     rfl
-  apply internalBlockResult.prepend (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hepn (assignBasicPrincipal newPrincipal hb1))
+  apply internalBlockResult.prepend (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hepn (assignBasicPrincipal newPrincipal hb1))
   have hb2 : f2.locals.get? "basic" = some (userBasicValue basic') := by
     simp only [f2, basic', updateBaseRewardEntry, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert]
@@ -46,7 +48,7 @@ theorem updateBase_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.S
   have hguard : evalExpr? config f2 evm (.binary .ge (.var "principal") (.intLit 0)) =
       .ok (.bool (decide (0 ≤ signed104 basic.principal))) := by
     simp only [evalExpr?, hp2, EvalResult.ofOption, pure, bind, EvalResult.bind, evalBinaryOp?]
-  have hbranch : ExecStmt config f2 evm
+  have hbranch : ExecStmt fork config f2 evm
       (.ite (.binary .ge (.var "principal") (.intLit 0))
         (accountRewardBlock false) (accountRewardBlock true))
       (if AccountRewardValid v evm basic basic.principal borrow then
@@ -97,7 +99,7 @@ theorem updateBase_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.S
 
 theorem updateBase_source (v : CometWithExtendedAssetListImmutables) (evm : EVM.State)
     (addr : AccountAddress) (basic : UserBasicData) (newPrincipal : UInt256) :
-    internalSourceResult config (updateBaseEntry v addr basic newPrincipal) evm
+    internalSourceResult fork config (updateBaseEntry v addr basic newPrincipal) evm
       updateBaseCallable.body (updateBaseOutcome v evm addr basic newPrincipal) :=
   (updateBase_block v evm addr basic newPrincipal).toSource
 
@@ -108,7 +110,7 @@ theorem updateBase_call (v : CometWithExtendedAssetListImmutables) (frame : Fram
     (ha : evalExpr? config frame evm addrExpr = .ok (.address addr))
     (hb : evalExpr? config frame evm basicExpr = .ok (userBasicValue basic))
     (hp : evalExpr? config frame evm principalExpr = .ok (.int (signed104 newPrincipal))) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "updateBasePrincipal" [addrExpr, basicExpr, principalExpr] ret)
       (internalStmtResult frame ret (updateBaseOutcome v evm addr basic newPrincipal)) := by
   apply internalVoidCall (callee := updateBaseCallable)

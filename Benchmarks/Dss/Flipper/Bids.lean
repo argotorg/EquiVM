@@ -5,6 +5,8 @@ import Reasoning.Reach
 import Benchmarks.Dss.Flipper.Dispatch
 import Benchmarks.Dss.Flipper.BidStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -330,7 +332,7 @@ theorem evalExprs_bidsReturn {σ σ₀ A I} {g : Sat256} :
 
 theorem flipperBidsSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
       bidsTransition.body
       (.returned { contract := contract, locals := bidsLocals I }
@@ -407,7 +409,7 @@ theorem flipperReachBidsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 1)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨480⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0x4423c5f1⟩ :=
@@ -440,11 +442,11 @@ theorem RD.flipperBidsDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨502⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨502⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨2568⟩ = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨2568⟩
+    ∃ k' C', RD fork code ee g s0 ⟨2568⟩
       (calldataWord ee.calldata 4 :: ret :: sel :: R) mem aw rdata acc k' C' := by
   subst hwf
   have rd2568 := evm_run h with [
@@ -457,10 +459,10 @@ theorem RD.flipperBidsDecodeToRoutine {code : ByteArray} {g : Sat256}
 
 theorem flipperBidsX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨480⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
         [bidsId I, ⟨509⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -480,10 +482,10 @@ theorem flipperBidsX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨480⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -583,10 +585,10 @@ theorem flipperBidsDecodePushMask540 :
 
 theorem flipperBidsX_loadStruct {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
       [bidsId I, ⟨509⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    ∃ k' C', RD flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
+    ∃ k' C', RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
       [bidsTabWord σ I, bidsGalWord σ I, bidsUsrWord σ I, bidsEndWord σ I,
         bidsTicWord σ I, bidsGuyWord σ I, bidsLotWord σ I, bidsBidWord σ I,
         ⟨509⟩, sel]
@@ -726,12 +728,12 @@ theorem flipperBidsX_loadStruct {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flipperBidsX_return {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
       [bidsTabWord σ I, bidsGalWord σ I, bidsUsrWord σ I, bidsEndWord σ I,
         bidsTicWord σ I, bidsGuyWord σ I, bidsLotWord σ I, bidsBidWord σ I,
         ⟨509⟩, sel]
       (bidsHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g (initState σ σ₀ g A I) σ
+    RDret fork flipperBytecode g (initState σ σ₀ g A I) σ
       (bidsReturnData σ I) := by
   have hprefixStore :
       (UInt256.toByteArray (bidsBidWord σ I)).write 0 (bidsHashMem I) 128 32 =
@@ -944,12 +946,12 @@ theorem flipperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some bidsTransition :=
     flipperDispatchBids hsel
-  have hreach := flipperReachBidsBody
+  have hreach := flipperReachBidsBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -959,7 +961,7 @@ theorem flipperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hloaded⟩ := flipperBidsX_loadStruct hdecoded
     have hret := flipperBidsX_return hloaded
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
           bidsTransition.body
           (.returned { contract := contract, locals := bidsLocals I }

@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.PermissionEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `hasPermission(address,address)`
 
@@ -23,7 +25,7 @@ set_option maxRecDepth 10000
 
 theorem hasPermission_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (twoAddressGetterArgs "owner" "manager" I) hasPermissionTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [.bool (permissionBool (initState σ σ₀ g A I)
@@ -67,7 +69,7 @@ theorem hasPermissionX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 58)) :
-    TwoAddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    TwoAddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (permissionRuntimeWord σ I
         (calldataWord I.calldata 4) (calldataWord I.calldata 36)))).toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachHasPermissionBody
@@ -106,7 +108,7 @@ theorem hasPermissionX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
         mloadFreePtrValue (by rw [hmem]; decide)
           (permissionMemory_read64 w₀ w₁ solcFreePtrMem_size solcFreePtrMem_read64)
       let out := UInt256.isZero (UInt256.isZero (permissionRuntimeWord σ I w₀ w₁))
-      change RDret _ _ _ _
+      change RDret fork _ _ _ _
         ((out.toByteArray.write 0 mem (memLoad (UInt256.ofNat 64) mem).toNat 32).readWithPadding
           (memLoad (UInt256.ofNat 64) mem).toNat 32) at rd7
       rw [hload] at rd7
@@ -123,7 +125,7 @@ theorem hasPermissionX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
 theorem cometWithExtendedAssetListHasPermissionBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 58)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 58) rfl hsel
   let w := permissionRuntimeWord σ I (calldataWord I.calldata 4) (calldataWord I.calldata 36)
   apply twoAddressGetter_refines (t := hasPermissionTransition)

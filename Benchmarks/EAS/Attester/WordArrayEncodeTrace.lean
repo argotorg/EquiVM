@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.WordArrayCopyTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -10,7 +12,7 @@ def wordArrayEncodeMemory (mem : ByteArray) (dst n : Nat) (values : Nat → UInt
 
 theorem wordArrayEncodeRun {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {src dst i n remaining : Nat} {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2621⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2621⟩
       ([UInt256.ofNat i, UInt256.ofNat n, UInt256.ofNat dst, UInt256.ofNat src] ++ R)
       mem aw out σ k C)
     (hstack : R.length + 6 ≤ 1024) (hlo : 96 ≤ src)
@@ -19,7 +21,7 @@ theorem wordArrayEncodeRun {words : String → UInt256} {I g s0 σ mem out aw k 
     (hi : i + remaining = n)
     (hloads : ∀ j, j < remaining →
       memLoad (UInt256.ofNat (src + 32 * j)) mem = values (i + j)) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2651⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2651⟩
       ([UInt256.ofNat n, UInt256.ofNat n, UInt256.ofNat (dst + 32 * remaining),
         UInt256.ofNat (src + 32 * remaining)] ++ R)
       (wordSequenceMemory mem dst (wordArrayWords values i remaining)) aw' out σ k' C' := by
@@ -62,7 +64,7 @@ theorem wordArrayEncodeRun {words : String → UInt256} {I g s0 σ mem out aw k 
 
 theorem wordArrayEncode {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {base dst n : Nat} {values : Nat → UInt256} {ret : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2595⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2595⟩
       ([UInt256.ofNat dst, UInt256.ofNat base, ret] ++ R) mem aw out σ k C)
     (hstack : R.length + 10 ≤ 1024) (hlo : 96 ≤ base)
     (hin : base + 32 * (n + 1) ≤ mem.size) (hdis : base + 32 * (n + 1) ≤ dst)
@@ -70,7 +72,7 @@ theorem wordArrayEncode {words : String → UInt256} {I g s0 σ mem out aw k C R
     (hlen : memLoad (UInt256.ofNat base) mem = UInt256.ofNat n)
     (hloads : ∀ j, j < n → memLoad (UInt256.ofNat (base + 32 + 32 * j)) mem = values j)
     (hret : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ret
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ret
       (UInt256.ofNat (dst + 64 + 32 * n) :: R)
       (wordArrayEncodeMemory mem dst n values) aw' out σ k' C' := by
   have hdf : dst < UInt256.size := by omega
@@ -104,7 +106,7 @@ theorem wordArrayEncode {words : String → UInt256} {I g s0 σ mem out aw k C R
 
 theorem wordArrayReturn {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {base dst n : Nat} {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨121⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨121⟩
       (UInt256.ofNat base :: R) mem aw out σ k C)
     (hstack : R.length + 10 ≤ 1024) (hlo : 96 ≤ base)
     (hin : base + 32 * (n + 1) ≤ mem.size) (hdis : base + 32 * (n + 1) ≤ dst)
@@ -112,7 +114,7 @@ theorem wordArrayReturn {words : String → UInt256} {I g s0 σ mem out aw k C R
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat dst)
     (hlen : memLoad (UInt256.ofNat base) mem = UInt256.ofNat n)
     (hloads : ∀ j, j < n → memLoad (UInt256.ofNat (base + 32 + 32 * j)) mem = values j) :
-    RDret (immutableLayout.runtime attesterBytecode words) g s0 σ
+    RDret fork (immutableLayout.runtime attesterBytecode words) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat n] ++ wordArrayWords values 0 n)) := by
   obtain ⟨aw1, k1, C1, h1⟩ := attesterRuntime_block_121_packed (by omega)
     (by rw [attesterRuntime_validJumps]; native_decide) h

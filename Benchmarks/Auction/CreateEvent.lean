@@ -2,18 +2,20 @@ import Benchmarks.Auction.PairEventMemory
 import Benchmarks.Auction.Log2
 import Benchmarks.Auction.DepositPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem createEvent {I g s0 noun start finish ptr ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3274⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3274⟩
       (⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
       mem aw rdata acc k C)
     (hm : MemoryCursor mem aw ptr) (hb : ptr.toNat + 64 ≤ 2 ^ 200)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (pairEventMem mem ptr start finish)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R (pairEventMem mem ptr start finish)
       (pairEventWords aw ptr) rdata acc k' C' := by
   have rd3276 := evm_run h with [dup2, raw mloadSymbolic (by native_decide) (by evm_ov)]
   rw [hm.load64, expandedWords64_eq hm.active] at rd3276

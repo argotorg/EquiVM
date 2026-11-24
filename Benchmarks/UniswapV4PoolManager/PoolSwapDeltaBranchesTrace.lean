@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapDeltaWords
 import Benchmarks.UniswapV4PoolManager.SafeCast128WordTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,12 +14,12 @@ theorem poolSwapDeltaCalculatedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024)
     (hm : memLoad params mem = specified)
-    (h : RD (deployedRuntime v) I g s0 ⟨21729⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21729⟩
       (specified :: remaining :: params :: calculated :: R) mem aw rdata σ k C) :
     if poolSwapDeltaFits true specified remaining calculated then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨21750⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨21750⟩
         (UInt256.sub specified remaining :: calculated :: R) mem (M aw params ⟨32⟩) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManagerBlocks.poolManager_block_21729 (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_21729_stack] at rd1
@@ -47,12 +49,12 @@ theorem poolSwapDeltaSpecifiedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw specified remaining params calculated : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨21776⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21776⟩
       (specified :: remaining :: params :: calculated :: R) mem aw rdata σ k C) :
     if poolSwapDeltaFits false specified remaining calculated then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨21750⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨21750⟩
         (calculated :: UInt256.sub specified remaining :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManagerBlocks.poolManager_block_21776 (by change R.length+1+4 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_21776_stack] at rd1

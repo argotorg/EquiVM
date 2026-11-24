@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,11 +16,11 @@ theorem tickCrossTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 direction : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I)
     (hperm : I.perm = true) (htick : memLoad (step+UInt256.ofNat 32) mem = tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨20029⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20029⟩
       ([step, UInt256.ofNat 32, poolSlot id, UInt256.ofNat 4, growth1, growth0, state,
         x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, direction] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
       (if direction = ⟨0⟩ then ⟨20104⟩ else ⟨20082⟩)
       ([state, tickCrossNet evm id (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)) growth0 growth1,
         x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, direction] ++ R)
@@ -39,7 +41,7 @@ theorem tickCrossTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     dsimp only [poolManagerBlocks.poolManager_block_20029_taken_stack,
       poolManagerBlocks.poolManager_block_20029_taken_memory] at rd1
     rw [htick, hhash, signextend24_idempotent] at rd1
-    change RD (deployedRuntime v) I budget start ⟨20104⟩
+    change RD fork (deployedRuntime v) I budget start ⟨20104⟩
       ([state, UInt256.sar (UInt256.ofNat 128) (solcSlotWordAt
           (tickSlot id (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)))
           (tickCrossAccounts evm.accountMap I id (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)) growth0 growth1) I),
@@ -54,7 +56,7 @@ theorem tickCrossTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     dsimp only [poolManagerBlocks.poolManager_block_20029_fallthrough_stack,
       poolManagerBlocks.poolManager_block_20029_fallthrough_memory] at rd1
     rw [htick, hhash, signextend24_idempotent] at rd1
-    change RD (deployedRuntime v) I budget start ⟨20082⟩
+    change RD fork (deployedRuntime v) I budget start ⟨20082⟩
       ([state, UInt256.sar (UInt256.ofNat 128) (solcSlotWordAt
           (tickSlot id (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)))
           (tickCrossAccounts evm.accountMap I id (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)) growth0 growth1) I),

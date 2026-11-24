@@ -3,22 +3,24 @@ import Benchmarks.Safe.V2_0e91d99.ExecTransactionSignatureSource
 import Benchmarks.Safe.V2_0e91d99.CheckSignaturesTrace
 import Benchmarks.Safe.V2_0e91d99.SignatureDecodedMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
 
-def ExecTransactionPrepareOutcome (p : ExecTransactionInput) (evm : EVM.State)
+def ExecTransactionPrepareOutcome (fork : Ethereum.Fork) (p : ExecTransactionInput) (evm : EVM.State)
     (I : ExecutionEnv) (g : Sat256) (s0 : State) (dataLen : Nat) (R : List UInt256) : Prop :=
-  (RDrev safeBytecode g s0 ∧
-    ExecBlock config p.frame evm exectransactionTransition.body .reverted) ∨
-  (RDstatic safeBytecode g s0 ∧
-    ExecBlock config p.frame evm exectransactionTransition.body .staticViolation) ∨
+  (RDrev fork safeBytecode g s0 ∧
+    ExecBlock fork config p.frame evm exectransactionTransition.body .reverted) ∨
+  (RDstatic fork safeBytecode g s0 ∧
+    ExecBlock fork config p.frame evm exectransactionTransition.body .staticViolation) ∨
   ∃ evm' mem' ptr' out aw' k' C',
-    (∀ result, ExecBlock config (execSignedFrame p evm) evm'
+    (∀ result, ExecBlock fork config (execSignedFrame p evm) evm'
       (exectransactionTransition.body.drop 6) result →
-      ExecBlock config p.frame evm exectransactionTransition.body result) ∧
+      ExecBlock fork config p.frame evm exectransactionTransition.body result) ∧
     evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
-    RD safeBytecode I g s0 ⟨3588⟩
+    RD fork safeBytecode I g s0 ⟨3588⟩
       (execSignatureSaved I.calldata dataLen ⟨128⟩ (execTransactionHash p evm) R)
       mem' aw' out evm'.accountMap k' C' ∧
     BytesMemory mem' 128 p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
@@ -27,14 +29,14 @@ def ExecTransactionPrepareOutcome (p : ExecTransactionInput) (evm : EVM.State)
 set_option maxRecDepth 100000 in
 theorem safeExecTransactionPrepare (evm : EVM.State)
     {I g s0 σ k C aw rdata dataLen sigLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3533⟩ (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ R)
+    (h : RD fork safeBytecode I g s0 ⟨3533⟩ (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ R)
       (memoryBytesDecoded (execTransactionCalldataInput I.calldata dataLen sigLen).signatures)
       aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hb : ExecTransactionCalldataBounds I.calldata dataLen sigLen)
     (ho : (calldataWord I.calldata 100).toNat < 2) (hn : sigLen ≤ 2 ^ 64 - 192)
     (hov : R.length + 64 ≤ 1024) :
-    ExecTransactionPrepareOutcome (execTransactionCalldataInput I.calldata dataLen sigLen)
+    ExecTransactionPrepareOutcome fork (execTransactionCalldataInput I.calldata dataLen sigLen)
       evm I g s0 dataLen R := by
   let p := execTransactionCalldataInput I.calldata dataLen sigLen
   have hlen : p.signatures.size = sigLen := by

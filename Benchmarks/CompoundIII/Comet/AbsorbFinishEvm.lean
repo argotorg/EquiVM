@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbSettlementEvm
 import Benchmarks.CompoundIII.Comet.PrincipalValueEvm
 import Benchmarks.CompoundIII.Comet.UpdateBaseMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,11 +22,11 @@ theorem cometAbsorbFinish {v : CometWithExtendedAssetListImmutables}
     (hf : memLoad ⟨64⟩ mem = free) (hl : 96 ≤ free.toNat) (hm : free.toNat ≤ mem.size)
     (hb : free.toNat + 64 < UInt256.size) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17240⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17240⟩
       (basic.principal :: old :: next :: price :: EVM.word account.val :: collateralBaseScale v ::
         ptr :: absorber :: ret :: R) mem aw rdata σ k C) :
     ∃ result, AbsorbFinishTrace v evm account basic old next price result ∧
-      internalPreservingRun (deployedRuntime v) ee g s0 mem free rdata ret R result := by
+      internalPreservingRun fork (deployedRuntime v) ee g s0 mem free rdata ret R result := by
   have r1 := cometWithExtendedAssetList_block_17240 (immWords := wordsOf (immStore v))
     (by change R.length + 6 + 6 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.TakeDynamicRemove
 import Benchmarks.Dss.Clipper.YankVatEVM
 import Benchmarks.Dss.Clipper.TakePostDogRemove
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -16,20 +18,20 @@ theorem RD.clipperTakeRemoveContinuationElim
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8274 : RD code ee g s0 ⟨8274⟩
+    (rd8274 : RD fork code ee g s0 ⟨8274⟩
       (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem aw out σ k C)
     (hid : id = clipperYankArgWord ee)
     (hmem : clipperTakeMemoryWF mem aw) (hperm : ee.perm = true)
-    (onEmpty : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩ → RDinvalid code g s0 → P)
+    (onEmpty : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩ → RDinvalid fork code g s0 → P)
     (onIdEq :
       ∀ hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩,
         (let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
          clipperYankArgWord ee =
            solcSlotWord σ ee (clipperYankActiveSlot lastIndex)) →
         (let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-         RDret code g s0
+         RDret fork code g s0
            (sstoreAccountMap ee.codeOwner
              (clipperYankRemoveAccountMap σ ee lastIndex) ⟨13⟩ ⟨0⟩)
            ByteArray.empty) → P)
@@ -44,7 +46,7 @@ theorem RD.clipperTakeRemoveContinuationElim
          let move := solcSlotWord σ ee (clipperYankActiveSlot lastIndex)
          let idx := solcSlotWord σ ee (clipperYankSalesPosSlot ee)
          solcSlotWord (clipperYankMoveAccountMap σ ee idx move) ee ⟨11⟩ = ⟨0⟩) →
-        RDinvalid code g s0 → P)
+        RDinvalid fork code g s0 → P)
     (onIdNeSuccess :
       ∀ hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩,
         (let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
@@ -61,7 +63,7 @@ theorem RD.clipperTakeRemoveContinuationElim
          let idx := solcSlotWord σ ee (clipperYankSalesPosSlot ee)
          let σMove := clipperYankMoveAccountMap σ ee idx move
          let lastIndexAfter := solcSlotWord σMove ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-         RDret code g s0
+         RDret fork code g s0
            (sstoreAccountMap ee.codeOwner
              (clipperYankRemoveAccountMap σMove ee lastIndexAfter) ⟨13⟩ ⟨0⟩)
            ByteArray.empty) → P)
@@ -72,7 +74,7 @@ theorem RD.clipperTakeRemoveContinuationElim
            solcSlotWord σ ee (clipperYankActiveSlot lastIndex)) →
         (solcSlotWord σ ee ⟨11⟩).toNat ≤
           (solcSlotWord σ ee (clipperYankSalesPosSlot ee)).toNat →
-        RDinvalid code g s0 → P) : P := by
+        RDinvalid fork code g s0 → P) : P := by
   subst id
   by_cases hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩
   · exact onEmpty hlen (RD.clipperTakeRemoveEmptyInvalid v hpatch rd8274 hlen)

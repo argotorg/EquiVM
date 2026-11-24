@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -48,7 +50,7 @@ theorem vowReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨600⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨2507842956⟩ :=
@@ -80,12 +82,12 @@ theorem vowLiveBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (liveTransition.params.map Param.name)
         (transitionSignature liveTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨600⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -114,7 +116,7 @@ theorem vowLiveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩ rfl hsel
   exact vowLiveBodyCore hcode hwv (vowDispatch_live hsel) (vowDecode_live hsz)

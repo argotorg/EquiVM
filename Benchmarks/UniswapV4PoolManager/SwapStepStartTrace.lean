@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapTargetWords
 import Benchmarks.UniswapV4PoolManager.SwapStepFlags
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -28,12 +30,12 @@ theorem swapStepStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = limit)
     (hl : UInt256.land (memLoad (pricePtr+liquidityOffset) (swapStepStartMemory mem next writeBase writeOffset))
       (UInt256.ofNat 340282366920938463463374607431768211455) = liquidity)
-    (h : RD (deployedRuntime v) I g s0 ⟨19479⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([next, solcAddrMask, writeBase, writeOffset, ⟨1⟩, liquidityOffset,
         UInt256.ofNat 340282366920938463463374607431768211455, pricePtr, fee,
         if zeroForOne then ⟨0⟩ else ⟨1⟩, remaining, x1, paramsPtr, x3, x4, fee, x6, x7, x8, j] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
       (if swapStepExactInput remaining then ⟨19593⟩ else ⟨20607⟩)
       ([price, j, if swapStepDirection price (swapTargetWord zeroForOne next limit) then ⟨1⟩ else ⟨0⟩,
         swapTargetWord zeroForOne next limit, fee, liquidity, remaining,

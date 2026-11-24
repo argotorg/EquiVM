@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickClearTrace
 import Benchmarks.UniswapV3.Pool.TickUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,17 +15,17 @@ theorem tickClearInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hf : caller = {contract := contract, locals := caller.locals, immutables := immStore v})
     (he : evalExprs? config caller evm args = .ok [.int tick])
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21964⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21964⟩
       (EVM.wordOfInt tick :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (ht : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hm : HeapMemory mem aw p) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "Tick_clear" args retVar) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Tick_clear" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "Tick_clear" args retVar) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Tick_clear" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none) (tickClearState evm tick)) ∧
       ∃ k' C', SourceState s0 ee (tickClearMap σ ee tick) (tickClearState evm tick) ∧
-      RD (deployedRuntime v) ee g s0 ret R (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) aw rdata
+      RD fork (deployedRuntime v) ee g s0 ret R (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) aw rdata
         (tickClearMap σ ee tick) k' C' ∧
       HeapMemory (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem) aw p) := by
   have hc : {caller with locals := tickClearLocals tick} = tickClearFrame (immStore v) tick := by
@@ -40,7 +42,7 @@ theorem tickClearInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · exact internalCallFunctionReturn (callee := tickClearFunction)
         (calleeStele := tickClearFrame (immStore v) tick) (value := none)
         he hl (tickClearBind tick) (by rw [hc]; exact tickClearReturns (hperm := by simpa only [hs.env] using hp) (immStore v) evm tick)
-    · change RD (deployedRuntime v) ee g s0 ret R (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem)
+    · change RD fork (deployedRuntime v) ee g s0 ret R (twoWordHashMem (EVM.wordOfInt tick) ⟨5⟩ mem)
         (tickUpdateMemoryWords aw) rdata _ k' C' at r'
       rw [tickUpdateMemoryWords_eq hm.active] at r'
       exact r'

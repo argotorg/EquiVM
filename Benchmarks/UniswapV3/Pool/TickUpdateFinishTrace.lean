@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateNetMathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,13 +12,13 @@ theorem tickUpdateFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (tickUpdateGrossState a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21236⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21236⟩
       (EVM.wordOfInt (tickUpdateNetResult a evm a.upper) ::
         tickUpdateWorkingWords a evm ++ ret :: R) mem aw rdata σ k C)
     (hn : safeCast128Valid (tickUpdateNetResult a evm a.upper)) (hp : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 21 ≤ 1024) :
     ∃ σ' k' C', SourceState s0 ee σ' (tickUpdateFinalState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
+      RD fork (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
         mem aw rdata σ' k' C' := by
   have hcast : UInt256.signextend (UInt256.ofNat 15)
       (EVM.wordOfInt (tickUpdateNetResult a evm a.upper)) =

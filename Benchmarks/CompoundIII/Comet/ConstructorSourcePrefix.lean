@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorInput
 import Benchmarks.CompoundIII.Comet.DecimalsCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -59,9 +61,9 @@ theorem constructorConfigExpr_eval (c : ConstructorConfig) (evm : EVM.State) :
 
 theorem constructorSourceConfig_exec (c : ConstructorConfig) (evm : EVM.State)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 2)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 2)
       (.ok (constructorSourceConfig c) evm) := by
-  change ExecBlock config _ _
+  change ExecBlock fork config _ _
     [.require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "config" (some ConstructorConfig.abiType) constructorConfigExpr] _
   exact .consNormal (.requireTrue (evalCallvalueEq_true hv))
@@ -76,19 +78,19 @@ theorem constructorSource_baseToken (c : ConstructorConfig) (evm : EVM.State) :
 
 theorem constructorSourceDecimals_exec {c : ConstructorConfig} {evm evm' : EVM.State}
     {out : ByteArray} (hv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hc : callViaEVM evm c.baseToken 0 decimalsPayload (true, evm', out) false)
+    (hc : callViaEVM fork evm c.baseToken 0 decimalsPayload (true, evm', out) false)
     (hhi : out.size < 2^255) (hvalid : DecimalsReturnValid out) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 3)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 3)
       (.ok (constructorSourceDecimals c (calldataWord out 0)) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 2 ++ [contract.ctor.body[2]!]) _
+  change ExecBlock fork config _ _ (contract.ctor.body.take 2 ++ [contract.ctor.body[2]!]) _
   apply execBlockAppendOk (constructorSourceConfig_exec c evm hv)
   exact .consNormal (decimals_source_ok (constructorSource_baseToken c evm) hc hhi hvalid) .nil
 
 theorem constructorSourceDecimals_revert {c : ConstructorConfig} {evm evm' : EVM.State}
     {z : Bool} {out : ByteArray} (hv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hc : callViaEVM evm c.baseToken 0 decimalsPayload (z, evm', out) false)
+    (hc : callViaEVM fork evm c.baseToken 0 decimalsPayload (z, evm', out) false)
     (hhi : out.size < 2^255) (hvalid : ¬ (z = true ∧ DecimalsReturnValid out)) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   rw [← List.take_append_drop 2 contract.ctor.body]
   apply execBlockAppendOk (constructorSourceConfig_exec c evm hv)
   exact .consRevert (decimals_source_revert (constructorSource_baseToken c evm) hc hhi hvalid)

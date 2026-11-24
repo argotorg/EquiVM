@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionTickModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -59,11 +61,11 @@ theorem updatePositionTickCallSource (v : UniswapV3PoolImmutables) (a : UpdatePo
     (hn : safeCast128Valid (tickUpdateNetResult (updatePositionTickArgs v a evm upper)
       (updatePositionTickBefore v a evm upper) upper))
     (hperm : (updatePositionTickBefore v a evm upper).executionEnv.perm = true) :
-    ExecStmt config (updatePositionTickInputFrame v a evm upper)
+    ExecStmt fork config (updatePositionTickInputFrame v a evm upper)
       (updatePositionTickBefore v a evm upper)
       (.internalCall "Tick_update" (updatePositionTickExprs upper) (if upper then "__c4" else "__c3"))
       (.ok (updatePositionTickCallFrame v a evm upper) (updatePositionTickAfter v a evm upper)) := by
-  have hb := tickUpdateReturns (hperm := by assumption) (immStore v) (updatePositionTickBefore v a evm upper)
+  have hb := tickUpdateReturns (fork := fork) (hperm := by assumption) (immStore v) (updatePositionTickBefore v a evm upper)
     (updatePositionTickArgs v a evm upper) ha.2.2.1.1 ha.2.2.1.2 hv hm hn
   have he := evalUpdatePositionTickExprs v a evm (updatePositionTickBefore v a evm upper) upper
   have hf : {updatePositionTickInputFrame v a evm upper with
@@ -83,9 +85,9 @@ theorem updatePositionTickCallSource (v : UniswapV3PoolImmutables) (a : UpdatePo
 
 theorem updatePositionTickCallReverts (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm : EVM.State) (upper : Bool)
-    (hb : ExecFuncBody config (tickUpdateFrame (immStore v) (updatePositionTickArgs v a evm upper))
+    (hb : ExecFuncBody fork config (tickUpdateFrame (immStore v) (updatePositionTickArgs v a evm upper))
       (updatePositionTickBefore v a evm upper) tickUpdateFunction.body .reverted) :
-    ExecStmt config (updatePositionTickInputFrame v a evm upper)
+    ExecStmt fork config (updatePositionTickInputFrame v a evm upper)
       (updatePositionTickBefore v a evm upper)
       (.internalCall "Tick_update" (updatePositionTickExprs upper) (if upper then "__c4" else "__c3"))
       .reverted := by
@@ -97,9 +99,9 @@ theorem updatePositionTickCallReverts (v : UniswapV3PoolImmutables) (a : UpdateP
 
 theorem updatePositionTickCallStatic (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm : EVM.State) (upper : Bool)
-    (hb : ExecFuncBody config (tickUpdateFrame (immStore v) (updatePositionTickArgs v a evm upper))
+    (hb : ExecFuncBody fork config (tickUpdateFrame (immStore v) (updatePositionTickArgs v a evm upper))
       (updatePositionTickBefore v a evm upper) tickUpdateFunction.body .staticViolation) :
-    ExecStmt config (updatePositionTickInputFrame v a evm upper)
+    ExecStmt fork config (updatePositionTickInputFrame v a evm upper)
       (updatePositionTickBefore v a evm upper)
       (.internalCall "Tick_update" (updatePositionTickExprs upper) (if upper then "__c4" else "__c3"))
       .staticViolation := by
@@ -111,7 +113,7 @@ theorem updatePositionTickCallStatic (v : UniswapV3PoolImmutables) (a : UpdatePo
 
 theorem updatePositionTickAssignSource (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm evm' : EVM.State) (upper : Bool) :
-    ExecStmt config (updatePositionTickCallFrame v a evm upper) evm'
+    ExecStmt fork config (updatePositionTickCallFrame v a evm upper) evm'
       (.assign .localVar ⟨if upper then "flippedUpper" else "flippedLower", []⟩
         (.var (if upper then "__c4" else "__c3")))
       (.ok (updatePositionTickDoneFrame v a evm upper) evm') := by
@@ -135,10 +137,10 @@ theorem updatePositionTickSource (v : UniswapV3PoolImmutables) (a : UpdatePositi
     (hn : safeCast128Valid (tickUpdateNetResult (updatePositionTickArgs v a evm upper)
       (updatePositionTickBefore v a evm upper) upper))
     (hperm : (updatePositionTickBefore v a evm upper).executionEnv.perm = true) :
-    ExecBlock config (updatePositionTickInputFrame v a evm upper)
+    ExecBlock fork config (updatePositionTickInputFrame v a evm upper)
       (updatePositionTickBefore v a evm upper) (updatePositionTickBody upper)
       (.ok (updatePositionTickDoneFrame v a evm upper) (updatePositionTickAfter v a evm upper)) :=
-  ExecBlock.consNormal (updatePositionTickCallSource (hperm := by assumption) v a evm upper ha hv hm hn)
+  ExecBlock.consNormal (updatePositionTickCallSource (fork := fork) (hperm := by assumption) v a evm upper ha hv hm hn)
     (ExecBlock.consNormal (updatePositionTickAssignSource v a evm _ upper) ExecBlock.nil)
 
 end Benchmarks.UniswapV3.Pool

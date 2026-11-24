@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.Calldata
 import Benchmarks.Safe.ViaIR.Decoders
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -55,11 +57,11 @@ theorem decodeWordPairHuge {cd : ByteArray} {x y : Stele.Ident}
   rw [decodeWordPairGuard (by omega), if_pos (by omega)]
 
 theorem safeDecodeWordPair {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6096⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6096⟩ R mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024)
     (hlen : UInt256.slt (UInt256.lnot (UInt256.ofNat 3) + UInt256.ofNat I.calldata.size)
       (UInt256.ofNat 64) = ⟨0⟩) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7181⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7181⟩
       (UInt256.shiftLeft (calldataWord I.calldata 36) (UInt256.ofNat 5) :: ⟨6127⟩ ::
         calldataWord I.calldata 4 :: calldataWord I.calldata 36 ::
         UInt256.shiftLeft (calldataWord I.calldata 36) (UInt256.ofNat 5) :: R)
@@ -68,10 +70,10 @@ theorem safeDecodeWordPair {I g s0 σ k C aw mem rdata} {R : List UInt256}
   exact ⟨_, _, safeRuntime_block_6108 hov (by jump_dest) h6108⟩
 
 theorem safeDecodeWordPairRevert {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6096⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6096⟩ R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024)
     (hlen : UInt256.slt (UInt256.lnot (UInt256.ofNat 3) + UInt256.ofNat I.calldata.size)
-      (UInt256.ofNat 64) = ⟨1⟩) : RDrev safeBytecode g s0 := by
+      (UInt256.ofNat 64) = ⟨1⟩) : RDrev fork safeBytecode g s0 := by
   have h111 := safeRuntime_block_6096_taken hov (by rw [hlen]; decide) (by jump_dest) h
   exact safeRuntime_block_111 (by omega) h111
 

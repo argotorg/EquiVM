@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.FlashCallbackBuild
 import Benchmarks.UniswapV3.Pool.FlashCallbackSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -27,7 +29,7 @@ theorem flashCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p fee0 fee1 len junk2 junk4 junk5 junk6 junk7 junk8 junk9 selector : UInt256}
     {target : AccountAddress} {mem rdata data : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6911⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6911⟩
       (UInt256.lnot ⟨31⟩ :: len :: junk2 :: (p + ⟨132⟩) :: junk4 :: junk5 ::
         junk6 :: junk7 :: junk8 :: junk9 :: selector :: EVM.word target.val :: R)
       mem aw rdata σ k C)
@@ -40,11 +42,11 @@ theorem flashCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       flashCallbackCalldata fee0 fee1 data)
     (hl : len.toNat ≤ 2 ^ 32) (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ExecBlock config frame evm flashCallbackStmts .reverted) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ExecBlock fork config frame evm flashCallbackStmts .reverted) ∨
     ∃ evm' σ' out aw' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config frame evm flashCallbackStmts
+      ExecBlock fork config frame evm flashCallbackStmts
         (.ok {frame with locals := frame.locals.insert "__c7" .unit} evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨15572⟩ (⟨6991⟩ :: ⟨0⟩ :: R) mem aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ⟨15572⟩ (⟨6991⟩ :: ⟨0⟩ :: R) mem aw' out σ' k' C' ∧
       HeapMemory mem aw' p := by
   have hload : memLoad (UInt256.ofNat 64) mem = p := hm.load64
   have hround := callbackPaddedWord len hl
@@ -74,7 +76,7 @@ theorem flashCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (⟨6960⟩ : UInt256), (UInt8.ofNat 241), .CALL, none,
           immutableLayout_inBounds, immutableTemplate_size64))
         (by rw [hsize]; exact hcd) hsmall (by evm_ov)
-    change callViaEVM evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
+    change callViaEVM fork evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
       (flashCallbackCalldata fee0 fee1 data) (ok, evm', out) at hcall
     rw [show AccountAddress.ofUInt256 (EVM.word target.val) = target from
       accountAddress_roundtrip target] at hcall

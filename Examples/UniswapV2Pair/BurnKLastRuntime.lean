@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.Routines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -8,9 +10,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnAfterUpdateFeeOff {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {acc : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata acc k C)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata acc k C)
     (hfee : fee = ⟨0⟩) (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata acc k' C' := by
   have rd4891 := evm_run rd with [jumpdest, dup2, iszero, push2 ⟨4933⟩]
   rw [hfee, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ by native_decide] at rd4891
   subst fee
@@ -20,12 +22,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnAfterUpdateFeeOn {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata σ k C)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata σ k C)
     (hfee : fee ≠ ⟨0⟩)
     (hfit : (UInt256.land (solcSlotWordAt ⟨8⟩ σ I) reserve112Mask).toNat *
       (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ I) reserve112Shift) reserve112Mask).toNat < UInt256.size)
     (hperm : I.perm = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata
       (sstoreAccountMap I.codeOwner σ ⟨11⟩
         (UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σ I) reserve112Mask)
           (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ I) reserve112Shift) reserve112Mask))) k' C' := by
@@ -36,7 +38,7 @@ theorem RD.uniswapBurnAfterUpdateFeeOn {g : Sat256} {s0 : State} {I : ExecutionE
   rw [isZero_eq_zero_of_ne hfee] at rd4891
   have rd4894 := evm_run rd4891 with [jumpiNT (by native_decide), push1 ⟨8⟩]
   obtain ⟨k4895, C4895, rd4895₀⟩ := rd4894.sload (by native_decide) (by evm_ov)
-  have rd4895 : RD uniswapV2PairBytecode I g s0 ⟨4895⟩
+  have rd4895 : RD fork uniswapV2PairBytecode I g s0 ⟨4895⟩
       (slot8 :: supply :: fee :: R) mem aw rdata σ k4895 C4895 := by
     simpa only [slot8, solcSlotWordAt, solcSlotWord] using rd4895₀
   have rd4928 := evm_run rd4895 with [

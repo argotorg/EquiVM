@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapIterationCorrect
 import Benchmarks.UniswapV4PoolManager.PoolSwapLoopConditionTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,11 +13,11 @@ theorem PoolSwapActiveWords.condition {aw step state params : UInt256}
     poolSwapConditionAW aw state params remaining = aw := by
   simp only [poolSwapConditionAW, h.state_base, h.params_word (by decide : 96+32 ≤ 160), ite_self]
 
-def poolSwapLoopExit (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolSwapLoopExit (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (rdata : ByteArray) (p : PoolSwapParamsWords) (id step state params x1 tag fee protocol : UInt256)
     (R : List UInt256) (aw : UInt256) (C : Nat) (initialFrame : Frame) (initialMem : ByteArray) (ff : Frame) (post : State) : Prop :=
   ∃ q' mem' aw' k' C', C ≤ C' ∧ post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧
-    RD (deployedRuntime v) I g s0 ⟨21536⟩
+    RD fork (deployedRuntime v) I g s0 ⟨21536⟩
       (poolSwapLoopStack q' p id step state params x1 tag fee protocol R) mem' aw' rdata post.accountMap k' C' ∧
     PoolSwapLoopInvariant ff mem' id step state params fee protocol p q' ∧ ¬poolSwapLoopContinues p q' ∧
     MemoryWindowEq initialMem mem' 64 (min step.toNat state.toNat) ∧ PoolSwapSavedLocals initialFrame ff ∧
@@ -29,12 +31,12 @@ theorem poolSwapLoopFuel {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : B
     ∀ (f : Frame) (evm : State) (mem : ByteArray) (aw : UInt256) (q : PoolSwapLoopWords) (k C : Nat),
       g.toNat-C = fuel → evm.executionEnv = I → evm.σ₀ = s0.σ₀ →
       PoolSwapLoopInvariant f mem id step state params fee protocol p q →
-      RD (deployedRuntime v) I g s0 ⟨19155⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19155⟩
         (poolSwapLoopStack q p id step state params x1 tag fee protocol R) mem aw rdata evm.accountMap k C →
-      X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ result, ExecStmt config f evm (.while poolSwapLoopCondition poolSwapLoopBody) result ∧
-        blockResultTrace (deployedRuntime v) g s0
-          (poolSwapLoopExit v I g s0 rdata p id step state params x1 tag fee protocol R aw C f mem)
+      X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ result, ExecStmt fork config f evm (.while poolSwapLoopCondition poolSwapLoopBody) result ∧
+        blockResultTrace fork (deployedRuntime v) g s0
+          (poolSwapLoopExit fork v I g s0 rdata p id step state params x1 tag fee protocol R aw C f mem)
           (fun _ _ => False) result := by
   induction fuel using Nat.strong_induction_on with
   | h fuel ih =>
@@ -83,12 +85,12 @@ theorem poolSwapLoopCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
     (hinv : PoolSwapLoopInvariant f mem id step state params fee protocol p q)
     (hspacing : int24Canonical p.tickSpacing) (hlimit : p.priceLimit.toNat < 2^160)
     (hfee : fee.toNat < 2^24) (hprotocol : protocol.toNat < 2^16)
-    (h : RD (deployedRuntime v) I g s0 ⟨19155⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19155⟩
       (poolSwapLoopStack q p id step state params x1 tag fee protocol R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecStmt config f evm poolSwapFunction.body[28]! result ∧
-      blockResultTrace (deployedRuntime v) g s0
-        (poolSwapLoopExit v I g s0 rdata p id step state params x1 tag fee protocol R aw C f mem)
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecStmt fork config f evm poolSwapFunction.body[28]! result ∧
+      blockResultTrace fork (deployedRuntime v) g s0
+        (poolSwapLoopExit fork v I g s0 rdata p id step state params x1 tag fee protocol R aw C f mem)
         (fun _ _ => False) result := by
   rw [poolSwapFunction_loop]
   exact poolSwapLoopFuel v hstack hspacing hlimit hfee hprotocol (g.toNat-C) f evm mem aw q k C rfl hI hσ0 hinv h

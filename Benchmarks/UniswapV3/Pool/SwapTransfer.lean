@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapTransferBuild
 import Benchmarks.UniswapV3.Pool.SafeTransfer
 import Benchmarks.UniswapV3.Pool.SourceFrame
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,7 +13,7 @@ theorem swapTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (a : SwapArgs) (amount0 amount1 : Int) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (swapTransferEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapTransferEntry second)
       (swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)
       mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -24,12 +26,12 @@ theorem swapTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw free) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : free.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200) (hov : R.length + 33 ≤ 1024) :
-    (ExecStmt config frame evm (swapTransferStmt second) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm (swapTransferStmt second) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config frame evm (swapTransferStmt second)
+      ExecStmt fork config frame evm (swapTransferStmt second)
         (.ok (swapTransferFrame frame second (if second then amount1 else amount0)) evm') ∧
-      RD (deployedRuntime v) ee g s0 (swapTransferExit second)
+      RD fork (deployedRuntime v) ee g s0 (swapTransferExit second)
         (swapPaymentWords a p exactWord cache snap dataStart dataLength ret amount0 amount1 R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' free.toNat ∧

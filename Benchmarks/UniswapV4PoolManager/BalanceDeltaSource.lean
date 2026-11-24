@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.WordSignedShiftSource
 import Benchmarks.UniswapV4PoolManager.WordSignedSource
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,14 +35,14 @@ theorem balanceDelta_eval {cfg : Config} {f : Frame} {evm : EVM.State} {e0 e1 : 
 theorem balanceDeltaBody {f : Frame} {evm : EVM.State} {a b : UInt256}
     (h0 : f.locals.get? "_amount0" = some (.int (EVM.signed a)))
     (h1 : f.locals.get? "_amount1" = some (.int (EVM.signed b))) :
-    ExecFuncBody config f evm balanceDeltaFunction.body
+    ExecFuncBody fork config f evm balanceDeltaFunction.body
       (.returned f evm (some [.int (EVM.signed (balanceDeltaWord a b))])) :=
   .execBlockRet (ABlock.start.returns (balanceDelta_eval (evalLocalValue h0) (evalLocalValue h1)))
 
 theorem balanceDeltaCall {f : Frame} {evm : EVM.State} {e0 e1 : Expr} {a b : UInt256}
     (hf : f.contract = contract) (h0 : evalExpr? config f evm e0 = .ok (.int (EVM.signed a)))
     (h1 : evalExpr? config f evm e1 = .ok (.int (EVM.signed b))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "toBalanceDelta" [e0, e1] ret)
+    ExecStmt fork config f evm (.internalCall "toBalanceDelta" [e0, e1] ret)
       (.ok {f with locals := f.locals.insert ret (.int (EVM.signed (balanceDeltaWord a b)))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (EVM.signed a), .int (EVM.signed b)])
     (value := some [.int (EVM.signed (balanceDeltaWord a b))])

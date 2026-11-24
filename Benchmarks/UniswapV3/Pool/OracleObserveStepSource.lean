@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveBindings
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -43,7 +45,7 @@ theorem oracleObserveStep (imms : Store) (evm : EVM.State) (locals : Store) (tim
     (hc : card.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hrun : OracleObserveSingleRun time secondsAgos[i] tick index liquidity card
       evm.accountMap evm.executionEnv [.int tickValue, .int secondsValue]) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleObserveLoopBody
       (.ok {contract := contract
             locals := oracleObserveStepLocals locals i ticks seconds tickValue secondsValue
@@ -57,13 +59,13 @@ theorem oracleObserveStep (imms : Store) (evm : EVM.State) (locals : Store) (tim
     (callee := oracleObserveSingleFunction) (calleeStele := callee) (retVar := "__c0")
     (value := some [.int tickValue, .int secondsValue]) (oracleObserveCallArgs h hi hib)
     oracleObserveSingleLookup (oracleObserveSingleBind _ _ _ _ _ _) hbody
-  have hst : ExecStmt config f1 evm oracleObserveLoopBody[1]! (.ok f2 evm) := by
+  have hst : ExecStmt fork config f1 evm oracleObserveLoopBody[1]! (.ok f2 evm) := by
     apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int tickValue)
     · simp [f1, evalExpr?, bind, EvalResult.bind, tupleGetValue?, EvalResult.ofOption]
     · exact assignLocalArrayIndex
         (by simpa [f1, f, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using ht)
         (evalExpr_var_get (by simpa [f1, f, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hi)) htl
-  have hss : ExecStmt config f2 evm oracleObserveLoopBody[2]!
+  have hss : ExecStmt fork config f2 evm oracleObserveLoopBody[2]!
       (.ok {contract := contract
             locals := oracleObserveStepLocals locals i ticks seconds tickValue secondsValue
             immutables := imms} evm) := by
@@ -82,7 +84,7 @@ theorem oracleObserveStepReverts (imms : Store) (evm : EVM.State) (locals : Stor
     (hc : card.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hfail : OracleObserveSingleFailure time secondsAgos[i] tick index liquidity card
       evm.accountMap evm.executionEnv) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleObserveLoopBody .reverted := by
   apply ExecBlock.consRevert
   exact internalCallFunctionRevert (oracleObserveCallArgs h hi hib) oracleObserveSingleLookup
@@ -119,20 +121,20 @@ theorem oracleObserveIteration (imms : Store) (evm : EVM.State) (locals : Store)
     (hrun : OracleObserveSingleRun time secondsAgos[i] tick index liquidity card
       evm.accountMap evm.executionEnv [.int tv, .int sv]) :
     ∃ l1 l2,
-      ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
         oracleObserveLoopBody (.ok {contract := contract, locals := l1, immutables := imms} evm) ∧
-      ExecBlock config {contract := contract, locals := l1, immutables := imms} evm
+      ExecBlock fork config {contract := contract, locals := l1, immutables := imms} evm
         oracleObservePost (.ok {contract := contract, locals := l2, immutables := imms} evm) ∧
       OracleObserveBindings l2 time secondsAgos tick index liquidity card ∧
       l2.get? "i" = some (.int (Int.ofNat (i + 1))) ∧
       l2.get? "tickCumulatives" = some (.array (ticks.set i (.int tv))) ∧
       l2.get? "secondsPerLiquidityCumulativeX128s" = some (.array (seconds.set i (.int sv))) := by
   let l1 := oracleObserveStepLocals locals i ticks seconds tv sv
-  have hbody := oracleObserveStep imms evm locals time secondsAgos tick index liquidity card
+  have hbody := oracleObserveStep (fork := fork) imms evm locals time secondsAgos tick index liquidity card
     i ticks seconds tv sv h hi hib ht hs htl hsl hc htick hrun
   have hb1 := oracleObserveStepBindings h i ticks seconds tv sv
   obtain ⟨hgi, hgt, hgs⟩ := oracleObserveStepGets locals i ticks seconds tv sv
-  have hpost := oracleObserveIncrement imms evm l1 i hb (hgi.trans hi)
+  have hpost := oracleObserveIncrement (fork := fork) imms evm l1 i hb (hgi.trans hi)
   refine ⟨l1, l1.insert "i" (.int (Int.ofNat (i + 1))), hbody, hpost,
     hb1.insert_aux "i" _ (by decide), by simp, ?_, ?_⟩
   · simpa [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hgt

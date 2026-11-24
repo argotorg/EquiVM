@@ -1,5 +1,7 @@
 import Examples.Ballot.DelegateTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -236,7 +238,7 @@ theorem ballotDelegateStele_loopContinueBodyLocals (evm : EVM.State) (I : Execut
     (hsrc : evm.executionEnv.source = I.source)
     (hcanonNext : (delegateCurrentVoterDelegateWordCurrent evm w).toNat < EVM.addressModulus)
     (hnotSender : delegateCurrentVoterDelegateWordCurrent evm w ≠ delegateSourceWord I) :
-    ExecBlock ballotConfig { contract := ballotContract, locals := L } evm
+    ExecBlock fork ballotConfig { contract := ballotContract, locals := L } evm
       [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
         .require (.binary .ne (.var "to") sender) ]
       (.ok { contract := ballotContract, locals := L.insert "to" (delegateCurrentNextValue evm w) }
@@ -261,7 +263,7 @@ theorem ballotDelegateStele_loopRevertSenderLocals (evm : EVM.State)
     (hdelegate : delegateCurrentVoterDelegateWordCurrent evm w ≠ ⟨0⟩)
     (_hcanonNext : (delegateCurrentVoterDelegateWordCurrent evm w).toNat < EVM.addressModulus)
     (hSender : delegateCurrentVoterDelegateWordCurrent evm w = delegateSourceWord I) :
-    ExecStmt ballotConfig { contract := ballotContract, locals := L } evm
+    ExecStmt fork ballotConfig { contract := ballotContract, locals := L } evm
       (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
         [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
           .require (.binary .ne (.var "to") sender) ])
@@ -302,10 +304,10 @@ theorem ballotDelegateChainReachHeaderFrom972Current {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {target : Nat}
     (htarget : 1 ≤ target)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨972⟩ (delegateChainStack σ I sel 1)
       (delegateChainHeaderMem σ I 1) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       (delegateChainStack σ I sel target) (delegateChainHeaderMem σ I target)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k0, C0, rd0⟩ := hreach
@@ -314,20 +316,20 @@ theorem ballotDelegateChainReachHeaderFrom972Current {σ σ₀ A I} {g : Sat256}
     dsimp [Inv]
     omega
   have hexitStep : ∀ i, Inv 0 i → ∀ k C,
-      RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+      RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
         (delegateChainStack σ I sel i) (delegateChainHeaderMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k C →
-      ∃ k' C', RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+      ∃ k' C', RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
         (delegateChainStack σ I sel i) (delegateChainHeaderMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     intro i _ k C hrd
     exact ⟨k, C, hrd⟩
   have hbodyStep : ∀ v i, Inv (v + 1) i → ∀ k C,
-      RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+      RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
         (delegateChainStack σ I sel i) (delegateChainHeaderMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k C →
       ∃ i' k' C',
-        Inv v i' ∧ RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+        Inv v i' ∧ RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
           (delegateChainStack σ I sel i') (delegateChainHeaderMem σ I i')
           (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     intro v i hInv k C hrd
@@ -372,7 +374,7 @@ theorem ballotDelegateStele_chainExit {σ σ₀ A I} {g : Sat256}
     (hexit : delegateChainExitsAt σ I target)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i) :
     ∃ L,
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
         (initState σ σ₀ g A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
@@ -419,7 +421,7 @@ theorem ballotDelegateStele_chainExit {σ σ₀ A I} {g : Sat256}
         hnextCurrent
   have hstep : ∀ v L, P (v + 1) L →
       ∃ L',
-        ExecBlock ballotConfig { contract := ballotContract, locals := L } evm body
+        ExecBlock fork ballotConfig { contract := ballotContract, locals := L } evm body
           (.ok { contract := ballotContract, locals := L' } evm) ∧ P v L' := by
     intro v L hP
     rcases hP with ⟨i, hi, hL⟩
@@ -471,7 +473,7 @@ theorem ballotDelegateStele_chainSenderRevert {σ σ₀ A I} {g : Sat256}
     (hhit : delegateChainHitsSenderAt σ I target)
     (hnext : delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i) :
-    ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
+    ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
       (initState σ σ₀ g A I)
       (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
         [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
@@ -505,7 +507,7 @@ theorem ballotDelegateStele_chainSenderRevert {σ σ₀ A I} {g : Sat256}
         hnextCurrent
   have hstep : ∀ v L, P (v + 1) L →
       ∃ L',
-        ExecBlock ballotConfig { contract := ballotContract, locals := L } evm body
+        ExecBlock fork ballotConfig { contract := ballotContract, locals := L } evm body
           (.ok { contract := ballotContract, locals := L' } evm) ∧ P v L' := by
     intro v L hP
     rcases hP with ⟨i, hi, hL⟩
@@ -542,7 +544,7 @@ theorem ballotDelegateStele_chainSenderRevert {σ σ₀ A I} {g : Sat256}
       have hLnext := delegateLoopLocals_insert_to_next evm I (delegateChainWord σ I i) L hL
       simpa [L', hcur] using hLnext
   have hterminal : ∀ L, P 0 L →
-      ExecStmt ballotConfig { contract := ballotContract, locals := L } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := L } evm
         (.while cond body) .reverted := by
     intro L hP
     rcases hP with ⟨i, hi, hL⟩
@@ -571,7 +573,7 @@ theorem ballotDelegateStele_chainSenderRevert {σ σ₀ A I} {g : Sat256}
       ballotDelegateStele_loopRevertSenderLocals evm I (delegateChainWord σ I target) L hL
         (by simp [evm, initState]) hnextCurrent hcanonSender hSender
   have hrun : ∀ v L, P v L →
-      ExecStmt ballotConfig { contract := ballotContract, locals := L } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := L } evm
         (.while cond body) .reverted := by
     intro v
     induction v with
@@ -591,10 +593,10 @@ theorem ballotDelegateChainReachExitFrom972Current {σ σ₀ A I} {g : Sat256}
     (htarget : 1 ≤ target)
     (hexit : delegateChainExitsAt σ I target)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨972⟩ (delegateChainStack σ I sel 1)
       (delegateChainHeaderMem σ I 1) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       (delegateChainStack σ I sel target) (delegateChainExitMem σ I target)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k0, C0, rd0⟩ := hreach
@@ -603,10 +605,10 @@ theorem ballotDelegateChainReachExitFrom972Current {σ σ₀ A I} {g : Sat256}
     dsimp [Inv]
     omega
   have hexitStep : ∀ i, Inv 0 i → ∀ k C,
-      RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+      RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
         (delegateChainStack σ I sel i) (delegateChainHeaderMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k C →
-      ∃ k' C', RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
+      ∃ k' C', RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
         (delegateChainStack σ I sel i) (delegateChainExitMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     intro i hInv k C hrd
@@ -622,11 +624,11 @@ theorem ballotDelegateChainReachExitFrom972Current {σ σ₀ A I} {g : Sat256}
       ⟨k, C, by
         simpa [delegateChainStack, delegateChainHeaderMem, delegateChainExitMem] using hrd⟩
   have hbodyStep : ∀ v i, Inv (v + 1) i → ∀ k C,
-      RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+      RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
         (delegateChainStack σ I sel i) (delegateChainHeaderMem σ I i)
         (UInt256.ofNat 3) ByteArray.empty σ k C →
       ∃ i' k' C',
-        Inv v i' ∧ RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+        Inv v i' ∧ RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
           (delegateChainStack σ I sel i') (delegateChainHeaderMem σ I i')
           (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     intro v i hInv k C hrd
@@ -674,9 +676,9 @@ theorem ballotDelegateChainReachFirstFrom245 {σ σ₀ A I} {g : Sat256}
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hnext : delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩)
     (hcycle : delegateVoterDelegateWord σ I (delegateToWord I) ≠ delegateSourceWord I)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       (delegateChainStack σ I sel 1) (delegateChainHeaderMem σ I 1)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd972⟩ := ballotDelegateX_afterNotSelf
@@ -701,9 +703,9 @@ theorem ballotDelegateChainReachExitFrom245 {σ σ₀ A I} {g : Sat256}
     (htarget : 1 ≤ target)
     (hexit : delegateChainExitsAt σ I target)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       (delegateChainStack σ I sel target) (delegateChainExitMem σ I target)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hfirst := ballotDelegateChainReachFirstFrom245
@@ -719,10 +721,10 @@ theorem ballotDelegateChainSenderRevertFrom972Current {σ σ₀ A I}
     (hhit : delegateChainHitsSenderAt σ I target)
     (hnext : delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨972⟩ (delegateChainStack σ I sel 1)
       (delegateChainHeaderMem σ I 1) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have hheader := ballotDelegateChainReachHeaderFrom972Current
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     (target := target) htarget hcontinue hreach
@@ -751,9 +753,9 @@ theorem ballotDelegateChainSenderRevertFrom245 {σ σ₀ A I}
     (hhit : delegateChainHitsSenderAt σ I target)
     (hnext : delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have hfirst := ballotDelegateChainReachFirstFrom245
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hbig hcanon hweight hvoted hnotself hnext0 hcycle0 hreach
@@ -773,7 +775,7 @@ theorem ballotDelegateBodyReverts_chainSender {σ σ₀ A I} {g : Sat256}
     (hhit : delegateChainHitsSenderAt σ I target)
     (hnext : delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i) :
-    ExecTransitionBody ballotConfig ballotContract (initState σ σ₀ g A I)
+    ExecTransitionBody fork ballotConfig ballotContract (initState σ σ₀ g A I)
       (delegateStore I)
       delegateTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
@@ -818,10 +820,10 @@ theorem ballotDelegateChainSenderRevertEquiv
     (hhit : delegateChainHitsSenderAt σ I target)
     (hnext : delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon
@@ -835,7 +837,7 @@ theorem ballotDelegateChainSenderRevertEquiv
       delegateVoterDelegateWord σ I (delegateChainWord σ I target) ≠ ⟨0⟩ := hnext
   have hcontinueStele :
       ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ I i := hcontinue
-  have hbody := ballotDelegateBodyReverts_chainSender
+  have hbody := ballotDelegateBodyReverts_chainSender (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (target := target) hwv hcanon hweightStele hvotedStele hnotself hnext0Stele hcycle0Stele
     hhitStele hnextStele hcontinueStele

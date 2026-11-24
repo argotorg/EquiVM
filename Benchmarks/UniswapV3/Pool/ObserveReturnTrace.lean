@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ObserveEncodeHeads
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,14 +11,14 @@ set_option maxRecDepth 10000
 theorem observeReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw s t p : UInt256} {mem rdata : ByteArray}
     {xs ys : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1699⟩ (s :: t :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1699⟩ (s :: t :: R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (ht : DynamicWordArrayMemory mem t xs)
     (hs : DynamicWordArrayMemory mem s ys) (htlo : 96 ≤ t.toNat) (hslo : 96 ≤ s.toNat)
     (htend : t.toNat + 32 * (xs.length + 1) ≤ p.toNat)
     (hsend : s.toNat + 32 * (ys.length + 1) ≤ p.toNat)
     (hb : p.toNat + 128 + 32 * (xs.length + ys.length) ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 σ (wordArrayBytes (observeEncodeWords xs ys)) := by
+    RDret fork (deployedRuntime v) g s0 σ (wordArrayBytes (observeEncodeWords xs ys)) := by
   have hp := hm.lower
   have hp96 := uadd_word_ofNat_toNat p 96 (by change _ < 2 ^ 256; omega)
   have ht32 := uadd_word_ofNat_toNat t 32 (by change _ < 2 ^ 256; omega)
@@ -37,7 +39,7 @@ theorem observeReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by rw [ht32, hp96]; omega) (by rw [hp96]; omega)
     (by dsimp only [List.length]; omega)
   simp only [hp96, Nat.mul_zero, Nat.add_zero] at r2
-  change RD (deployedRuntime v) ee g s0 ⟨1767⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨1767⟩
     (observeEncodeFirstStack xs.length xs.length s t p R)
     (observeEncodeFirstMem mem p xs) aw2 rdata σ k2 C2 at r2
   have hm2a := MemoryCursor.writeWord hm p.toNat (UInt256.ofNat 64) (by omega)
@@ -60,7 +62,7 @@ theorem observeReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by rw [hs32, hpSec]; omega) (by rw [hpSec]; omega)
     (by dsimp only [List.length]; omega)
   simp only [hpSec, Nat.mul_zero, Nat.add_zero] at r4
-  change RD (deployedRuntime v) ee g s0 ⟨1830⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨1830⟩
     (observeEncodeSecondStack ys.length xs.length ys.length s t p R)
     (observeEncodeMem mem p xs ys) aw4 rdata σ k4 C4 at r4
   have r5 := uniswapV3Pool_block_1830 (immWords := wordsOf (immStore v))

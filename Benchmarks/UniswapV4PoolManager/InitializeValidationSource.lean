@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.HookValidationSource
 import Benchmarks.UniswapV4PoolManager.InitialLPFee
 import Benchmarks.UniswapV4PoolManager.PoolKeySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,9 +23,9 @@ theorem initializeValidationSource {f : Frame} {evm : EVM.State} {key : PoolKeyW
     (hf : f.contract = contract) (hc : PoolKeyCanonical key)
     (hk : f.locals.get? "key" = some (poolKeyValue key)) :
     if initializeKeyValid key then
-      ExecBlock config f evm ((initializeTransition.body.drop 6).take 6)
+      ExecBlock fork config f evm ((initializeTransition.body.drop 6).take 6)
         (.ok (initializeValidationFrame f key) evm)
-    else ExecFuncBody config f evm (initializeTransition.body.drop 6) .reverted := by
+    else ExecFuncBody fork config f evm (initializeTransition.body.drop 6) .reverted := by
   have hkey := evalLocalValue (cfg := config) (evm := evm) hk
   have hspacing := evalStructField hkey (field := "tickSpacing") rfl
   have hgt : evalExpr? config f evm (.binary .gt (.field (.var "key") "tickSpacing") (.intLit 32767)) =
@@ -41,7 +43,7 @@ theorem initializeValidationSource {f : Frame} {evm : EVM.State} {key : PoolKeyW
       evalStructField hkey (field := "currency0") rfl, evalStructField hkey (field := "currency1") rfl]
     change EvalResult.ok (Value.bool (decide (key.currency0.toNat % 2^160 ≥ key.currency1.toNat % 2^160))) = _
     rw [Nat.mod_eq_of_lt hc.1, Nat.mod_eq_of_lt hc.2.1]
-  have hcall := hookValidationCall hf (evalStructField hkey (field := "hooks") rfl)
+  have hcall := hookValidationCall (fork := fork) hf (evalStructField hkey (field := "hooks") rfl)
     (evalStructField hkey (field := "fee") rfl) "__c1"
   have hword : accountWord (AccountAddress.ofNat key.hooks.toNat) = key.hooks :=
     (accountWord_fromId _).trans (solcAddrMask_clean hc.2.2.2.2)
@@ -49,21 +51,21 @@ theorem initializeValidationSource {f : Frame} {evm : EVM.State} {key : PoolKeyW
   let f1 : Frame := {f with locals := f.locals.insert "__c1" (.bool (hookAddressValid key.hooks key.fee))}
   have hnot := evalNotBool (evalLocalValue (cfg := config) (f := f1) (evm := evm)
     (store_get_self _ _ _))
-  have hfee := initialLPFeeCall (f := f1) (evm := evm) hf
+  have hfee := initialLPFeeCall (fork := fork) (f := f1) (evm := evm) hf
     (evalStructField (evalLocalValue ((store_get_ne _ _
       (by decide : ("__c1" == "key") = false)).trans hk)) (field := "fee") rfl) "lpFee"
   by_cases h0 : EVM.signed key.tickSpacing ≤ 32767
   · rw [decide_eq_false (by omega : ¬32767 < EVM.signed key.tickSpacing)] at hgt
-    have hs0 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) hgt ExecBlock.nil
+    have hs0 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) hgt ExecBlock.nil
     by_cases h1 : 1 ≤ EVM.signed key.tickSpacing
     · rw [decide_eq_false (by omega : ¬EVM.signed key.tickSpacing < 1)] at hlt
-      have hs1 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) hlt ExecBlock.nil
+      have hs1 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) hlt ExecBlock.nil
       by_cases h2 : key.currency0.toNat < key.currency1.toNat
       · rw [decide_eq_false (by omega : ¬key.currency1.toNat ≤ key.currency0.toNat)] at hge
-        have hs2 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) hge ExecBlock.nil
+        have hs2 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) hge ExecBlock.nil
         by_cases h3 : hookAddressValid key.hooks key.fee = true
         · simp only [h3, Bool.not_true] at hnot
-          have hs3 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) hnot ExecBlock.nil
+          have hs3 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) hnot ExecBlock.nil
           by_cases h4 : initialLPFeeAllowed key.fee
           · rw [if_pos (show initializeKeyValid key from ⟨h0, h1, h2, h3, h4⟩)]
             rw [if_pos h4] at hfee

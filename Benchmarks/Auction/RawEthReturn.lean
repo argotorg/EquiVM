@@ -1,17 +1,19 @@
 import Benchmarks.Auction.BytesMemory
 import Benchmarks.Auction.ReturnDataCopy
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem rawEthAllocated {I g s0 z amount recipient ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨4842⟩
+    (h : RD fork auctionBytecode I g s0 ⟨4842⟩
       (UInt256.ofNat out.size :: UInt256.ofNat out.size :: z :: ⟨0⟩ :: ⟨0⟩ ::
         amount :: recipient :: ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + out.size + 63 ≤ 2 ^ 200)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (z :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (z :: R)
       (bytesAllocMem mem out ptr) (bytesAllocWords aw ptr out.size) out acc k' C' := by
   have rd4845 := evm_run h with [push1 ⟨64⟩,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -21,7 +23,7 @@ theorem rawEthAllocated {I g s0 z amount recipient ret R mem aw ptr out acc k C}
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   simp only [u256_land_comm (UInt256.ofNat out.size + ⟨63⟩) (UInt256.lnot ⟨31⟩),
     expandedWords64_eq hm.active] at rd4860
-  change RD _ _ _ _ ⟨4860⟩ (UInt256.ofNat out.size :: ptr :: z :: ⟨0⟩ :: ⟨0⟩ ::
+  change RD fork _ _ _ _ ⟨4860⟩ (UInt256.ofNat out.size :: ptr :: z :: ⟨0⟩ :: ⟨0⟩ ::
     amount :: recipient :: ret :: R) (writeWord mem 64 (bytesAllocPtr ptr out.size))
     aw out acc _ _ at rd4860
   have rd4869 := evm_run rd4860 with [
@@ -35,7 +37,7 @@ theorem rawEthAllocated {I g s0 z amount recipient ret R mem aw ptr out acc k C}
   obtain ⟨_, _, rd4870⟩ := rd4869.returndatacopySymbolic (by native_decide)
     (by rw [hn]; change 0 + out.size ≤ out.size; omega) (by evm_ov)
   rw [hadd, hn] at rd4870
-  change RD _ _ _ _ ⟨4870⟩ (UInt256.ofNat out.size :: ptr :: z :: ⟨0⟩ :: ⟨0⟩ ::
+  change RD fork _ _ _ _ ⟨4870⟩ (UInt256.ofNat out.size :: ptr :: z :: ⟨0⟩ :: ⟨0⟩ ::
     amount :: recipient :: ret :: R) (bytesAllocMem mem out ptr)
     (bytesAllocWords aw ptr out.size) out acc _ _ at rd4870
   have rd4879 := evm_run rd4870 with [push2 ⟨4879⟩, jump (by jump_dest)]
@@ -52,11 +54,11 @@ def rawReturnWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=
   if out.size = 0 then aw else bytesAllocWords aw ptr out.size
 
 theorem rawEthAfter {I g s0 z amount recipient ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨4833⟩
+    (h : RD fork auctionBytecode I g s0 ⟨4833⟩
       (z :: ⟨0⟩ :: ⟨0⟩ :: amount :: recipient :: ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + out.size + 63 ≤ 2 ^ 200)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (z :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (z :: R)
       (rawReturnMem mem out ptr) (rawReturnWords aw ptr out) out acc k' C' := by
   have rd4841 := evm_run h with [raw returndatasize (by native_decide) (by evm_ov),
     dup1, push0, dup2, eq, push2 ⟨4874⟩]

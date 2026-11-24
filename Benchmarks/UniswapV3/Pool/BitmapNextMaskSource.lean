@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextPositionSource
 import Benchmarks.UniswapV3.Pool.SourceWordMask
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -26,7 +28,7 @@ theorem evalBitmapNextMask (imms : Store) (evm : EVM.State) (tick spacing : Int)
   · exact evalExpr_word_add (evalExpr_word_sub he hone) he
 
 theorem bitmapNextMaskSource (imms : Store) (evm : EVM.State) (tick spacing : Int) (lte : Bool) :
-    ExecStmt config (bitmapNextBitFrame imms tick spacing lte) evm (bitmapNextBranch lte)[3]!
+    ExecStmt fork config (bitmapNextBitFrame imms tick spacing lte) evm (bitmapNextBranch lte)[3]!
       (.ok (bitmapNextMaskFrame imms tick spacing lte) evm) := by
   have he := evalBitmapNextMask imms evm tick spacing lte
   cases lte <;> exact ExecStmt.letDecl he

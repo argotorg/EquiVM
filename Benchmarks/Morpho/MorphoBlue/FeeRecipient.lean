@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `feeRecipient()`
 
@@ -21,7 +23,7 @@ set_option maxRecDepth 2000000
 theorem morphoFeeRecipientBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm ∅ feeRecipientTransition.body
+    ExecTransitionBody fork config contract evm ∅ feeRecipientTransition.body
       (.returned
         { contract := contract,
           locals := (∅ : Store).insert "__calldata" (.bytes evm.executionEnv.calldata),
@@ -38,7 +40,7 @@ theorem morphoFeeRecipientXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 6))
     (hcv : I.weiValue = ⟨0⟩) (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (solcAddressSlotWord ⟨1⟩ σ I).toByteArray := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 6) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachFeeRecipientBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -55,7 +57,7 @@ theorem morphoFeeRecipientXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 6))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 6) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachFeeRecipientBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -79,7 +81,7 @@ theorem morphoFeeRecipientXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
 theorem morphoFeeRecipientBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 6) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some feeRecipientTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

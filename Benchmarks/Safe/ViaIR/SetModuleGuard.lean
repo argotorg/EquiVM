@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ModuleGuardFinish
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_010
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_009
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -16,10 +18,10 @@ theorem safeSetmoduleguardBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setmoduleguardTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xe0 0x68 0xdf 0x37 ⟨0xe068df37⟩
     hdispatch setmoduleguardSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xe068df37⟩ 22 ⟨1716⟩ hcode hsize hlong hword
     (by native_decide)
   have hlenWord := safeIRArgumentSizeSub hlong hsize
@@ -41,7 +43,7 @@ theorem safeSetmoduleguardBodyCore
             decodeCalldata_address_ok hlen hbig hc
           by_cases ha : I.source = I.codeOwner
           · obtain ⟨_, _, h₅⟩ := safeAuthorizedTrace h₄ (by simp) ha (by jump_dest)
-            change RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨1750⟩
+            change RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨1750⟩
               [calldataWord I.calldata 4, ⟨0⟩] _ _ _ σ _ _ at h₅
             by_cases hz : calldataWord I.calldata 4 = ⟨0⟩
             · obtain ⟨_, _, he⟩ := safeModuleGuardZeroTrace (hz ▸ h₅) (by simp)
@@ -124,7 +126,7 @@ theorem safeSetmoduleguardRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setmoduleguardTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSetmoduleguardBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

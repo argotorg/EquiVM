@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.SafeCast
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -19,18 +21,18 @@ theorem poolModifyFeeDelta {f : Frame} {evm : State} {owed0 owed1 : UInt256} {ol
     (h0 : f.locals.get? "feesOwed0" = some (.int (Int.ofNat owed0.toNat)))
     (h1 : f.locals.get? "feesOwed1" = some (.int (Int.ofNat owed1.toNat)))
     (hfee : f.locals.get? "feeDelta" = some old) :
-    ExecBlock config f evm ((poolModifyFunction.body.drop 19).take 4)
+    ExecBlock fork config f evm ((poolModifyFunction.body.drop 19).take 4)
       (poolModifyFeeDeltaResult f evm owed0 owed1) := by
   by_cases hf0 : owed0.toNat < 2^127
   · let f0 := {f with locals := f.locals.insert "__c9" (.int (Int.ofNat owed0.toNat))}
-    have hc0 := uintToInt128Call (f := f) (evm := evm) hf (evalLocalValue h0) hf0 "__c9"
+    have hc0 := uintToInt128Call (fork := fork) (f := f) (evm := evm) hf (evalLocalValue h0) hf0 "__c9"
     have h1' : f0.locals.get? "feesOwed1" = some (.int (Int.ofNat owed1.toNat)) :=
       (store_get_ne _ _ (by decide : ("__c9" == "feesOwed1") = false)).trans h1
     by_cases hf1 : owed1.toNat < 2^127
     · rw [poolModifyFeeDeltaResult, if_pos ⟨hf0, hf1⟩]
       let f1 := {f0 with locals := f0.locals.insert "__c10" (.int (Int.ofNat owed1.toNat))}
       let f2 := {f1 with locals := f1.locals.insert "__c11" (.int (EVM.signed (balanceDeltaWord owed0 owed1)))}
-      have hc1 := uintToInt128Call (f := f0) (evm := evm) hf (evalLocalValue h1') hf1 "__c10"
+      have hc1 := uintToInt128Call (fork := fork) (f := f0) (evm := evm) hf (evalLocalValue h1') hf1 "__c10"
       have hsign0 : EVM.signed owed0 = Int.ofNat owed0.toNat := by
         rw [signed_eq_normalize, normalizeInt_sint256_word_of_lt _ (by change owed0.toNat < 2^255; omega)]
       have hsign1 : EVM.signed owed1 = Int.ofNat owed1.toNat := by
@@ -41,8 +43,8 @@ theorem poolModifyFeeDelta {f : Frame} {evm : State} {owed0 owed1 : UInt256} {ol
       have he1 : evalExpr? config f1 evm (.var "__c10") = .ok (.int (EVM.signed owed1)) := by
         rw [hsign1]
         exact evalLocalValue (store_get_self _ _ _)
-      have hpack := balanceDeltaCall (f := f1) (evm := evm) hf he0 he1 "__c11"
-      have hassign : ExecStmt config f2 evm poolModifyFunction.body[22]!
+      have hpack := balanceDeltaCall (fork := fork) (f := f1) (evm := evm) hf he0 he1 "__c11"
+      have hassign : ExecStmt fork config f2 evm poolModifyFunction.body[22]!
           (.ok (poolModifyFeeDeltaFrame f owed0 owed1) evm) :=
         ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _)) (assignLocalValue
           ((store_get_ne3 _ _ _ _ (by decide : ("__c9" == "feeDelta") = false)

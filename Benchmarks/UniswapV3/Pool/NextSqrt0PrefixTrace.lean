@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.RuntimeBlocks_060
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_066
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_067
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,14 +16,14 @@ theorem nextSqrt0PrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19939⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19939⟩
       ((if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw :: priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    (a.amount.toNat = 0 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (a.amount.toNat = 0 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (priceRaw :: R) mem aw rdata σ k' C') ∨
-    (a.amount.toNat ≠ 0 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+    (a.amount.toNat ≠ 0 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if a.add then ⟨19995⟩ else ⟨20113⟩)
       (nextSqrt0Numerator a :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C') := by
@@ -54,12 +56,12 @@ theorem nextSqrt0ProductX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (if a.add then ⟨19995⟩ else ⟨20113⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if a.add then ⟨19995⟩ else ⟨20113⟩)
       (nextSqrt0Numerator a :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hn : a.amount.toNat ≠ 0) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (if a.add then ⟨20017⟩ else ⟨20136⟩)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if a.add then ⟨20017⟩ else ⟨20136⟩)
       (nextSqrt0Product a :: a.amount :: a.price :: nextSqrt0Product a ::
         nextSqrt0Numerator a :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C' := by

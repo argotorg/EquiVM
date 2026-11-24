@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.HeapResultBlock
 import Benchmarks.EAS.EAS.Time
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -12,7 +14,7 @@ theorem readTimeBlock_source {cfg : Config} {L imms : Store} {evm : EVM.State} {
     (tmp result : Ident) (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (ht : (tmp == "$EAS.freeMemory") = false) (htr : (result == tmp) = false)
     (hr : (result == "$EAS.freeMemory") = false) :
-    ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm (readTimeBlock tmp result)
+    ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm (readTimeBlock tmp result)
       (.ok {contract := contract,locals := readTimeLocals L tmp result (easTimeWord evm.executionEnv) heap,immutables := imms} evm) := by
   apply heapResultBlock_ok (timeCall (by simp only [evalExpr?,hh,EvalResult.ofOption])) hh ht htr hr
 

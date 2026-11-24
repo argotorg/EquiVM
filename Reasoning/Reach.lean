@@ -2,6 +2,8 @@ import Reasoning.Stepping
 import Reasoning.Memory
 import Ethereum.Theory.ReturnDataBound
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Reach — a reusable symbolic straight-line execution abstraction
 
@@ -74,12 +76,12 @@ set_option maxRecDepth 10000
     absolute values (initialised at `start` to the input state's), so a relative
     preservation clause like `s'.memory = s.memory` falls out at `conclude`.
     The cursor keeps the initial account map `σ₀`, which `Θ` reads during a call. -/
-def RD (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def RD (fork : Ethereum.Fork) (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (pc : UInt256) (stk : List UInt256) (mem : ByteArray) (aw : UInt256) (rdata : ByteArray)
     (acc : AccountMap) (k C : ℕ) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
   ∨ ∃ s : State,
-      X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s
+      X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - k) (D_J code 0) s
     ∧ s.executionEnv.code = code
     ∧ s.machineState.pc = pc
     ∧ s.machineState.stack = stk
@@ -102,9 +104,9 @@ structure Cursor where
   world : AccountMap
 
 /-- `RD` indexed by a `Cursor` rather than six positional fields. -/
-def RDc (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def RDc (fork : Ethereum.Fork) (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (cur : Cursor) (k C : ℕ) : Prop :=
-  RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C
+  RD fork code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C
 
 /-- Inject the current cursor state into the invariant.  `mem`/`aw`/`acc` are
     pinned to the input state's values; the trace's preservation clauses are then
@@ -114,9 +116,9 @@ theorem RD.start {code : ByteArray} {g : Sat256} {s0 s : State} {k C : ℕ}
     (hcode : s.executionEnv.code = code)
     (hpc : s.machineState.pc = pc) (hstk : s.machineState.stack = stk)
     (hgas : s.machineState.gasAvailable = g.subNat C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s)
+    (hX : X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - k) (D_J code 0) s)
     (hσ₀ : s.σ₀ = s0.σ₀) :
-    RD code s.executionEnv g s0 pc stk s.machineState.memory s.machineState.activeWords
+    RD fork code s.executionEnv g s0 pc stk s.machineState.memory s.machineState.activeWords
        s.machineState.returnData s.accountMap k C := by
   unfold RD
   exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, rfl, rfl, rfl, rfl, rfl, hσ₀⟩
@@ -132,13 +134,13 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 s :
     (hcode : s.executionEnv.code = code)
     (hpc : s.machineState.pc = pc) (hstk : s.machineState.stack = stk)
     (hgas : s.machineState.gasAvailable = g.subNat C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s)
+    (hX : X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - k) (D_J code 0) s)
     (hmem : s.machineState.memory = mem)
     (haw : s.machineState.activeWords = aw)
     (hrdata : s.machineState.returnData = rdata)
     (hacc : s.accountMap = acc)
     (hee : s.executionEnv = ee) (hσ₀ : s.σ₀ = s0.σ₀) :
-    RD code ee g s0 pc stk mem aw rdata acc k C := by
+    RD fork code ee g s0 pc stk mem aw rdata acc k C := by
   unfold RD
   exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
 
@@ -149,7 +151,7 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 s :
 theorem RD.initState {code : ByteArray}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (hcode : I.code = code) :
-    RD code I g (Reasoning.Theory.initState σ σ₀ g A I) ⟨0⟩ []
+    RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
   apply RD.start (s0 := Reasoning.Theory.initState σ σ₀ g A I)
     (s := Reasoning.Theory.initState σ σ₀ g A I) (code := code) (g := g)
@@ -167,10 +169,10 @@ theorem RD.initState {code : ByteArray}
 theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
     ∨ ∃ (k' C' : ℕ) (s' : State),
-        X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k') (D_J code 0) s'
+        X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - k') (D_J code 0) s'
       ∧ s'.executionEnv.code = code ∧ s'.machineState.pc = pc
       ∧ s'.machineState.stack = stk
       ∧ s'.machineState.gasAvailable = g.subNat C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
@@ -186,8 +188,8 @@ theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem RD.pack {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) :
-    ∃ k' C', RD code ee g s0 pc stk mem aw rdata acc k' C' :=
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) :
+    ∃ k' C', RD fork code ee g s0 pc stk mem aw rdata acc k' C' :=
   ⟨k, C, h⟩
 
 /-- Reindex a reached cursor by a proved program-counter equality. Generated summaries use this
@@ -196,8 +198,8 @@ without asking the individual opcode rules to change their natural successor for
 theorem RD.normalizePC {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc pc' : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (hpc : pc = pc') :
-    RD code ee g s0 pc' stk mem aw rdata acc k C := by
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (hpc : pc = pc') :
+    RD fork code ee g s0 pc' stk mem aw rdata acc k C := by
   subst pc'
   exact h
 
@@ -208,9 +210,9 @@ theorem RD.normalizeCounters {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C k' C' : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hk : k = k') (hC : C = C') :
-    RD code ee g s0 pc stk mem aw rdata acc k' C' := by
+    RD fork code ee g s0 pc stk mem aw rdata acc k' C' := by
   subst k'
   subst C'
   exact h
@@ -233,13 +235,13 @@ theorem RD.stepSwap {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {stkIn stkOut : List UInt256}
-    (h : RD code ee g s0 pc stkIn mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stkIn mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = stkIn →
-        Xstep (D_J code 0) s =
+        Xstep fork (D_J code 0) s =
           if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
           else .ok (stSwap s stkOut, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) stkOut mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) stkOut mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
@@ -265,13 +267,13 @@ theorem RD.stepBinop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b res : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = a :: b :: t →
-        Xstep (D_J code 0) s =
+        Xstep fork (D_J code 0) s =
           if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
           else .ok (stBinop s res t, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
@@ -296,13 +298,13 @@ theorem RD.stepBinop5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b res : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = a :: b :: t →
-        Xstep (D_J code 0) s =
+        Xstep fork (D_J code 0) s =
           if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
           else .ok (stBinop5 s res t, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 5) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 5) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
@@ -327,13 +329,13 @@ theorem RD.stepTriop8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c res : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = a :: b :: c :: t →
-        Xstep (D_J code 0) s =
+        Xstep fork (D_J code 0) s =
           if s.machineState.gasAvailable.toNat < 8 then .error .OutOfGass
           else .ok (stTriop8 s res t, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 8) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 8) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
@@ -356,14 +358,14 @@ theorem RD.stepTriop8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.jumpdest {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPDEST, .none))
     (hov : stk.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) stk mem aw rdata acc (k + 1) (C + 1) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) stk mem aw rdata acc (k + 1) (C + 1) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := jumpdest_xstep hcode hpc hdec (by rw [hstk]; exact hov)
+  · have st := jumpdest_xstep (fork := fork) hcode hpc hdec (by rw [hstk]; exact hov)
     by_cases gg : g.toNat < C + 1
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpdest s,
@@ -382,14 +384,14 @@ theorem RD.jumpdest {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem RD.push0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.PUSH0, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := push0_xstep hcode hpc hdec hstk hov
+  · have st := push0_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush0 s,
@@ -408,14 +410,14 @@ theorem RD.push0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.push1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH1, some (argv, 1)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 2) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + UInt256.ofNat 2) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := push1_xstep hcode hpc hdec hstk hov
+  · have st := push1_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush1 s argv,
@@ -434,14 +436,14 @@ theorem RD.push1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.push4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH4, some (argv, 4)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 5) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + UInt256.ofNat 5) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := push4_xstep hcode hpc hdec hstk hov
+  · have st := push4_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush4 s argv,
@@ -460,14 +462,14 @@ theorem RD.push4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.push20 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH20, some (argv, 20)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 21) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + UInt256.ofNat 21) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := push20_xstep hcode hpc hdec hstk hov
+  · have st := push20_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush20 s argv,
@@ -487,100 +489,100 @@ theorem RD.swap1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP1, .none)) (hov : t.length + 2 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap1_xstep hc hp hdec hs hov)
 
 theorem RD.swap2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP2, .none)) (hov : t.length + 3 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (c :: b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (c :: b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap2_xstep hc hp hdec hs hov)
 
 theorem RD.swap3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP3, .none)) (hov : t.length + 4 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (d :: b :: c :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (d :: b :: c :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap3_xstep hc hp hdec hs hov)
 
 theorem RD.dup2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP2, .none)) (hov : t.length + 3 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (b :: a :: b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup2_xstep hc hp hdec hs hov)
 
 theorem RD.dup3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP3, .none)) (hov : t.length + 4 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (c :: a :: b :: c :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (c :: a :: b :: c :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup3_xstep hc hp hdec hs hov)
 
 theorem RD.dup4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP4, .none)) (hov : t.length + 5 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (d :: a :: b :: c :: d :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (d :: a :: b :: c :: d :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup4_xstep hc hp hdec hs hov)
 
 theorem RD.dup5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (e :: a :: b :: c :: d :: e :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (e :: a :: b :: c :: d :: e :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup5_xstep hc hp hdec hs hov)
 
 theorem RD.dup6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP6, .none)) (hov : t.length + 7 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: a :: b :: c :: d :: e :: f :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (f :: a :: b :: c :: d :: e :: f :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup6_xstep hc hp hdec hs hov)
 
 theorem RD.dup7 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP7, .none)) (hov : t.length + 8 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup7_xstep hc hp hdec hs hov)
 
 theorem RD.dup8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP8, .none)) (hov : t.length + 9 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup8_xstep hc hp hdec hs hov)
 
 theorem RD.dup9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (ii :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
+    RD fork code ee g s0 (pc + ⟨1⟩) (ii :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup9_xstep hc hp hdec hs hov)
 
@@ -588,10 +590,10 @@ theorem RD.dup10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP10, .none)) (hov : t.length + 11 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (jj :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t) mem aw rdata acc
       (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup10_xstep hc hp hdec hs hov)
@@ -600,10 +602,10 @@ theorem RD.dup11 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: t)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP11, .none)) (hov : t.length + 12 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (kk :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup11_xstep hc hp hdec hs hov)
@@ -612,11 +614,11 @@ theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup12_xstep hc hp hdec hs hov)
@@ -625,11 +627,11 @@ theorem RD.dup13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP13, .none)) (hov : t.length + 14 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (mm :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup13_xstep hc hp hdec hs hov)
@@ -638,11 +640,11 @@ theorem RD.dup14 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP14, .none)) (hov : t.length + 15 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (nn :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup14_xstep hc hp hdec hs hov)
@@ -651,11 +653,11 @@ theorem RD.dup15 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP15, .none)) (hov : t.length + 16 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (oo :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup15_xstep hc hp hdec hs hov)
@@ -664,11 +666,11 @@ theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP16, .none)) (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp
         :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
@@ -678,13 +680,13 @@ theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.GAS, .none)) (hov : stk.length + 1 ≤ 1024) :
-    ∃ gv, RD code ee g s0 (pc + ⟨1⟩) (gv :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    ∃ gv, RD fork code ee g s0 (pc + ⟨1⟩) (gv :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact ⟨⟨0⟩, by unfold RD; exact Or.inl hoog⟩
-  · have st := gas_xstep hcode hpc hdec hstk hov
+  · have st := gas_xstep (fork := fork) hcode hpc hdec hstk hov
     refine ⟨(s.machineState.gasAvailable.subNat 2).toUInt256, ?_⟩
     unfold RD
     by_cases gg : g.toNat < C + 2
@@ -705,16 +707,16 @@ theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.genGas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.GAS, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) ((g.subNat (C + 2)).toUInt256 :: stk)
+    RD fork code ee g s0 (pc + ⟨1⟩) ((g.subNat (C + 2)).toUInt256 :: stk)
       mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc,
       hee, hworld⟩
   · exact Or.inl hoog
-  · have st := gas_xstep hcode hpc hdec hstk hov
+  · have st := gas_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stGas s,
@@ -737,13 +739,13 @@ theorem RD.genGas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem RD.returndatasize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATASIZE, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat rdata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat rdata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact (by unfold RD; exact Or.inl hoog)
-  · have st := returndatasize_xstep hcode hpc hdec hstk hov
+  · have st := returndatasize_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [show UInt256.ofNat rdata.size = UInt256.ofNat s.machineState.returnData.size from by rw [hrdata]]
     unfold RD
     by_cases gg : g.toNat < C + 2
@@ -765,14 +767,14 @@ theorem RD.returndatasize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
 theorem RD.codesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CODESIZE, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat code.size :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat code.size :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact (by unfold RD; exact Or.inl hoog)
-  · have st := codesize_xstep hcode hpc hdec hstk hov
+  · have st := codesize_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [show UInt256.ofNat code.size = UInt256.ofNat s.executionEnv.code.size from by rw [hcode]]
     unfold RD
     by_cases gg : g.toNat < C + 2
@@ -796,14 +798,14 @@ theorem RD.returndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
     (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
     (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : rdata.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
       (k + 1)
       (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
   unfold RD at h ⊢
@@ -816,7 +818,7 @@ theorem RD.returndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
       rw [hrdata]
       omega
-    have st := returndatacopy_xstep hcode hpc hdec hstk hmemok hov
+    have st := returndatacopy_xstep (fork := fork) hcode hpc hdec hstk hmemok hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
     by_cases gg :
@@ -845,10 +847,10 @@ theorem RD.genReturndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size) (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t (rdata.write b.toNat mem a.toNat c.toNat)
+    RD fork code ee g s0 (pc + ⟨1⟩) t (rdata.write b.toNat mem a.toNat c.toNat)
       (M aw a c) rdata acc (k + 1)
       (C + (memExpansionCost aw a c + (3 + 3 * ((c.toNat + 31) / 32)))) := by
   simpa only [GasConstants.Gverylow, GasConstants.Gcopy] using
@@ -873,19 +875,19 @@ theorem returnDataCopyFullGuard (rdata : ByteArray) :
 theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
     (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
     (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
     (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.RETURNDATACOPY, .none))
     (hov : stk.length + 3 ≤ 1024) :
-    ∃ mem' aw' k' C', RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk mem' aw' rdata acc k' C' := by
+    ∃ mem' aw' k' C', RD fork code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk mem' aw' rdata acc k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl hoog⟩
   · -- s1 = RETURNDATASIZE s
     set c := UInt256.ofNat s.machineState.returnData.size with hc
-    have st1 := returndatasize_xstep hcode hpc hd0 hstk (by omega)
+    have st1 := returndatasize_xstep (fork := fork) hcode hpc hd0 hstk (by omega)
     by_cases g1 : g.toNat < C + 2
     · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl (hX.trans (stepOOG hgas st1 hk hC (by omega)))⟩
     set s1 := stReturndatasize s with hs1
@@ -896,7 +898,7 @@ theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     have hgas1 : s1.machineState.gasAvailable = g.subNat (C + 2) := by
       simp only [hs1, stReturndatasize]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
     -- s2 = PUSH0 s1
-    have st2 := push0_xstep hc1 hp1 hd1 hk1 (by simp only [List.length_cons]; omega)
+    have st2 := push0_xstep (fork := fork) hc1 hp1 hd1 hk1 (by simp only [List.length_cons]; omega)
     by_cases g2 : g.toNat < (C + 2) + 2
     · exact ⟨mem, aw, k + 1, C + 2, by unfold RD; exact Or.inl (hX1.trans (stepOOG hgas1 st2 (by omega) (by omega) (by omega)))⟩
     set s2 := stPush0 s1 with hs2
@@ -907,7 +909,7 @@ theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     have hgas2 : s2.machineState.gasAvailable = g.subNat ((C + 2) + 2) := by
       simp only [hs2, stPush0]; rw [hgas1, Sat256.subNat_sub_add_of_sub_sub]
     -- s3 = PUSH0 s2
-    have st3 := push0_xstep hc2 hp2 hd2 hk2 (by simp only [List.length_cons]; omega)
+    have st3 := push0_xstep (fork := fork) hc2 hp2 hd2 hk2 (by simp only [List.length_cons]; omega)
     by_cases g3 : g.toNat < ((C + 2) + 2) + 2
     · exact ⟨mem, aw, k + 2, (C + 2) + 2, by unfold RD; exact Or.inl (hX2.trans (stepOOG hgas2 st3 (by omega) (by omega) (by omega)))⟩
     set s3 := stPush0 s2 with hs3
@@ -924,7 +926,7 @@ theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
       rw [hc]; exact Nat.mod_le _ _
     have hguard : ¬ (⟨0⟩ : UInt256).toNat + c.toNat > s3.machineState.returnData.size := by
       rw [hrd3, show (⟨0⟩ : UInt256).toNat = 0 from rfl]; omega
-    have st4 := returndatacopy_xstep hc3 hp3 hd3 hk3 hguard (by omega)
+    have st4 := returndatacopy_xstep (fork := fork) hc3 hp3 hd3 hk3 hguard (by omega)
     rw [collapse_two_stage] at st4
     -- generalise the two symbolic gas components so the arithmetic is purely linear
     set memc := memoryExpansionCost s3 .RETURNDATACOPY with hmemc
@@ -953,13 +955,13 @@ theorem RD.dup1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP1, .none)) (hov : t.length + 2 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (a :: a :: t) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (a :: a :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := dup1_xstep hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
+  · have st := dup1_xstep (fork := fork) hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stDup1 s a t,
@@ -979,14 +981,14 @@ theorem RD.pop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.POP, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := pop_xstep hcode hpc hdec hstk hov
+  · have st := pop_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPop s t,
@@ -1008,15 +1010,15 @@ theorem RD.jump {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMP, .none))
     (hjd : (D_J code 0).contains a = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 a t mem aw rdata acc (k + 1) (C + 8) := by
+    RD fork code ee g s0 a t mem aw rdata acc (k + 1) (C + 8) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := jump_xstep hcode hpc hdec hstk hjd hov
+  · have st := jump_xstep (fork := fork) hcode hpc hdec hstk hjd hov
     by_cases gg : g.toNat < C + 8
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJump s a t,
@@ -1035,14 +1037,14 @@ theorem RD.jump {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.push2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH2, some (argv, 2)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 3) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + UInt256.ofNat 3) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := push2_xstep hcode hpc hdec hstk hov
+  · have st := push2_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush2 s argv,
@@ -1064,15 +1066,15 @@ theorem RD.push2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.pushConst {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256) {width : ℕ}
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256) {width : ℕ}
     {op : Operation.POp} (hop : op ≠ .PUSH0)
     (hdec : decode code pc = some (.Push op, some (argv, width)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat width.succ) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + UInt256.ofNat width.succ) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := pushConst_xstep hcode hpc hop hdec hstk hov
+  · have st := pushConst_xstep (fork := fork) hcode hpc hop hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPushConst s argv width,
@@ -1092,45 +1094,45 @@ theorem RD.eq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.EQ, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.eq a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.eq a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => eq_xstep hc hp hdec hs hov)
 
 theorem RD.lt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.lt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => lt_xstep hc hp hdec hs hov)
 
 theorem RD.gt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.GT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.gt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.gt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => gt_xstep hc hp hdec hs hov)
 
 theorem RD.slt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SLT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.slt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.slt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => slt_xstep hc hp hdec hs hov)
 
 theorem RD.shr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SHR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftRight b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.shiftRight b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => shr_xstep hc hp hdec hs hov)
 
 /-- **SAR**: arithmetic (sign-preserving) shift right (cost `Gverylow = 3`, pc += 1). -/
@@ -1138,9 +1140,9 @@ theorem RD.sar {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SAR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sar a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.sar a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => sar_xstep hc hp hdec hs hov)
 
 /-- **BYTE**: the `a`-th byte of `b`, `0` past the word (cost `Gverylow = 3`, pc += 1). -/
@@ -1148,90 +1150,90 @@ theorem RD.byte {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.BYTE, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.byteAt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.byteAt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => byte_xstep hc hp hdec hs hov)
 
 theorem RD.sgt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SGT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sgt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.sgt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => sgt_xstep hc hp hdec hs hov)
 
 theorem RD.sub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SUB, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sub a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.sub a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => sub_xstep hc hp hdec hs hov)
 
 theorem RD.and {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.AND, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => and_xstep hc hp hdec hs hov)
 
 theorem RD.or {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => or_xstep hc hp hdec hs hov)
 
 theorem RD.xor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.XOR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.xor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.xor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => xor_xstep hc hp hdec hs hov)
 
 theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SHL, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftLeft b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.shiftLeft b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => shl_xstep hc hp hdec hs hov)
 
 theorem RD.add {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.ADD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) ((a + b) :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) ((a + b) :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => add_xstep hc hp hdec hs hov)
 
 theorem RD.mod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MOD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mod a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.mod a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => mod_xstep hc hp hdec hs hov)
 
 theorem RD.mul {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MUL, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mul a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.mul a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => mul_xstep hc hp hdec hs hov)
 
 /-- **SIGNEXTEND**: sign-extend `b` from byte position `a` (cost `Glow = 5`, pc += 1). -/
@@ -1239,9 +1241,9 @@ theorem RD.signextend {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SIGNEXTEND, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.signextend a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.signextend a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => signextend_xstep hc hp hdec hs hov)
 
 /-- **ADDMOD**: `(a + b) mod c` without intermediate overflow (cost `Gmid = 8`, pc += 1). -/
@@ -1249,9 +1251,9 @@ theorem RD.addmod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.ADDMOD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.addMod a b c :: t) mem aw rdata acc (k + 1) (C + 8) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.addMod a b c :: t) mem aw rdata acc (k + 1) (C + 8) :=
   h.stepTriop8 (fun _ hc hp hs => addmod_xstep hc hp hdec hs hov)
 
 /-- **MULMOD**: `(a · b) mod c` without intermediate overflow (cost `Gmid = 8`, pc += 1). -/
@@ -1259,32 +1261,32 @@ theorem RD.mulmod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MULMOD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mulMod a b c :: t) mem aw rdata acc (k + 1) (C + 8) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.mulMod a b c :: t) mem aw rdata acc (k + 1) (C + 8) :=
   h.stepTriop8 (fun _ hc hp hs => mulmod_xstep hc hp hdec hs hov)
 
 theorem RD.div {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DIV, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => div_xstep hc hp hdec hs hov)
 
 theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SDIV, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sdiv a b :: t) mem aw rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.sdiv a b :: t) mem aw rdata acc (k + 1)
       (C + 5) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have st := sdiv_xstep hcode hpc hdec hstk hov
+  · have st := sdiv_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 5
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stBinop5 s (UInt256.sdiv a b) t,
@@ -1312,14 +1314,14 @@ theorem RD.exp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.EXP, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.exp a b :: t) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.exp a b :: t) mem aw rdata acc
       (k + 1) (C + expGasCost b) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := exp_xstep hcode hpc hdec hstk hov
+  · have st := exp_xstep (fork := fork) hcode hpc hdec hstk hov
     have hcostpos : 0 < expGasCost b := expGasCost_pos b
     by_cases gg : g.toNat < C + expGasCost b
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -1341,13 +1343,13 @@ theorem RD.iszero {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.ISZERO, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.isZero a :: t) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.isZero a :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := iszero_xstep hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
+  · have st := iszero_xstep (fork := fork) hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stIsZero s a t,
@@ -1367,13 +1369,13 @@ theorem RD.not {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.NOT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lnot a :: t) mem aw rdata acc (k + 1) (C + 3) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.lnot a :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := not_xstep hcode hpc hdec hstk hov
+  · have st := not_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stNot s a t,
@@ -1394,14 +1396,14 @@ theorem RD.not {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.callvalue {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLVALUE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (ee.weiValue :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (ee.weiValue :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := callvalue_xstep hcode hpc hdec hstk hov
+  · have st := callvalue_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCallvalue s,
@@ -1420,15 +1422,15 @@ theorem RD.callvalue {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem RD.timestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.TIMESTAMP, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.timestamp :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.timestamp :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := timestamp_xstep hcode hpc hdec hstk hov
+  · have st := timestamp_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stTimestamp s,
@@ -1447,15 +1449,15 @@ theorem RD.timestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem RD.number {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.NUMBER, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.number :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.number :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := number_xstep hcode hpc hdec hstk hov
+  · have st := number_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stNumber s,
@@ -1474,15 +1476,15 @@ theorem RD.number {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem RD.prevrandao {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.PREVRANDAO, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (ee.header.prevRandao :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (ee.header.prevRandao :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := prevrandao_xstep hcode hpc hdec hstk hov
+  · have st := prevrandao_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPrevrandao s,
@@ -1501,15 +1503,15 @@ theorem RD.prevrandao {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.gaslimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.GASLIMIT, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.gasLimit :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.gasLimit :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := gaslimit_xstep hcode hpc hdec hstk hov
+  · have st := gaslimit_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stGaslimit s,
@@ -1528,15 +1530,15 @@ theorem RD.gaslimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem RD.chainid {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CHAINID, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat Ethereum.chainId :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat Ethereum.chainId :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := chainid_xstep hcode hpc hdec hstk hov
+  · have st := chainid_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stChainid s,
@@ -1558,15 +1560,15 @@ theorem RD.basefee {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {stk : List UInt256}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.BASEFEE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.baseFeePerGas :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.baseFeePerGas :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := basefee_xstep hcode hpc hdec hstk hov
+  · have st := basefee_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stBasefee s,
@@ -1589,15 +1591,15 @@ theorem RD.blockhash {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {n : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (n :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (n :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.BLOCKHASH, .none))
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (blockHashWord ee n :: t) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (blockHashWord ee n :: t) mem aw rdata acc
       (k + 1) (C + GasConstants.Gblockhash) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := blockhash_xstep hcode hpc hdec hstk hov
+  · have st := blockhash_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + GasConstants.Gblockhash
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by
           have hpos : 0 < GasConstants.Gblockhash := by decide
@@ -1622,14 +1624,14 @@ theorem RD.blockhash {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem RD.calldatasize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATASIZE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.calldata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.calldata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := calldatasize_xstep hcode hpc hdec hstk hov
+  · have st := calldatasize_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCalldatasize s,
@@ -1649,15 +1651,15 @@ theorem RD.calldataload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATALOAD, .none))
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
         (uInt256OfByteArray (ee.calldata.readBytes a.toNat 32) :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := calldataload_xstep hcode hpc hdec hstk hov
+  · have st := calldataload_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCalldataload s a t,
@@ -1685,20 +1687,20 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none))
     (hmc : Cₘ (M aw a ⟨32⟩) - Cₘ aw = mcost)
     (hmemout : b.toByteArray.write 0 mem a.toNat 32 = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc (k + 1) (C + (mcost + 3)) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .MSTORE = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, M] using hmc
-    have st := mstore_xstep hcode hpc hdec hstk hov
+    have st := mstore_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + 3)
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -1720,9 +1722,9 @@ theorem RD.genMstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none)) (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t (b.toByteArray.write 0 mem a.toNat 32)
+    RD fork code ee g s0 (pc + ⟨1⟩) t (b.toByteArray.write 0 mem a.toNat 32)
       (M aw a ⟨32⟩) rdata acc (k + 1)
       (C + (memExpansionCost aw a ⟨32⟩ + 3)) := by
   exact RD.mstore (memExpansionCost aw a ⟨32⟩)
@@ -1733,20 +1735,20 @@ theorem RD.mstore8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE8, .none))
     (hmc : Cₘ (M aw a ⟨1⟩) - Cₘ aw = mcost)
     (hmemout : (⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0 mem a.toNat 1 = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 1) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc (k + 1) (C + (mcost + 3)) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .MSTORE8 = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, M] using hmc
-    have st := mstore8_xstep hcode hpc hdec hstk hov
+    have st := mstore8_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + 3)
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -1768,9 +1770,9 @@ theorem RD.genMstore8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE8, .none)) (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t ((⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0 mem a.toNat 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t ((⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0 mem a.toNat 1)
       (M aw a ⟨1⟩) rdata acc (k + 1)
       (C + (memExpansionCost aw a ⟨1⟩ + 3)) := by
   exact RD.mstore8 (memExpansionCost aw a ⟨1⟩)
@@ -1783,13 +1785,13 @@ theorem RD.calldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
     (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATACOPY, .none))
     (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : ee.calldata.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
       (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -1797,7 +1799,7 @@ theorem RD.calldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
   · have hmcS : memoryExpansionCost s .CALLDATACOPY = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have st := calldatacopy_xstep hcode hpc hdec hstk hov
+    have st := calldatacopy_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
     by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
@@ -1823,10 +1825,10 @@ theorem RD.genCalldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATACOPY, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t
+    RD fork code ee g s0 (pc + ⟨1⟩) t
       (ee.calldata.write b.toNat mem a.toNat c.toNat)
       (M aw a c)
       rdata acc (k + 1)
@@ -1843,13 +1845,13 @@ theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
     (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CODECOPY, .none))
     (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : code.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
       (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -1857,7 +1859,7 @@ theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
   · have hmcS : memoryExpansionCost s .CODECOPY = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have st := codecopy_xstep hcode hpc hdec hstk hov
+    have st := codecopy_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
     by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
@@ -1883,10 +1885,10 @@ theorem RD.genCodecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CODECOPY, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t
+    RD fork code ee g s0 (pc + ⟨1⟩) t
       (code.write b.toNat mem a.toNat c.toNat)
       (M aw a c)
       rdata acc
@@ -1905,14 +1907,14 @@ theorem RD.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
     (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MCOPY, .none))
     (hmc : Cₘ (UInt256.ofNat (MachineState.M aw.toNat (max a.toNat b.toNat) c.toNat)) - Cₘ aw
       = mcost)
     (hmemout : mem.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat (max a.toNat b.toNat) c.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
       (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -1920,7 +1922,7 @@ theorem RD.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
   · have hmcS : memoryExpansionCost s .MCOPY = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ] using hmc
-    have st := mcopy_xstep hcode hpc hdec hstk hov
+    have st := mcopy_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
     by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
@@ -1946,10 +1948,10 @@ theorem RD.genMcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MCOPY, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t
+    RD fork code ee g s0 (pc + ⟨1⟩) t
       (mem.write b.toNat mem a.toNat c.toNat)
       (Mmcopy aw a b c)
       rdata acc (k + 1)
@@ -1964,21 +1966,21 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256} (mcost : ℕ) (loadval awout : UInt256)
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
     (hmc : Cₘ (M aw a ⟨32⟩) - Cₘ aw = mcost)
     (hval : (if a.toNat ≥ mem.size then ⟨0⟩
              else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) = loadval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (loadval :: t) mem awout rdata acc (k + 1) (C + (mcost + 3)) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) (loadval :: t) mem awout rdata acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .MLOAD = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, M] using hmc
-    have st := mload_xstep hcode hpc hdec hstk hov
+    have st := mload_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + 3)
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -2000,9 +2002,9 @@ theorem RD.genMload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (memLoad a mem :: t) mem (M aw a ⟨32⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩) (memLoad a mem :: t) mem (M aw a ⟨32⟩)
       rdata acc (k + 1) (C + (memExpansionCost aw a ⟨32⟩ + 3)) := by
   exact RD.mload (memExpansionCost aw a ⟨32⟩) (memLoad a mem) (M aw a ⟨32⟩)
     h hdec rfl rfl rfl hov
@@ -2019,16 +2021,16 @@ theorem RD.jumpiT {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPI, .none))
     (hb : b ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains a = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 a t mem aw rdata acc (k + 1) (C + 10) := by
+    RD fork code ee g s0 a t mem aw rdata acc (k + 1) (C + 10) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := jumpi_t_xstep hcode hpc hdec hstk hb hjd hov
+  · have st := jumpi_t_xstep (fork := fork) hcode hpc hdec hstk hb hjd hov
     by_cases gg : g.toNat < C + 10
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpiT s a t,
@@ -2051,16 +2053,16 @@ theorem RD.jumpiNT {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPI, .none))
     (hb : b = ⟨0⟩)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 10) := by
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 10) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
   · rw [hb] at hstk
-    have st := jumpi_nt_xstep hcode hpc hdec hstk hov
+    have st := jumpi_nt_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 10
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpiNT s t,
@@ -2146,17 +2148,17 @@ theorem RD.sstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {slot val : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.SSTORE, .none))
     (hov : t.length ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) t mem aw rdata
       (sstoreAccountMap ee.codeOwner σ slot val) k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact ⟨k, C, Or.inl hoog⟩
   · have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := sstore_xstep hcode hpc hdec hperms hstk hov
+    have st := sstore_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     have hmax : Csstore s ≤ max (Csstore s) (GasConstants.Gcallstipend + 1) := le_max_left _ _
     have hpos := Theory.Csstore_pos s
     by_cases gg : g.toNat < C + max (Csstore s) (GasConstants.Gcallstipend + 1)
@@ -2182,14 +2184,14 @@ theorem RD.sstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem RD.caller {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLER, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.source.val :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.source.val :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := caller_xstep hcode hpc hdec hstk hov
+  · have st := caller_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCaller s,
@@ -2212,14 +2214,14 @@ theorem RD.address {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.ADDRESS, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.codeOwner.val :: stk) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.codeOwner.val :: stk) mem aw rdata acc
       (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := address_xstep hcode hpc hdec hstk hov
+  · have st := address_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stAddress s,
@@ -2242,15 +2244,15 @@ theorem RD.extcodesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (target :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.EXTCODESIZE, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩)
       (extCodeSizeWord σ target :: t) mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hσ₀⟩
   · exact ⟨k, C, Or.inl hoog⟩
-  · have st := extcodesize_xstep hcode hpc hdec hstk hov
+  · have st := extcodesize_xstep (fork := fork) hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := hacc
     by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
     · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
@@ -2280,15 +2282,15 @@ theorem RD.balance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (target :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.BALANCE, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩)
       (balanceWord σ target :: t) mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hσ₀⟩
   · exact ⟨k, C, Or.inl hoog⟩
-  · have st := balance_xstep hcode hpc hdec hstk hov
+  · have st := balance_xstep (fork := fork) hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := hacc
     by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
     · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
@@ -2318,15 +2320,15 @@ theorem RD.extcodehash {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (target :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.EXTCODEHASH, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩)
       (extCodeHashWord σ target :: t) mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hσ₀⟩
   · exact ⟨k, C, Or.inl hoog⟩
-  · have st := extcodehash_xstep hcode hpc hdec hstk hov
+  · have st := extcodehash_xstep (fork := fork) hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := hacc
     by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
     · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
@@ -2355,9 +2357,9 @@ theorem RD.swap4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP4, .none)) (hov : t.length + 5 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (e :: b :: c :: d :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (e :: b :: c :: d :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap4_xstep hc hp hdec hs hov)
 
 /-- **SWAP5**: exchange the stack top with the 6th element (cost `Gverylow = 3`, pc += 1). -/
@@ -2365,9 +2367,9 @@ theorem RD.swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (rd : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
       (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap5_xstep hc hp hdec hs hov)
 
@@ -2376,9 +2378,9 @@ theorem RD.swap6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
+    (rd : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP6, .none)) (hov : t.length + 7 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (gg :: b :: c :: d :: e :: f :: a :: t) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (gg :: b :: c :: d :: e :: f :: a :: t) mem aw rdata acc
       (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap6_xstep hc hp hdec hs hov)
 
@@ -2387,10 +2389,10 @@ theorem RD.swap7 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg h : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: h :: t)
+    (rd : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: h :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP7, .none)) (hov : t.length + 8 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (h :: b :: c :: d :: e :: f :: gg :: a :: t)
+    RD fork code ee g s0 (pc + ⟨1⟩) (h :: b :: c :: d :: e :: f :: gg :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap7_xstep hc hp hdec hs hov)
 
@@ -2398,10 +2400,10 @@ theorem RD.swap8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
+    (rd : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP8, .none)) (hov : t.length + 9 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (ii :: b :: c :: d :: e :: f :: gg :: hh :: a :: t)
+    RD fork code ee g s0 (pc + ⟨1⟩) (ii :: b :: c :: d :: e :: f :: gg :: hh :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap8_xstep hc hp hdec hs hov)
 
@@ -2410,10 +2412,10 @@ theorem RD.swap9
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
+    RD fork code ee g s0 (pc + ⟨1⟩) (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap9_xstep hc hp hdec hs hov)
 
@@ -2421,10 +2423,10 @@ theorem RD.swap10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: t)
+    (rd : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP10, .none)) (hov : t.length + 11 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (kk :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap10_xstep hc hp hdec hs hov)
@@ -2433,11 +2435,11 @@ theorem RD.swap11 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc
+    (rd : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP11, .none)) (hov : t.length + 12 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (ll :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap11_xstep hc hp hdec hs hov)
@@ -2446,10 +2448,10 @@ theorem RD.swap12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP12, .none))
     (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (mm :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (mm :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap12_xstep hc hp hdec hs hov)
 
 theorem RD.swap13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -2457,11 +2459,11 @@ theorem RD.swap13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
       mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP13, .none)) (hov : t.length + 14 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => Reasoning.Theory.swap13_xstep hc hp hdec hs hov)
@@ -2470,30 +2472,30 @@ theorem RD.swap14 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP14, .none))
     (hov : t.length + 15 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (oo :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (oo :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap14_xstep hc hp hdec hs hov)
 
 theorem RD.swap15 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP15, .none))
     (hov : t.length + 16 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (pp :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (pp :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap15_xstep hc hp hdec hs hov)
 
 theorem RD.swap16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp qq : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: qq :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: qq :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP16, .none))
     (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (qq :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + ⟨1⟩) (qq :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap16_xstep hc hp hdec hs hov)
 
 /-- **KECCAK256**: pop offset `a` and size `b`, push `KEC(mem[a..a+b])` (two-stage cost
@@ -2503,14 +2505,14 @@ theorem RD.keccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (kecval awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.KECCAK256, .none))
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hval : UInt256.ofNat (fromByteArrayBigEndian
               (KEC (mem.readWithPadding a.toNat b.toNat))) = kecval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (kecval :: t) mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) (kecval :: t) mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Gkeccak256
         + GasConstants.Gkeccak256word * ((b.toNat + 31) / 32)))) := by
   unfold RD at h ⊢
@@ -2519,7 +2521,7 @@ theorem RD.keccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
   · have hmcS : memoryExpansionCost s .KECCAK256 = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have st := keccak_xstep hcode hpc hdec hstk hov
+    have st := keccak_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * ((b.toNat + 31) / 32)))
@@ -2543,10 +2545,10 @@ theorem RD.genKeccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.KECCAK256, .none))
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (keccakWord a b mem :: t) mem
+    RD fork code ee g s0 (pc + ⟨1⟩) (keccakWord a b mem :: t) mem
       (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (30 + 6 * ((b.toNat + 31) / 32)))) := by
   simpa only [GasConstants.Gkeccak256, GasConstants.Gkeccak256word] using
@@ -2560,15 +2562,15 @@ theorem RD.sload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.SLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩)
       ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD a ⟨0⟩)) :: t)
       mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact ⟨k, C, Or.inl hoog⟩
-  · have st := sload_xstep hcode hpc hdec hstk hov
+  · have st := sload_xstep (fork := fork) hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := hacc
     have hco : s.executionEnv.codeOwner = ee.codeOwner := by rw [hee]
     by_cases gg : g.toNat < C + Csload (a :: t) s.substate s.executionEnv
@@ -2591,17 +2593,17 @@ theorem RD.sload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.tload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc slot : UInt256} {t : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc (slot :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.TLOAD, .none))
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       ((σ.get? ee.codeOwner |>.option ⟨0⟩
         (fun ac => ac.tstorage.getD slot ⟨0⟩)) :: t)
       mem aw rdata σ (k + 1) (C + Ctload) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
-  · have st := tload_xstep hcode hpc hdec hstk hov
+  · have st := tload_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + Ctload
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by
           have hpos : 0 < Ctload := by decide
@@ -2627,17 +2629,17 @@ theorem RD.tload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 theorem RD.tstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc slot val : UInt256} {t : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.TSTORE, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem aw rdata
       (tstoreAccountMap ee.codeOwner σ slot val) (k + 1) (C + Ctstore) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := tstore_xstep hcode hpc hdec hperms hstk hov
+    have st := tstore_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     by_cases gg : g.toNat < C + Ctstore
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by
           have hpos : 0 < Ctstore := by decide
@@ -2666,12 +2668,12 @@ theorem RD.log0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG0, .none)) (hperm : ee.perm = true)
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat))) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -2680,7 +2682,7 @@ theorem RD.log0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log0_xstep hcode hpc hdec hperms hstk hov
+    have st := log0_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat))
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -2703,11 +2705,11 @@ theorem RD.genLog0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG0, .none))
     (hperm : ee.perm = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (375 + 8 * b.toNat))) := by
   simpa only [GasConstants.Glog, GasConstants.Glogdata] using
     (RD.log0 (memExpansionCost aw a b) (M aw a b) h hdec hperm rfl rfl hov)
@@ -2719,12 +2721,12 @@ theorem RD.log1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG1, .none)) (hperm : ee.perm = true)
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
         + GasConstants.Glogtopic))) := by
   unfold RD at h ⊢
@@ -2734,7 +2736,7 @@ theorem RD.log1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log1_xstep hcode hpc hdec hperms hstk hov
+    have st := log1_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + GasConstants.Glogtopic))
@@ -2758,11 +2760,11 @@ theorem RD.genLog1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG1, .none))
     (hperm : ee.perm = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (375 + 8 * b.toNat + 375))) := by
   simpa only [GasConstants.Glog, GasConstants.Glogdata, GasConstants.Glogtopic] using
     (RD.log1 (memExpansionCost aw a b) (M aw a b) h hdec hperm rfl rfl hov)
@@ -2774,14 +2776,14 @@ theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
     (hmc : ∀ s : State, s.machineState.activeWords = aw →
         s.machineState.stack = a :: b :: c :: d :: t →
         memoryExpansionCost s .LOG2 = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
         + 2 * GasConstants.Glogtopic))) := by
   unfold RD at h ⊢
@@ -2789,7 +2791,7 @@ theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log2_xstep hcode hpc hdec hperms hstk hov
+    have st := log2_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
@@ -2814,11 +2816,11 @@ theorem RD.genLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none))
     (hperm : ee.perm = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (375 + 8 * b.toNat + 2 * 375))) := by
   simpa only [GasConstants.Glog, GasConstants.Glogdata, GasConstants.Glogtopic] using
     (RD.log2 (memExpansionCost aw a b) (M aw a b) h hdec hperm
@@ -2834,12 +2836,12 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG3, .none)) (hperm : ee.perm = true)
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
         + 3 * GasConstants.Glogtopic))) := by
   unfold RD at h ⊢
@@ -2849,7 +2851,7 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log3_xstep hcode hpc hdec hperms hstk hov
+    have st := log3_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 3 * GasConstants.Glogtopic))
@@ -2873,11 +2875,11 @@ theorem RD.genLog3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG3, .none))
     (hperm : ee.perm = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (375 + 8 * b.toNat + 3 * 375))) := by
   simpa only [GasConstants.Glog, GasConstants.Glogdata, GasConstants.Glogtopic] using
     (RD.log3 (memExpansionCost aw a b) (M aw a b) h hdec hperm rfl rfl hov)
@@ -2890,12 +2892,12 @@ theorem RD.log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
         + 4 * GasConstants.Glogtopic))) := by
   unfold RD at h ⊢
@@ -2906,7 +2908,7 @@ theorem RD.log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log4_xstep hcode hpc hdec hperms hstk hov
+    have st := log4_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic))
@@ -2931,11 +2933,11 @@ theorem RD.genLog4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG4, .none))
     (hperm : ee.perm = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
       (C + (memExpansionCost aw a b + (375 + 8 * b.toNat + 4 * 375))) := by
   simpa only [GasConstants.Glog, GasConstants.Glogdata, GasConstants.Glogtopic] using
     (RD.log4 (memExpansionCost aw a b) (M aw a b) h hdec hperm rfl rfl hov)
@@ -2965,7 +2967,7 @@ theorem RD.selectorArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} 
     {armPc selWord selNat tgt : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code armPc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc armPc) = some (.Push .PUSH4, some (selNat, 4)))
     (heq : decode code (selArmEqPc armPc) = some (.EQ, .none))
@@ -2974,7 +2976,7 @@ theorem RD.selectorArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} 
     (hjumpi : decode code (selArmJumpiPc armPc width) = some (.JUMPI, .none))
     (hb : UInt256.eq selNat selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+    RD fork code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
   h.dup1 hdup (by omega)
    |>.push4 selNat hpush4 (by simp only [List.length_cons]; omega)
    |>.eq heq (by simp only [List.length_cons]; omega)
@@ -2986,7 +2988,7 @@ theorem RD.selectorArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
     {armPc selWord selNat tgt : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code armPc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc armPc) = some (.Push .PUSH4, some (selNat, 4)))
     (heq : decode code (selArmEqPc armPc) = some (.EQ, .none))
@@ -2995,7 +2997,7 @@ theorem RD.selectorArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
     (hjumpi : decode code (selArmJumpiPc armPc width) = some (.JUMPI, .none))
     (hb : UInt256.eq selNat selWord = ⟨0⟩)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (selArmNextPc armPc width) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+    RD fork code ee g s0 (selArmNextPc armPc width) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
   h.dup1 hdup (by omega)
    |>.push4 selNat hpush4 (by simp only [List.length_cons]; omega)
    |>.eq heq (by simp only [List.length_cons]; omega)
@@ -3046,12 +3048,12 @@ def pushAt (code : ByteArray) (pc : UInt256) : Operation.POp × UInt256 × ℕ :
 theorem RD.selectorArmTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : armWellFormed code armPc)
     (hb : UInt256.eq (armSelNat code armPc) selWord ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains (armTgt code armPc) = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (armTgt code armPc) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    RD fork code ee g s0 (armTgt code armPc) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorArmTaken hdup hpush4 heq hopT hpushT hjumpi hb hjd hov
 
@@ -3059,11 +3061,11 @@ theorem RD.selectorArmTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
 theorem RD.selectorArmNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : armWellFormed code armPc)
     (hb : UInt256.eq (armSelNat code armPc) selWord = ⟨0⟩)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (selArmNextPc armPc (armTgtWidth code armPc)) (selWord :: rest)
+    RD fork code ee g s0 (selArmNextPc armPc (armTgtWidth code armPc)) (selWord :: rest)
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorArmNotTaken hdup hpush4 heq hopT hpushT hjumpi hb hov
@@ -3113,12 +3115,12 @@ theorem RD.selectorArmWidthTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g :
     {s0 : State} {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256} (selWidth : ℕ)
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : armWellFormedW code armPc selWidth)
     (hb : UInt256.eq (armSelNatW code armPc) selWord ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains (armTgtW code armPc selWidth) = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (armTgtW code armPc selWidth) (selWord :: rest)
+    RD fork code ee g s0 (armTgtW code armPc selWidth) (selWord :: rest)
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hopSel, hpushSel, heq, hopT, hpushT, hjumpi⟩ := hwf
   exact h.dup1 hdup (by omega)
@@ -3133,11 +3135,11 @@ theorem RD.selectorArmWidthNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {
     {s0 : State} {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256} (selWidth : ℕ)
-    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : armWellFormedW code armPc selWidth)
     (hb : UInt256.eq (armSelNatW code armPc) selWord = ⟨0⟩)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0
+    RD fork code ee g s0
       (selArmNextPcW armPc selWidth (armTgtWidthW code armPc selWidth))
       (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hopSel, hpushSel, heq, hopT, hpushT, hjumpi⟩ := hwf
@@ -3172,7 +3174,7 @@ theorem RD.selectorSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code splitPc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
     (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
@@ -3181,7 +3183,7 @@ theorem RD.selectorSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     (hjumpi : decode code (selArmJumpiPc splitPc width) = some (.JUMPI, .none))
     (hb : UInt256.gt pivot selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+    RD fork code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
   h.dup1 hdup (by omega)
    |>.push4 pivot hpush4 (by simp only [List.length_cons]; omega)
    |>.gt hgt (by simp only [List.length_cons]; omega)
@@ -3193,7 +3195,7 @@ theorem RD.selectorSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code splitPc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
     (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
@@ -3201,7 +3203,7 @@ theorem RD.selectorSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     (hpushT : decode code (selArmPushTgtPc splitPc) = some (.Push op, some (tgt, width)))
     (hjumpi : decode code (selArmJumpiPc splitPc width) = some (.JUMPI, .none))
     (hb : UInt256.gt pivot selWord = ⟨0⟩) (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (selArmNextPc splitPc width) (selWord :: rest)
+    RD fork code ee g s0 (selArmNextPc splitPc width) (selWord :: rest)
       mem aw rdata acc (k + 5) (C + 22) :=
   h.dup1 hdup (by omega)
    |>.push4 pivot hpush4 (by simp only [List.length_cons]; omega)
@@ -3214,12 +3216,12 @@ theorem RD.selectorSplitTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {splitPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : selectorSplitWellFormed code splitPc)
     (hb : UInt256.gt (armSelNat code splitPc) selWord ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains (armTgt code splitPc) = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (armTgt code splitPc) (selWord :: rest)
+    RD fork code ee g s0 (armTgt code splitPc) (selWord :: rest)
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorSplitTaken hdup hpush4 hgt hopT hpushT hjumpi hb hjd hov
@@ -3229,11 +3231,11 @@ theorem RD.selectorSplitNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g :
     {s0 : State} {splitPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : selectorSplitWellFormed code splitPc)
     (hb : UInt256.gt (armSelNat code splitPc) selWord = ⟨0⟩)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 (selArmNextPc splitPc (armTgtWidth code splitPc)) (selWord :: rest)
+    RD fork code ee g s0 (selArmNextPc splitPc (armTgtWidth code splitPc)) (selWord :: rest)
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorSplitNotTaken hdup hpush4 hgt hopT hpushT hjumpi hb hov
@@ -3247,7 +3249,7 @@ theorem RD.selectorSplitTakenResolved {code : ByteArray} {ee : ExecutionEnv} {g 
     {s0 : State} {splitPc selWord tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : selectorSplitWellFormed code splitPc)
     (hopEq : armTgtOp code splitPc = op)
     (htgtEq : armTgt code splitPc = tgt)
@@ -3255,7 +3257,7 @@ theorem RD.selectorSplitTakenResolved {code : ByteArray} {ee : ExecutionEnv} {g 
     (hb : UInt256.gt (armSelNat code splitPc) selWord ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains tgt = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    RD fork code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorSplitTaken (pivot := armSelNat code splitPc) (tgt := tgt) (width := width)
     (op := op) hdup hpush4 hgt (by simpa [hopEq] using hopT)
@@ -3270,7 +3272,7 @@ theorem RD.selectorSplitNotTakenResolved {code : ByteArray} {ee : ExecutionEnv} 
     {s0 : State} {splitPc selWord tgt nextPc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C width : ℕ} {op : Operation.POp} {rest : List UInt256}
-    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
     (hwf : selectorSplitWellFormed code splitPc)
     (hopEq : armTgtOp code splitPc = op)
     (htgtEq : armTgt code splitPc = tgt)
@@ -3278,7 +3280,7 @@ theorem RD.selectorSplitNotTakenResolved {code : ByteArray} {ee : ExecutionEnv} 
     (hnextEq : selArmNextPc splitPc width = nextPc)
     (hb : UInt256.gt (armSelNat code splitPc) selWord = ⟨0⟩)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 nextPc (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    RD fork code ee g s0 nextPc (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   rw [← hnextEq]
   obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorSplitNotTaken (pivot := armSelNat code splitPc) (tgt := tgt) (width := width)
@@ -3301,19 +3303,19 @@ theorem RD.dispatchTo {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {acc : AccountMap} {rest : List UInt256}
     (bodyPC : UInt256) :
     ∀ (i : ℕ) {start : UInt256} {k C : ℕ}
-      (_ : RD code ee g s0 start (selWord :: rest) mem aw rdata acc k C)
+      (_ : RD fork code ee g s0 start (selWord :: rest) mem aw rdata acc k C)
       (_ : ∀ j, j ≤ i → armWellFormed code (nthArmPc code start j))
       (_ : ∀ j, j < i → UInt256.eq (armSelNat code (nthArmPc code start j)) selWord = ⟨0⟩)
       (_ : UInt256.eq (armSelNat code (nthArmPc code start i)) selWord ≠ ⟨0⟩)
       (_ : (D_J code 0).contains (armTgt code (nthArmPc code start i)) = true)
       (_ : armTgt code (nthArmPc code start i) = bodyPC)
       (_ : rest.length + 3 ≤ 1024),
-      ∃ k' C', RD code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc k' C' := by
+      ∃ k' C', RD fork code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc k' C' := by
   intro i
   induction i with
   | zero =>
     intro start k C h hwf _ htake hjd hbody hov
-    have key : RD code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    have key : RD fork code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
       have hbody' : armTgt code start = bodyPC := hbody
       rw [← hbody']
       exact h.selectorArmTakenAuto (hwf 0 (le_refl 0)) htake hjd hov
@@ -3337,7 +3339,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3346,12 +3348,12 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
@@ -3369,7 +3371,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
+    have st := step_call (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False := eq_false (by omega)
     have hstaticF : (¬ s.executionEnv.perm = true ∧ ({val := 0} : UInt256) ≠ {val := 0}) = False :=
@@ -3398,24 +3400,24 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
       rename_i hP
       set mc := memoryExpansionCost s Operation.CALL with hmc
-      set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+      set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
         s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-      set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+      set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
         s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hG
       set cg := UInt256.ofNat G with hcg
-      set ce := Cextra s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 }
+      set ce := Cextra fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 }
         s.accountMap s.substate with hce
-      set θs := Θ s.executionEnv.fork s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+      set θs := Θ fork s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
         (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
-        (AccountAddress.ofUInt256 target) (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+        (AccountAddress.ofUInt256 target) (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
         cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
         s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks
@@ -3429,9 +3431,9 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
-        exact Theta_returnedGas_le s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+        exact Theta_returnedGas_le s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
           s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
@@ -3472,7 +3474,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       -- assemble the conclusion
       refine ⟨θs.1, θs.2.2.2.1, θs.2.2.2.2,
-        (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
+        (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
         C + callCharge, ⟨θs.2.1, θs.2.2.1, ?_⟩, ?_, ?_⟩
       · -- Θ-link: rewrite cursor fields to the world/ee/acc form, then tuple-eta
         rw [← hee, ← hσ, ← hmem, ← hw1, ← hθs]
@@ -3496,10 +3498,10 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         · exact hσ₀
       · rw [hθs]
         exact Ethereum.EVM.theta_projection_output_size_lt_uint256
-          s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+          s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
           s.executionEnv.sender (AccountAddress.ofUInt256 target)
-          (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
@@ -3514,7 +3516,7 @@ theorem RD.callEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3523,12 +3525,12 @@ theorem RD.callEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ByteArray.empty (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           mem
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
             (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -3544,9 +3546,9 @@ theorem RD.callEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
   have hcd : mem.readWithPadding inOffset.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-        (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+        (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
         callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
         ByteArray.empty (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm := by
     rcases hΘ with ⟨g'', A', hΘeq⟩
@@ -3567,7 +3569,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target valueWord inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: valueWord :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3578,12 +3580,12 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
@@ -3599,7 +3601,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
+    have st := step_call (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False := eq_false (by omega)
     have hstaticF : (¬ s.executionEnv.perm = true ∧ valueWord ≠ { val := 0 }) = False :=
@@ -3651,22 +3653,22 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
             (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.CALL with hmc
-      set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
+      set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
         gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-      set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
+      set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
         gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hG
       set cg := UInt256.ofNat G with hcg
-      set θs := Θ s.executionEnv.fork s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+      set θs := Θ fork s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
         (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
-        (AccountAddress.ofUInt256 target) (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+        (AccountAddress.ofUInt256 target) (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
         cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
         s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks
@@ -3677,9 +3679,9 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
       have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
-        exact Theta_returnedGas_le s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+        exact Theta_returnedGas_le s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
           s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
@@ -3688,7 +3690,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
         rw [h]; exact Nat.mod_le _ _
       have hGltgc : G < gc := by
         rw [hG, hgc]
-        exact Ccallgas_lt_Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target)
+        exact Ccallgas_lt_Ccall fork (AccountAddress.ofUInt256 target)
           (AccountAddress.ofUInt256 target) valueWord gasArg s.accountMap
           { pc := s.machineState.pc, stack := s.machineState.stack,
             execLength := s.machineState.execLength + 1,
@@ -3714,7 +3716,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
         rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       refine ⟨θs.1, θs.2.2.2.1, θs.2.2.2.2,
-        (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
+        (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
         C + callCharge, ⟨θs.2.1, θs.2.2.1, ?_⟩, ?_, ?_⟩
       · rw [← hee, ← hσ, ← hmem, ← hw1, ← hθs]
       · unfold RD
@@ -3735,10 +3737,10 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
         · exact hσ₀
       · rw [hθs]
         exact Ethereum.EVM.theta_projection_output_size_lt_uint256
-          s.accountMap s.σ₀ (Ethereum.EVM.callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+          s.accountMap s.σ₀ (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
           s.executionEnv.sender (AccountAddress.ofUInt256 target)
-          (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
@@ -3750,7 +3752,7 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target valueWord inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: valueWord :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3761,12 +3763,12 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
@@ -3778,7 +3780,7 @@ theorem RD.callValueMadeEmptyInOutOr {code : ByteArray} {ee : ExecutionEnv} {g :
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target valueWord inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: valueWord :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3789,12 +3791,12 @@ theorem RD.callValueMadeEmptyInOutOr {code : ByteArray} {ee : ExecutionEnv} {g :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
           ByteArray.empty (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           mem
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
             (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -3810,9 +3812,9 @@ theorem RD.callValueMadeEmptyInOutOr {code : ByteArray} {ee : ExecutionEnv} {g :
   have hcd : mem.readWithPadding inOffset.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-        (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+        (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
         callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
         ByteArray.empty (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm := by
     rcases hΘ with ⟨g'', A', hΘeq⟩
@@ -3830,7 +3832,7 @@ theorem RD.callValueMadeEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : S
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target valueWord inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: valueWord :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
@@ -3841,12 +3843,12 @@ theorem RD.callValueMadeEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : S
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
           ByteArray.empty (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           mem
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
             (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -3859,7 +3861,7 @@ private theorem RD.callNoCallMade {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     {σ : AccountMap} {k C : ℕ}
     {inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
     {s s' : State} {mc gc G : ℕ}
-    (hXP : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat - k) (D_J code 0) s')
+    (hXP : X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat - k) (D_J code 0) s')
     (hgas : s.machineState.gasAvailable = g.subNat C)
     (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hPle : mc + gc ≤ s.machineState.gasAvailable.toNat)
@@ -3878,7 +3880,7 @@ private theorem RD.callNoCallMade {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     (hacc' : s'.accountMap = σ)
     (hee' : s'.executionEnv = ee)
     (hσ₀' : s'.σ₀ = s0.σ₀) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -3918,7 +3920,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true ∨ value = ⟨0⟩)
@@ -3926,7 +3928,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
     (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -3939,7 +3941,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
+    have st := step_call (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False :=
       eq_false (by omega)
@@ -3979,7 +3981,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     set mc := memoryExpansionCost s Operation.CALL with hmc
-    set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
+    set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
       gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength,
@@ -3987,7 +3989,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate
       with hgc
-    set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
+    set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
       gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength + 1,
@@ -4002,7 +4004,7 @@ theorem RD.callValueInsufficientBalanceOr {code : ByteArray} {ee : ExecutionEnv}
     · rename_i hP
       have hGltgc : G < gc := by
         rw [hG, hgc]
-        exact Ccallgas_lt_Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target)
+        exact Ccallgas_lt_Ccall fork (AccountAddress.ofUInt256 target)
           (AccountAddress.ofUInt256 target) value gasArg s.accountMap
           { pc := s.machineState.pc, stack := s.machineState.stack,
             execLength := s.machineState.execLength + 1,
@@ -4017,7 +4019,7 @@ theorem RD.callValueInsufficientBalance {code : ByteArray} {ee : ExecutionEnv} {
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
@@ -4025,7 +4027,7 @@ theorem RD.callValueInsufficientBalance {code : ByteArray} {ee : ExecutionEnv} {
     (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -4042,14 +4044,14 @@ theorem RD.callValueDepthLimitOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true ∨ value = ⟨0⟩)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -4061,7 +4063,7 @@ theorem RD.callValueDepthLimitOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth1024 : s.executionEnv.depth = 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
+    have st := step_call (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False := eq_false (by omega)
     have hstaticF : (¬ s.executionEnv.perm = true ∧ value ≠ ({ val := 0 } : UInt256)) = False :=
@@ -4080,13 +4082,13 @@ theorem RD.callValueDepthLimitOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     set mc := memoryExpansionCost s Operation.CALL with hmc
-    set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value gasArg
+    set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value gasArg
       s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
         gasAvailable := s.machineState.gasAvailable.subNat mc,
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-    set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value gasArg
+    set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value gasArg
       s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
         gasAvailable := s.machineState.gasAvailable.subNat mc,
@@ -4099,7 +4101,7 @@ theorem RD.callValueDepthLimitOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     · rename_i hP
       have hGltgc : G < gc := by
         rw [hG, hgc]
-        exact Ccallgas_lt_Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target)
+        exact Ccallgas_lt_Ccall fork (AccountAddress.ofUInt256 target)
           (AccountAddress.ofUInt256 target) value gasArg s.accountMap
           { pc := s.machineState.pc, stack := s.machineState.stack,
             execLength := s.machineState.execLength + 1,
@@ -4119,14 +4121,14 @@ theorem RD.callValueDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -4138,13 +4140,13 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -4156,7 +4158,7 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth1024 : s.executionEnv.depth = 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
+    have st := step_call (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False := eq_false (by omega)
     have hstaticF : (¬ s.executionEnv.perm = true ∧ ({val := 0} : UInt256) ≠ {val := 0}) = False :=
@@ -4172,13 +4174,13 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     set mc := memoryExpansionCost s Operation.CALL with hmc
-    set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+    set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
       s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
         gasAvailable := s.machineState.gasAvailable.subNat mc,
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-    set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+    set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
       s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
         gasAvailable := s.machineState.gasAvailable.subNat mc,
@@ -4191,7 +4193,7 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     · rename_i hP
       have hGltgc : G < gc := by
         rw [hG, hgc]
-        exact Ccallgas_lt_Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target)
+        exact Ccallgas_lt_Ccall fork (AccountAddress.ofUInt256 target)
           (AccountAddress.ofUInt256 target) { val := 0 } gasArg s.accountMap
           { pc := s.machineState.pc, stack := s.machineState.stack,
             execLength := s.machineState.execLength + 1,
@@ -4207,7 +4209,7 @@ theorem RD.callValueInsufficientBalanceEmptyInOutOr {code : ByteArray} {ee : Exe
     {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true ∨ value = ⟨0⟩)
@@ -4215,7 +4217,7 @@ theorem RD.callValueInsufficientBalanceEmptyInOutOr {code : ByteArray} {ee : Exe
     (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
       mem
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
         (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -4234,7 +4236,7 @@ theorem RD.callValueInsufficientBalanceEmptyInOut {code : ByteArray} {ee : Execu
     {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
@@ -4242,7 +4244,7 @@ theorem RD.callValueInsufficientBalanceEmptyInOut {code : ByteArray} {ee : Execu
     (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
       mem
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
         (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -4253,14 +4255,14 @@ theorem RD.callValueDepthLimitEmptyInOutOr {code : ByteArray} {ee : ExecutionEnv
     {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true ∨ value = ⟨0⟩)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
       mem
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
         (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -4278,14 +4280,14 @@ theorem RD.callValueDepthLimitEmptyInOut {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
       mem
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
         (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -4296,13 +4298,13 @@ theorem RD.callDepthLimitEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : 
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset outOffset : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
       mem
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
         (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
@@ -4330,14 +4332,14 @@ theorem RD.whileLoop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {acc : AccountMap} {α : Type}
     (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256) (exitStk : List UInt256)
     (hexit : ∀ a, Inv 0 a → ∀ k C,
-        RD code ee g s0 header (stk a) mem aw rdata acc k C →
-        ∃ k' C', RD code ee g s0 exit exitStk mem aw rdata acc k' C')
+        RD fork code ee g s0 header (stk a) mem aw rdata acc k C →
+        ∃ k' C', RD fork code ee g s0 exit exitStk mem aw rdata acc k' C')
     (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-        RD code ee g s0 header (stk a) mem aw rdata acc k C →
-        ∃ a' k' C', Inv v a' ∧ RD code ee g s0 header (stk a') mem aw rdata acc k' C') :
+        RD fork code ee g s0 header (stk a) mem aw rdata acc k C →
+        ∃ a' k' C', Inv v a' ∧ RD fork code ee g s0 header (stk a') mem aw rdata acc k' C') :
     ∀ v a, Inv v a → ∀ k C,
-      RD code ee g s0 header (stk a) mem aw rdata acc k C →
-      ∃ k' C', RD code ee g s0 exit exitStk mem aw rdata acc k' C' := by
+      RD fork code ee g s0 header (stk a) mem aw rdata acc k C →
+      ∃ k' C', RD fork code ee g s0 exit exitStk mem aw rdata acc k' C' := by
   intro v
   induction v with
   | zero => intro a hInv k C h; exact hexit a hInv k C h
@@ -4354,16 +4356,16 @@ theorem RD.whileLoopCarry {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256)
     (mem : α → ByteArray) (aw : α → UInt256) (exitStk : α → List UInt256)
     (hexit : ∀ a, Inv 0 a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
-        ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata acc k' C')
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        ∃ k' C', RD fork code ee g s0 exit (exitStk a) (mem a) (aw a) rdata acc k' C')
     (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
         ∃ a' k' C',
-          Inv v a' ∧ RD code ee g s0 header (stk a') (mem a') (aw a') rdata acc k' C') :
+          Inv v a' ∧ RD fork code ee g s0 header (stk a') (mem a') (aw a') rdata acc k' C') :
     ∀ v a, Inv v a → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
       ∃ a' k' C',
-        Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata acc k' C' := by
+        Inv 0 a' ∧ RD fork code ee g s0 exit (exitStk a') (mem a') (aw a') rdata acc k' C' := by
   intro v
   induction v with
   | zero =>
@@ -4384,16 +4386,16 @@ theorem RD.whileLoopCarryExit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     (mem : α → ByteArray) (aw : α → UInt256) (exitStk : α → List UInt256)
     (exitMem : α → ByteArray) (exitAw : α → UInt256)
     (hexit : ∀ a, Inv 0 a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
-        ∃ k' C', RD code ee g s0 exit (exitStk a) (exitMem a) (exitAw a) rdata acc k' C')
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        ∃ k' C', RD fork code ee g s0 exit (exitStk a) (exitMem a) (exitAw a) rdata acc k' C')
     (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
         ∃ a' k' C',
-          Inv v a' ∧ RD code ee g s0 header (stk a') (mem a') (aw a') rdata acc k' C') :
+          Inv v a' ∧ RD fork code ee g s0 header (stk a') (mem a') (aw a') rdata acc k' C') :
     ∀ v a, Inv v a → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
       ∃ a' k' C',
-        Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (exitMem a') (exitAw a') rdata acc k' C' := by
+        Inv 0 a' ∧ RD fork code ee g s0 exit (exitStk a') (exitMem a') (exitAw a') rdata acc k' C' := by
   intro v
   induction v with
   | zero =>
@@ -4416,16 +4418,16 @@ theorem RD.whileLoopCarryFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
     (acc : α → AccountMap)
     (exitStk : α → List UInt256)
     (hexit : ∀ a, Inv 0 a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-        ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+        ∃ k' C', RD fork code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
     (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+        RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
         ∃ a' k' C',
-          Inv v a' ∧ RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
+          Inv v a' ∧ RD fork code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
     ∀ v a, Inv v a → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       ∃ a' k' C',
-        Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C' := by
+        Inv 0 a' ∧ RD fork code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C' := by
   intro v
   induction v with
   | zero =>
@@ -4443,8 +4445,8 @@ theorem RD.oog_of_cost_gt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (hgt : g.toNat < C) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (hgt : g.toNat < C) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
       hacc, hee, hσ₀⟩
@@ -4460,16 +4462,16 @@ off an `RD` cursor, so a terminating segment composes in the `|>.` chain (`… |
 |>.rev …`) instead of breaking out via `.out` + a manual halt step. -/
 
 /-- Halting-success terminal: `X (g+1) … s0` returns the bytes `o` with account map `acc`. -/
-def RDret (code : ByteArray) (g : Sat256) (s0 : State)
+def RDret (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : State)
     (acc : AccountMap) (o : ByteArray) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
-  ∨ ∃ s', X (g.toNat + 1) (D_J code 0) s0 = .ok (.success s' o)
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
+  ∨ ∃ s', X fork (g.toNat + 1) (D_J code 0) s0 = .ok (.success s' o)
         ∧ s'.accountMap = acc
 
 /-- Halting-revert terminal: `X (g+1) … s0` reverts. -/
-def RDrev (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
-  ∨ ∃ g' o, X (g.toNat + 1) (D_J code 0) s0 = .ok (.revert g' o)
+def RDrev (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
+  ∨ ∃ g' o, X fork (g.toNat + 1) (D_J code 0) s0 = .ok (.revert g' o)
 
 /-! ## Static mode
 
@@ -4478,12 +4480,12 @@ With `ee.perm = false` the first `SSTORE`, `LOG*` or value-transferring `CALL` r
 combinators step a cursor at such an opcode into it. -/
 
 /-- Static-halt terminal: `X (g+1) … s0` runs out of gas or raises `StaticModeViolation`. -/
-def RDstatic (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
-  ∨ X (g.toNat + 1) (D_J code 0) s0 = .error .StaticModeViolation
+def RDstatic (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
+  ∨ X fork (g.toNat + 1) (D_J code 0) s0 = .error .StaticModeViolation
 
 /-! A trace segment that contains a path's first forbidden opcode is stated as a permission
-split: `(I.perm = true ∧ P) ∨ (I.perm = false ∧ RDstatic …)`, where `P` is the segment's
+split: `(I.perm = true ∧ P) ∨ (I.perm = false ∧ RDstatic fork …)`, where `P` is the segment's
 ordinary conclusion.  The two projections below select the live side. -/
 
 theorem permSplit_true {I : ExecutionEnv} {P Q : Prop} (hperm : I.perm = true)
@@ -4510,16 +4512,16 @@ theorem staticOr_bind {I : ExecutionEnv} {P P' Q : Prop}
 theorem RD.sstoreStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {slot val : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.SSTORE, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := sstore_xstep_static hcode hpc hdec hperms hstk hov
+    have st := sstore_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4527,16 +4529,16 @@ theorem RD.sstoreStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
 theorem RD.log1Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.LOG1, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := log1_xstep_static hcode hpc hdec hperms hstk hov
+    have st := log1_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4544,16 +4546,16 @@ theorem RD.log1Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.log0Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.LOG0, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := log0_xstep_static hcode hpc hdec hperms hstk hov
+    have st := log0_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4561,16 +4563,16 @@ theorem RD.log0Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.log2Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.LOG2, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := log2_xstep_static hcode hpc hdec hperms hstk hov
+    have st := log2_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4578,16 +4580,16 @@ theorem RD.log2Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.log3Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b c d e : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.LOG3, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := log3_xstep_static hcode hpc hdec hperms hstk hov
+    have st := log3_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4595,16 +4597,16 @@ theorem RD.log3Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 theorem RD.log4Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false)
     (hdec : decode code pc = some (.LOG4, .none))
     (hov : t.length ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := log4_xstep_static hcode hpc hdec hperms hstk hov
+    have st := log4_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
@@ -4614,39 +4616,39 @@ theorem RD.callValueStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target valueWord inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: valueWord :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hperm : ee.perm = false) (hval : valueWord ≠ ⟨0⟩)
     (hdec : decode code pc = some (.CALL, .none))
     (hov : t.length + 1 ≤ 1024) :
-    RDstatic code g s0 := by
+    RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    obtain ⟨_, st⟩ := call_xstep_static hcode hpc hdec hperms hval hstk hov
+    obtain ⟨_, st⟩ := call_xstep_static (fork := fork) hcode hpc hdec hperms hval hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
 
-def RDinvalid (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-  X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction
+def RDinvalid (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction
 
 theorem RD.invalid {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   unfold RD at h
   unfold RDinvalid
   rcases h with hoog | ⟨s, hX, hcode, hpc, _hstk, _hgas, hk, hC, _hmem, _haw,
       _hrdata, _hacc, _hee, _hworld⟩
   · exact Or.inl hoog
   · right
-    have st := invalid_xstep hcode hpc hdec
+    have st := invalid_xstep (fork := fork) hcode hpc hdec
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     rw [hX, hfuel]
     exact Xstep_X_X_except (g.toNat - k) s (D_J code 0) .InvalidInstruction st
@@ -4668,35 +4670,35 @@ theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl}
     (hfalse : ∀ a L evm, Inv 0 a L evm →
       evalExpr? cfg { contract := contract, locals := L, immutables := imms } evm condExpr = .ok (.bool false))
     (hexit : ∀ a L evm, Inv 0 a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-      ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD fork code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
     (htrue : ∀ v a L evm, Inv (v + 1) a L evm →
       evalExpr? cfg { contract := contract, locals := L, immutables := imms } evm condExpr = .ok (.bool true))
     (henter : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-      ∃ k' C', RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD fork code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
     (hbody : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
-      RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
-      (ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body .reverted ∧
-        RDrev code g s0) ∨
+      RD fork code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (ExecBlock fork cfg { contract := contract, locals := L, immutables := imms } evm body .reverted ∧
+        RDrev fork code g s0) ∨
       ∃ a' L1 evm1 L2 evm2 k' C',
-        (ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body
+        (ExecBlock fork cfg { contract := contract, locals := L, immutables := imms } evm body
             (.ok { contract := contract, locals := L1, immutables := imms } evm1) ∨
-          ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body
+          ExecBlock fork cfg { contract := contract, locals := L, immutables := imms } evm body
             (.continue { contract := contract, locals := L1, immutables := imms } evm1)) ∧
-        ExecBlock cfg { contract := contract, locals := L1, immutables := imms } evm1 post
+        ExecBlock fork cfg { contract := contract, locals := L1, immutables := imms } evm1 post
           (.ok { contract := contract, locals := L2, immutables := imms } evm2) ∧
         Inv v a' L2 evm2 ∧
-        RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
+        RD fork code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
     ∀ v a L evm, Inv v a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       (∃ a' L' evm' k' C',
-        ExecForLoop cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body
+        ExecForLoop fork cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body
           (.ok { contract := contract, locals := L', immutables := imms } evm') ∧
         Inv 0 a' L' evm' ∧
-        RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
-      (ExecForLoop cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body .reverted ∧
-        RDrev code g s0) := by
+        RD fork code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
+      (ExecForLoop fork cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body .reverted ∧
+        RDrev fork code g s0) := by
   intro v
   induction v with
   | zero =>
@@ -4741,40 +4743,40 @@ theorem RD.execForLoopOrRevertOrStaticCarryFull {cfg : Config} {contract : Contr
     (hfalse : ∀ a L evm, Inv 0 a L evm →
       evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool false))
     (hexit : ∀ a L evm, Inv 0 a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-      ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD fork code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
     (htrue : ∀ v a L evm, Inv (v + 1) a L evm →
       evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool true))
     (henter : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-      ∃ k' C', RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD fork code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
     (hbody : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
-      RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
-      (ExecBlock cfg { contract := contract, locals := L } evm body .reverted ∧
-        RDrev code g s0) ∨
-      (ExecBlock cfg { contract := contract, locals := L } evm body .staticViolation ∧
-        RDstatic code g s0) ∨
+      RD fork code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (ExecBlock fork cfg { contract := contract, locals := L } evm body .reverted ∧
+        RDrev fork code g s0) ∨
+      (ExecBlock fork cfg { contract := contract, locals := L } evm body .staticViolation ∧
+        RDstatic fork code g s0) ∨
       ∃ a' L1 evm1 L2 evm2 k' C',
-        (ExecBlock cfg { contract := contract, locals := L } evm body
+        (ExecBlock fork cfg { contract := contract, locals := L } evm body
             (.ok { contract := contract, locals := L1 } evm1) ∨
-          ExecBlock cfg { contract := contract, locals := L } evm body
+          ExecBlock fork cfg { contract := contract, locals := L } evm body
             (.continue { contract := contract, locals := L1 } evm1)) ∧
-        ExecBlock cfg { contract := contract, locals := L1 } evm1 post
+        ExecBlock fork cfg { contract := contract, locals := L1 } evm1 post
           (.ok { contract := contract, locals := L2 } evm2) ∧
         Inv v a' L2 evm2 ∧
-        RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
+        RD fork code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
     ∀ v a L evm, Inv v a L evm → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      RD fork code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       (∃ a' L' evm' k' C',
-        ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body
+        ExecForLoop fork cfg { contract := contract, locals := L } evm condExpr post body
           (.ok { contract := contract, locals := L' } evm') ∧
         Inv 0 a' L' evm' ∧
-        RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
-      (ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body .reverted ∧
-        RDrev code g s0) ∨
-      (ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body
+        RD fork code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
+      (ExecForLoop fork cfg { contract := contract, locals := L } evm condExpr post body .reverted ∧
+        RDrev fork code g s0) ∨
+      (ExecForLoop fork cfg { contract := contract, locals := L } evm condExpr post body
           .staticViolation ∧
-        RDstatic code g s0) := by
+        RDstatic fork code g s0) := by
   intro v
   induction v with
   | zero =>
@@ -4791,8 +4793,8 @@ theorem RD.execForLoopOrRevertOrStaticCarryFull {cfg : Config} {contract : Contr
       · rcases hstep with
           ⟨a', L1, evm1, L2, evm2, k2, C2, hbodyStep, hpost, hInv', rdNext⟩
         have hiter : ∀ {r : ExecResult},
-            ExecForLoop cfg { contract := contract, locals := L2 } evm2 condExpr post body r →
-            ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body r := by
+            ExecForLoop fork cfg { contract := contract, locals := L2 } evm2 condExpr post body r →
+            ExecForLoop fork cfg { contract := contract, locals := L } evm condExpr post body r := by
           intro r hloop
           rcases hbodyStep with hbodyOk | hbodyCont
           · exact ExecForLoop.iterate (htrue v a L evm hInv) hbodyOk hpost hloop
@@ -4809,16 +4811,16 @@ theorem RD.execForLoopOrRevertOrStaticCarryFull {cfg : Config} {contract : Contr
 private theorem RD.terminalOOG {code : ByteArray} {g : Sat256} {s0 s : State} {k C cost : ℕ}
     {res : Except ExecutionException (State × Option (HaltCause × ByteArray))}
     (hgas : s.machineState.gasAvailable = g.subNat C)
-    (hstep : Xstep (D_J code 0) s
+    (hstep : Xstep fork (D_J code 0) s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass else res)
     (hk : k ≤ C) (hC : C ≤ g.toNat) (hOOG : g.toNat < C + cost)
-    (hX : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+    (hX : X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - k) (D_J code 0) s) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   rw [hX]
   have hgg : s.machineState.gasAvailable.toNat < cost := by
     rw [hgas, Sat256.subNat_toNat]
     omega
-  have hstepE : Xstep (D_J code 0) s = .error .OutOfGass := by rw [hstep, if_pos hgg]
+  have hstepE : Xstep fork (D_J code 0) s = .error .OutOfGass := by rw [hstep, if_pos hgg]
   have hfuel : g.toNat + 1 - k = (g.toNat + 1 - (k + 1)) + 1 := by omega
   rw [hfuel]; exact Ethereum.EVM.Xstep_X_X_except _ s _ _ hstepE
 
@@ -4828,13 +4830,13 @@ theorem RD.returndatacopyOOG_error {code : ByteArray} {ee : ExecutionEnv} {g : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
     (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hOOG : g.toNat < mcost)
     (hov : t.length ≤ 1024) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, hrdata, _hacc, _hee, _hσ₀⟩
   · exact hoog
@@ -4844,7 +4846,7 @@ theorem RD.returndatacopyOOG_error {code : ByteArray} {ee : ExecutionEnv} {g : S
     have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
       rw [hrdata]
       omega
-    have st := returndatacopy_xstep hcode hpc hdec hstk hmemok hov
+    have st := returndatacopy_xstep (fork := fork) hcode hpc hdec hstk hmemok hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
     exact hX.trans (stepOOG hgas st hk hC (by
@@ -4858,38 +4860,38 @@ theorem RD.returndatacopyOOG {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
     (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hOOG : g.toNat < mcost)
     (hov : t.length ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   Or.inl (RD.returndatacopyOOG_error mcost h hdec hguard hmc hOOG hov)
 
 private theorem Xi_error_of_X_sat
     {σ σ₀ A I} {e} {g : Sat256}
-    (h : X (g.toNat + 1) (D_J I.code 0)
+    (h : X fork (g.toNat + 1) (D_J I.code 0)
             (initState σ σ₀ g A I) = .error e) :
-    Ξ σ σ₀ g.toUInt256 A I = .error e :=
+    Ξ fork σ σ₀ g.toUInt256 A I = .error e :=
   Xi_error_of_X (g := g.toUInt256) (by
     simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
 private theorem Xi_revert_of_X_sat
     {σ σ₀ A I} {g' o} {g : Sat256}
-    (h : X (g.toNat + 1) (D_J I.code 0)
+    (h : X fork (g.toNat + 1) (D_J I.code 0)
             (initState σ σ₀ g A I)
           = .ok (.revert g' o)) :
-    Ξ σ σ₀ g.toUInt256 A I = .ok (.revert g' o) :=
+    Ξ fork σ σ₀ g.toUInt256 A I = .ok (.revert g' o) :=
   Xi_revert_of_X (g := g.toUInt256) (by
     simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
 private theorem Xi_success_of_X_sat
     {σ σ₀ A I} {s' o} {g : Sat256}
-    (h : X (g.toNat + 1) (D_J I.code 0)
+    (h : X fork (g.toNat + 1) (D_J I.code 0)
             (initState σ σ₀ g A I)
           = .ok (.success s' o)) :
-    Ξ σ σ₀ g.toUInt256 A I
+    Ξ fork σ σ₀ g.toUInt256 A I
       = .ok (.success (s'.accountMap, s'.machineState.gasAvailable.toUInt256,
                        s'.substate) o) :=
   Xi_success_of_X (g := g.toUInt256) (by
@@ -4901,19 +4903,19 @@ theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ) (oval : ByteArray)
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURN, .none))
     (hmc : Cₘ (M aw off len) - Cₘ aw = mcost)
     (hoval : mem.readWithPadding off.toNat len.toNat = oval)
     (hov : t.length ≤ 1024) :
-    RDret code g s0 acc oval := by
+    RDret fork code g s0 acc oval := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, _hrdata, hacc, _hee⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .RETURN = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have st := return_xstep hcode hpc hdec hstk hov
+    have st := return_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS, show s.machineState.memory.readWithPadding off.toNat len.toNat = oval from by
       rw [hmem, hoval]] at st
     by_cases gg : g.toNat < C + mcost
@@ -4925,26 +4927,26 @@ theorem RD.genRet {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURN, .none))
     (hov : t.length ≤ 1024) :
-    RDret code g s0 acc (mem.readWithPadding off.toNat len.toNat) := by
+    RDret fork code g s0 acc (mem.readWithPadding off.toNat len.toNat) := by
   exact RD.ret (memExpansionCost aw off len)
     (mem.readWithPadding off.toNat len.toNat) h hdec rfl rfl hov
 
 /-- `STOP`: terminate with **empty** output (cost `Gzero = 0`).  Turns an `RD` cursor into the
-    halting-success terminal `RDret … ByteArray.empty`. -/
+    halting-success terminal `RDret fork … ByteArray.empty`. -/
 theorem RD.stop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.STOP, .none))
     (hov : stk.length ≤ 1024) :
-    RDret code g s0 acc ByteArray.empty := by
+    RDret fork code g s0 acc ByteArray.empty := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, _haw, _hrdata, hacc, _hee⟩
   · exact Or.inl hoog
-  · have st := stop_xstep hcode hpc hdec hstk hov
+  · have st := stop_xstep (fork := fork) hcode hpc hdec hstk hov
     refine Or.inr ⟨stStop s, hX.trans (stepHaltSuccess (cost := 0) hgas ?_ hk (by omega)),
       by simp only [stStop]; exact hacc⟩
     rw [if_neg (Nat.not_lt_zero _)]; exact st
@@ -4955,18 +4957,18 @@ theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ)
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none))
     (hmc : Cₘ (M aw off len) - Cₘ aw = mcost)
     (hov : t.length ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, _hrdata, _hacc, _hee⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .REVERT = mcost := by
       simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have st := revert_xstep hcode hpc hdec hstk hov
+    have st := revert_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + mcost
     · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
@@ -4976,10 +4978,10 @@ theorem RD.genRev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none))
     (hov : t.length ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.rev (memExpansionCost aw off len) h hdec rfl hov
 
 end Reasoning.Reach
@@ -4990,8 +4992,8 @@ namespace Reasoning.Theory
 
 /-- `Ξ` runs out of gas ⇒ the `outOfGas` case. -/
 theorem reEquiv_outOfGas {immutables : Store} {cfg contract σ σ₀ g A I}
-    (h : Ξ σ σ₀ g A I = .error .OutOfGass) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    (h : Ξ fork σ σ₀ g A I = .error .OutOfGass) :
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   .outOfGas h
 
 /-- When a contract has no `receive`/`fallback`, a successful `dispatchMsg` is a successful
@@ -5017,8 +5019,8 @@ theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
 /-- Stele fails to dispatch and `Ξ` reverts ⇒ an execution producing `.noMatch`. -/
 theorem reEquiv_noDispatch {immutables : Store} {cfg contract σ σ₀ g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
-    (h : Ξ σ σ₀ g A I = .ok (.revert g' o)) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    (h : Ξ fork σ σ₀ g A I = .ok (.revert g' o)) :
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   .execution h (.noMatch hd) (.noMatch rfl rfl)
 
 /-- Stele dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. The Stele body does
@@ -5028,10 +5030,10 @@ theorem reEquiv_decodingFailed {immutables : Store}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = none)
-    (h : Ξ σ σ₀ g A I = .ok (.revert g' o))
+    (h : Ξ fork σ σ₀ g A I = .ok (.revert g' o))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   .execution h
     (.decodingFailed
       (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd) hdec)
@@ -5046,12 +5048,12 @@ theorem reEquiv_execution {immutables : Store}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes immutables)
-    (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi t.returnType))
+    (hequiv : execResultsEquiv (Ξ fork σ σ₀ g A I) actRes (.abi t.returnType))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   .execution rfl
     (.intro (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
       rfl hdec rfl hbody)
@@ -5064,10 +5066,10 @@ theorem reEquiv_receiveExecution {immutables : Store}
     (hreceive : receiveDispatchMsg contract I.calldata = some t)
     (hparams : t.params = [])
     (hreturn : t.returnType = [])
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ (.ofUInt256 g) A I) ∅ t.body actRes immutables)
-    (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi [])) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    (hequiv : execResultsEquiv (Ξ fork σ σ₀ g A I) actRes (.abi [])) :
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
 
 end Reasoning.Theory
@@ -5092,39 +5094,39 @@ theorem RDrev.reEquivElim {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray}
     (hcode : I.code = code)
-    (h : RDrev code g (initState σ σ₀ g A I))
+    (h : RDrev fork code g (initState σ σ₀ g A I))
     (k : ∀ g' o,
-          Ξ σ σ₀ g.toUInt256 A I = .ok (.revert g' o) →
-          runtimeRefinementFor cfg contract σ σ₀
+          Ξ fork σ σ₀ g.toUInt256 A I = .ok (.revert g' o) →
+          runtimeRefinementFor fork cfg contract σ σ₀
             g.toUInt256 A I immutables) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨g', o, hX⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact k g' o (Xi_revert_of_X_sat (by rw [← hcode] at hX; exact hX))
 
-/-- `RDrev ⇒ noMatch`: revert with Stele failing to dispatch; the Stele body does not run. -/
+/-- `RDrev fork ⇒ noMatch`: revert with Stele failing to dispatch; the Stele body does not run. -/
 theorem RDrev.reEquivNoDispatch {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray}
-    (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDrev fork code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = none) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
-/-- `RDrev ⇒ decodingFailed`: Stele dispatches to `t` but calldata-decoding fails; the Stele body
+/-- `RDrev fork ⇒ decodingFailed`: Stele dispatches to `t` but calldata-decoding fails; the Stele body
     does not run. -/
 theorem RDrev.reEquivDecodingFailed {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {t}
-    (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDrev fork code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = none)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev hfallback hreceive
 
@@ -5135,12 +5137,12 @@ theorem RDret.reEquivElim {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ o)
+    (h : RDret fork code g (initState σ σ₀ g A I) σ o)
     (k : ∀ (g' : UInt256) (A' : Substate),
-          Ξ σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) →
-          runtimeRefinementFor cfg contract σ σ₀
+          Ξ fork σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) →
+          runtimeRefinementFor fork cfg contract σ σ₀
             g.toUInt256 A I immutables) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
@@ -5158,10 +5160,10 @@ the concrete halt). -/
     `o`, with the account map projected back to the carried `σ`. -/
 theorem RDret.xiResult {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret fork code g (initState σ σ₀ g A I) σ o) :
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) := by
+        Ξ fork σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · have hσ : s.accountMap = σ := hacc
@@ -5172,9 +5174,9 @@ theorem RDret.xiResult {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
 /-- A revert segment's **raw `Ξ` result**: either the run OOGs, or `Ξ` halts with a revert. -/
 theorem RDrev.xiResult {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
-    (h : RDrev code g (initState σ σ₀ g A I)) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (o : ByteArray), Ξ σ σ₀ g.toUInt256 A I = .ok (.revert g' o) := by
+    (h : RDrev fork code g (initState σ σ₀ g A I)) :
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    ∨ ∃ (g' : UInt256) (o : ByteArray), Ξ fork σ σ₀ g.toUInt256 A I = .ok (.revert g' o) := by
   rcases h with hoog | ⟨g', o, hX⟩
   · exact Or.inl (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact Or.inr ⟨g', o, Xi_revert_of_X_sat (by rw [← hcode] at hX; exact hX)⟩
@@ -5183,9 +5185,9 @@ theorem RDrev.xiResult {σ σ₀ A I} {g : Sat256} {code : ByteArray}
 
 /-- A static-mode segment's **raw `Ξ` result**: out of gas, or a `StaticModeViolation` halt. -/
 theorem RDstatic.xiResult {σ σ₀ A I} {g : Sat256} {code : ByteArray}
-    (hcode : I.code = code) (h : RDstatic code g (initState σ σ₀ g A I)) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ Ξ σ σ₀ g.toUInt256 A I = .error .StaticModeViolation := by
+    (hcode : I.code = code) (h : RDstatic fork code g (initState σ σ₀ g A I)) :
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    ∨ Ξ fork σ σ₀ g.toUInt256 A I = .error .StaticModeViolation := by
   rcases h with hoog | hst
   · exact Or.inl (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact Or.inr (Xi_error_of_X_sat (by rw [← hcode] at hst; exact hst))
@@ -5193,26 +5195,26 @@ theorem RDstatic.xiResult {σ σ₀ A I} {g : Sat256} {code : ByteArray}
 /-- Eliminate an `RDstatic` into a `runtimeRefinementFor`: the OOG alternative becomes the
     `outOfGas` case; the continuation `k` receives the `Ξ`-level static halt. -/
 theorem RDstatic.reEquivElim {immutables : Store} {cfg contract σ σ₀ A I} {g : Sat256} {code : ByteArray}
-    (hcode : I.code = code) (h : RDstatic code g (initState σ σ₀ g A I))
-    (k : Ξ σ σ₀ g.toUInt256 A I = .error .StaticModeViolation →
-          runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables := by
+    (hcode : I.code = code) (h : RDstatic fork code g (initState σ σ₀ g A I))
+    (k : Ξ fork σ σ₀ g.toUInt256 A I = .error .StaticModeViolation →
+          runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables) :
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables := by
   rcases h.xiResult hcode with hoog | hst
   · exact reEquiv_outOfGas hoog
   · exact k hst
 
-/-- `RDstatic ⇒ execution` with `staticHalt`: the dispatched Stele body also halts in static mode. -/
+/-- `RDstatic fork ⇒ execution` with `staticHalt`: the dispatched Stele body also halts in static mode. -/
 theorem RDstatic.reEquivStaticHalt {immutables : Store} {cfg contract σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {t callargs}
-    (hcode : I.code = code) (h : RDstatic code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDstatic fork code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body .staticViolation immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables :=
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun hst =>
     reEquiv_execution hd hdec hbody (by rw [hst]; exact execResultsEquiv.staticHalt rfl rfl)
       hfallback hreceive
@@ -5220,11 +5222,11 @@ theorem RDstatic.reEquivStaticHalt {immutables : Store} {cfg contract σ σ₀ A
 /-- The `receive` twin of `RDstatic.reEquivStaticHalt`. -/
 theorem RDstatic.reEquivReceiveStaticHalt {immutables : Store} {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {t}
-    (hcode : I.code = code) (h : RDstatic code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDstatic fork code g (initState σ σ₀ g A I))
     (hreceive : receiveDispatchMsg contract I.calldata = some t)
     (hparams : t.params = []) (hreturn : t.returnType = [])
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ g A I) ∅ t.body .staticViolation immutables) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables :=
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ g A I) ∅ t.body .staticViolation immutables) :
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun hst =>
     reEquiv_receiveExecution hreceive hparams hreturn hbody
       (by rw [hst]; exact execResultsEquiv.staticHalt rfl rfl)
@@ -5307,16 +5309,16 @@ macro_rules
 theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.SELFBALANCE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
+    RD fork code ee g s0 (pc + ⟨1⟩)
       ((acc.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
       (k + 1) (C + GasConstants.Glow) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have st := selfbalance_xstep hcode hpc hdec hstk hov
+  · have st := selfbalance_xstep (fork := fork) hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + GasConstants.Glow
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stSelfbalance s,
@@ -5335,43 +5337,43 @@ theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
 
 
 theorem RD.mloadSymbolic {code I g s0 pc offset R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (offset :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (offset :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none)) (hov : R.length + 1 ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) (loadedWord mem offset :: R)
+    RD fork code I g s0 (pc + ⟨1⟩) (loadedWord mem offset :: R)
       mem (expandedWords aw offset ⟨32⟩) rdata acc (k + 1)
       (C + (expansionCost aw offset ⟨32⟩ + 3)) := by
   exact h.mload (expansionCost aw offset ⟨32⟩) (loadedWord mem offset)
     (expandedWords aw offset ⟨32⟩) hdec rfl rfl rfl hov
 
 theorem RD.mstoreSymbolic {code I g s0 pc offset value R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (offset :: value :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (offset :: value :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none)) (hov : R.length ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) R (value.toByteArray.write 0 mem offset.toNat 32)
+    RD fork code I g s0 (pc + ⟨1⟩) R (value.toByteArray.write 0 mem offset.toNat 32)
       (expandedWords aw offset ⟨32⟩) rdata acc (k + 1)
       (C + (expansionCost aw offset ⟨32⟩ + 3)) := by
   exact h.mstore (expansionCost aw offset ⟨32⟩) _ _ hdec rfl rfl rfl hov
 
 theorem RD.log1Symbolic {code I g s0 pc offset size topic R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (offset :: size :: topic :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (offset :: size :: topic :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG1, .none)) (hperm : I.perm = true)
     (hov : R.length ≤ 1024) :
-    ∃ k' C', RD code I g s0 (pc + ⟨1⟩) R mem (expandedWords aw offset size)
+    ∃ k' C', RD fork code I g s0 (pc + ⟨1⟩) R mem (expandedWords aw offset size)
       rdata acc k' C' := by
   refine ⟨_, _, h.log1 (expansionCost aw offset size) _ hdec hperm rfl rfl hov⟩
 
 theorem RD.revertSymbolic {code I g s0 pc offset size R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (offset :: size :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (offset :: size :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none)) (hov : R.length ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact h.rev (expansionCost aw offset size) hdec rfl hov
 
 theorem RD.calldatacopyAny
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset source len aw : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : Nat}
-    (rd : RD code I g s0 pc (offset :: source :: len :: R) mem aw rdata acc k C)
+    (rd : RD fork code I g s0 pc (offset :: source :: len :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATACOPY, .none)) (hov : R.length ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) R (I.calldata.write source.toNat mem offset.toNat len.toNat)
+    RD fork code I g s0 (pc + ⟨1⟩) R (I.calldata.write source.toNat mem offset.toNat len.toNat)
       (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) rdata acc (k + 1)
       (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw +
         (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
@@ -5381,9 +5383,9 @@ theorem RD.codecopyAny
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset source len aw : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : Nat}
-    (rd : RD code I g s0 pc (offset :: source :: len :: R) mem aw rdata acc k C)
+    (rd : RD fork code I g s0 pc (offset :: source :: len :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CODECOPY, .none)) (hov : R.length ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) R (code.write source.toNat mem offset.toNat len.toNat)
+    RD fork code I g s0 (pc + ⟨1⟩) R (code.write source.toNat mem offset.toNat len.toNat)
       (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) rdata acc (k + 1)
       (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw +
         (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
@@ -5393,9 +5395,9 @@ theorem RD.revAny
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset len aw : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : Nat}
-    (rd : RD code I g s0 pc (offset :: len :: R) mem aw rdata acc k C)
+    (rd : RD fork code I g s0 pc (offset :: len :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none)) (hov : R.length ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw)
     rd hdec (by rfl) hov
 
@@ -5403,11 +5405,11 @@ theorem RD.revAny
 theorem RD.invalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.INVALID, .none)) : RDinvalid code g s0 := by
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.INVALID, .none)) : RDinvalid fork code g s0 := by
   rcases h with hoog | ⟨s, hX, hcode, hpc, _, _, hk, _, _, _, _, _, _, _⟩
   · exact Or.inl hoog
-  · have hstep : Xstep (D_J code 0) s = .error .InvalidInstruction := by
+  · have hstep : Xstep fork (D_J code 0) s = .error .InvalidInstruction := by
       have hd : decode s.executionEnv.code s.machineState.pc = some (.INVALID, .none) := by
         rw [hcode, hpc]
         exact hdec
@@ -5421,9 +5423,9 @@ theorem RD.mstoreWord
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset value aw : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : Nat}
-    (rd : RD code I g s0 pc (offset :: value :: R) mem aw rdata acc k C)
+    (rd : RD fork code I g s0 pc (offset :: value :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none)) (hov : R.length ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) R (value.toByteArray.write 0 mem offset.toNat 32)
+    RD fork code I g s0 (pc + ⟨1⟩) R (value.toByteArray.write 0 mem offset.toNat 32)
       (memoryWordActiveWords aw offset) rdata acc (k + 1)
       (C + (Cₘ (memoryWordActiveWords aw offset) - Cₘ aw + 3)) := by
   exact RD.mstore _ _ _ rd hdec
@@ -5433,10 +5435,10 @@ theorem RD.mloadWord
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset aw value : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : Nat}
-    (rd : RD code I g s0 pc (offset :: R) mem aw rdata acc k C)
+    (rd : RD fork code I g s0 pc (offset :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
     (hvalue : memoryWordLoad mem offset = value) (hov : R.length + 1 ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) (value :: R) mem (memoryWordActiveWords aw offset) rdata acc
+    RD fork code I g s0 (pc + ⟨1⟩) (value :: R) mem (memoryWordActiveWords aw offset) rdata acc
       (k + 1) (C + (Cₘ (memoryWordActiveWords aw offset) - Cₘ aw + 3)) := by
   exact RD.mload _ _ _ rd hdec rfl hvalue rfl hov
 
@@ -5444,18 +5446,18 @@ theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+      X fork (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
   rcases RD.conclude h with hoog | ⟨k', C', s', hX, hcode, hpc, _hstk, _hgas, hk, hC,
     _hmem, _haw, _hrdata, _hacc⟩
   · exact Or.inl hoog
   · have hdec' : decode s'.executionEnv.code s'.machineState.pc = some (.INVALID, .none) := by
       rw [hcode, hpc]
       exact hdec
-    have hstep : Xstep (D_J code 0) s' = .error .InvalidInstruction := by
-      have hstep' := Ethereum.EVM.step_invalid s' hdec'
+    have hstep : Xstep fork (D_J code 0) s' = .error .InvalidInstruction := by
+      have hstep' := Ethereum.EVM.step_invalid (fork := fork) s' hdec'
       simpa [hcode] using hstep'
     have hfuel : g.toNat + 1 - k' = (g.toNat + 1 - (k' + 1)) + 1 := by
       omega
@@ -5464,10 +5466,10 @@ theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
 theorem RD.log2Symbolic {code I g s0 pc offset size topic1 topic2 R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (offset :: size :: topic1 :: topic2 :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (offset :: size :: topic1 :: topic2 :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : I.perm = true)
     (hov : R.length ≤ 1024) :
-    ∃ k' C', RD code I g s0 (pc + ⟨1⟩) R mem (expandedWords aw offset size) rdata acc k' C' := by
+    ∃ k' C', RD fork code I g s0 (pc + ⟨1⟩) R mem (expandedWords aw offset size) rdata acc k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
     hacc, hee, hworld⟩
@@ -5476,7 +5478,7 @@ theorem RD.log2Symbolic {code I g s0 pc offset size topic1 topic2 R mem aw rdata
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
       rfl
     have hp : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log2_xstep hcode hpc hdec hp hstk hov
+    have st := log2_xstep (fork := fork) hcode hpc hdec hp hstk hov
     rw [hmc] at st
     let cost := expansionCost aw offset size +
       (GasConstants.Glog + GasConstants.Glogdata * size.toNat + 2 * GasConstants.Glogtopic)
@@ -5497,12 +5499,12 @@ theorem RD.log2OfCost {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
     (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+    RD fork code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
       (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
         + 2 * GasConstants.Glogtopic))) := by
   unfold RD at h ⊢
@@ -5515,7 +5517,7 @@ theorem RD.log2OfCost {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     have hperms : s.executionEnv.perm = true := by
       rw [hee]
       exact hperm
-    have st := log2_xstep hcode hpc hdec hperms hstk hov
+    have st := log2_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
         + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
@@ -5545,10 +5547,10 @@ theorem RD.log2OfCost {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
         exact hworld
 
 theorem RD.returndatacopySymbolic {code I g s0 pc dest src size R mem aw rdata acc k C}
-    (h : RD code I g s0 pc (dest :: src :: size :: R) mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc (dest :: src :: size :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : src.toNat + size.toNat ≤ rdata.size) (hov : R.length ≤ 1024) :
-    ∃ k' C', RD code I g s0 (pc + ⟨1⟩) R
+    ∃ k' C', RD fork code I g s0 (pc + ⟨1⟩) R
       (rdata.write src.toNat mem dest.toNat size.toNat) (expandedWords aw dest size)
       rdata acc k' C' := by
   exact ⟨_, _, h.returndatacopy (expansionCost aw dest size) _ _ hdec hguard rfl rfl rfl hov⟩
@@ -5561,10 +5563,10 @@ theorem RD.returndatacopySymbolic {code I g s0 pc dest src size R mem aw rdata a
 theorem RD.reachInvalidHaltXi {σ σ₀ A I} {g : Sat256}
     {ee : ExecutionEnv} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD I.code ee g (Reasoning.Theory.initState σ σ₀ g A I) pc stk mem aw rdata acc k C)
+    (h : RD fork I.code ee g (Reasoning.Theory.initState σ σ₀ g A I) pc stk mem aw rdata acc k C)
     (hdec : decode I.code pc = some (.INVALID, .none)) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ Ξ σ σ₀ g.toUInt256 A I = .error .InvalidInstruction := by
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    ∨ Ξ fork σ σ₀ g.toUInt256 A I = .error .InvalidInstruction := by
   rcases RD.invalidError h hdec with hoog | hinv
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256)
       (by simpa [Reasoning.Theory.initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
@@ -5576,10 +5578,10 @@ with `PUSH8`. -/
 theorem RD.push8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH8, some (argv, 8)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 9) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) :=
+    RD fork code ee g s0 (pc + UInt256.ofNat 9) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) :=
   h.pushConst argv (by decide) hdec hov
 
 /-- Local wrapper for `RD.sload` that preserves the consumed-cost lower bound. -/
@@ -5587,18 +5589,18 @@ theorem RD.sloadMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (a :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.SLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
     ∃ k' C',
       C ≤ C' ∧
-        RD code ee g s0 (pc + ⟨1⟩)
+        RD fork code ee g s0 (pc + ⟨1⟩)
           ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD a ⟨0⟩)) :: t)
           mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
       hacc, hee, hworld⟩
   · exact ⟨k, C, le_rfl, Or.inl hoog⟩
-  · have st := sload_xstep hcode hpc hdec hstk hov
+  · have st := sload_xstep (fork := fork) hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := hacc
     have hco : s.executionEnv.codeOwner = ee.codeOwner := by rw [hee]
     by_cases gg : g.toNat < C + Csload (a :: t) s.substate s.executionEnv
@@ -5627,7 +5629,7 @@ theorem RD.selectorSplitNotTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g 
     {s0 : State} {pc next selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (pivot, 4)))
     (hgt : decode code (selArmEqPc pc) = some (.GT, .none))
@@ -5636,7 +5638,7 @@ theorem RD.selectorSplitNotTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g 
     (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
     (hb : UInt256.gt pivot selWord = ⟨0⟩) (hnext : selArmNextPc pc 2 = next)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    RD fork code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   rw [← hnext]
   exact h.selectorSplitNotTaken hdup hpush4 hgt hop hpushT hjumpi hb hov
 
@@ -5644,7 +5646,7 @@ theorem RD.selectorSplitTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : S
     {s0 : State} {pc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (pivot, 4)))
     (hgt : decode code (selArmEqPc pc) = some (.GT, .none))
@@ -5653,14 +5655,14 @@ theorem RD.selectorSplitTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : S
     (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
     (hb : UInt256.gt pivot selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+    RD fork code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
   h.selectorSplitTaken hdup hpush4 hgt hop hpushT hjumpi hb hjd hov
 
 theorem RD.selectorArmNotTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc next selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (sel, 4)))
     (heq : decode code (selArmEqPc pc) = some (.EQ, .none))
@@ -5669,7 +5671,7 @@ theorem RD.selectorArmNotTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : 
     (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
     (hb : UInt256.eq sel selWord = ⟨0⟩) (hnext : selArmNextPc pc 2 = next)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+    RD fork code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
   rw [← hnext]
   exact h.selectorArmNotTaken hdup hpush4 heq hop hpushT hjumpi hb hov
 
@@ -5677,7 +5679,7 @@ theorem RD.selectorArmTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {pc selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
     (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (sel, 4)))
     (heq : decode code (selArmEqPc pc) = some (.EQ, .none))
@@ -5686,7 +5688,7 @@ theorem RD.selectorArmTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
     (hb : UInt256.eq sel selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
     (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+    RD fork code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
   h.selectorArmTaken hdup hpush4 heq hop hpushT hjumpi hb hjd hov
 
 end Reasoning.Reach
@@ -5731,10 +5733,10 @@ theorem mloadCostZero {aw off : UInt256}
 /-- Lift a return trace whose final account map may differ from the initial map to `Ξ`. -/
 theorem RDretXiResultAccountMap {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
     {acc : AccountMap} (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
+    (h : RDret fork code g (initState σ σ₀ g A I) acc o) :
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
       ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
+        Ξ fork σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
   rcases h with hOOG | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hOOG
@@ -5748,10 +5750,10 @@ theorem RDretXiResultAccountMap {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
 theorem RDretXiResultAccountMapReordered {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : Sat256} {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret fork code g (initState σ σ₀ g A I) σ' o) :
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I =
+        Ξ fork σ σ₀ g.toUInt256 A I =
           .ok (.success (σ', g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by

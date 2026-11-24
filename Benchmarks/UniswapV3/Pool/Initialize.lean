@@ -5,6 +5,8 @@ import Benchmarks.UniswapV3.Pool.InitializeFinishTrace
 import Benchmarks.UniswapV3.Pool.OracleInitializeTrace
 import Benchmarks.UniswapV3.Pool.OracleInitializeStaticTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `initialize(uint160)`
 
@@ -26,7 +28,7 @@ theorem uniswapV3PoolInitializeBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3P
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 25)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 25) rfl hsel
   have hd : dispatchMsg contract I.calldata = some initializeTransition := by
     apply uniswapV3PoolDispatch_initialize <;>
@@ -65,10 +67,10 @@ theorem uniswapV3PoolInitializeBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3P
           have rdRet := uniswapV3PoolBlocks.uniswapV3Pool_block_857
             (immWords := wordsOf (immStore v)) (by simp) rdDone
           exact rdRet.reEquivExecutionGen hcode hd hdec
-            (initializeReturns (hperm := by assumption) v evm price hwv hzero hp hv hs) rfl
+            (initializeReturns (fork := fork) (hperm := by assumption) v evm price hwv hzero hp hv hs) rfl
             (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
   · have hshort : I.calldata.size < 36 := by omega
-    have rdBad := uniswapV3PoolInitializeShortX
+    have rdBad := uniswapV3PoolInitializeShortX (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize hsel hshort
     exact rdBad.reEquivDecodingFailed hcode hd (initializeDecodeShort hsz hshort)
 

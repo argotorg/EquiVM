@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.Selectors
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -202,7 +204,7 @@ theorem spotDispatch_none_nomatch {cd : ByteArray}
 
 theorem spotBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
@@ -283,7 +285,7 @@ theorem spotHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem spotReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         spotRootSplitPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [spotRootSplitPc, spotSelWord] using
@@ -306,18 +308,18 @@ theorem spotReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat spotBytecode spotRootSplitPc) (spotSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         spotLowFirstArmPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     spotReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h113 : RD spotBytecode I g (initState σ σ₀ g A I)
+  have h113 : RD fork spotBytecode I g (initState σ σ₀ g A I)
       spotLowJumpdestPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [spotRootSplitPc, spotLowJumpdestPc] using
       RD.selectorSplitTakenAuto h32 spotRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h114 : RD spotBytecode I g (initState σ σ₀ g A I)
+  have h114 : RD fork spotBytecode I g (initState σ σ₀ g A I)
       spotLowFirstArmPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [spotLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
@@ -327,13 +329,13 @@ theorem spotReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat spotBytecode spotRootSplitPc) (spotSelWord I) = ⟨0⟩) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         spotHighFirstArmPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     spotReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD spotBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork spotBytecode I g (initState σ σ₀ g A I)
       spotHighFirstArmPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [spotHighFirstArmPc, spotRootSplitPc, selArmNextPc, armTgtWidth,
@@ -354,7 +356,7 @@ theorem spotReachLowBody {σ σ₀ A I} {g : Sat256}
         (spotSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J spotBytecode 0).contains bodyPC = true)
     (hbody : armTgt spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         bodyPC [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -377,7 +379,7 @@ theorem spotReachHighBody {σ σ₀ A I} {g : Sat256}
         (spotSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J spotBytecode 0).contains bodyPC = true)
     (hbody : armTgt spotBytecode (nthArmPc spotBytecode spotHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         bodyPC [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -389,11 +391,11 @@ theorem spotReachHighBody {σ σ₀ A I} {g : Sat256}
 
 theorem spotJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD spotBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork spotBytecode I g (initState σ σ₀ g A I) pc
       [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode spotBytecode pc = some (.Push .PUSH2, some (spotDispatchRevertPc, 2)))
     (hjump : decode spotBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have h180 := h.push2 spotDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -401,12 +403,12 @@ theorem spotJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem spotLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD spotBytecode I g (initState σ σ₀ g A I) spotLowFirstArmPc
+    (h : RD fork spotBytecode I g (initState σ σ₀ g A I) spotLowFirstArmPc
       [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc j))
         (spotSelWord I) = ⟨0⟩) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have h180 := h
     |>.selectorArmNotTakenAuto (spotLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -425,12 +427,12 @@ theorem spotLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem spotHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD spotBytecode I g (initState σ σ₀ g A I) spotHighFirstArmPc
+    (h : RD fork spotBytecode I g (initState σ σ₀ g A I) spotHighFirstArmPc
       [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat spotBytecode (nthArmPc spotBytecode spotHighFirstArmPc j))
         (spotSelWord I) = ⟨0⟩) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (spotHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -448,8 +450,8 @@ theorem spotHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 theorem spotX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -461,8 +463,8 @@ theorem spotX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem spotX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -485,7 +487,7 @@ theorem spotX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 12 → (spotSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have heqLow : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc j))
@@ -561,7 +563,7 @@ theorem spotX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem spotNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (spotX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -586,7 +588,7 @@ theorem spotNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 12 → (spotSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (spotX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (spotDispatch_none_nomatch hnm)

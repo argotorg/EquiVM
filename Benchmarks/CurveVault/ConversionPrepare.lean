@@ -1,25 +1,27 @@
 import Benchmarks.CurveVault.ConversionPrefix
 import Benchmarks.CurveVault.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
 
 
-def vaultConversionPrefixOutcome (s0 evm : State) (I : ExecutionEnv) (g : Sat256)
+def vaultConversionPrefixOutcome (fork : Ethereum.Fork) (s0 evm : State) (I : ExecutionEnv) (g : Sat256)
     (locals : Store) (mem : ByteArray) (next : UInt256) (R : List UInt256) : Prop :=
   (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (mem' : ByteArray)
       (total aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionPrefix
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionPrefix
       (.ok {contract := contract, locals := locals'} evm') ∧
     SourceState s0 I σ' evm' ∧
     locals'.get? "total_assets" = some (.int (Int.ofNat total.toNat)) ∧
     (∀ name, name ≠ "total_assets" → name ≠ "__c0" → locals'.get? name = locals.get? name) ∧
     WordMemoryRange mem mem' 224 416 ∧ WordMemoryRange mem mem' 480 UInt256.size ∧
     448 ≤ mem'.size ∧ memLoad (UInt256.ofNat 416) mem' = total ∧
-    RD vaultBytecode I g s0 next R mem' aw' out σ' k' C') ∨
-  (ExecBlock config {contract := contract, locals := locals} evm vaultConversionPrefix .reverted ∧
-    RDrev vaultBytecode g s0)
+    RD fork vaultBytecode I g s0 next R mem' aw' out σ' k' C') ∨
+  (ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionPrefix .reverted ∧
+    RDrev fork vaultBytecode g s0)
 
 theorem vaultConversionPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
@@ -29,19 +31,19 @@ theorem vaultConversionPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
     (hprovided : total ≠ vaultMaxWord →
-      RD vaultBytecode I g s0 pc R mem aw rdata σ k C →
-      ∃ aw' k' C', RD vaultBytecode I g s0 next R
+      RD fork vaultBytecode I g s0 pc R mem aw rdata σ k C →
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 next R
         (total.toByteArray.write 0 mem 416 32) aw' rdata σ k' C')
     (hcomputed : total = vaultMaxWord →
-      RD vaultBytecode I g s0 pc R mem aw rdata σ k C →
-      ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+      RD fork vaultBytecode I g s0 pc R mem aw rdata σ k C →
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
         (UInt256.ofNat 448 :: returnPc :: R) (total.toByteArray.write 0 mem 416 32) aw' rdata σ k' C')
     (hresume : ∀ {mem' aw' out σ' k' C'},
-      RD vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C' →
-      ∃ aw'' k'' C'', RD vaultBytecode I g s0 next R
+      RD fork vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C' →
+      ∃ aw'' k'' C'', RD fork vaultBytecode I g s0 next R
         ((memLoad (UInt256.ofNat 448) mem').toByteArray.write 0 mem' 416 32) aw'' out σ' k'' C'')
-    (h : RD vaultBytecode I g s0 pc R mem aw rdata σ k C) :
-    vaultConversionPrefixOutcome s0 evm I g locals mem next R := by
+    (h : RD fork vaultBytecode I g s0 pc R mem aw rdata σ k C) :
+    vaultConversionPrefixOutcome fork s0 evm I g locals mem next R := by
   let preMem := total.toByteArray.write 0 mem 416 32
   have preSize : 448 ≤ preMem.size := toByteArray_write_size_ge_off_add32 _ _ 416
     (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 416 (by norm_num)))
@@ -62,7 +64,7 @@ theorem vaultConversionPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         memLoad_write_back _ _ 448 (by decide +kernel)
           (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 448 (by norm_num)))
       obtain ⟨aw2, k2, C2, rdNext⟩ := hresume rdResume
-      change RD vaultBytecode I g s0 next R
+      change RD fork vaultBytecode I g s0 next R
         ((memLoad (UInt256.ofNat 448) returned).toByteArray.write 0 returned 416 32) aw2 out σ' k2 C2 at rdNext
       rw [hvalue] at rdNext
       have frameScratch : WordMemoryRange preMem scratch 224 UInt256.size := by
@@ -109,8 +111,8 @@ theorem vaultConvertSharesPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (harg : locals.get? "_total_assets" = some (.int (Int.ofNat total.toNat)))
     (hread : memLoad (UInt256.ofNat 384) mem = total)
     (hstack : R.length + 10 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7108) R mem aw rdata σ k C) :
-    vaultConversionPrefixOutcome s0 evm I g locals mem (UInt256.ofNat 7145) R := by
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7108) R mem aw rdata σ k C) :
+    vaultConversionPrefixOutcome fork s0 evm I g locals mem (UInt256.ofNat 7145) R := by
   have hword : memLoad (UInt256.ofNat 416)
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem (UInt256.ofNat 416).toNat 32) = total := by
     rw [hread]
@@ -120,7 +122,7 @@ theorem vaultConvertSharesPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
   · intro hne rd
     have rdNext := vaultBlocks.vault_block_7108_taken (by omega)
       (by rw [hword]; intro hnot; exact hne ((u256_lnot_eq_zero_iff _).mp hnot)) (by native_decide) rd
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7145) R
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7145) R
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem 416 32) _ rdata σ _ _ at rdNext
     rw [hread] at rdNext
     exact ⟨_, _, _, rdNext⟩
@@ -128,7 +130,7 @@ theorem vaultConvertSharesPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     have rdCall := vaultBlocks.vault_block_7108_fallthrough (by omega)
       (by rw [hword]; exact (u256_lnot_eq_zero_iff _).mpr hmax) rd
     have rdCallee := vaultBlocks.vault_block_7126 (by omega) (by native_decide) rdCall
-    change RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
       (UInt256.ofNat 448 :: UInt256.ofNat 7136 :: R)
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem 416 32) _ rdata σ _ _ at rdCallee
     rw [hread] at rdCallee
@@ -144,8 +146,8 @@ theorem vaultConvertAssetsPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (harg : locals.get? "_total_assets" = some (.int (Int.ofNat total.toNat)))
     (hread : memLoad (UInt256.ofNat 384) mem = total)
     (hstack : R.length + 10 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7332) R mem aw rdata σ k C) :
-    vaultConversionPrefixOutcome s0 evm I g locals mem (UInt256.ofNat 7369) R := by
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7332) R mem aw rdata σ k C) :
+    vaultConversionPrefixOutcome fork s0 evm I g locals mem (UInt256.ofNat 7369) R := by
   have hword : memLoad (UInt256.ofNat 416)
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem (UInt256.ofNat 416).toNat 32) = total := by
     rw [hread]
@@ -155,7 +157,7 @@ theorem vaultConvertAssetsPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
   · intro hne rd
     have rdNext := vaultBlocks.vault_block_7332_taken (by omega)
       (by rw [hword]; intro hnot; exact hne ((u256_lnot_eq_zero_iff _).mp hnot)) (by native_decide) rd
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7369) R
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7369) R
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem 416 32) _ rdata σ _ _ at rdNext
     rw [hread] at rdNext
     exact ⟨_, _, _, rdNext⟩
@@ -163,7 +165,7 @@ theorem vaultConvertAssetsPrepare {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     have rdCall := vaultBlocks.vault_block_7332_fallthrough (by omega)
       (by rw [hword]; exact (u256_lnot_eq_zero_iff _).mpr hmax) rd
     have rdCallee := vaultBlocks.vault_block_7350 (by omega) (by native_decide) rdCall
-    change RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
       (UInt256.ofNat 448 :: UInt256.ofNat 7360 :: R)
       ((memLoad (UInt256.ofNat 384) mem).toByteArray.write 0 mem 416 32) _ rdata σ _ _ at rdCallee
     rw [hread] at rdCallee

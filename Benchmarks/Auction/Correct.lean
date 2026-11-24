@@ -22,6 +22,8 @@ import Benchmarks.Auction.Constructor
 import Benchmarks.Auction.Dispatcher
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -36,7 +38,7 @@ open Auction
 
 theorem auctionCorrect :
     runtimeRefinement auctionConfig auctionBytecode Auction.auctionContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   swap
   · exact auctionShortRevert hcode (by omega)

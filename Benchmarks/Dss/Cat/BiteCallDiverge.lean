@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.BiteRevertLeaves
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -32,13 +34,13 @@ carries, so we build them here directly from the generic `RD.uniswap*` combinato
 theorem RD.catBiteIlksNoCode
     {σ σ₀ A I} {g : UInt256}
     {target outPtr inSize outSize aw : UInt256} {mem o : ByteArray} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (target :: target :: outPtr :: inSize :: outPtr :: outSize :: R)
       mem aw o σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcExtcodesizeGuardMissing (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -51,12 +53,12 @@ theorem RD.catBiteIlksCallFailed
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcCallSuccessGuardMissing (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -72,7 +74,7 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
     {acc : AccountMap}
     {status d0 d1 d2 : UInt256}
     {mem o : ByteArray} {aw : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hstatus : status ≠ ⟨0⟩)
@@ -84,7 +86,7 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
     (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1267⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
@@ -125,16 +127,16 @@ theorem catBiteUrnsNoCodeLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R) mem aw o σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteUrnsNoCode rd hcodeSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -147,15 +149,15 @@ theorem catBiteUrnsFailLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size) (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteUrnsCallFailed rd hosz hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -168,7 +170,7 @@ theorem catBiteUrnsDecodeShortLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1420⟩
       R mem aw o acc k C)
     (hshort : o.size < 64) (hhi : o.size < UInt256.size)
@@ -180,10 +182,10 @@ theorem catBiteUrnsDecodeShortLeaf {σ σ₀ A I} {g : UInt256}
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 4 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteUrnsReturnDecodeShortReverts rd hshort hhi hMload64Value hMload64Cost
     hMload64Aw hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -199,16 +201,16 @@ theorem catBiteGrabNoCodeLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteGrabNoCode rd hcodeSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -221,16 +223,16 @@ theorem catBiteFessNoCodeLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteFessNoCode rd hcodeSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -244,16 +246,16 @@ theorem catBiteKickNoCodeLeaf {σ σ₀ A I} {g target : UInt256} {mem : ByteArr
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R) mem aw rdata σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteKickGuardMissing rd hcodeSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -267,16 +269,16 @@ theorem catBiteIlksNoCodeLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (target :: target :: outPtr :: inSize :: outPtr :: outSize :: R) mem aw o σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteIlksNoCode rd hcodeSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -289,15 +291,15 @@ theorem catBiteIlksFailLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size) (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteIlksCallFailed rd hosz hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -312,7 +314,7 @@ theorem catBiteIlksDecodeShortLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hstatus : status ≠ ⟨0⟩)
@@ -325,10 +327,10 @@ theorem catBiteIlksDecodeShortLeaf {σ σ₀ A I} {g : UInt256}
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteIlksReturnDecodeShortReverts rd hstatus hshort hhi hMload64Value
     hMload64Cost hMload64Aw hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -361,13 +363,13 @@ theorem catBiteSourceIlksNoCodeRevert {σ σ₀ A I} {g : UInt256}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
   set L0 := biteLocals I with hL0
   have hblock :
-      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+      ExecBlock fork config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
     simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
       checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -386,23 +388,23 @@ theorem catBiteSourceIlksFailRevert {σ σ₀ A I} {g : UInt256}
           (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat)
     (hIlksFailCall :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         "ilks" 0 [biteIlkVal I] (false, evmIlk, ilksOut) false) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
   set L0 := biteLocals I with hL0
   have hblock :
-      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+      ExecBlock fork config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
     simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
       checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (biteVatGuard_true (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0))) ?_
-    exact ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    exact ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (biteVatRead (biteLocals_get_vat I)) (by simp [evalExpr?, pure])
       (evalExprs_biteIlksArgs I (biteLocals_get_ilk I)) hIlksFailCall)
   simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
@@ -418,24 +420,24 @@ theorem catBiteSourceIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
           (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat)
     (hIlksCall :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
     (hIlksDec : config.externalABI.decode? "ilks" ilksOut = none) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
   set L0 := biteLocals I with hL0
   have hblock :
-      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+      ExecBlock fork config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
     simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
       checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (biteVatGuard_true (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0))) ?_
-    exact ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    exact ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (biteVatRead (biteLocals_get_vat I)) (by simp [evalExpr?, pure])
       (evalExprs_biteIlksArgs I (biteLocals_get_ilk I)) hIlksCall hIlksDec)
   simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
@@ -451,7 +453,7 @@ variable {σ σ₀ A I} {g : UInt256}
         (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
         (fun acc => acc.code.size))).toNat)
   (hIlksCall :
-    typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
       "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
   (hIlksDec :
@@ -468,10 +470,10 @@ include hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
 as an `ExecBlock`-continuation goal. Shared by the two reachable `urns` divergences. -/
 private theorem biteUrnsRevert_afterIlks
     (hUrnsStmtRevert :
-      ExecStmt config { contract := contract, locals := bsDust I iArt iRate iSpot iLine iDust } evmIlk
+      ExecStmt fork config { contract := contract, locals := bsDust I iArt iRate iSpot iLine iDust } evmIlk
         (.externalCall (.storage vatRef) "urns" (.intLit 0) [.var "ilk", .var "urn"] "vatUrn"
           (perm := false)) .reverted) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted := by
   set evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
@@ -481,7 +483,7 @@ private theorem biteUrnsRevert_afterIlks
   set Lspot := Lrate.insert "spot" (bw iSpot) with hLspot
   set Ldust := Lspot.insert "dust" (bw iDust) with hLdust
   have hIlksStmt :
-      ExecStmt config { contract := contract, locals := L0 } evm0
+      ExecStmt fork config { contract := contract, locals := L0 } evm0
         (.externalCall (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk" (perm := false))
         (.ok { contract := contract, locals := Lilk } evmIlk) := by
     simpa [hLilk, biteIlkTuple, collapseReturns] using
@@ -497,19 +499,19 @@ private theorem biteUrnsRevert_afterIlks
         (evalExprs_biteIlksArgs I (biteLocals_get_ilk I))
         hIlksCall hIlksDec
   have hRateStmt :
-      ExecStmt config { contract := contract, locals := Lilk } evmIlk
+      ExecStmt fork config { contract := contract, locals := Lilk } evmIlk
         (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := Lrate } evmIlk) :=
     biteTupleLet "vatIlk" "rate" (some uint256) 1
       (by rw [hLilk, store_get_self]) (by rfl)
   have hSpotStmt :
-      ExecStmt config { contract := contract, locals := Lrate } evmIlk
+      ExecStmt fork config { contract := contract, locals := Lrate } evmIlk
         (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract, locals := Lspot } evmIlk) :=
     biteTupleLet "vatIlk" "spot" (some uint256) 2
       (by rw [hLrate, store_get_ne _ _ (by decide), hLilk, store_get_self]) (by rfl)
   have hDustStmt :
-      ExecStmt config { contract := contract, locals := Lspot } evmIlk
+      ExecStmt fork config { contract := contract, locals := Lspot } evmIlk
         (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
         (.ok { contract := contract, locals := Ldust } evmIlk) :=
     biteTupleLet "vatIlk" "dust" (some uint256) 4
@@ -522,7 +524,7 @@ private theorem biteUrnsRevert_afterIlks
   have hLdustEq : Ldust = bsDust I iArt iRate iSpot iLine iDust := by
     rw [hLdust, hLspot, hLrate, hLilk, hL0]
   have hblock :
-      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+      ExecBlock fork config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
     simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
       checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -542,13 +544,13 @@ private theorem biteUrnsRevert_afterIlks
 /-- **urns call-failed revert.** `ilks` succeeds; the second STATICCALL returns `success = 0`. -/
 theorem catBiteSourceUrnsFailRevert
     (hUrnsFailCall :
-      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+      typedCallViaEVM fork config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (false, evmUrn, urnsOut) false) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted :=
   biteUrnsRevert_afterIlks hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
-    (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (biteVatRead (bsDust_get_vat I _ _ _ _ _))
+    (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (biteVatRead (bsDust_get_vat I _ _ _ _ _))
       (by simp [evalExpr?, pure])
       (evalExprs_biteUrnsArgs I (bsDust_get_ilk I _ _ _ _ _) (bsDust_get_urn I _ _ _ _ _))
       hUrnsFailCall)
@@ -557,14 +559,14 @@ theorem catBiteSourceUrnsFailRevert
 bytes do not ABI decode to the `(uint256,uint256)` tuple. -/
 theorem catBiteSourceUrnsDecodeRevert
     (hUrnsCall :
-      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+      typedCallViaEVM fork config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
     (hUrnsDec : config.externalABI.decode? "urns" urnsOut = none) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
       biteTransition.body .reverted :=
   biteUrnsRevert_afterIlks hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
-    (ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (biteVatRead (bsDust_get_vat I _ _ _ _ _))
+    (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (biteVatRead (bsDust_get_vat I _ _ _ _ _))
       (by simp [evalExpr?, pure])
       (evalExprs_biteUrnsArgs I (bsDust_get_ilk I _ _ _ _ _) (bsDust_get_urn I _ _ _ _ _))
       hUrnsCall hUrnsDec)
@@ -583,7 +585,7 @@ theorem RD.catBiteKickReturnDecodeShortReverts
     {σ σ₀ A I} {g status fp : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {d0 d1 d2 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hstatus : status ≠ ⟨0⟩)
@@ -595,7 +597,7 @@ theorem RD.catBiteKickReturnDecodeShortReverts
     (hMloadFreeCost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd2550⟩ := RD.catBiteKickCallSucceeded rd hstatus (by evm_ov)
   have rd2551 := rd2550.pop (by native_decide) (by evm_ov)
@@ -635,7 +637,7 @@ theorem catBiteKickReturnDecodeShortLeaf {σ σ₀ A I} {g status fp : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hstatus : status ≠ ⟨0⟩)
@@ -648,10 +650,10 @@ theorem catBiteKickReturnDecodeShortLeaf {σ σ₀ A I} {g status fp : UInt256}
     (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteKickReturnDecodeShortReverts rd hstatus hshort hhi hMloadFreeValue
     hMloadFreeCost hMloadFreeAw hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

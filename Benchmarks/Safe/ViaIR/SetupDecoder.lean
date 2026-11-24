@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.SetupDecodeScalars
 import Benchmarks.Safe.ViaIR.SetupDecodeOwnersEvidence
 import Benchmarks.Safe.ViaIR.CalldataBytesDecoder
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -10,10 +12,10 @@ set_option maxRecDepth 2000
 set_option maxHeartbeats 1000000
 
 theorem safeDecodeSetupValid {I g s0 σ k C aw mem rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k' C' := by
   obtain ⟨_, _, h₁⟩ := safeSetupDecodeOwnersValid h hb.head hb.small hb.ownersOffset
     hb.ownersWord hb.ownersLength hb.ownersEnd (by simp; omega)
@@ -27,11 +29,11 @@ theorem safeDecodeSetupValid {I g s0 σ k C aw mem rdata n len} {R : List UInt25
   exact safeSetupDecodeFinish h₇ hb.paymentReceiver (by omega)
 
 theorem safeDecodeSetupEvidence {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨ ∃ n len k' C', SetupCalldataBounds I.calldata n len ∧
-      RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    RDrev fork safeBytecode g s0 ∨ ∃ n len k' C', SetupCalldataBounds I.calldata n len ∧
+      RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
         mem aw rdata σ k' C' := by
   obtain hr | ⟨n, _, _, hh, hs, ho, hw, hn, hin, h₁⟩ :=
     safeSetupDecodeOwnersEvidence h hlong hsize (by omega)

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogReadySource
 import Benchmarks.UniswapV3.Pool.TickLogIterationSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -31,7 +33,7 @@ theorem tickLogIterationFoldSource {frame : Frame} {evm : EVM.State}
     (hr : frame.locals.get? "r" = some (.int (Int.ofNat state.1.toNat)))
     (hl : frame.locals.get? "log_2" = some (.int (signedWordInt state.2)))
     (hstages : ∀ stage ∈ stages, stage.1 ≠ "r" ∧ stage.1 ≠ "log_2" ∧ stage.2 < 256) :
-    ∃ frame', ExecBlock config frame evm
+    ∃ frame', ExecBlock fork config frame evm
         (stages.flatMap (fun stage ↦ tickLogIterationBody stage.1 stage.2)) (.ok frame' evm) ∧
       frame'.locals.get? "r" = some (.int (Int.ofNat
         (stages.foldl (fun st stage ↦ tickLogIteration st stage.2) state).1.toNat)) ∧
@@ -56,7 +58,7 @@ attribute [local irreducible] tickLogIteration
 
 theorem tickLogSeriesSource (imms : Store) (evm : EVM.State) (price : UInt256)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) :
-    ∃ frame, ExecBlock config (tickLogFrame imms price) evm (tickLogFunction.body.take 70)
+    ∃ frame, ExecBlock fork config (tickLogFrame imms price) evm (tickLogFunction.body.take 70)
         (.ok frame evm) ∧
       frame.locals.get? "log_2" = some (.int (signedWordInt (tickLogResult price))) ∧
       frame.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)) ∧
@@ -71,7 +73,7 @@ theorem tickLogSeriesSource (imms : Store) (evm : EVM.State) (price : UInt256)
     state.1 state.2 "logBit50" 50 hr' hl'
     (by decide) (by decide) (by decide)
   refine ⟨out, ?_, ?_, ?_, ?_⟩
-  · change ExecBlock _ _ _ (tickLogFunction.body.take 15 ++
+  · change ExecBlock fork _ _ _ (tickLogFunction.body.take 15 ++
       (tickLogStages.flatMap (fun stage ↦ tickLogIterationBody stage.1 stage.2) ++
         tickLogIterationHead "logBit50" 50)) _
     exact execBlock_append_ok hs (execBlock_append_ok hseries hlast)

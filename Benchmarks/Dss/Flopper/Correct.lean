@@ -21,6 +21,8 @@ import Benchmarks.Dss.Flopper.Wards
 import Benchmarks.Dss.Flopper.Yank
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper benchmark correctness stub
 
@@ -35,8 +37,8 @@ namespace Benchmarks.Dss.Flopper
 
 theorem flopperCorrect :
     runtimeRefinement config flopperBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flopperSelBytes 0)
     · exact flopperBegBody hcode hsize hwv hbeg

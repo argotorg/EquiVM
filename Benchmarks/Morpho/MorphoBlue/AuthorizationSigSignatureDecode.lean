@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigSignatureSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,9 +19,9 @@ theorem morphoAuthorizationSignatureDecode {v : MorphoImmutables} {ee : Executio
     {g : Sat256} {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hstack : R.length + 24 ≤ 1024)
     (hv : (signatureRecoveryWord ee.calldata).toNat < 256)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6347)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6347)
       (authorizationDigestStack R) (authorizationDigestMem v a) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6372)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6372)
       (authorizationSignatureStack v a ee.calldata R) (authorizationDigestReadyMem v a)
       aw' out σ k' C' := by
   have hm : UInt256.land (signatureRecoveryWord ee.calldata) (UInt256.ofNat 255) =
@@ -33,7 +35,7 @@ theorem morphoAuthorizationSignatureDecode {v : MorphoImmutables} {ee : Executio
   have hp := authorizationDigestReadyMem_properties v a
   dsimp only [morphoBlocks.morpho_block_6347_fallthrough_stack,
     morphoBlocks.morpho_block_6347_fallthrough_memory] at r
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 416, UInt256.ofNat 768,
       keccakWord (UInt256.ofNat 672) (memLoad (UInt256.ofNat 640) (authorizationDigestReadyMem v a))
         (authorizationDigestReadyMem v a), UInt256.ofNat 0,
@@ -48,9 +50,9 @@ theorem morphoAuthorizationSignatureDecodeRevert {v : MorphoImmutables} {ee : Ex
     {g : Sat256} {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hstack : R.length + 24 ≤ 1024)
     (hv : ¬ (signatureRecoveryWord ee.calldata).toNat < 256)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6347)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6347)
       (authorizationDigestStack R) (authorizationDigestMem v a) aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hm : (UInt256.land (signatureRecoveryWord ee.calldata) (UInt256.ofNat 255)).toNat < 256 :=
     u256LandMaskToNatLtOfToNat (bits := 8) _ _ (by decide)
   have hn : signatureRecoveryWord ee.calldata ≠

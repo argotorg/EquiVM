@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionPositionSource
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,9 +17,9 @@ def updatePositionClearReturnPC (upper : Bool) : UInt256 := if upper then ⟨195
 theorem updatePositionNegativeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
       mem aw rdata σ k C) (ha : a.Fits) (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (if a.delta < 0 then ⟨19540⟩ else ⟨19573⟩)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if a.delta < 0 then ⟨19540⟩ else ⟨19573⟩)
       (updatePositionPositionWords v a evm ++ R) mem aw rdata σ k' C' := by
   have hd := liquidityDeltaRawSign (EVM.wordOfInt a.delta) a.delta
     (by rw [normalizeInt_wordOfInt, normalizeSint_eq_self ⟨128, by decide⟩ _ ha.2.2.1.1 ha.2.2.1.2])
@@ -36,10 +38,10 @@ theorem updatePositionClearGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionClearEntryPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionClearEntryPC upper)
       (updatePositionPositionWords v a evm ++ R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if updatePositionFlag v a evm upper then updatePositionClearCallPC upper
         else updatePositionClearReturnPC upper)
       (updatePositionPositionWords v a evm ++ R) mem aw rdata σ k' C' := by
@@ -67,10 +69,10 @@ theorem updatePositionClearCallEntryX {σ : AccountMap} {ee : ExecutionEnv} {g :
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionClearCallPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionClearCallPC upper)
       (updatePositionPositionWords v a evm ++ R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21964⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21964⟩
       (EVM.wordOfInt (if upper then a.upper else a.lower) :: ⟨5⟩ ::
         updatePositionClearReturnPC upper :: updatePositionPositionWords v a evm ++ R)
       mem aw rdata σ k' C' := by
@@ -85,10 +87,10 @@ theorem updatePositionClearCallEntryX {σ : AccountMap} {ee : ExecutionEnv} {g :
 theorem updatePositionReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19573⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19573⟩
       (updatePositionPositionWords v a evm ++ ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
       mem aw rdata σ k' C' := by
   simp only [updatePositionPositionWords, updatePositionChangedWords_eq,
     List.cons_append, List.nil_append] at rd

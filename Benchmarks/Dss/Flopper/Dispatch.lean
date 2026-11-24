@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Selectors
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -311,7 +313,7 @@ theorem flopperDispatch_none_nomatch {cd : ByteArray}
 
 theorem flopperBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
@@ -447,7 +449,7 @@ theorem flopperHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem flopperReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperRootSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [flopperRootSplitPc, flopperSelWord] using
@@ -471,18 +473,18 @@ theorem flopperReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperLowSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     flopperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h173 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h173 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowSplitJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flopperRootSplitPc, flopperLowSplitJumpdestPc] using
       RD.selectorSplitTakenAuto h32 flopperRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h174 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h174 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [flopperLowSplitPc] using h173.jumpdest (by native_decide) (by simp)
@@ -493,13 +495,13 @@ theorem flopperReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperHighSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     flopperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flopperHighSplitPc, flopperRootSplitPc, selArmNextPc, armTgtWidth,
@@ -514,18 +516,18 @@ theorem flopperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
       (flopperSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flopperBytecode flopperLowSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperLowLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
     flopperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h244 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h244 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowLowJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flopperLowSplitPc, flopperLowLowJumpdestPc] using
       RD.selectorSplitTakenAuto h174 flopperLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h245 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h245 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5 + 1) (C174 + 22 + 1) := by
     simpa [flopperLowLowFirstArmPc] using h244.jumpdest (by native_decide) (by simp)
@@ -538,13 +540,13 @@ theorem flopperReachLowHighFirstArm {σ σ₀ A I} {g : Sat256}
       (flopperSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flopperBytecode flopperLowSplitPc)
       (flopperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperLowHighFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
     flopperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h185 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h185 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowHighFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flopperLowHighFirstArmPc, flopperLowSplitPc, selArmNextPc, armTgtWidth,
@@ -559,18 +561,18 @@ theorem flopperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
       (flopperSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flopperBytecode flopperHighSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperHighLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     flopperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h113 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h113 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighLowJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flopperHighSplitPc, flopperHighLowJumpdestPc] using
       RD.selectorSplitTakenAuto h43 flopperHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h114 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h114 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [flopperHighLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
@@ -583,13 +585,13 @@ theorem flopperReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
       (flopperSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flopperBytecode flopperHighSplitPc)
       (flopperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         flopperHighHighFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     flopperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD flopperBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighHighFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flopperHighHighFirstArmPc, flopperHighSplitPc, selArmNextPc, armTgtWidth,
@@ -600,8 +602,8 @@ theorem flopperReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem flopperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -614,8 +616,8 @@ theorem flopperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem flopperX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -638,11 +640,11 @@ theorem flopperX_short {σ σ₀ A I} {g : Sat256}
 /-- A fallthrough `PUSH2 300; JUMP` reaches the shared revert block. -/
 theorem flopperJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD flopperBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork flopperBytecode I g (initState σ σ₀ g A I) pc
       [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode flopperBytecode pc = some (.Push .PUSH2, some (flopperDispatchRevertPc, 2)))
     (hjump : decode flopperBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have h300 := h.push2 flopperDispatchRevertPc hpush
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -651,13 +653,13 @@ theorem flopperJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flopperLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flopperBytecode I g (initState σ σ₀ g A I) flopperLowLowFirstArmPc
+    (h : RD fork flopperBytecode I g (initState σ σ₀ g A I) flopperLowLowFirstArmPc
       [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowLowFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have h300 := h
     |>.selectorArmNotTakenAuto (flopperLowLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -674,13 +676,13 @@ theorem flopperLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flopperLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flopperBytecode I g (initState σ σ₀ g A I) flopperLowHighFirstArmPc
+    (h : RD fork flopperBytecode I g (initState σ σ₀ g A I) flopperLowHighFirstArmPc
       [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowHighFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have h240 := h
     |>.selectorArmNotTakenAuto (flopperLowHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -695,13 +697,13 @@ theorem flopperLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact flopperJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
 
 theorem flopperHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flopperBytecode I g (initState σ σ₀ g A I) flopperHighLowFirstArmPc
+    (h : RD fork flopperBytecode I g (initState σ σ₀ g A I) flopperHighLowFirstArmPc
       [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperHighLowFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have h169 := h
     |>.selectorArmNotTakenAuto (flopperHighLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -716,13 +718,13 @@ theorem flopperHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact flopperJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
 
 theorem flopperHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flopperBytecode I g (initState σ σ₀ g A I) flopperHighHighFirstArmPc
+    (h : RD fork flopperBytecode I g (initState σ σ₀ g A I) flopperHighHighFirstArmPc
       [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperHighHighFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (flopperHighHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -740,7 +742,7 @@ theorem flopperX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 20 → (flopperSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have heqLowLow : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowLowFirstArmPc j))
@@ -883,7 +885,7 @@ theorem flopperX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` is equivalent to every Stele transition reverting on the non-payable guard. -/
 theorem flopperNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (flopperX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -907,7 +909,7 @@ theorem flopperNonPayable {σ σ₀ A I} {g : UInt256}
 theorem flopperShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (flopperX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (flopperDispatch_none_short hsz)
@@ -918,7 +920,7 @@ theorem flopperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 20 → (flopperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flopperX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (flopperDispatch_none_nomatch hnm)

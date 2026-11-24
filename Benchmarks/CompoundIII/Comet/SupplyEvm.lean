@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.SupplyInternalEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometSupplyCall {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} (asset : AccountAddress)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6848⟩ [EVM.word asset.val, ⟨2308⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6848⟩ [EVM.word asset.val, ⟨2308⟩]
       solcFreePtrMem aw rdata σ k C) :
-    ∃ result, SupplyInternalTrace v ee.source ee.source ee.source asset
-      (calldataWord ee.calldata 36) evm result ∧ voidOutcomeRun (deployedRuntime v) g s0 result := by
+    ∃ result, SupplyInternalTrace fork v ee.source ee.source ee.source asset
+      (calldataWord ee.calldata 36) evm result ∧ voidOutcomeRun fork (deployedRuntime v) g s0 result := by
   have r1 := cometWithExtendedAssetList_block_6848 (immWords := wordsOf (immStore v))
     (by change 4 ≤ 1024; decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -35,20 +37,20 @@ theorem cometSupplyCall {v : CometWithExtendedAssetListImmutables}
     change 128 + 576 + 768 * v.numAssets.toNat < 2^64
     omega
 
-def SupplyResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def SupplyResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 68 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, SupplyInternalTrace v I.source I.source I.source
+    ∃ result, SupplyInternalTrace fork v I.source I.source I.source
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
-      (calldataWord I.calldata 36) s0 result ∧ voidOutcomeRun (deployedRuntime v) g s0 result
-  else RDrev (deployedRuntime v) g s0
+      (calldataWord I.calldata 36) s0 result ∧ voidOutcomeRun fork (deployedRuntime v) g s0 result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem supplyX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 66)) :
-    SupplyResult v I g (initState σ σ₀ g A I) := by
+    SupplyResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachSupplyBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_790 (immWords := wordsOf (immStore v))
@@ -70,7 +72,7 @@ theorem supplyX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmut
             (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) rd4
           unfold SupplyResult
           rw [if_pos ⟨hv, hlo, hhi, hc⟩]
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 2308] _ _ _ _ _ _ at rd5
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 2308] _ _ _ _ _ _ at rd5
           rw [← addressWord_eq_ofNat_address hc] at rd5
           exact cometSupplyCall _ SourceState.init rd5
         · simp only [SupplyResult, hc, and_false, if_false]

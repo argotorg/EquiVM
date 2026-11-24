@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TransferInModel
 import Benchmarks.CompoundIII.Comet.TransferFromMemory
 import Benchmarks.CompoundIII.Comet.TransferInResponse
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,16 +17,16 @@ theorem cometTransferInCall {v : CometWithExtendedAssetListImmutables}
     {asset sender : AccountAddress} {evm : EVM.State}
     (hstack : R.length + 10 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = ptr)
     (hb : ptr.toNat + 100 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13340⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13340⟩
       (dummy :: EVM.word sender.val :: amount :: EVM.word asset.val :: ⟨32⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, TransferCallTrace asset
+    ∃ result, TransferCallTrace fork asset
         (transferFromPayload sender evm.executionEnv.codeOwner amount) evm result ∧
       match result with
-      | none => RDrev (deployedRuntime v) g s0
+      | none => RDrev fork (deployedRuntime v) g s0
       | some (evm', out) => TransferReturnValid out ∧ ∃ σ' aw' k' C',
           SourceState s0 ee σ' evm' ∧
-          RD (deployedRuntime v) ee g s0 ⟨13449⟩ (EVM.word asset.val :: ⟨32⟩ :: R)
+          RD fork (deployedRuntime v) ee g s0 ⟨13449⟩ (EVM.word asset.val :: ⟨32⟩ :: R)
             (transferFromOutputMemory mem ptr sender ee.codeOwner amount out) aw' out σ' k' C' := by
   by_cases hc : extCodeSizeWord σ (EVM.word asset.val) = ⟨0⟩
   · obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_13340_taken
@@ -45,7 +47,7 @@ theorem cometTransferInCall {v : CometWithExtendedAssetListImmutables}
       solcAddrMask_clean_left (addressWord_val_canonical sender)
     simp only [cometWithExtendedAssetList_block_13349_stack,
       cometWithExtendedAssetList_block_13349_memory, hf, hsender] at r2
-    change RD _ _ _ _ _ _ (transferFromInputMemory mem ptr sender ee.codeOwner amount)
+    change RD fork _ _ _ _ _ _ (transferFromInputMemory mem ptr sender ee.codeOwner amount)
       _ _ _ _ _ at r2
     obtain ⟨evm', σ', z, out, k3, C3, hcall, hs', r3, hh⟩ := zeroCallBridge r2 hs
       (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
@@ -53,14 +55,14 @@ theorem cometTransferInCall {v : CometWithExtendedAssetListImmutables}
         immutableLayout_inBounds, immutableTemplate_size64))
       (transferFromInputMemory_payload hb) (by rw [transferFromPayload_size]; decide)
       (by change R.length + 3 + 1 ≤ 1024; omega)
-    have hcall' : callViaEVM evm asset 0
+    have hcall' : callViaEVM fork evm asset 0
         (transferFromPayload sender evm.executionEnv.codeOwner amount) (z, evm', out) := by
       have haddr : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
         accountAddress_roundtrip asset
       simpa only [haddr, hs.env] using hcall
     have ht := TransferCallTrace.callResult (by simpa only [hs.accounts] using hc)
       hcall' (lt_trans hh (by decide))
-    change RD _ _ _ _ ⟨13403⟩ _
+    change RD fork _ _ _ _ ⟨13403⟩ _
       (callOutputMem (transferFromInputMemory mem ptr sender ee.codeOwner amount) out ptr ⟨0⟩)
       _ _ _ _ _ at r3
     rw [callOutputMem_zero] at r3

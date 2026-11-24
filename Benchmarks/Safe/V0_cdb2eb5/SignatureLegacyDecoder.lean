@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V0_cdb2eb5.SignatureLegacyMemorySteps
 import Benchmarks.Safe.V0_cdb2eb5.MemoryBytesDecodeEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -9,7 +11,7 @@ set_option maxRecDepth 100000
 
 theorem safeDecodeSignatureLegacyValid (counted : Bool)
     {I g s0 σ k C aw rdata dataLen sigLen} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hh : 4 + signatureAddressHead counted ≤ I.calldata.size)
     (hs : I.calldata.size < 2 ^ 255)
@@ -24,7 +26,7 @@ theorem safeDecodeSignatureLegacyValid (counted : Bool)
     (hsn : sigLen ≤ 2 ^ 64 - 192)
     (hsi : 4 + (calldataWord I.calldata 68).toNat + 32 + sigLen ≤ I.calldata.size)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (signatureLegacyDecodedStack counted I.calldata
         (UInt256.ofNat (4 + (calldataWord I.calldata 36).toNat + 32)) (UInt256.ofNat dataLen) R)
       (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
@@ -51,11 +53,11 @@ theorem safeDecodeSignatureLegacyValid (counted : Bool)
 
 theorem safeDecodeSignatureLegacyEvidence (counted : Bool)
     {I g s0 σ k C aw rdata} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ dataLen sigLen aw' k' C', 4 + signatureAddressHead counted ≤ I.calldata.size ∧
       I.calldata.size < 2 ^ 255 ∧
       (calldataWord I.calldata 36).toNat ≤ 2 ^ 64 - 1 ∧
@@ -66,7 +68,7 @@ theorem safeDecodeSignatureLegacyEvidence (counted : Bool)
       calldataWord I.calldata (4 + (calldataWord I.calldata 68).toNat) = UInt256.ofNat sigLen ∧
       sigLen ≤ 2 ^ 64 - 192 ∧
       4 + (calldataWord I.calldata 68).toNat + 32 + sigLen ≤ I.calldata.size ∧
-      RD safeBytecode I g s0 ret
+      RD fork safeBytecode I g s0 ret
         (signatureLegacyDecodedStack counted I.calldata
           (UInt256.ofNat (4 + (calldataWord I.calldata 36).toNat + 32)) (UInt256.ofNat dataLen) R)
         (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
@@ -113,13 +115,13 @@ theorem safeDecodeSignatureLegacyEvidence (counted : Bool)
 
 theorem safeDecodeSignatureLegacyTooLarge (counted : Bool)
     {I g s0 σ k C aw rdata len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hw : calldataWord I.calldata (4 + (calldataWord I.calldata 68).toNat) = UInt256.ofNat len)
     (hn : len < UInt256.size) (hbad : ¬len ≤ 2 ^ 64 - 192)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain hr | ⟨dataLen, len', aw', k', C', hh, hs, hdo, hdw, hdn, hdi, hso, hw', hn', hsi, hr⟩ :=
     safeDecodeSignatureLegacyEvidence counted h hlong hsize hov hret
   · exact hr

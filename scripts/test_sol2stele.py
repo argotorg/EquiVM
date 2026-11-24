@@ -83,7 +83,7 @@ private def result : Option (List Value) := do
   let c := ReferenceDraft.Syntax.contractSyntax
   let t ← c.transitions.find? (·.name == "exercise")
   let .result (.returned _ _ vs) :=
-    (Interp.execTransitionBody 200 Interp.thetaOracle () cfg c evm ∅ t.body ∅).1 | none
+    (Interp.execTransitionBody .cancun 200 (Interp.thetaOracle .cancun) () cfg c evm ∅ t.body ∅).1 | none
   vs
 #guard result = some [.int 14, .int 9, .int 9, .int 100]
 """

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeChostRevert
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -13,7 +15,7 @@ theorem RD.clipperTakeOweLeTabElim
     {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd4057 : RD code ee g s0 ⟨4057⟩
+    (rd4057 : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -24,13 +26,13 @@ theorem RD.clipperTakeOweLeTabElim
     (hov : R.length + 30 ≤ 1024)
     (onPlainEq :
       tab.toNat ≤ (UInt256.mul price slice).toNat →
-      (∃ k' C', RD code ee g s0 ⟨4223⟩
+      (∃ k' C', RD fork code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem (UInt256.ofNat 7) rdata σ k' C') → P)
     (onPlainSliceGe :
       (UInt256.mul price slice).toNat < tab.toNat → lot.toNat ≤ slice.toNat →
-      (∃ k' C', RD code ee g s0 ⟨4223⟩
+      (∃ k' C', RD fork code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem (UInt256.ofNat 7) rdata σ k' C') → P)
@@ -39,7 +41,7 @@ theorem RD.clipperTakeOweLeTabElim
       slice.toNat < lot.toNat →
       (solcSlotWord σ ee ⟨9⟩).toNat ≤
         (UInt256.sub tab (UInt256.mul price slice)).toNat →
-      (∃ k' C', RD code ee g s0 ⟨4223⟩
+      (∃ k' C', RD fork code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem (UInt256.ofNat 7) rdata σ k' C') → P)
@@ -50,7 +52,7 @@ theorem RD.clipperTakeOweLeTabElim
         (solcSlotWord σ ee ⟨9⟩).toNat →
       (solcSlotWord σ ee ⟨9⟩).toNat < tab.toNat →
       price ≠ ⟨0⟩ →
-      (∃ k' C', RD code ee g s0 ⟨4223⟩
+      (∃ k' C', RD fork code ee g s0 ⟨4223⟩
         (UInt256.div (UInt256.sub tab (solcSlotWord σ ee ⟨9⟩)) price ::
           UInt256.sub tab (solcSlotWord σ ee ⟨9⟩) :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -61,7 +63,7 @@ theorem RD.clipperTakeOweLeTabElim
       (UInt256.sub tab (UInt256.mul price slice)).toNat <
         (solcSlotWord σ ee ⟨9⟩).toNat →
       tab.toNat ≤ (solcSlotWord σ ee ⟨9⟩).toNat →
-      RDrev code g s0 → P) : P := by
+      RDrev fork code g s0 → P) : P := by
   by_cases heq : tab.toNat ≤ (UInt256.mul price slice).toNat
   · exact onPlainEq heq
       (RD.clipperTakeOweEqTabToJoin v hpatch rd4057 hle heq hov)

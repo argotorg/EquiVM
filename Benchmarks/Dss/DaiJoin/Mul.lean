@@ -3,6 +3,8 @@ import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Benchmarks.Dss.DaiJoin.Calls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -105,7 +107,7 @@ theorem evalExpr_daiJoin_or_false_right {evm : EVM.State} {locals : Store}
 
 theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       mulFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZ x y prod } evm
         (some [.int (Int.ofNat prod.toNat)])) := by
@@ -186,7 +188,7 @@ theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
       evalExpr? config { contract := contract, locals := localsZ } evm (.var "z") =
         .ok (.int (Int.ofNat prod.toNat)) := hzZ
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm mulFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm mulFunction.body
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat prod.toNat)])) := by
     simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
@@ -197,7 +199,7 @@ theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
 
 theorem execDaiJoinMulFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       mulFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -215,7 +217,7 @@ theorem execDaiJoinMulFunctionRevert (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_daiJoin_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm mulFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm mulFunction.body
         .reverted := by
     simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hMulRev)
@@ -225,7 +227,7 @@ theorem daiJoinMulRoutine_success {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hguard : y = ⟨0⟩ ∨ UInt256.div (UInt256.mul x y) y = x)
     (hret : (D_J code 0).contains ret = true)
     (hshape :
@@ -263,7 +265,7 @@ theorem daiJoinMulRoutine_success {code : ByteArray} {ee : ExecutionEnv} {g : Sa
       (D_J code 0).contains ⟨1702⟩ = true ∧
       (D_J code 0).contains ⟨1714⟩ = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (UInt256.mul x y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (UInt256.mul x y :: R) mem aw rdata acc k' C' := by
   rcases hshape with
     ⟨hd1678, hd1679, hd1681, hd1682, hd1683, hd1684, hd1687, hd1688, hd1689,
       hd1690, hd1691, hd1692, hd1693, hd1694, hd1695, hd1696, hd1697, hd1700,
@@ -341,7 +343,7 @@ theorem daiJoinMulRoutine_revert {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hy : y ≠ ⟨0⟩)
     (hguard : UInt256.div (UInt256.mul x y) y ≠ x)
     (hshape :
@@ -374,7 +376,7 @@ theorem daiJoinMulRoutine_revert {code : ByteArray} {ee : ExecutionEnv} {g : Sat
       decode code ⟨1713⟩ = some (.REVERT, .none) ∧
       (D_J code 0).contains ⟨1702⟩ = true)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hshape with
     ⟨hd1678, hd1679, hd1681, hd1682, hd1683, hd1684, hd1687, hd1688, hd1689,
       hd1690, hd1691, hd1692, hd1693, hd1694, hd1695, hd1696, hd1697, hd1700,

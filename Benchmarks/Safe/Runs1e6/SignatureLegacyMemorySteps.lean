@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.SignatureLegacyDecodeSteps
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_041
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -23,11 +25,11 @@ def signatureLegacyDecodedStack (counted : Bool) (cd : ByteArray)
 
 theorem safeSignatureLegacyBytesOffsetRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret dataOff dataLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDataPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDataPC counted)
       (dataLen :: dataOff :: signatureLegacyDataSaved counted I.calldata stop ret R)
       mem aw rdata σ k C)
     (hoff : 2 ^ 64 - 1 < (calldataWord I.calldata 68).toNat)
-    (hov : R.length + 20 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 20 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hcond := signatureOffsetGuardBad hoff
   cases counted with
   | false =>
@@ -45,12 +47,12 @@ theorem safeSignatureLegacyBytesOffsetRevert (counted : Bool)
 
 theorem safeSignatureLegacyToBytes (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret dataOff dataLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyDataPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyDataPC counted)
       (dataLen :: dataOff :: signatureLegacyDataSaved counted I.calldata stop ret R)
       mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨11753⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨11753⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) :: stop ::
         signatureLegacyBytesPC counted ::
         signatureLegacyBytesSaved counted I.calldata stop ret dataOff dataLen R)
@@ -80,11 +82,11 @@ theorem safeSignatureLegacyToBytes (counted : Bool)
 
 theorem safeSignatureLegacyDecodeFinish (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret dataOff dataLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureLegacyBytesPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureLegacyBytesPC counted)
       (⟨128⟩ :: signatureLegacyBytesSaved counted I.calldata stop ret dataOff dataLen R)
       mem aw rdata σ k C)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret
+    ∃ k' C', RD fork safeBytecode I g s0 ret
       (signatureLegacyDecodedStack counted I.calldata dataOff dataLen R) mem aw rdata σ k' C' := by
   cases counted with
   | false =>

@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperRegistry.Count
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `pop_last()`
 
@@ -106,7 +108,7 @@ theorem evalExpr_sub_one {cfg : Config} {stele : Frame} {evm : EVM.State} {e : E
 theorem registryPop_lastBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 9) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachPop_lastBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some pop_lastTransition :=
@@ -152,7 +154,7 @@ theorem registryPop_lastBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (by rw [slotWord_eq]; exact isZero_xor_ne_zero_of_eq hown) (by jump_dest) rd2
   have rd4 := registryBlocks.registry_block_1659 (by simp) (by jump_dest) rd3
   simp only [registryBlocks.registry_block_1659_stack] at rd4
-  have hcheck : ExecStmt config (frame ∅) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcheck : ExecStmt fork config (frame ∅) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "ownable__check_owner" [] "__c0")
       (.ok (resumeAfterInternalCall (frame ∅) "__c0" none) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     ExecStmt.internalCallReturn (callee := checkOwnerCallee) rfl checkOwnerCallee_lookup rfl
@@ -324,7 +326,7 @@ theorem registryPop_lastBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     simp only [hs1.env] at hz
     have hs3 := ((hs1.storageWrite (entrySlot (pId σ I)) ⟨0⟩).storageWrite (entrySlot (pId σ I) + UInt256.ofNat 1) ⟨0⟩).storageWrite
       (entrySlot (pId σ I) + UInt256.ofNat 2) ⟨0⟩
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pop_lastTransition.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pop_lastTransition.body
         (.returned (frame L2) (Stele.EVM.storageStore (Stele.EVM.storageStore (Stele.EVM.storageStore evm1
           I.codeOwner (entrySlot (pId σ I)) ⟨0⟩) I.codeOwner (entrySlot (pId σ I) + UInt256.ofNat 1) ⟨0⟩)
           I.codeOwner (entrySlot (pId σ I) + UInt256.ofNat 2) ⟨0⟩) (some [uint256Value (pId σ I)])) := by
@@ -400,7 +402,7 @@ theorem registryPop_lastBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
   simp only [hs2.env] at hz
   have hs3 := ((hs2.storageWrite (entrySlot (pId σ I)) ⟨0⟩).storageWrite (entrySlot (pId σ I) + UInt256.ofNat 1) ⟨0⟩).storageWrite
     (entrySlot (pId σ I) + UInt256.ofNat 2) ⟨0⟩
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pop_lastTransition.body
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pop_lastTransition.body
       (.returned (frame L2) (Stele.EVM.storageStore (Stele.EVM.storageStore (Stele.EVM.storageStore evm2
         I.codeOwner (entrySlot (pId σ I)) ⟨0⟩) I.codeOwner (entrySlot (pId σ I) + UInt256.ofNat 1) ⟨0⟩)
         I.codeOwner (entrySlot (pId σ I) + UInt256.ofNat 2) ⟨0⟩) (some [uint256Value (pId σ I)])) := by

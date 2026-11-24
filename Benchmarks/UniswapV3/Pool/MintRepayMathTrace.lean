@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.MintRepayControl
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,10 +11,10 @@ set_option maxRecDepth 10000
 theorem mintRepayCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw required after : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (mintRepayComparePC second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (mintRepayComparePC second)
       (required :: after :: R) mem aw rdata σ k C) (hov : R.length + 5 ≤ 1024) :
-    (¬ required.toNat ≤ after.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (required.toNat ≤ after.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+    (¬ required.toNat ≤ after.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (required.toNat ≤ after.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (mintRepayNextPC second) R mem aw rdata σ k' C') := by
   by_cases hp : required.toNat ≤ after.toNat
   · refine Or.inr ⟨hp, ?_⟩
@@ -39,14 +41,14 @@ theorem mintRepayCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem mintRepayMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before0 before1 amount0 amount1 after : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (mintRepayBalanceReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (mintRepayBalanceReturn second)
       (after :: mintRepayWords before0 before1 amount0 amount1 R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) :
     (¬ flashRepayValid (if second then before1 else before0)
-        (if second then amount1 else amount0) after ∧ RDrev (deployedRuntime v) g s0) ∨
+        (if second then amount1 else amount0) after ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (flashRepayValid (if second then before1 else before0)
         (if second then amount1 else amount0) after ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (mintRepayNextPC second)
+      RD fork (deployedRuntime v) ee g s0 (mintRepayNextPC second)
         (mintRepayWords before0 before1 amount0 amount1 R) mem aw rdata σ k' C') := by
   obtain ⟨k1, C1, r1⟩ := mintRepayAddEntryX (v := v) second rd (by omega)
   rcases safeAddX (v := v) r1

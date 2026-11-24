@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAccountsEvm
 import Benchmarks.CompoundIII.Comet.AccrueInternalEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,12 +17,12 @@ theorem cometAbsorbBeforePoints {v : CometWithExtendedAssetListImmutables}
     {aw absorber : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 47 ≤ 1024) (hvalid : AbsorbCalldataValid ee.calldata)
     (hgas : cometGasBound g.toUInt256) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16664⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16664⟩
       (absorber :: absorbArrayBase ee.calldata :: UInt256.ofNat (absorbArrayLength ee.calldata) ::
         ⟨22⟩ :: R) solcFreePtrMem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ startGas result, AbsorbBeforePointsTrace v ee.calldata evm result ∧
-        absorbAccountsRun (deployedRuntime v) ee g s0 absorber (⟨22⟩ :: startGas :: R) result := by
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ startGas result, AbsorbBeforePointsTrace fork v ee.calldata evm result ∧
+        absorbAccountsRun fork (deployedRuntime v) ee g s0 absorber (⟨22⟩ :: startGas :: R) result := by
   have hp : pauseBitWord evm ⟨3, by decide⟩ =
       UInt256.land (UInt256.shiftRight (solcSlotWordAt ⟨1⟩ σ ee) ⟨248⟩) ⟨8⟩ := by
     rw [pauseBitWord, pauseFlagsWord_eq_shift, hs.storageRead]

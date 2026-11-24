@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.QuoteTrace
 import Benchmarks.CompoundIII.Comet.QuoteDiscountSource
 import Benchmarks.CompoundIII.Comet.QuoteResultSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -27,22 +29,22 @@ theorem quoteAssetFeed_eval (v : CometWithExtendedAssetListImmutables) (asset : 
 
 theorem quoteFinish_source {v : CometWithExtendedAssetListImmutables} {assetOut : ByteArray}
     {amount price : UInt256} {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : QuoteFinish v assetOut amount price evm result) (asset : AccountAddress) :
-    QuoteSourceResult (quotePriceFrame v asset amount assetOut price) evm
+    (ht : QuoteFinish fork v assetOut amount price evm result) (asset : AccountAddress) :
+    QuoteSourceResult fork (quotePriceFrame v asset amount assetOut price) evm
       quoteTailBlock result := by
   cases ht with
   | discountFailed hd =>
-      have hb := quoteDiscount_result v asset amount price assetOut evm
+      have hb := quoteDiscount_result (fork := fork) v asset amount price assetOut evm
       rw [if_neg hd] at hb
       exact execBlockAppendReverted hb
   | @priceFailed evm' z out hd hc hh hv =>
-      have hb := quoteDiscount_result v asset amount price assetOut evm
+      have hb := quoteDiscount_result (fork := fork) v asset amount price assetOut evm
       rw [if_pos hd] at hb
       exact execBlockAppendOk hb (ExecBlock.consRevert (price_call_revert
         (quoteDiscountFrame v asset amount assetOut price) evm evm' v.baseTokenPriceFeed
         _ "basePrice" out z rfl (quoteBaseFeed_eval v asset amount price assetOut evm) hc hh hv))
   | @result evm' out hd hc hh hv =>
-      have hb := quoteDiscount_result v asset amount price assetOut evm
+      have hb := quoteDiscount_result (fork := fork) v asset amount price assetOut evm
       rw [if_pos hd] at hb
       have hp := price_call_ok (quoteDiscountFrame v asset amount assetOut price) evm evm'
         v.baseTokenPriceFeed _ "basePrice" out rfl
@@ -66,8 +68,8 @@ theorem quoteFinish_source {v : CometWithExtendedAssetListImmutables} {assetOut 
 
 theorem quoteAfterAsset_source {v : CometWithExtendedAssetListImmutables} {assetOut : ByteArray}
     {amount : UInt256} {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : QuoteAfterAsset v assetOut amount evm result) (asset : AccountAddress) :
-    QuoteSourceResult (quoteAssetFrame v asset amount assetOut) evm
+    (ht : QuoteAfterAsset fork v assetOut amount evm result) (asset : AccountAddress) :
+    QuoteSourceResult fork (quoteAssetFrame v asset amount assetOut) evm
       quoteAfterAssetBlock result := by
   cases ht with
   | @priceFailed evm' z out hc hh hv =>
@@ -87,8 +89,8 @@ theorem quoteAfterAsset_source {v : CometWithExtendedAssetListImmutables} {asset
 
 theorem quoteTrace_source {v : CometWithExtendedAssetListImmutables} {asset : AccountAddress}
     {amount : UInt256} {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : QuoteTrace v asset amount evm result) :
-    QuoteSourceResult (quoteEntry v asset amount) evm quoteCallable.body result := by
+    (ht : QuoteTrace fork v asset amount evm result) :
+    QuoteSourceResult fork (quoteEntry v asset amount) evm quoteCallable.body result := by
   have he : evalExpr? config (quoteEntry v asset amount) evm (.var "asset") =
       .ok (.address asset) := by
     simp only [evalExpr?, quoteEntry, Std.HashMap.get?_eq_getElem?,
@@ -110,14 +112,14 @@ theorem quoteTrace_source {v : CometWithExtendedAssetListImmutables} {asset : Ac
 
 theorem quote_call {v : CometWithExtendedAssetListImmutables} {asset : AccountAddress}
     {amount : UInt256} {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : QuoteTrace v asset amount evm result) (frame : Frame) (assetExpr amountExpr : Expr)
+    (ht : QuoteTrace fork v asset amount evm result) (frame : Frame) (assetExpr amountExpr : Expr)
     (ret : Ident) (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (hb : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
     match result with
-    | none => ExecStmt config frame evm
+    | none => ExecStmt fork config frame evm
         (.internalCall "quoteCollateral_body" [assetExpr, amountExpr] ret) .reverted
-    | some (evm', value) => ExecStmt config frame evm
+    | some (evm', value) => ExecStmt fork config frame evm
         (.internalCall "quoteCollateral_body" [assetExpr, amountExpr] ret)
         (.ok { frame with locals := frame.locals.insert ret (.int value.toNat) } evm') := by
   have he : evalExprs? config frame evm [assetExpr, amountExpr] =

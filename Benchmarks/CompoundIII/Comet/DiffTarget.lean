@@ -3,6 +3,9 @@ import Benchmarks.CompoundIII.Comet.Spec
 import Benchmarks.CompoundIII.Comet.Bytecode
 import Benchmarks.CompoundIII.Comet.ImmutableCode
 
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 # CometWithExtendedAssetList differential-test target
 
@@ -101,8 +104,8 @@ def fixtureDeployment : Except String (ByteArray × Store) := do
   let accounts := t.world ByteArray.empty
   let env := t.env code (EVM.address 0x2000) 0 ByteArray.empty true
   let gas : UInt256 := .ofNat t.gas
-  let trace := runTrace (initialState accounts accounts gas default env) (t.gas + 1)
-  let some (outcome, replay) := steleCtorExecRun t.fuel replayOracle (Replay.ofTrace trace)
+  let trace := runTrace fork (initialState accounts accounts gas default env) (t.gas + 1)
+  let some (outcome, replay) := steleCtorExecRun fork t.fuel replayOracle (Replay.ofTrace trace)
       t.config t.contract deploymentArgs accounts accounts gas default env
     | throw "fixture constructor parameters do not bind"
   let verdict := compareConstructor trace.xiResult outcome t.codeOf

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.PostModuleSource
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -10,11 +12,11 @@ set_option maxRecDepth 100000
 
 theorem safePostModuleEventTrace {I g s0 σ k C aw mem rdata}
     {hash guard ret : UInt256} {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 ⟨9345⟩
+    (h : RD fork safeBytecode I g s0 ⟨9345⟩
       (z.toUInt256 :: hash :: guard :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true)
     (hp : I.perm = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R mem aw' rdata σ k' C' := by
   cases z
   · have h₁ := safeRuntime_block_9345_taken (by simp; omega) (by decide) (by jump_dest) h
     exact safeRuntime_block_9398_packed hov hp hret h₁
@@ -24,10 +26,10 @@ theorem safePostModuleEventTrace {I g s0 σ k C aw mem rdata}
 set_option maxRecDepth 100000 in
 theorem safePostModuleEventTraceStatic {I g s0 σ k C aw mem rdata}
     {hash guard ret : UInt256} {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 ⟨9345⟩
+    (h : RD fork safeBytecode I g s0 ⟨9345⟩
       (z.toUInt256 :: hash :: guard :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hp : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   cases z
   · have h₁ := safeRuntime_block_9345_taken (by simp; omega) (by decide) (by jump_dest) h
     have h₂ := evm_run h₁ with [jumpdest, push1 ⟨64⟩, genMload, caller, swap1]

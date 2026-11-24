@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.PostLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -32,14 +34,14 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
     (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
     (hbidsZero : revealScratchBidsLengthWord σ I = ⟨0⟩)
-    (h963 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (h963 : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
       [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd963⟩ := h963
   let evmStele : EVM.State :=
@@ -118,10 +120,10 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           hbidsZero hbidsHash
     let evmSFail : EVM.State :=
       { evmStele with
-        substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+        substate := (Ethereum.EVM.callSubstate fork evmStele.accountMap
           (EVM.address evmStele.executionEnv.source) evmStele.substate) }
     have hcallS :
-        callViaEVM evmStele (EVM.address evmStele.executionEnv.source)
+        callViaEVM fork evmStele (EVM.address evmStele.executionEnv.source)
           0 ByteArray.empty (false, evmSFail, ByteArray.empty) := by
       apply callViaEVM.callNotMade
       · rfl
@@ -130,16 +132,16 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         exact hdepthNe (by
           simpa [evmStele, initState] using hdepthEq)
     have hbody :
-        ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+        ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
           callargs revealTransition.body .reverted := by
       have hbodyEmpty :
-          ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+          ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
             revealEmptyStore revealTransition.body .reverted :=
         blindAuctionRevealBodyReverts_empty_callFailure evmStele evmSFail
           ByteArray.empty hwvStele hafterBody hbeforeBody hlenZeroBody
           hcallS
       simpa [hcallargsEmpty] using hbodyEmpty
-    have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+    have hrev : RDrev fork blindAuctionBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀
           (Sat256.ofUInt256 g) A I) :=
       blindAuctionRevealX_postCallEmpty_failure_revert
@@ -173,7 +175,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
       simp [EVM.address, EVM.uintN]
       exact Nat.mod_eq_of_lt a.isLt
     have hcallE :
-        callViaEVM
+        callViaEVM fork
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           (EVM.address I.source) 0 ByteArray.empty
@@ -193,15 +195,15 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         simpa [initState] using hd'
     let evmSCall : EVM.State := evmECall
     have hcallS :
-        callViaEVM evmStele (EVM.address evmStele.executionEnv.source)
+        callViaEVM fork evmStele (EVM.address evmStele.executionEnv.source)
           0 ByteArray.empty (z, evmSCall, out) := by
       simpa [evmStele, evmSCall] using hcallE
     cases z
     · have hbody :
-          ExecTransitionBody blindAuctionConfig blindAuctionContract
+          ExecTransitionBody fork blindAuctionConfig blindAuctionContract
             evmStele callargs revealTransition.body .reverted := by
         have hbodyEmpty :
-            ExecTransitionBody blindAuctionConfig blindAuctionContract
+            ExecTransitionBody fork blindAuctionConfig blindAuctionContract
               evmStele revealEmptyStore revealTransition.body .reverted :=
           blindAuctionRevealBodyReverts_empty_callFailure evmStele evmSCall
             out hwvStele hafterBody hbeforeBody hlenZeroBody hcallS
@@ -213,7 +215,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           exact Array.eq_empty_of_size_eq_zero (by
             change out.size = 0
             exact hout0)
-        have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+        have hrev : RDrev fork blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀
               (Sat256.ofUInt256 g) A I) :=
           blindAuctionRevealX_postCallEmpty_failure_revert
@@ -223,21 +225,21 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
             houtSize
-        have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+        have hrev : RDrev fork blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀
               (Sat256.ofUInt256 g) A I) :=
           blindAuctionRevealX_postCallRequire_failure_revert
             (by simpa using rd1405)
         exact hrev.reEquivExecutionRevert hcode hd hdec hbody
     · have hbody :
-          ExecTransitionBody blindAuctionConfig blindAuctionContract
+          ExecTransitionBody fork blindAuctionConfig blindAuctionContract
             evmStele callargs revealTransition.body
           (.returned
             { contract := blindAuctionContract,
               locals := revealCallStore ⟨0⟩ ⟨0⟩ true out }
             evmSCall none) := by
         have hbodyEmpty :
-            ExecTransitionBody blindAuctionConfig blindAuctionContract
+            ExecTransitionBody fork blindAuctionConfig blindAuctionContract
               evmStele revealEmptyStore revealTransition.body
               (.returned
                 { contract := blindAuctionContract,
@@ -254,7 +256,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           exact Array.eq_empty_of_size_eq_zero (by
             change out.size = 0
             exact hout0)
-        have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
+        have hret : RDret fork blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀
               (Sat256.ofUInt256 g) A I)
             σ' ByteArray.empty :=
@@ -268,7 +270,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
             houtSize
-        have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
+        have hret : RDret fork blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀
               (Sat256.ofUInt256 g) A I)
             σ' ByteArray.empty :=

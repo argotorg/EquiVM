@@ -3,6 +3,8 @@ import Reasoning.ABI
 import Benchmarks.Dss.Vat.Init
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -136,7 +138,7 @@ theorem vatReachIlksBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 16)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨1395⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0xd9638d36⟩ :=
@@ -250,12 +252,12 @@ set_option maxHeartbeats 2000000 in
 theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcIlksStruct5GetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨4⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨3⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨2⟩) ::
@@ -608,7 +610,7 @@ set_option maxHeartbeats 2000000 in
 theorem RD.solcFiveWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc art rate spot line dust ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (dust :: line :: spot :: rate :: art :: ret :: R)
+    (h : RD fork code ee g s0 pc (dust :: line :: spot :: rate :: art :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcFiveWordReturnFromMemWf code pc)
     (hmload64 :
@@ -619,7 +621,7 @@ theorem RD.solcFiveWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 12 ≤ 1024) :
-    RDret code g s0 acc
+    RDret fork code g s0 acc
       (UInt256.toByteArray art ++ UInt256.toByteArray rate ++ UInt256.toByteArray spot ++
         UInt256.toByteArray line ++ UInt256.toByteArray dust) := by
   rcases hwf with
@@ -731,7 +733,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = ilksStore I) :
-    ExecTransitionBody config contract evm locals ilksTransition.body
+    ExecTransitionBody fork config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (solcSlotWordAt (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)),
@@ -851,10 +853,10 @@ theorem vatIlksBodyCoreOk
       config.externalABI.decodeCalldata? (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata =
           some (ilksStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let artSlot := solcMappingSlot ⟨2⟩ (ilksArgWord I)
   let rateSlot := artSlot + ⟨1⟩
   let spotSlot := artSlot + ⟨2⟩
@@ -877,7 +879,7 @@ theorem vatIlksBodyCoreOk
   have hDustSlot : ilksDustSlotFor I = dustSlot := by
     simp [dustSlot, artSlot, ilksDustSlotFor_eq hsz36]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -913,7 +915,7 @@ theorem vatIlksBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret vatBytecode (Sat256.ofUInt256 g)
+      RDret fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray artWord ++ UInt256.toByteArray rateWord ++
           UInt256.toByteArray spotWord ++ UInt256.toByteArray lineWord ++
@@ -953,10 +955,10 @@ theorem vatIlksBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -973,13 +975,13 @@ theorem vatIlksBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_ilks_none_short hsz4 hshort)
 
-theorem vatIlksBodyCore : VatBodyTheoremAnyPerm 16 := by
+theorem vatIlksBodyCore : VatBodyTheoremAnyPerm fork 16 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 16) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     vatDispatchIlks hsel
-  have hreach := vatReachIlksBody (σ := σ)
+  have hreach := vatReachIlksBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

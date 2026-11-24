@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationSource
 import Benchmarks.UniswapV3.Pool.SwapStateSource
 import Benchmarks.UniswapV3.Pool.SourceTuples
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -29,7 +31,7 @@ theorem swapIterationResultSource {frame : Frame} {evm : EVM.State}
     (hr : frame.locals.get? "__c4" = some (.tuple [.int (Int.ofNat price.toNat),
       .int (Int.ofNat amountIn.toNat), .int (Int.ofNat amountOut.toNat),
       .int (Int.ofNat fee.toNat)])) :
-    ExecBlock config frame evm ((swapLoopBody.drop 9).take 4)
+    ExecBlock fork config frame evm ((swapLoopBody.drop 9).take 4)
       (.ok (swapIterationResultFrame frame s d price amountIn amountOut fee) evm) := by
   let f1 := swapStateFrame frame {s with price := price}
   let f2 := swapIterationFrame f1 {d with amountIn := amountIn}
@@ -52,16 +54,16 @@ theorem swapIterationResultSource {frame : Frame} {evm : EVM.State}
       .int (Int.ofNat fee.toNat)]) := by
     simpa only [f3, swapIterationFrame, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
       using hr2
-  have h1 : ExecStmt config frame evm swapLoopBody[9]! (.ok f1 evm) :=
+  have h1 : ExecStmt fork config frame evm swapLoopBody[9]! (.ok f1 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr) rfl)
       (assignLocalField_frame hs rfl rfl)
-  have h2 : ExecStmt config f1 evm swapLoopBody[10]! (.ok f2 evm) :=
+  have h2 : ExecStmt fork config f1 evm swapLoopBody[10]! (.ok f2 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr1) rfl)
       (assignLocalField_frame hd1 rfl rfl)
-  have h3 : ExecStmt config f2 evm swapLoopBody[11]! (.ok f3 evm) :=
+  have h3 : ExecStmt fork config f2 evm swapLoopBody[11]! (.ok f3 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr2) rfl)
       (assignLocalField_frame Std.HashMap.getElem?_insert_self rfl rfl)
-  have h4 : ExecStmt config f3 evm swapLoopBody[12]!
+  have h4 : ExecStmt fork config f3 evm swapLoopBody[12]!
       (.ok (swapIterationResultFrame frame s d price amountIn amountOut fee) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr3) rfl)
       (assignLocalField_frame Std.HashMap.getElem?_insert_self rfl rfl)

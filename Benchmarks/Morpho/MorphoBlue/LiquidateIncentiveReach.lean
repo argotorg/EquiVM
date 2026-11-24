@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveMath
 import Benchmarks.Morpho.MorphoBlue.LiquidateGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,13 +16,13 @@ theorem morphoLiquidateIncentiveReach {v : MorphoImmutables} {ee : ExecutionEnv}
     {s0 : State} {mem out : ByteArray} {aw seized shares price srcOff len : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 20 ≤ 1024)
     (hlltv : memLoad (UInt256.ofNat 256) mem = p.lltv)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1638)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1638)
       (price :: liquidateGuardTail p.id seized shares srcOff len R) mem aw out σ k C) :
     if p.lltv.toNat ≤ wad.toNat then ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
         (liquidateMathStack p.id seized shares price (liquidationDenom p.lltv) srcOff len R)
         mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hm : memLoad (UInt256.ofNat 128 + UInt256.ofNat 128) mem = p.lltv := hlltv
   by_cases hf : p.lltv.toNat ≤ wad.toNat
   swap

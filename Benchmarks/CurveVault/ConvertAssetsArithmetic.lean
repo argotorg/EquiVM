@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.ConvertSharesArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -15,18 +17,18 @@ theorem vaultAssetsArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (ht : locals.get? "total_assets" = some (.int (Int.ofNat total.toNat)))
     (hma : memLoad (UInt256.ofNat 320) mem = shares) (hmt : memLoad (UInt256.ofNat 416) mem = total)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7369) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7369) R mem aw rdata σ k C) :
     let precision := codeOwnerStorageWord I σ ⟨15⟩
     let supply := codeOwnerStorageWord I σ ⟨14⟩
     let numerator := UInt256.mul shares (UInt256.mul total precision + ⟨1⟩)
     let denominator := UInt256.mul (supply + UInt256.ofNat 1000) precision
     (∃ aw' k' C',
-      ExecBlock config {contract := contract, locals := locals} evm vaultAssetsArithmeticBody
+      ExecBlock fork config {contract := contract, locals := locals} evm vaultAssetsArithmeticBody
         (.ok {contract := contract, locals := vaultSharesArithmeticLocals locals precision numerator denominator} evm) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 7483) (denominator :: precision :: (supply + UInt256.ofNat 1000) :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 7483) (denominator :: precision :: (supply + UInt256.ofNat 1000) :: R)
         (numerator.toByteArray.write 0 (precision.toByteArray.write 0 mem 448 32) 480 32) aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm vaultAssetsArithmeticBody .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm vaultAssetsArithmeticBody .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   dsimp only
   let p := codeOwnerStorageWord I σ ⟨15⟩
   let s := codeOwnerStorageWord I σ ⟨14⟩
@@ -73,7 +75,7 @@ theorem vaultAssetsArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         (evalExpr_checked_binary_left_revert .add _ (evalExpr_mul256_revert htEval hpLocal hover))))
   obtain ⟨_, _, rd7405⟩ := vaultBlocks.vault_block_7369_fallthrough (by omega)
     ((hcheck _).mpr (mulCheck_ok _ _ hprod)) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7405)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7405)
     (UInt256.mul (memLoad (UInt256.ofNat 416) mem1) (memLoad (UInt256.ofNat 448) mem1) ::
       memLoad (UInt256.ofNat 448) mem1 :: memLoad (UInt256.ofNat 416) mem1 ::
       memLoad (UInt256.ofNat 320) mem1 :: R) mem1 _ rdata σ _ _ at rd7405
@@ -92,7 +94,7 @@ theorem vaultAssetsArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (evalExpr_checked_mul_right_revert _ haEval (evalExpr_add256_revert hprodEval h1 hover)))
   have rd7420 := vaultBlocks.vault_block_7405_fallthrough (by simp only [List.length_cons]; omega)
     (ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hincr]; omega)) rd7405
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7420)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7420)
     ((UInt256.mul total p + UInt256.ofNat 1) :: UInt256.mul total p :: shares :: R) mem1 _ rdata σ _ _ at rd7420
   have hincrEval := evalExpr_add256_ok hprodEval h1 rfl hincr
   by_cases hnum : shares.toNat * (UInt256.mul total p + UInt256.ofNat 1).toNat < UInt256.size
@@ -135,12 +137,12 @@ theorem vaultAssetsArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨_, _, rd7461⟩ := vaultBlocks.vault_block_7438_fallthrough (by omega)
     (by change UInt256.lt (s + UInt256.ofNat 1000) s = _
         exact ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hsum]; omega)) rd7438
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7461) ((s + UInt256.ofNat 1000) :: s :: R) mem2 _ rdata σ _ _ at rd7461
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7461) ((s + UInt256.ofNat 1000) :: s :: R) mem2 _ rdata σ _ _ at rd7461
   have hsumEval := evalExpr_add256_ok hsEval h1000 rfl hsum
   by_cases hden : (s + UInt256.ofNat 1000).toNat * p.toNat < UInt256.size
   · have rdNext := vaultBlocks.vault_block_7461_fallthrough (by omega)
       (by rw [hmp2]; exact mulCheck_ok _ _ hden) rd7461
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7483)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7483)
       (UInt256.mul (s + UInt256.ofNat 1000) (memLoad (UInt256.ofNat 448) mem2) ::
         memLoad (UInt256.ofNat 448) mem2 :: (s + UInt256.ofNat 1000) :: R) mem2 _ rdata σ _ _ at rdNext
     rw [hmp2] at rdNext

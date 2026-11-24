@@ -3,6 +3,8 @@ import Benchmarks.Dss.Pot.Arith
 import Benchmarks.Dss.Pot.Dispatch
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Pot `drip()` — shared foundation
 
@@ -55,7 +57,7 @@ theorem potReachDripEntry {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 4)) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         ⟨583⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : potSelWord I = ⟨0x9f678cca⟩ :=
@@ -77,9 +79,9 @@ theorem potReachDripEntry {σ σ₀ A I} {g : Sat256}
 
 /-- Entry `@583`: push return addr `341`, push logic `1819`, jump. -/
 theorem potDripX_entered {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
-    (hreach : ∃ k C, RD potBytecode I g s0 ⟨583⟩ [sel]
+    (hreach : ∃ k C, RD fork potBytecode I g s0 ⟨583⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k, C, h⟩ := hreach
   have rd584 := h.jumpdest (by native_decide) (by evm_ov)
@@ -91,7 +93,7 @@ theorem potReachDripBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 4)) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         ⟨1819⟩ [⟨341⟩, potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C :=
   potDripX_entered (potReachDripEntry hcode hwv hsz hsize hsel)
@@ -101,9 +103,9 @@ theorem potReachDripBody {σ σ₀ A I} {g : Sat256}
 /-- Common prefix: load rho (slot 7), compare with `now`, land on `@1828` after `ISZERO`
 with the guard condition on top of `[0, 341, sel]`. -/
 theorem potDripX_guardCond {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
-    (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
+    (h : RD fork potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1828⟩
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1828⟩
       (UInt256.isZero (UInt256.lt (dripNowWord I) (dripRhoWord σ I)) ::
         ⟨0⟩ :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -111,7 +113,7 @@ theorem potDripX_guardCond {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : U
   have rd1822 := rd1820.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd1824 := rd1822.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1825, C1825, rd1825raw⟩ := rd1824.sload (by native_decide) (by evm_ov)
-  have rd1825 : RD potBytecode I g s0 ⟨1825⟩
+  have rd1825 : RD fork potBytecode I g s0 ⟨1825⟩
       (dripRhoWord σ I :: ⟨0⟩ :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1825 C1825 := by
     simpa [dripRhoWord, solcSlotWordAt, solcSlotWord] using rd1825raw
@@ -123,9 +125,9 @@ theorem potDripX_guardCond {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : U
 /-- `now >= rho`: the guard is taken, landing at `@1894` with `[0, 341, sel]`. -/
 theorem potDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
-    (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
+    (h : RD fork potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1894⟩ [⟨0⟩, ⟨341⟩, sel]
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1894⟩ [⟨0⟩, ⟨341⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd1828⟩ := potDripX_guardCond h
   have hltZero : UInt256.lt (dripNowWord I) (dripRhoWord σ I) = ⟨0⟩ := ult_zero hle
@@ -137,9 +139,9 @@ theorem potDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt2
 /-- `now < rho`: the guard falls through to the `"Pot/invalid-now"` string revert. -/
 theorem potDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hlt : (dripNowWord I).toNat < (dripRhoWord σ I).toNat)
-    (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
+    (h : RD fork potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   obtain ⟨_, _, rd1828⟩ := potDripX_guardCond h
   have hltOne : UInt256.lt (dripNowWord I) (dripRhoWord σ I) = ⟨1⟩ := ult_one hlt
   rw [hltOne, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1828

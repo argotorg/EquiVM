@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.WordArrayMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -7,13 +9,13 @@ namespace Benchmarks.EAS.Attester
 
 theorem wordArrayCopyRun {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {ptr junk : UInt256} {src dst i n : Nat} {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3743⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3743⟩
       ([UInt256.ofNat dst, ptr, junk, UInt256.ofNat (src + 32 * n), UInt256.ofNat src] ++ R)
       mem aw out σ k C)
     (hstack : R.length + 8 ≤ 1024) (hlo : 96 ≤ src) (hin : src + 32 * n ≤ mem.size)
     (hdis : src + 32 * n ≤ dst) (hfit : dst + 32 * n < UInt256.size)
     (hloads : ∀ j, j < n → memLoad (UInt256.ofNat (src + 32 * j)) mem = values (i + j)) :
-    ∃ aw' k' C' junk', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3771⟩
+    ∃ aw' k' C' junk', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3771⟩
       ([UInt256.ofNat (dst + 32 * n), ptr, junk', UInt256.ofNat (src + 32 * n),
         UInt256.ofNat (src + 32 * n)] ++ R)
       (wordSequenceMemory mem dst (wordArrayWords values i n)) aw' out σ k' C' := by
@@ -57,16 +59,16 @@ theorem wordArrayCopyRun {words : String → UInt256} {I g s0 σ mem out aw k C 
 
 theorem returnArrayDecode {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {base : Nat} {ret : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
       ([UInt256.ofNat base, UInt256.ofNat (base + out.size), ret] ++ R)
       (returnArrayInputMemory mem base out) aw out σ k C)
     (hstack : R.length + 13 ≤ 1024) (hlo : 96 ≤ base) (hb : base ≤ mem.size)
     (hbound : base + out.size + 31 ≤ 2 ^ 200)
     (hret : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
     ((¬ ReturnArrayChecks out ∨ ¬ returnArrayEnd base out ≤ solcMaxU64) ∧
-      RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
     (ReturnArrayChecks out ∧ returnArrayEnd base out ≤ solcMaxU64 ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ret
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ret
         (UInt256.ofNat (returnArrayFree base out) :: R)
         (returnArrayDecodedMemory mem base out) aw' out σ k' C') := by
   rcases returnArrayDecodeStart h

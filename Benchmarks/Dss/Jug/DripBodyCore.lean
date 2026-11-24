@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.DripEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
@@ -9,10 +11,10 @@ theorem jugDripBodyCoreDecodeFailed_short
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨328⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -41,16 +43,16 @@ theorem jugDripBodyCoreInvalidNow
     (hdecode :
       config.externalABI.decodeCalldata? (dripTransition.params.map Param.name)
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨328⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
     simpa [evm0, locals] using
-      (jugDripSourceBodyRhoReverts (σ := σ)
+      (jugDripSourceBodyRhoReverts (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hlt)
   obtain ⟨_, _, hdecoded⟩ := jugDripX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -69,12 +71,12 @@ theorem jugDripBodyCoreVatIlksNoCode
     (hdecode :
       config.externalABI.decodeCalldata? (dripTransition.params.map Param.name)
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨328⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatNoCodeStele :
@@ -84,9 +86,9 @@ theorem jugDripBodyCoreVatIlksNoCode
     dripVatCode_zero_of_codeSize_zero (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
   have hbody :
-      ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
     simpa [evm0, locals] using
-      (jugDripSourceBodyVatIlksNoCode (σ := σ)
+      (jugDripSourceBodyVatIlksNoCode (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hle hvatNoCodeStele)
   obtain ⟨_, _, hdecoded⟩ := jugDripX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -110,7 +112,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1400 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨0⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord ::
         dripVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
@@ -118,16 +120,16 @@ theorem jugDripBodyCoreVatIlksCallFailed
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', false, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', false, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hout : out.size < UInt256.size) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeStele :
@@ -153,10 +155,10 @@ theorem jugDripBodyCoreVatIlksCallFailed
     exact address_of_val _
   have hΘE :
       (σ', g'', A', false, out) =
-        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evm.accountMap (AccountAddress.ofUInt256
             (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -164,12 +166,12 @@ theorem jugDripBodyCoreVatIlksCallFailed
           (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
     simpa [evm, initState] using hΘ
   have hcall :
-      typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (false, { evm with accountMap := σ', substate := A' }, out) true :=
     callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
   have hbody :
-      ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm locals dripTransition.body .reverted := by
     simpa [evm, locals] using
       (jugDripSourceBodyVatIlksCallFailed
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -193,14 +195,14 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1400 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨0⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord ::
         dripVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
         sel :: [])
       (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
       ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeStele :
@@ -210,12 +212,12 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat :=
     dripVatCode_pos_of_codeSize_ne_zero
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
-  let A_vat := (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (EVM.address
+  let A_vat := (Ethereum.EVM.callSubstate fork evm.accountMap (EVM.address
     (dripVatAddress σ I)) evm.substate)
   have hdepthInit : evm.executionEnv.depth = 1024 := by
     simpa [evm, initState] using hdepth
   have hcallStele :
-      typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (false, { evm with substate := A_vat }, ByteArray.empty) true := by
     simpa [A_vat] using
@@ -228,7 +230,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
         (dripVatIlksEncode_eq I hsz36) hdepthInit)
   have hbody :
-      ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm locals dripTransition.body .reverted := by
     simpa [evm, locals] using
       (jugDripSourceBodyVatIlksCallFailed
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -253,7 +255,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd1400 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
       (⟨1⟩ :: dripVatIlksEndPtr :: dripVatIlksSelectorWord ::
         dripVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
@@ -261,17 +263,17 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hshort : out.size < 64)
     (hout : out.size < UInt256.size) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeStele :
@@ -297,10 +299,10 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evm.accountMap (AccountAddress.ofUInt256
             (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -308,12 +310,12 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
           (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
     simpa [evm, initState] using hΘ
   have hcall :
-      typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (true, { evm with accountMap := σ', substate := A' }, out) true :=
     callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
   have hbody :
-      ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm locals dripTransition.body .reverted := by
     simpa [evm, locals] using
       (jugDripSourceBodyVatIlksReturnDecodeReverts
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -340,7 +342,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
+    (rd2131 : RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
@@ -348,10 +350,10 @@ theorem jugDripBodyCoreVatIlksAddOverflow
       mem (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -363,7 +365,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     (haddOverflow :
       UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
         (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeStele :
@@ -376,10 +378,10 @@ theorem jugDripBodyCoreVatIlksAddOverflow
   rcases hΘ with ⟨g'', A', hΘ⟩
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evm.accountMap (AccountAddress.ofUInt256
             (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -392,7 +394,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     rw [dripVatAddress_eq_target σ I]
     exact address_of_val _
   have hcall :
-      typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (true, { evm with accountMap := σ', substate := A' }, out) true :=
     callCoincides
@@ -401,7 +403,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
         (g := Sat256.ofUInt256 g) hdepth)
       htgt (dripVatIlksEncode_eq I hsz36) hΘE
   have hbody :
-      ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm locals dripTransition.body .reverted := by
     simpa [evm, locals, initState, solcSlotWordAt] using
       (jugDripSourceBodyVatIlksAddOverflowReverts
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

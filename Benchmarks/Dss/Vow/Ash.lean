@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -33,7 +35,7 @@ theorem vowReachAshBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨449⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨706554684⟩ :=
@@ -65,12 +67,12 @@ theorem vowAshBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (AshTransition.params.map Param.name)
         (transitionSignature AshTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨449⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ AshTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -99,7 +101,7 @@ theorem vowAshBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩ rfl hsel
   exact vowAshBodyCore hcode hwv (vowDispatch_Ash hsel) (vowDecode_Ash hsz)

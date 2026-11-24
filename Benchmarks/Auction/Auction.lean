@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Snapshot
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -8,7 +10,7 @@ namespace Auction
 
 theorem auctionBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "auction" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals auctionGetter.body
+    ExecTransitionBody fork auctionConfig auctionContract evm locals auctionGetter.body
       (.returned { contract := auctionContract, locals := locals } evm
         (some (snapshotOfState evm).values)) := by
   have h0 := auctionFieldRead evm locals "nounId" (.int uint256Int)
@@ -37,11 +39,11 @@ theorem auctionBodyReturns (evm : EVM.State) (locals : Store)
   rfl
 
 theorem auctionEncode {ee g s0 R rdata acc k C} (s : Snapshot)
-    (h : RD auctionBytecode ee g s0 ⟨629⟩
+    (h : RD fork auctionBytecode ee g s0 ⟨629⟩
       (s.settledByte :: s.bidderWord :: s.endTime :: s.startTime :: s.amount :: s.nounId :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
-    RDret auctionBytecode g s0 acc (wordBytes s.words) := by
+    RDret fork auctionBytecode g s0 acc (wordBytes s.words) := by
   have rd637 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -98,8 +100,8 @@ theorem auctionEncode {ee g s0 R rdata acc k C} (s : Snapshot)
       (by evm_ov) ]
 
 theorem auctionX {σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 9 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
-    RDret auctionBytecode (Sat256.ofUInt256 g)
+    (hreach : EntryReached fork 9 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+    RDret fork auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (wordBytes (snapshotOf σ I).words) := by
   obtain ⟨_, _, rd570⟩ := hreach
@@ -123,7 +125,7 @@ theorem auctionX {σ σ₀ A I} {g : UInt256}
   have hmask : UInt256.land ⟨255⟩ (snapshotOf σ I).settledSourceWord =
       (snapshotOf σ I).settledByte :=
     u256_land_comm _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.land ⟨255⟩ (snapshotOf σ I).settledSourceWord, (snapshotOf σ I).bidderWord,
       (snapshotOf σ I).endTime, (snapshotOf σ I).startTime, (snapshotOf σ I).amount,
       (snapshotOf σ I).nounId, ⟨629⟩, solcSelectorWord I] _ _ _ _ _ _ at rd629
@@ -133,8 +135,8 @@ theorem auctionX {σ σ₀ A I} {g : UInt256}
 theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 9))
-    (hreach : EntryReached 9 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 9 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 9) (entryBytes_size 9) hsel
     have hd := dispatchEntry 9 hsel
@@ -142,7 +144,7 @@ theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
         (auctionGetter.params.map Param.name)
         (transitionSignature auctionGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ auctionGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

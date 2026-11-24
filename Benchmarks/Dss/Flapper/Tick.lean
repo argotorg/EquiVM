@@ -3,6 +3,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Yank
 import Benchmarks.Dss.Flopper.Tick.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -632,7 +634,7 @@ theorem evalExpr_tick_end_var (evm : EVM.State) (I : ExecutionEnv) :
 theorem flapperTickBodyReverts_endNotExpired (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendGe : (tickTimestampWord evm).toNat ≤ (tickEndWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -643,7 +645,7 @@ theorem flapperTickBodyReverts_ticNonzero (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -657,7 +659,7 @@ theorem flapperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I = ⟨0⟩)
     (haddOverflow : 2 ^ 48 ≤ (tickNow48Word evm).toNat + (tickTauWord evm).toNat) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable, checkedAdd48Into, List.cons_append, List.nil_append]
     using
@@ -676,16 +678,16 @@ theorem flapperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I = ⟨0⟩)
     (haddFit : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 48) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body
       (.returned { contract := contract, locals := tickEndLocals evm I }
         (tickPostState evm I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (tickLocals I)
+        ExecTransitionBody fork config contract evm (tickLocals I)
           tickTransition.body .staticViolation) := by
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := tickEndLocals evm I } evm
+      (hwrite : ExecBlock fork config { contract := contract, locals := tickEndLocals evm I } evm
         [.assign .storage (bidsF (.var "id") "end") (.var "end_")] result) :
-      ExecBlock config { contract := contract, locals := tickLocals I } evm
+      ExecBlock fork config { contract := contract, locals := tickLocals I } evm
         tickTransition.body result := by
     simpa [tickTransition, nonpayable, checkedAdd48Into, List.cons_append, List.nil_append]
       using
@@ -704,7 +706,7 @@ theorem flapperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
   constructor
   · intro hperm
     exact ExecFuncBody.execBlockOK
-      (hprefix (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign) ExecBlock.nil))
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign) ExecBlock.nil))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
@@ -730,7 +732,7 @@ theorem flapperReachTickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 15)) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
         ⟨855⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flapperSelWord I = ⟨0xfc7b6aee⟩ := by
@@ -766,10 +768,10 @@ theorem flapperReachTickBody {σ σ₀ A I} {g : Sat256}
 
 theorem flapperTickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨855⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4586⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -791,10 +793,10 @@ theorem flapperTickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flapperTickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨855⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -812,12 +814,12 @@ theorem flapperTickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flapperTickX_toEndLtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd4586 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4586⟩
+    (rd4586 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4623⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4623⟩
       [UInt256.lt (uint48Offset26Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), id, ⟨360⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -871,7 +873,7 @@ theorem flapperTickX_toEndLtGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd4604pre
   obtain ⟨k4605, C4605, rd4605raw⟩ := rd4604pre.sload (by native_decide) (by evm_ov)
-  have rd4605 : RD flapperBytecode I g
+  have rd4605 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4605⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, id, ⟨360⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k4605 C4605 := by
@@ -900,11 +902,11 @@ theorem flapperTickX_endNotExpired {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hendGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
         (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   let id := tickIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   obtain ⟨_, _, rd4586'⟩ := rd4586
@@ -949,14 +951,14 @@ theorem flapperTickX_toTicZeroGuard
     (hendLt :
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4729⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4729⟩
       [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1021,7 +1023,7 @@ theorem flapperTickX_toTicZeroGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd4712pre
   obtain ⟨k4713, C4713, rd4713raw⟩ := rd4712pre.sload (by native_decide) (by evm_ov)
-  have rd4713 : RD flapperBytecode I g
+  have rd4713 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4713⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k4713 C4713 := by
@@ -1049,11 +1051,11 @@ theorem flapperTickX_ticNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I ≠ ⟨0⟩)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   let id := tickIdWord I
   let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memEnd
@@ -1097,14 +1099,14 @@ theorem flapperTickX_toCheckedAddStart
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
       [tickRuntimeTauWord σ I, UInt256.ofNat I.header.timestamp, ⟨4838⟩,
         id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1120,7 +1122,7 @@ theorem flapperTickX_toCheckedAddStart
   have rd4812 := rd4809.jumpdest (by native_decide) (by evm_ov)
   have rd4813 := rd4812.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4813, C4813, rd4813raw⟩ := rd4813.sload (by native_decide) (by evm_ov)
-  have rd4813' : RD flapperBytecode I g
+  have rd4813' : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4813⟩
       [solcSlotWordAt ⟨5⟩ σ I, id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k4813 C4813 := by
@@ -1158,14 +1160,14 @@ theorem flapperTickX_toEndStoreStart
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord σ I).toNat < 2 ^ 48)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4838⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4838⟩
       [tickRuntimeAddWord σ I, id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memEnd memTic
@@ -1224,11 +1226,11 @@ theorem flapperTickX_addOverflow
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord σ I).toNat)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4936⟩ :=
     flapperTickX_toCheckedAddStart hendLt htic rd4586
   let tau := tickRuntimeTauWord σ I
@@ -1283,14 +1285,14 @@ theorem flapperTickX_successSplit
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord σ I).toNat < 2 ^ 48)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
+    (rd4586 : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret flapperBytecode g (initState σ σ₀ g A I)
+      RDret fork flapperBytecode g (initState σ σ₀ g A I)
         (tickRuntimeSuccessAccountMap I.codeOwner σ I) ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g (initState σ σ₀ g A I)) := by
   let id := tickIdWord I
   let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memEnd
@@ -1351,7 +1353,7 @@ theorem flapperTickX_successSplit
     simp [packedSlot, base, auctionPackedSlot_eq, id]
   rw [hpackedSlot] at rd4857pre
   obtain ⟨k4859, C4859, rd4859raw⟩ := rd4857pre.sload (by native_decide) (by evm_ov)
-  have rd4859 : RD flapperBytecode I g
+  have rd4859 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨4859⟩
       [oldPacked, packedSlot, addWord, ⟨360⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σ k4859 C4859 := by
@@ -1455,17 +1457,17 @@ theorem flapperTickBodyCoreEndNotExpired
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4586 : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd4586 : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeStele :
       (tickTimestampWord evmStele).toNat ≤ (tickEndWord evmStele I).toNat := by
     simpa [evmStele, tickTimestampWord, tickEndWord, initState] using hendGe
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flapperTickBodyReverts_endNotExpired evmStele I
       (by simpa [evmStele, initState] using hwv) hendGeStele
@@ -1483,11 +1485,11 @@ theorem flapperTickBodyCoreTicNonzero
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4586 : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd4586 : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -1497,7 +1499,7 @@ theorem flapperTickBodyCoreTicNonzero
     apply htic
     simpa [evmStele, tickTicWord, initState] using hzero
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flapperTickBodyReverts_ticNonzero evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele
@@ -1519,11 +1521,11 @@ theorem flapperTickBodyCoreAddOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4586 : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd4586 : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -1537,7 +1539,7 @@ theorem flapperTickBodyCoreAddOverflow
     simpa [evmStele, tickNow48Word, tickTimestampWord, initState, htau]
       using haddOverflow
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flapperTickBodyReverts_addOverflow evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele
@@ -1561,11 +1563,11 @@ theorem flapperTickBodyCoreSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4586 : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd4586 : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -1578,10 +1580,10 @@ theorem flapperTickBodyCoreSuccess
       (tickNow48Word evmStele).toNat + (tickTauWord evmStele).toNat < 2 ^ 48 := by
     simpa [evmStele, tickNow48Word, tickTimestampWord, initState, htau] using haddFit
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         (.returned { contract := contract, locals := tickEndLocals evmStele I }
           (tickPostState evmStele I) none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evmStele (tickLocals I)
+      (I.perm = false → ExecTransitionBody fork config contract evmStele (tickLocals I)
         tickTransition.body .staticViolation) := by
     exact flapperTickBodyReturns_successSplit evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele haddFitStele
@@ -1606,10 +1608,10 @@ theorem flapperTickBodyCoreDecodeFailed_short
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨855⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flapperTickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flapperDecode_tick_none_short hsz4 hshort)
@@ -1619,12 +1621,12 @@ theorem flapperTickBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 15) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=
     flapperDispatchTick hsel
-  have hreach := flapperReachTickBody
+  have hreach := flapperReachTickBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

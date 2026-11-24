@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.PayableDecode
 import Benchmarks.EAS.EAS.PayableSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -40,9 +42,9 @@ theorem payableStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {ptr junk a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+13 ≤ 1024) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (payableEntryPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableEntryPC site)
       (junk::payableSavedTail site a b c d e target R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (payableCallPC site)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableCallPC site)
       (gasArg::target::ptr::⟨4⟩::ptr::⟨32⟩::ptr::payableSavedTail site a b c d e target R)
       (payableHeaderMemory mem ptr) aw' rdata σ k' C' := by
   cases site with
@@ -79,9 +81,9 @@ theorem payableReturn_success {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {ptr a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+10 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (payableAfterCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableAfterCallPC site)
       (⟨1⟩::ptr::payableSavedTail site a b c d e target R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableCopyPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableCopyPC site)
       (ptr::⟨0⟩::payableSavedTail site a b c d e target R) mem aw' out σ k' C' := by
   cases site with
   | single =>
@@ -107,9 +109,9 @@ theorem payableReturn_failure {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {ptr a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+12 ≤ 1024) (hb : out.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (payableAfterCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableAfterCallPC site)
       (⟨0⟩::ptr::payableSavedTail site a b c d e target R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hg : (UInt256.ofNat 0).toNat+(UInt256.ofNat out.size).toNat ≤ out.size := by
     rw [ulit_toNat' _ hb]
     change 0+out.size ≤ out.size

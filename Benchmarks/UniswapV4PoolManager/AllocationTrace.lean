@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -28,8 +30,8 @@ theorem allocateTraceWords {I : ExecutionEnv} {g : Sat256} {s0 : State} {mem rda
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hf : ptr.toNat+len.toNat+31 ≤ solcMaxU64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret R (writeWord mem 64 (allocationEnd ptr len)) (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R (writeWord mem 64 (allocationEnd ptr len)) (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ k' C' := by
   have hb := allocationEnd_bounds ptr len hf
   have hr := poolManagerBlocks.poolManager_block_11822_fallthrough (by simp; omega)
     (by change UInt256.lor (UInt256.gt (allocationEnd ptr len) ⟨18446744073709551615⟩)
@@ -42,8 +44,8 @@ theorem allocateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : 
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hf : ptr.toNat+len.toNat+31 ≤ solcMaxU64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ret R (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ret R (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C' := by
   obtain ⟨k', C', hr⟩ := allocateTraceWords v hstack hf hret h
   exact ⟨_, k', C', hr⟩
 

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ConstructorAllocationWords
 import Benchmarks.CompoundIII.Comet.CreationBlocks_001
 import Benchmarks.CompoundIII.Comet.CreationBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -16,7 +18,7 @@ def constructorEntryMemory : ByteArray := writeWord ByteArray.empty 64 ⟨928⟩
 theorem cometConstructorEntry {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     (hcode : I.code = cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
     (hv : I.weiValue = ⟨0⟩) (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size) :
-    ∃ aw k C, RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw k C, RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [⟨928⟩, constructorArgumentSizeWord c, ⟨33⟩, ⟨21425⟩,
         constructorArgumentSizeWord c, constructorArgumentSizeWord c, ⟨928⟩]
@@ -32,7 +34,7 @@ theorem cometConstructorEntry {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig
     rw [cometConstructorCodeSize hfull, List.size_toByteArray,
       ConstructorConfig.encodedArgs_length, constructorArgumentSizeWord,
       constructorArgumentSize_toNat hsize]
-  have r0 := RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
+  have r0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
   have r1 := cometWithExtendedAssetListCreation_block_0_fallthrough (by decide) hv r0
   have r2 := cometWithExtendedAssetListCreation_block_13 (by decide) (by native_decide) r1
   simp only [cometWithExtendedAssetListCreation_block_13_stack,
@@ -46,12 +48,12 @@ theorem cometConstructorAllocate {σ σ₀ A I} {g : Sat256} {c : ConstructorCon
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hsmall : 1664 + 224 * c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [⟨928⟩, constructorArgumentSizeWord c, ⟨33⟩, ⟨21425⟩,
         constructorArgumentSizeWord c, constructorArgumentSizeWord c, ⟨928⟩]
       constructorEntryMemory aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨33⟩
       [⟨21425⟩, constructorArgumentSizeWord c, constructorArgumentSizeWord c, ⟨928⟩]
       (constructorAllocatedMemory c) aw' ByteArray.empty σ k' C' := by
@@ -59,7 +61,7 @@ theorem cometConstructorAllocate {σ σ₀ A I} {g : Sat256} {c : ConstructorCon
     (constructorAllocationGuard_zero hsize hsmall) h
   have r2 := cometWithExtendedAssetListCreation_block_2743 (by change 7 ≤ 1024; decide)
     (by native_decide) r1
-  change ∃ aw' k' C', RD _ _ _ _ _ _
+  change ∃ aw' k' C', RD fork _ _ _ _ _ _
     (writeWord constructorEntryMemory 64 (UInt256.ofNat (1664 + 224 * c.assetConfigs.length)))
     aw' ByteArray.empty σ k' C'
   have hend := constructorAllocationEnd_eq hsize
@@ -72,12 +74,12 @@ theorem cometConstructorAllocationOverflow {σ σ₀ A I} {g : Sat256} {c : Cons
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hlarge : 2^64 ≤ 1664 + 224 * c.assetConfigs.length)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [⟨928⟩, constructorArgumentSizeWord c, ⟨33⟩, ⟨21425⟩,
         constructorArgumentSizeWord c, constructorArgumentSizeWord c, ⟨928⟩]
       constructorEntryMemory aw ByteArray.empty σ k C) :
-    RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
   have r1 := cometWithExtendedAssetListCreation_block_2711_taken (by change 10 ≤ 1024; decide)
     (constructorAllocationGuard_ne_zero hsize hlarge) (by native_decide) h

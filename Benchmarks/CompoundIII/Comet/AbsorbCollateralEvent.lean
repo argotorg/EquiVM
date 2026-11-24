@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbEventsMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_080
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,7 +22,7 @@ theorem absorbCollateralEvent_source (frame : Frame) (evm : State)
     (hn : frame.locals.get? "seizeAmount" = some (.int seized.toNat))
     (hv : frame.locals.get? "value" = some (.int value.toNat))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm absorbCollateralEvent (.ok frame evm) := by
+    ExecStmt fork config frame evm absorbCollateralEvent (.ok frame evm) := by
   apply ExecStmt.emit (hperm := hperm) (vals := [.address absorber, .address account, .address asset,
     .int seized.toNat, .int value.toNat])
   simp only [evalExprs?, evalExpr?, ha, hb, hc, hn, hv, EvalResult.ofOption, pure,
@@ -48,10 +50,10 @@ theorem cometAbsorbCollateralEvent {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 18 ≤ 1024) (hp : ee.perm = true)
     (hf : memLoad ⟨64⟩ mem = free) (hb : free.toNat + 32 < UInt256.size)
     (hn : seized.toNat < 2^128)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17811⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17811⟩
       (delta :: seized :: value :: absorber :: account :: i :: assets :: reserved :: old ::
         oldPrincipal :: price :: account :: asset :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17567⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17567⟩
       (i :: assets :: reserved :: old :: oldPrincipal :: price :: account :: delta :: R)
       (pairEventMem mem free seized value) aw' rdata σ k' C' := by
   have hr := cometWithExtendedAssetList_block_17811 (immWords := wordsOf (immStore v))

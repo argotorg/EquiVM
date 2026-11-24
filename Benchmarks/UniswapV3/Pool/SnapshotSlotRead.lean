@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Memory
 import Benchmarks.UniswapV3.Pool.SnapshotInside
 import Benchmarks.UniswapV3.Pool.SignedComparison
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,14 +21,14 @@ def snapshotReadyStack (lower upper : Int) (σ : AccountMap) (I : ExecutionEnv)
 theorem snapshotSlotReadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret lowerRaw upperRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (lower upper : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10148⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10148⟩
       (snapshotTickStack lower upper σ ee (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: upperRaw :: lowerRaw :: ret :: R))
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hticks : validTicks lower upper)
     (hl : UInt256.signextend (UInt256.ofNat 2) lowerRaw = EVM.wordOfInt lower)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if slot0TickValue σ ee < lower then ⟨10298⟩ else ⟨10317⟩)
       (snapshotReadyStack lower upper σ ee p lowerRaw upperRaw ret R)
       (wordArrayAllocMem mem p (slot0StructWords σ ee)) aw' rdata σ k' C' ∧

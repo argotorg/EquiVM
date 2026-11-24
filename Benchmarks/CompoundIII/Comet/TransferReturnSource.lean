@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Common
 import Reasoning.ABIViews
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -36,9 +38,9 @@ theorem transferReturn_length (imms : Store) (out : ByteArray) (evm : EVM.State)
 theorem transferReturn_body (imms : Store) (out : ByteArray) (evm : EVM.State)
     (hh : out.size < 2^255) :
     if TransferReturnValid out then
-      ∃ final, ExecFuncBody config (transferReturnFrame imms out) evm
+      ∃ final, ExecFuncBody fork config (transferReturnFrame imms out) evm
         transferReturnCallable.body (.returned final evm none)
-    else ExecFuncBody config (transferReturnFrame imms out) evm
+    else ExecFuncBody fork config (transferReturnFrame imms out) evm
       transferReturnCallable.body .reverted := by
   by_cases hz : out.size = 0
   · rw [if_pos (show TransferReturnValid out from Or.inl hz)]
@@ -96,10 +98,10 @@ theorem transferReturn_body (imms : Store) (out : ByteArray) (evm : EVM.State)
 theorem transferReturn_call (frame : Frame) (evm : EVM.State) (expr : Expr) (ret : Ident)
     (out : ByteArray) (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.bytes out)) (hh : out.size < 2^255) :
-    ExecStmt config frame evm (.internalCall "checkTransferReturn" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "checkTransferReturn" [expr] ret)
       (if TransferReturnValid out then
         .ok { frame with locals := frame.locals.insert ret .unit } evm else .reverted) := by
-  have hb := transferReturn_body frame.immutables out evm hh
+  have hb := transferReturn_body (fork := fork) frame.immutables out evm hh
   by_cases hv : TransferReturnValid out
   · rw [if_pos hv] at hb ⊢
     obtain ⟨final, hb⟩ := hb

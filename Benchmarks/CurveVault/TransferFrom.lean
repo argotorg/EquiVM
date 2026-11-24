@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Dispatch
 import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.TransferFromInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -9,7 +11,7 @@ set_option maxHeartbeats 400000 in
 theorem vaultTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 9) rfl hsel
   have hd : dispatchMsg contract I.calldata = some transferFromTransition := by
     apply vaultDispatch_transferFrom
@@ -55,7 +57,7 @@ theorem vaultTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _; rw [hlocked]; decide +kernel)
       (by native_decide) rd5714
     have hrev := vaultBlocks.vault_block_8284 (by simp [vaultBlocks.vault_block_5714_taken_stack]) rdRevert
-    have hsource := vaultLockedBodyReverts evm locals (transferFromTransition.body.drop 2) hvalue
+    have hsource := vaultLockedBodyReverts (fork := fork) evm locals (transferFromTransition.body.drop 2) hvalue
       (by rw [hload]; exact hlocked)
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   have rd5726 := vaultBlocks.vault_block_5714_fallthrough (by simp)
@@ -69,7 +71,7 @@ theorem vaultTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
       (by simp [vaultBlocks.vault_block_5714_fallthrough_stack])
     have hstatic := tstoreStaticReach rd5729 hp (by native_decide)
       (by simp [vaultBlocks.vault_block_5714_fallthrough_stack])
-    have hsource := vaultMutatingBodyStatic evm locals (transferFromTransition.body.drop 3) hvalue
+    have hsource := vaultMutatingBodyStatic (fork := fork) evm locals (transferFromTransition.body.drop 3) hvalue
       (by rw [hload]; exact hlocked) hp
     exact hstatic.reEquivStaticHalt hcode hd hdec hsource
   let first := sender.toByteArray.write 0 (vaultDispatchMemory ⟨599290589⟩) 192 32
@@ -107,7 +109,7 @@ theorem vaultTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (by simp [vaultBlocks.vault_block_5714_fallthrough_stack]) rd5726 with
     ⟨evm', σ', locals', hcallee, hs', hret⟩ | ⟨hcallee, hrev⟩
   swap
-  · have hsource := vaultMutatingBodyReverts (hperm := by assumption) (fn := vaultTransferFromFunction) hvalue
+  · have hsource := vaultMutatingBodyReverts (fork := fork) (hperm := by assumption) (fn := vaultTransferFromFunction) hvalue
       (by rw [hload]; exact hlocked) hcallArgs rfl rfl hcallee
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   have hsource := vaultMutatingBodyReturns (hpermAfter := (congrArg ExecutionEnv.perm hs'.env).trans hperm) (hperm := by assumption) (fn := vaultTransferFromFunction) hvalue
@@ -123,7 +125,7 @@ theorem vaultTransferFromBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultTransferFromBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

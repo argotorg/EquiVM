@@ -1,13 +1,15 @@
 import Benchmarks.Safe.ViaIR.GetOwnersSource
 import Benchmarks.Safe.ViaIR.GetOwnersLoopTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
 
 theorem safeGetOwnersLoop (evm : EVM.State) {g s0 k C aw mem rdata n words i current locals}
     {R : List UInt256}
-    (h : RD safeBytecode evm.executionEnv g s0 ⟨4105⟩
+    (h : RD fork safeBytecode evm.executionEnv g s0 ⟨4105⟩
       (current :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R)
       mem aw rdata evm.accountMap k C)
     (hov : R.length + 11 ≤ 1024)
@@ -15,15 +17,15 @@ theorem safeGetOwnersLoop (evm : EVM.State) {g s0 k C aw mem rdata n words i cur
     (hn : n ≤ 2 ^ 64 - 1) (hi : i ≤ n)
     (hc : current.toNat < EVM.addressModulus)
     (hw : ∀ w ∈ words, w.toNat < EVM.addressModulus) :
-    (ExecStmt config { contract := contract, locals := locals } evm getOwnersLoop .reverted ∧
-      RDrev safeBytecode g s0) ∨
+    (ExecStmt fork config { contract := contract, locals := locals } evm getOwnersLoop .reverted ∧
+      RDrev fork safeBytecode g s0) ∨
     ∃ words' locals' mem' aw' k' C' j,
-      ExecStmt config { contract := contract, locals := locals } evm getOwnersLoop
+      ExecStmt fork config { contract := contract, locals := locals } evm getOwnersLoop
         (.ok { contract := contract, locals := locals' } evm) ∧
       GetOwnersLocals locals' words' j ⟨1⟩ ∧
       AddressArrayMemory mem' n words' ∧
       (∀ w ∈ words', w.toNat < EVM.addressModulus) ∧
-      RD safeBytecode evm.executionEnv g s0 ⟨4171⟩
+      RD fork safeBytecode evm.executionEnv g s0 ⟨4171⟩
         (⟨1⟩ :: ⟨0⟩ :: UInt256.ofNat j :: ⟨128⟩ :: R)
         mem' aw' rdata evm.accountMap k' C' := by
   induction hfuel : n - i using Nat.strong_induction_on generalizing i words current locals
@@ -40,7 +42,7 @@ theorem safeGetOwnersLoop (evm : EVM.State) {g s0 k C aw mem rdata n words i cur
       simp only [hs, ne_eq, not_false_eq_true, decide_true] at hcond
       by_cases hib : i < n
       · have hfit : i + 1 < UInt256.size := by change i + 1 < 2 ^ 256; omega
-        have hsbody := safeGetOwnersLoopStep evm hl hc (by rw [hm.length]; exact hib) hfit
+        have hsbody := safeGetOwnersLoopStep (fork := fork) evm hl hc (by rw [hm.length]; exact hib) hfit
         obtain ⟨aw', k', C', h'⟩ := safeGetOwnersLoopNext h (by simp; omega) hm hn hib hc hs
         rw [← ownerLink_eq_at] at h'
         have hw' : ∀ w ∈ words.set i current, w.toNat < EVM.addressModulus := by

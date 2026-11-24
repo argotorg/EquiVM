@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.CurrencyReservesSource
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,8 +14,8 @@ open poolManagerBlocks in
 theorem syncZeroStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length+3 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨2747⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
-    RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨2747⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
+    RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.pop (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2747⟩ : UInt256), UInt8.ofNat 80, .POP, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pop (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2748⟩ : UInt256), UInt8.ofNat 80, .POP, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -25,8 +27,8 @@ open poolManagerBlocks in
 theorem syncReservesStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length+3 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨2794⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
-    RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨2794⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
+    RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2794⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap1 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2795⟩ : UInt256), UInt8.ofNat 144, .SWAP1, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -36,9 +38,9 @@ theorem syncReservesStaticTrace {immWords : String → UInt256} {ee : ExecutionE
 theorem syncZeroStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw x0 x1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+3 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨2747⟩ (x0 :: x1 :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0
-    else RDret (deployedRuntime v) g s0 (resetCurrencyPost evm).accountMap .empty := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2747⟩ (x0 :: x1 :: R) mem aw rdata evm.accountMap k C) :
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0
+    else RDret fork (deployedRuntime v) g s0 (resetCurrencyPost evm).accountMap .empty := by
   cases hp : I.perm with
   | false => exact syncZeroStaticTrace hstack hp h
   | true =>
@@ -49,9 +51,9 @@ theorem syncZeroStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
 theorem syncReservesStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw value : UInt256} {currency : AccountAddress} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+3 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨2794⟩ (value :: accountWord currency :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0
-    else RDret (deployedRuntime v) g s0 (syncReservesPost evm currency value).accountMap .empty := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2794⟩ (value :: accountWord currency :: R) mem aw rdata evm.accountMap k C) :
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0
+    else RDret fork (deployedRuntime v) g s0 (syncReservesPost evm currency value).accountMap .empty := by
   cases hp : I.perm with
   | false => exact syncReservesStaticTrace hstack hp h
   | true =>

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.FlashLoanCallbackSource
 import Benchmarks.Morpho.MorphoBlue.FlashLoanCallbackFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -24,13 +26,13 @@ theorem flashLoanSecondTransfer_args {frame token assets data} (hi : FlashLoanIn
     EvalResult.ofOption, pure, bind, EvalResult.bind]
   rfl
 
-inductive FlashLoanRepayRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive FlashLoanRepayRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (frame : Frame) (evm : EVM.State) : Prop where
-  | reverted : ExecBlock config frame evm (flashLoanTransition.body.drop 9) .reverted →
-      RDrev (deployedRuntime v) g s0 → FlashLoanRepayRefines v ee g s0 frame evm
-  | ok {frame' evm' σ'} : ExecBlock config frame evm (flashLoanTransition.body.drop 9) (.ok frame' evm') →
-      SourceState s0 ee σ' evm' → RDret (deployedRuntime v) g s0 σ' ByteArray.empty →
-      FlashLoanRepayRefines v ee g s0 frame evm
+  | reverted : ExecBlock fork config frame evm (flashLoanTransition.body.drop 9) .reverted →
+      RDrev fork (deployedRuntime v) g s0 → FlashLoanRepayRefines fork v ee g s0 frame evm
+  | ok {frame' evm' σ'} : ExecBlock fork config frame evm (flashLoanTransition.body.drop 9) (.ok frame' evm') →
+      SourceState s0 ee σ' evm' → RDret fork (deployedRuntime v) g s0 σ' ByteArray.empty →
+      FlashLoanRepayRefines fork v ee g s0 frame evm
 
 theorem morphoFlashLoanRepay {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {mem out data : ByteArray} {aw ptr assets : UInt256} {σ : AccountMap}
@@ -40,10 +42,10 @@ theorem morphoFlashLoanRepay {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem ptr 0)
     (hsize : 128 ≤ mem.size) (hlower : 128 ≤ ptr.toNat)
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
       [UInt256.ofNat token.val, UInt256.ofNat ee.source.val, UInt256.ofNat ee.codeOwner.val, assets,
         UInt256.ofNat 1211, UInt256.ofNat 0] mem aw out σ k C) :
-    FlashLoanRepayRefines v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
+    FlashLoanRepayRefines fork v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
   have he := flashLoanSecondTransfer_args hi evm ptr.toNat hcur
   rw [hs.env] at he
   have hf := morphoSafeTransferFunctionRefine (v := v) true token ee.source ee.codeOwner imms

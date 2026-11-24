@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CallbackEncoding
 import Benchmarks.UniswapV3.Pool.Calls
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -31,7 +33,7 @@ theorem flashCallbackNoCode {frame : Frame} {evm : EVM.State} {σ : AccountMap}
     {target : AccountAddress} (ha : σ = evm.accountMap)
     (ht : frame.locals.get? "callback" = some (.address target))
     (hc : extCodeSizeWord σ (EVM.word target.val) = ⟨0⟩) :
-    ExecBlock config frame evm flashCallbackStmts .reverted := by
+    ExecBlock fork config frame evm flashCallbackStmts .reverted := by
   apply checkedExternalCallVarNoCode
   simpa only [hc, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using
     evalFlashCallbackGuard ha ht
@@ -58,8 +60,8 @@ theorem flashCallbackReverts {frame : Frame} {evm evm' : EVM.State} {σ : Accoun
     (hf1 : frame.locals.get? "fee1" = some (.int (Int.ofNat fee1.toNat)))
     (hd : frame.locals.get? "data" = some (.bytes data))
     (hc : extCodeSizeWord σ (EVM.word target.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm target 0 (flashCallbackCalldata fee0 fee1 data) (false, evm', out)) :
-    ExecBlock config frame evm flashCallbackStmts .reverted := by
+    (hcall : callViaEVM fork evm target 0 (flashCallbackCalldata fee0 fee1 data) (false, evm', out)) :
+    ExecBlock fork config frame evm flashCallbackStmts .reverted := by
   apply checkedExternalCallVarFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evm' := evm') (out := out) (flashCallbackGuardTrue ha ht hc) ht
     (evalFlashCallbackArgs hf0 hf1 hd)
   refine ⟨flashCallbackCalldata fee0 fee1 data, flashCallbackEncode fee0 fee1 data, ?_⟩
@@ -75,8 +77,8 @@ theorem flashCallbackReturns {frame : Frame} {evm evm' : EVM.State} {σ : Accoun
     (hf1 : frame.locals.get? "fee1" = some (.int (Int.ofNat fee1.toNat)))
     (hd : frame.locals.get? "data" = some (.bytes data))
     (hc : extCodeSizeWord σ (EVM.word target.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm target 0 (flashCallbackCalldata fee0 fee1 data) (true, evm', out)) :
-    ExecBlock config frame evm flashCallbackStmts
+    (hcall : callViaEVM fork evm target 0 (flashCallbackCalldata fee0 fee1 data) (true, evm', out)) :
+    ExecBlock fork config frame evm flashCallbackStmts
       (.ok {frame with locals := frame.locals.insert "__c7" .unit} evm') := by
   apply checkedExternalCallVarSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (out := out) (flashCallbackGuardTrue ha ht hc) ht
     (evalFlashCallbackArgs hf0 hf1 hd) (value := [])

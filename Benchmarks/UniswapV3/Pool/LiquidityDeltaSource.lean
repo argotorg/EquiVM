@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaModel
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -56,7 +58,7 @@ theorem evalLiquidityDeltaCondition (imms : Store) (evm : EVM.State) (x y : Int)
   simp only [evalExpr?, he, evalBinaryOp?, bind, EvalResult.bind, pure]
 
 theorem liquidityDeltaSubSource (imms : Store) (evm : EVM.State) (x y : Int) :
-    ExecStmt config (liquidityDeltaZeroFrame imms x y) evm
+    ExecStmt fork config (liquidityDeltaZeroFrame imms x y) evm
       (.assign .localVar ⟨"z", []⟩ liquidityDeltaSubExpr)
       (.ok (liquidityDeltaReadyFrame imms x y) evm) := by
   apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (liquidityDeltaResult x y))
@@ -69,7 +71,7 @@ theorem liquidityDeltaSubSource (imms : Store) (evm : EVM.State) (x y : Int) :
   · exact assignLocalVarBase_frame Std.HashMap.getElem?_insert_self
 
 theorem liquidityDeltaAddSource (imms : Store) (evm : EVM.State) (x y : Int) :
-    ExecStmt config (liquidityDeltaZeroFrame imms x y) evm
+    ExecStmt fork config (liquidityDeltaZeroFrame imms x y) evm
       (.assign .localVar ⟨"z", []⟩ liquidityDeltaAddExpr)
       (.ok (liquidityDeltaReadyFrame imms x y) evm) := by
   apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (liquidityDeltaResult x y))
@@ -100,7 +102,7 @@ theorem evalLiquidityDeltaGuards (imms : Store) (evm : EVM.State) (x y : Int) :
 
 theorem liquidityDeltaReturns (imms : Store) (evm : EVM.State) (x y : Int)
     (hv : liquidityDeltaValid x y) :
-    ExecFuncBody config (liquidityDeltaFrame imms x y) evm liquidityDeltaFunction.body
+    ExecFuncBody fork config (liquidityDeltaFrame imms x y) evm liquidityDeltaFunction.body
       (.returned (liquidityDeltaReadyFrame imms x y) evm
         (some [.int (liquidityDeltaResult x y)])) := by
   apply ExecFuncBody.execBlockRet
@@ -132,7 +134,7 @@ theorem liquidityDeltaReturns (imms : Store) (evm : EVM.State) (x y : Int)
 
 theorem liquidityDeltaReverts (imms : Store) (evm : EVM.State) (x y : Int)
     (hv : ¬ liquidityDeltaValid x y) :
-    ExecFuncBody config (liquidityDeltaFrame imms x y) evm liquidityDeltaFunction.body
+    ExecFuncBody fork config (liquidityDeltaFrame imms x y) evm liquidityDeltaFunction.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := liquidityDeltaZeroFrame imms x y)

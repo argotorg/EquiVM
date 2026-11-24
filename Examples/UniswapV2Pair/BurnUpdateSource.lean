@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnUpdatedBalancesSource
 import Examples.UniswapV2Pair.UpdateCallSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -43,13 +45,13 @@ theorem evalExprs_burn_updateArgs (reserveEvm callEvm feeEvm updateEvm : EVM.Sta
     syncUpdateCallArgValsWith]
 
 theorem uniswapBurnBodyReverts_updateCall (evm evmU : EVM.State) (I : ExecutionEnv) (locals : Store)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm
       burnBeforeUpdatePrefix (.ok { contract := contract, locals := locals } evmU))
-    (hcall : ExecStmt config { contract := contract, locals := locals } evmU
+    (hcall : ExecStmt fork config { contract := contract, locals := locals } evmU
       (.internalCall "_update" [.var "newBalance0", .var "newBalance1", .var "_reserve0", .var "_reserve1"]
         "_updateResult") .reverted) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
-  have hblock : ExecBlock config { contract := contract, locals := locals } evmU
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
+  have hblock : ExecBlock fork config { contract := contract, locals := locals } evmU
       (updateReservesStmtsWith (.var "newBalance0") (.var "newBalance1") (.var "_reserve0") (.var "_reserve1")) .reverted :=
     ExecBlock.consRevert hcall
   exact ExecFuncBody.execBlockRevert (by

@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.ArithmeticRoutines
 import Benchmarks.Morpho.MorphoBlue.MarketParamsMemory
 import Benchmarks.Morpho.MorphoBlue.MarketStorageBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,9 +17,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {ptr ret : UInt256} {R : List UInt256}
 
 theorem morphoAccrueReachSub (p : MarketParamsWords) (hstack : R.length + 15 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
       ([UInt256.ofNat ee.header.timestamp, marketFieldWord σ ee p.id 4, UInt256.ofNat 13222,
         p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64,
         uint128Mask, ret, ptr] ++ R)
@@ -25,7 +27,7 @@ theorem morphoAccrueReachSub (p : MarketParamsWords) (hstack : R.length + 15 ≤
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_13166_packed
     (immWords := wordsOf (immStore v)) (by omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat ee.header.timestamp,
       UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem p.id (UInt256.ofNat 3) mem) + UInt256.ofNat 2) σ ee) uint128Mask,
@@ -40,17 +42,17 @@ theorem morphoAccrueReachSub (p : MarketParamsWords) (hstack : R.length + 15 ≤
 
 theorem morphoAccrueUnderflow (p : MarketParamsWords) (hstack : R.length + 15 ≤ 1024)
     (hunder : (UInt256.ofNat ee.header.timestamp).toNat < (marketFieldWord σ ee p.id 4).toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueReachSub (v := v) p hstack h
   exact morphoCheckedSubReverts (v := v)
     (by simp only [List.append, List.length_cons]; omega) hunder rd1
 
 theorem morphoAccrueReachElapsed (p : MarketParamsWords) (hstack : R.length + 15 ≤ 1024)
     (htime : (marketFieldWord σ ee p.id 4).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13222)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13222)
       ([accrueElapsed σ ee p, p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R)
       (twoWordHashMem p.id (UInt256.ofNat 3) mem) aw' rdata σ k' C' := by
@@ -64,9 +66,9 @@ theorem morphoAccrueZeroElapsed (p : MarketParamsWords) (hstack : R.length + 15 
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (htime : (marketFieldWord σ ee p.id 4).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
     (hz : accrueElapsed σ ee p = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem p.id (UInt256.ofNat 3) mem) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueReachElapsed (v := v) p hstack htime h
   have rd2 := morphoBlocks.morpho_block_13222_taken (immWords := wordsOf (immStore v))
@@ -78,9 +80,9 @@ theorem morphoAccrueZeroElapsed (p : MarketParamsWords) (hstack : R.length + 15 
 theorem morphoAccrueReachIrm (p : MarketParamsWords) (hstack : R.length + 15 ≤ 1024)
     (htime : (marketFieldWord σ ee p.id 4).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
     (hn : accrueElapsed σ ee p ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166) (ptr :: p.id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
       ([accrueElapsed σ ee p, p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R)
       (twoWordHashMem p.id (UInt256.ofNat 3) mem) aw' rdata σ k' C' := by
@@ -94,10 +96,10 @@ theorem morphoAccrueReachIrm (p : MarketParamsWords) (hstack : R.length + 15 ≤
 theorem morphoAccrueNoIrmBranch (p : MarketParamsWords) (hc : p.Canonical)
     {elapsed : UInt256} (hstack : R.length + 13 ≤ 1024) (hi0 : p.irm = ⟨0⟩)
     (hm : p.InMemory ptr mem)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
       ([elapsed, p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
       ([p.irm, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw' rdata σ k' C' := by
   have hi : memLoad (ptr + UInt256.ofNat 96) mem = p.irm := by
@@ -113,10 +115,10 @@ theorem morphoAccrueNoIrmBranch (p : MarketParamsWords) (hc : p.Canonical)
 theorem morphoAccrueHasIrmBranch (p : MarketParamsWords) (hc : p.Canonical)
     {elapsed : UInt256} (hstack : R.length + 13 ≤ 1024) (hin : p.irm ≠ ⟨0⟩)
     (hm : p.InMemory ptr mem)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13229)
       ([elapsed, p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
       ([p.irm, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw' rdata σ k' C' := by
   have hi : memLoad (ptr + UInt256.ofNat 96) mem = p.irm := by
@@ -133,10 +135,10 @@ theorem morphoAccrueHasIrmBranch (p : MarketParamsWords) (hc : p.Canonical)
 theorem morphoAccrueStoreTimestamp (id : UInt256) {x0 x1 x2 : UInt256}
     (hstack : R.length + 11 ≤ 1024) (hp : ee.perm = true)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
       ([x0, x1, x2, id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' rdata
       (storeMarketFieldAccounts σ ee id ⟨4, by decide⟩
         (halfWord false (UInt256.ofNat ee.header.timestamp))) k' C' := by
@@ -145,7 +147,7 @@ theorem morphoAccrueStoreTimestamp (id : UInt256) {x0 x1 x2 : UInt256}
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 3) mem) = solcMappingSlot ⟨3⟩ id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _ R (twoWordHashMem id (UInt256.ofNat 3) mem) _ _
+  change RD fork _ _ _ _ _ R (twoWordHashMem id (UInt256.ofNat 3) mem) _ _
     (sstoreAccountMap ee.codeOwner σ
       (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 2)
@@ -159,9 +161,9 @@ theorem morphoAccrueStoreTimestamp (id : UInt256) {x0 x1 x2 : UInt256}
 -- Static execution stops at the timestamp write, after the shared load/mask prefix.
 theorem morphoAccrueTimestampStatic {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256}
     (hstack : R.length + 11 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13263)
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R)
-      mem aw rdata σ k C) : RDstatic (deployedRuntime v) g s0 := by
+      mem aw rdata σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨13263⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pop (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨13264⟩ : UInt256), UInt8.ofNat 80, .POP, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

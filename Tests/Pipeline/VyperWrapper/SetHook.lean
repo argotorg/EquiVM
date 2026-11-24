@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `setHook(address)`
 
@@ -49,7 +51,7 @@ theorem wrapperSetHookBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : i
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 1) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -148,7 +150,7 @@ theorem wrapperSetHookBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : i
         (ExecBlock.consStatic (ExecStmt.assignStatic htarget hassign (by show I.perm = false; exact hpf)))))
   have rd4 := wrapperBlocks.wrapper_block_179 (by simp) hperm rd3
   rw [hload] at rd4
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (setHookStore I)
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (setHookStore I)
       setHookTransition.body
       (.returned (frame imms (setHookStore I))
         (Stele.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner ⟨0⟩ (argWord I)) none)

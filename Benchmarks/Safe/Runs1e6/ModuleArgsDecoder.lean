@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.Decoders
 import Benchmarks.Safe.Runs1e6.MemoryBytesDecodeEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -11,10 +13,10 @@ set_option maxHeartbeats 1000000
 
 theorem safeDecodeModuleArgsStart {I g s0 σ k C aw mem rdata} {stop ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12209⟩ (⟨4⟩ :: stop :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨12209⟩ (⟨4⟩ :: stop :: ret :: R) mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub stop ⟨4⟩) (UInt256.ofNat 128) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨11548⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨11548⟩
       (calldataWord I.calldata 4 :: ⟨12239⟩ :: calldataWord I.calldata 4 ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨4⟩ :: stop :: ret :: R)
       mem aw rdata σ k' C' := by
@@ -25,12 +27,12 @@ theorem safeDecodeModuleArgsStart {I g s0 σ k C aw mem rdata} {stop ret : UInt2
 
 theorem safeDecodeModuleArgsToBytes {I g s0 σ k C aw mem rdata} {stop ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12239⟩
+    (h : RD fork safeBytecode I g s0 ⟨12239⟩
       (calldataWord I.calldata 4 :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         ⟨4⟩ :: stop :: ret :: R) mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨11753⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨11753⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) :: stop :: ⟨12285⟩ ::
         calldataWord I.calldata 68 :: ⟨0⟩ :: ⟨0⟩ :: calldataWord I.calldata 36 ::
         calldataWord I.calldata 4 :: ⟨4⟩ :: stop :: ret :: R) mem aw rdata σ k' C' := by
@@ -56,13 +58,13 @@ theorem safeDecodeModuleArgsToBytes {I g s0 σ k C aw mem rdata} {stop ret : UIn
 
 theorem safeDecodeModuleArgsFinish {I g s0 σ k C aw mem rdata} {stop ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12285⟩
+    (h : RD fork safeBytecode I g s0 ⟨12285⟩
       (⟨128⟩ :: calldataWord I.calldata 68 :: ⟨0⟩ :: ⟨0⟩ ::
         calldataWord I.calldata 36 :: calldataWord I.calldata 4 :: ⟨4⟩ :: stop :: ret :: R)
       mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 100).toNat < 2)
     (hov : R.length + 15 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret
+    ∃ k' C', RD fork safeBytecode I g s0 ret
       (calldataWord I.calldata 100 :: ⟨128⟩ :: calldataWord I.calldata 36 ::
         calldataWord I.calldata 4 :: R) mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_12285 (by simp; omega) (by jump_dest) h
@@ -72,7 +74,7 @@ theorem safeDecodeModuleArgsFinish {I g s0 σ k C aw mem rdata} {stop ret : UInt
 
 theorem safeDecodeModuleArgsValid {I g s0 σ k C aw rdata len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12209⟩
+    (h : RD fork safeBytecode I g s0 ⟨12209⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hh : 132 ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (hc : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
@@ -83,7 +85,7 @@ theorem safeDecodeModuleArgsValid {I g s0 σ k C aw rdata len} {ret : UInt256}
     (hin : 4 + (calldataWord I.calldata 68).toNat + 32 + len ≤ I.calldata.size)
     (ho : (calldataWord I.calldata 100).toNat < 2)
     (hov : R.length + 19 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (calldataWord I.calldata 100 :: ⟨128⟩ :: calldataWord I.calldata 36 ::
         calldataWord I.calldata 4 :: R)
       (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
@@ -101,11 +103,11 @@ theorem safeDecodeModuleArgsValid {I g s0 σ k C aw rdata len} {ret : UInt256}
 
 theorem safeDecodeModuleArgsEvidence {I g s0 σ k C aw rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12209⟩
+    (h : RD fork safeBytecode I g s0 ⟨12209⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 19 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ len aw' k' C', 132 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1 ∧
@@ -113,14 +115,14 @@ theorem safeDecodeModuleArgsEvidence {I g s0 σ k C aw rdata} {ret : UInt256}
         UInt256.ofNat len ∧ len ≤ 2 ^ 64 - 192 ∧
       4 + (calldataWord I.calldata 68).toNat + 32 + len ≤ I.calldata.size ∧
       (calldataWord I.calldata 100).toNat < 2 ∧
-      RD safeBytecode I g s0 ret
+      RD fork safeBytecode I g s0 ret
         (calldataWord I.calldata 100 :: ⟨128⟩ :: calldataWord I.calldata 36 ::
           calldataWord I.calldata 4 :: R)
         (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
           (4 + (calldataWord I.calldata 68).toNat + 32 + len))) aw' rdata σ k' C' := by
   have hfail (hc : UInt256.slt
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) (UInt256.ofNat 128) = ⟨1⟩) :
-      RDrev safeBytecode g s0 := by
+      RDrev fork safeBytecode g s0 := by
     have h₁ := safeRuntime_block_12209_fallthrough (by simp; omega) (by rw [hc]; decide) h
     exact safeRuntime_block_12225 (by
       simp only [safeRuntime_block_12209_fallthrough_stack, List.length_cons]; omega) h₁

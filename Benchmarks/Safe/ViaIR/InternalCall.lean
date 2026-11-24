@@ -1,5 +1,7 @@
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele Reasoning.Theory
 
 namespace Benchmarks.Safe.ViaIR
@@ -15,8 +17,8 @@ theorem internalCallFunctionResult {cfg : Config} {caller : Frame} {evm : EVM.St
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg { caller with locals := locals } evm callee.body result) :
-    ExecStmt cfg caller evm (.internalCall name args retVar)
+    (hbody : ExecFuncBody fork cfg { caller with locals := locals } evm callee.body result) :
+    ExecStmt fork cfg caller evm (.internalCall name args retVar)
       (internalCallResult caller retVar result) := by
   cases result with
   | returned frame evm' values => exact internalCallFunctionReturn hargs hlookup hbind hbody

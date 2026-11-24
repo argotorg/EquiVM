@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_031
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_036
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,8 +20,8 @@ theorem cometRead64_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : (memLoad ptr mem).toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7126⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7126⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
       mem aw' rdata σ k' C' := by
   have hm : UInt256.land (memLoad ptr mem) assetMask64 = memLoad ptr mem :=
     u256LandMaskCleanOfToNat _ _ (by decide : assetMask64.toNat = 2^64 - 1) hc
@@ -35,8 +37,8 @@ theorem cometRead64_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : ¬ (memLoad ptr mem).toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7126⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7126⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hm : memLoad ptr mem ≠ UInt256.land (memLoad ptr mem) assetMask64 := by
     intro he
     have hb := u256LandMaskToNatLtOfToNat (memLoad ptr mem) assetMask64
@@ -55,8 +57,8 @@ theorem cometRead128_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : (memLoad ptr mem).toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7146⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7146⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
       mem aw' rdata σ k' C' := by
   have hm : UInt256.land (memLoad ptr mem) assetMask128 = memLoad ptr mem :=
     u256LandMaskCleanOfToNat _ _ (by decide : assetMask128.toNat = 2^128 - 1) hc
@@ -72,8 +74,8 @@ theorem cometRead128_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : ¬ (memLoad ptr mem).toNat < 2^128)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7146⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7146⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hm : memLoad ptr mem ≠ UInt256.land (memLoad ptr mem) assetMask128 := by
     intro he
     have hb := u256LandMaskToNatLtOfToNat (memLoad ptr mem) assetMask128
@@ -90,8 +92,8 @@ theorem cometValidate8_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {w ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hc : w.toNat < 2^8)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5782⟩ (w :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5782⟩ (w :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_5782_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 3 ≤ 1024; omega)
     (by change UInt256.sub (UInt256.land w ⟨255⟩) w = ⟨0⟩
@@ -104,8 +106,8 @@ theorem cometValidate8_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {w : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024) (hc : ¬ w.toNat < 2^8)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5782⟩ (w :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5782⟩ (w :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hn : UInt256.land w ⟨255⟩ ≠ w := fun h ↦ hc ((lowByteClean_iff w).mp h)
   have r1 := cometWithExtendedAssetList_block_5782_taken
     (immWords := wordsOf (immStore v)) hstack (u256_sub_ne_zero_of_ne hn)
@@ -117,8 +119,8 @@ theorem cometRead8_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hc : (memLoad ptr mem).toNat < 2^8)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7104⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7104⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
       mem aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7104
     (immWords := wordsOf (immStore v)) (by omega)
@@ -134,8 +136,8 @@ theorem cometRead8_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hc : ¬ (memLoad ptr mem).toNat < 2^8)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7104⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7104⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7104
     (immWords := wordsOf (immStore v)) (by omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -146,8 +148,8 @@ theorem cometReadAddress_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hc : (memLoad ptr mem).toNat < 2^160)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7115⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7115⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
       mem aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7115
     (immWords := wordsOf (immStore v)) (by omega)
@@ -163,8 +165,8 @@ theorem cometReadAddress_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hc : ¬ (memLoad ptr mem).toNat < 2^160)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7115⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7115⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7115
     (immWords := wordsOf (immStore v)) (by omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

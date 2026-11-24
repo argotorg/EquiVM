@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralWrite
 import Benchmarks.CompoundIII.Comet.CheckedSub128Evm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -39,10 +41,10 @@ theorem cometWithdrawCollateralPrefix {v : CometWithExtendedAssetListImmutables}
     {aw amount ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (src recipient asset : AccountAddress) (hstack : R.length + 22 ≤ 1024)
     (hamount : amount.toNat < 2^128) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16281⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16281⟩
       (EVM.word src.val :: EVM.word recipient.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 (withdrawCollateralPrefixMemory mem src asset)
+    internalMemoryRun fork (deployedRuntime v) ee g s0 (withdrawCollateralPrefixMemory mem src asset)
       rdata ⟨16421⟩ (withdrawCollateralReadyStack src recipient asset amount
         (withdrawCollateralBalance evm src asset)
         (UInt256.sub (withdrawCollateralBalance evm src asset) amount) ret R)

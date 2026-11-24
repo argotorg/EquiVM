@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ReturnDataMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,8 +17,8 @@ theorem morphoZeroAddressMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     {k C : Nat} {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12594) (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (ptr :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12594) (ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (ptr :: R)
       (morphoZeroAddressMem mem) aw' out σ k' C' := by
   obtain ⟨a0, k0, C0, rd0⟩ := morphoBlocks.morpho_block_12594_packed
     (immWords := wordsOf (immStore v)) (by omega)

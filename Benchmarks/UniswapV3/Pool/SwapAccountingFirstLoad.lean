@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingModel
 import Benchmarks.UniswapV3.Pool.SwapIterationMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -30,12 +32,12 @@ theorem swapAccountingFirstLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       (q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem q d)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 5 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨12945⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨12945⟩
         (swapAccountingFirst exactInput d :: (if exactInput then ⟨3401⟩ else ⟨3458⟩) :: q :: R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat := by
   have hword : q.toNat + 224 < UInt256.size := by change _ < 2 ^ 256; omega

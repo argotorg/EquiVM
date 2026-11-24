@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -17,9 +19,9 @@ theorem continueBlockResult_ok {next : Frame → State → ExecResult} {result :
 
 theorem execBlock_continue {cfg : Config} {f : Frame} {evm : State} {pre rest : List Stmt}
     {result : ExecResult} {next : Frame → State → ExecResult}
-    (hp : ExecBlock cfg f evm pre result)
-    (hn : ∀ f' post, result = .ok f' post → ExecBlock cfg f' post rest (next f' post)) :
-    ExecBlock cfg f evm (pre ++ rest) (continueBlockResult next result) := by
+    (hp : ExecBlock fork cfg f evm pre result)
+    (hn : ∀ f' post, result = .ok f' post → ExecBlock fork cfg f' post rest (next f' post)) :
+    ExecBlock fork cfg f evm (pre ++ rest) (continueBlockResult next result) := by
   cases result with
   | ok f' post => exact execBlock_append hp (hn f' post rfl)
   | returned | reverted | «break» | «continue» | staticViolation | noMatch | decodingFailed =>

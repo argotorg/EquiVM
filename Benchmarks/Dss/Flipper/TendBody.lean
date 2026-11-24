@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.TendRefund
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -9,13 +11,13 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 13)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (flipperSelBytes 13) rfl hsel
     have hdispatch : dispatchMsg contract I.calldata = some tendTransition :=
       flipperDispatchTend hsel
-    have hreach := flipperReachTendBody
+    have hreach := flipperReachTendBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     have hdecode := flipperDecode_tend_ok (I := I) hsz100
@@ -40,7 +42,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
     · have hguyStele : bidGuyWord (tendId I) σ I = ⟨0⟩ := by
         simpa [← hguyEq] using hguyEvm
       have hbody :
-          ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
         simpa [evm0, locals] using
           (flipperTendSourceBodyGuyNotSet
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hguyStele)
@@ -63,7 +65,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat I.header.timestamp).toNat := by
             simpa [← hticEq] using hticLeEvm
           have hbody :
-              ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
             simpa [evm0, locals] using
               (flipperTendSourceBodyAlreadyFinishedTic
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -99,7 +101,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                   (UInt256.ofNat I.header.timestamp).toNat := by
               simpa [← hendEq] using hendLeEvm
             have hbody :
-                ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
               simpa [evm0, locals] using
                 (flipperTendSourceBodyAlreadyFinishedEnd
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -186,7 +188,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                   by_cases hbidOneOverflow :
                       UInt256.size ≤ (tendBid I).toNat * flipperONEWord.toNat
                   · have hbody :
-                        ExecTransitionBody config contract evm0 locals tendTransition.body
+                        ExecTransitionBody fork config contract evm0 locals tendTransition.body
                           .reverted := by
                       simpa [evm0, locals] using
                         (flipperTendSourceBodyBidOneOverflow
@@ -217,7 +219,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                             (bidBidWord (tendId I) σ I).toNat := by
                         simpa [← hbegWordEq, ← hbidWordEq] using hbegOverflow
                       have hbody :
-                          ExecTransitionBody config contract evm0 locals tendTransition.body
+                          ExecTransitionBody fork config contract evm0 locals tendTransition.body
                             .reverted := by
                         simpa [evm0, locals] using
                           (flipperTendSourceBodyBegBidOverflow
@@ -398,7 +400,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                             intro htabStele
                             exact htabEq (by simpa [htabWordEq] using htabStele)
                           have hbody :
-                              ExecTransitionBody config contract evm0 locals tendTransition.body
+                              ExecTransitionBody fork config contract evm0 locals tendTransition.body
                                 .reverted := by
                             simpa [evm0, locals] using
                               (flipperTendSourceBodyInsufficientIncrease
@@ -416,7 +418,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                       (tendBid I).toNat ≤ (bidBidWord (tendId I) σ I).toNat := by
                     simpa [← hbidWordEq] using hbidLeEvm
                   have hbody :
-                      ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                      ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
                     simpa [evm0, locals] using
                       (flipperTendSourceBodyBidNotHigher
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -438,7 +440,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                     (bidTabWord (tendId I) σ I).toNat < (tendBid I).toNat := by
                   simpa [← htabWordEq] using htabGtEvm
                 have hbody :
-                    ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                    ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
                   simpa [evm0, locals] using
                     (flipperTendSourceBodyHigherThanTab
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -453,7 +455,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                 intro hlot
                 exact hlotEvm (by simpa [hlotWordEq] using hlot)
               have hbody :
-                  ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                  ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
                 simpa [evm0, locals] using
                   (flipperTendSourceBodyLotNotMatching
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -485,7 +487,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat I.header.timestamp).toNat := by
             simpa [← hendEq] using hendLeEvm
           have hbody :
-              ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
             simpa [evm0, locals] using
               (flipperTendSourceBodyAlreadyFinishedEnd
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -580,7 +582,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                 by_cases hbidOneOverflow :
                     UInt256.size ≤ (tendBid I).toNat * flipperONEWord.toNat
                 · have hbody :
-                      ExecTransitionBody config contract evm0 locals tendTransition.body
+                      ExecTransitionBody fork config contract evm0 locals tendTransition.body
                         .reverted := by
                     simpa [evm0, locals] using
                       (flipperTendSourceBodyBidOneOverflow
@@ -611,7 +613,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                           (bidBidWord (tendId I) σ I).toNat := by
                       simpa [← hbegWordEq, ← hbidWordEq] using hbegOverflow
                     have hbody :
-                        ExecTransitionBody config contract evm0 locals tendTransition.body
+                        ExecTransitionBody fork config contract evm0 locals tendTransition.body
                           .reverted := by
                       simpa [evm0, locals] using
                         (flipperTendSourceBodyBegBidOverflow
@@ -790,7 +792,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                           intro htabStele
                           exact htabEq (by simpa [htabWordEq] using htabStele)
                         have hbody :
-                            ExecTransitionBody config contract evm0 locals tendTransition.body
+                            ExecTransitionBody fork config contract evm0 locals tendTransition.body
                               .reverted := by
                           simpa [evm0, locals] using
                             (flipperTendSourceBodyInsufficientIncrease
@@ -808,7 +810,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                     (tendBid I).toNat ≤ (bidBidWord (tendId I) σ I).toNat := by
                   simpa [← hbidWordEq] using hbidLeEvm
                 have hbody :
-                    ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                    ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
                   simpa [evm0, locals] using
                     (flipperTendSourceBodyBidNotHigher
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -834,7 +836,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
                   (bidTabWord (tendId I) σ I).toNat < (tendBid I).toNat := by
                 simpa [← htabWordEq] using htabGtEvm
               have hbody :
-                  ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                  ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
                 simpa [evm0, locals] using
                   (flipperTendSourceBodyHigherThanTab
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -852,7 +854,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
               intro hlot
               exact hlotEvm (by simpa [hlotWordEq] using hlot)
             have hbody :
-                ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+                ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
               simpa [evm0, locals] using
                 (flipperTendSourceBodyLotNotMatching
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -868,7 +870,7 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
     have hshort : I.calldata.size < 100 := by omega
     have hdispatch : dispatchMsg contract I.calldata = some tendTransition :=
       flipperDispatchTend hsel
-    have hreach := flipperReachTendBody
+    have hreach := flipperReachTendBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     exact (flipperTendX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)

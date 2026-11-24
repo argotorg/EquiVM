@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.TransferFromSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The authorization and allowance step of the internal ERC6909 burn helper. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -62,7 +64,7 @@ def burnAuthResult (f : Frame) (evm : EVM.State) (sender id amount : UInt256) : 
 theorem burnAuthExec {f : Frame} {evm : EVM.State} {sender id amount : UInt256}
     (h : BurnFromArgs f sender id amount) (hcs : sender.toNat < EVM.addressModulus)
     (hc : f.locals.get? "sender" = some (.address evm.executionEnv.source)) :
-    ExecStmt config f evm burnFromFunction.body[1]! (burnAuthResult f evm sender id amount) := by
+    ExecStmt fork config f evm burnFromFunction.body[1]! (burnAuthResult f evm sender id amount) := by
   have hg := burnAuthCond_eval h hcs hc
   by_cases hneed : transferFromNeedsAllowance evm sender
   · rw [burnAuthResult, if_pos hneed]
@@ -103,7 +105,7 @@ theorem burnAuthExec {f : Frame} {evm : EVM.State} {sender id amount : UInt256}
             (ExecBlock.consStatic (ExecStmt.assignStatic heval hwrite hp)))
         · rw [if_neg hp]
           exact ExecBlock.consNormal (ExecStmt.iteTrue hcondTrue
-            (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) heval hwrite) ExecBlock.nil)) ExecBlock.nil
+            (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) heval hwrite) ExecBlock.nil)) ExecBlock.nil
       · rw [if_neg hsub]
         exact ExecBlock.consRevert (ExecStmt.iteTrue hcondTrue
           (ExecBlock.consRevert (ExecStmt.assignExprRevert

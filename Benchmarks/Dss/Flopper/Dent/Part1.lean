@@ -4,6 +4,8 @@ import Benchmarks.Dss.Flopper.AuctionCommon
 import Benchmarks.Dss.Flopper.Tick
 import Benchmarks.Dss.Flopper.Yank
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1300,7 +1302,7 @@ theorem evalExprs_dent_min_return_y (evm : EVM.State) (x y : UInt256) :
   simpa [evalExprs?, hy, EvalResult.bind, bind, pure]
 
 theorem dentMinFunctionBody (evm : EVM.State) (x y : UInt256) :
-    ExecFuncBody config { contract := contract, locals := dentMinLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := dentMinLocals x y } evm
         minFunction.body
       (.returned { contract := contract, locals := dentMinLocals x y } evm
         (some [.int (Int.ofNat (if x.toNat ≤ y.toNat then x else y).toNat)])) := by
@@ -1323,7 +1325,7 @@ theorem dentMinFunctionBody (evm : EVM.State) (x y : UInt256) :
 
 theorem flopperDentBodyMinCallSuccess
     (localsEvm runEvm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
-    ExecStmt config { contract := contract, locals := dentAshLocals localsEvm I out } runEvm
+    ExecStmt fork config { contract := contract, locals := dentAshLocals localsEvm I out } runEvm
       (.internalCall "min" [.var "bid", .var "Ash"] "kissAmt")
       (.ok { contract := contract, locals := dentKissLocals localsEvm I out } runEvm) := by
   have hargs := evalExprs_dent_min_args_of_locals localsEvm runEvm I out
@@ -1331,7 +1333,7 @@ theorem flopperDentBodyMinCallSuccess
     simp [contract, functions, minFunction, add48Function, mulFunction, lookupCallable?,
       lookupFunction?]
   have hbind := dentMin_bindParams (dentBidWord I) (dentAshWord out)
-  have hbody := dentMinFunctionBody runEvm (dentBidWord I) (dentAshWord out)
+  have hbody := dentMinFunctionBody (fork := fork) runEvm (dentBidWord I) (dentAshWord out)
   have hstmt :=
     internalCallFunctionReturn
       (cfg := config)
@@ -1385,14 +1387,14 @@ theorem flopperDentBodyAfterAshSuccessKissNoCode
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
         ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
+    ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
       ([ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
         checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")
       .reverted := by
-  have hminStmt := flopperDentBodyMinCallSuccess localsEvm evmAsh I outAsh
+  have hminStmt := flopperDentBodyMinCallSuccess (fork := fork) localsEvm evmAsh I outAsh
   have hmin :
-      ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
           evmAsh
         [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ]
         (.ok { contract := contract, locals := dentKissLocals localsEvm I outAsh } evmAsh) :=
@@ -1422,7 +1424,7 @@ theorem flopperDentBodyAfterAshSuccessKissNoCode
           .ok (.bool false) :=
     evalExpr_yank_extCodeGuard_false htarget hnoCodeLookup
   have hkiss :
-      ExecBlock config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
           evmAsh
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")
@@ -1439,18 +1441,18 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evmAsh
+      typedCallViaEVM fork config evmAsh
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (false, evmKiss, outKiss) true) :
-    ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
+    ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
       ([ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
         checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")
       .reverted := by
-  have hminStmt := flopperDentBodyMinCallSuccess localsEvm evmAsh I outAsh
+  have hminStmt := flopperDentBodyMinCallSuccess (fork := fork) localsEvm evmAsh I outAsh
   have hmin :
-      ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
           evmAsh
         [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ]
         (.ok { contract := contract, locals := dentKissLocals localsEvm I outAsh } evmAsh) :=
@@ -1481,7 +1483,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
     evalExpr_yank_extCodeGuard_true htarget hcodeLookup
   have hargs := evalExprs_dent_kiss_args_of_locals localsEvm evmAsh I outAsh
   have hkiss :
-      ExecBlock config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
           evmAsh
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")
@@ -1498,18 +1500,18 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evmAsh
+      typedCallViaEVM fork config evmAsh
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKiss, outKiss) true) :
-    ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
+    ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
       ([ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
         checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")
       (.ok { contract := contract, locals := dentKissRetLocals localsEvm I outAsh } evmKiss) := by
-  have hminStmt := flopperDentBodyMinCallSuccess localsEvm evmAsh I outAsh
+  have hminStmt := flopperDentBodyMinCallSuccess (fork := fork) localsEvm evmAsh I outAsh
   have hmin :
-      ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentAshLocals localsEvm I outAsh }
           evmAsh
         [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ]
         (.ok { contract := contract, locals := dentKissLocals localsEvm I outAsh } evmAsh) :=
@@ -1540,7 +1542,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     evalExpr_yank_extCodeGuard_true htarget hcodeLookup
   have hargs := evalExprs_dent_kiss_args_of_locals localsEvm evmAsh I outAsh
   have hkiss :
-      ExecBlock config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentKissLocals localsEvm I outAsh }
           evmAsh
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
           (.intLit 0) [.var "kissAmt"] "_kissRet")

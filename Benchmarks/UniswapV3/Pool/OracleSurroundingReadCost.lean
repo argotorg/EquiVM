@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleReadCost
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_062
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_063
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,10 +20,10 @@ macro "pool_oracle_decode" "(" v:term "," pc:term "," byte:term ","
 theorem oracleSurroundingHeadMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw index base : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18675⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18675⟩
       (index :: base :: R) mem aw rdata σ k C) (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨18761⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨18761⟩
         (uniswapV3Pool_block_18675_stack (ee := ee) (mem := mem) (σ := σ)
           (x0 := index) (x1 := base) (R := R))
         (uniswapV3Pool_block_18675_memory (ee := ee) (mem := mem) (σ := σ)
@@ -167,12 +169,12 @@ theorem oracleSurroundingHeadMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
 theorem oracleSurroundingFallbackMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18966⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18966⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
     let aw' := M (oracleReadHeadAw mem aw) (loadedWord mem (UInt256.ofNat 64) + UInt256.ofNat 96) ⟨32⟩
     ∃ k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨19052⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨19052⟩
         (uniswapV3Pool_block_18966_stack (mem := mem) (x0 := x0) (x2 := x2)
           (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (R := R))
         (uniswapV3Pool_block_18966_memory (ee := ee) (mem := mem) (σ := σ) (x8 := x8))

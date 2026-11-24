@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -47,7 +49,7 @@ theorem safePostModuleArguments (evm : EVM.State) (guard : EVM.Address)
     EvalResult.bind, bind, pure, Std.HashMap.getElem_insert]
 
 theorem safePostModuleCheckZero (evm : EVM.State) (hash : UInt256) (z : Bool) :
-    ExecStmt config (postModuleFrame 0 hash z) evm postModuleCheck
+    ExecStmt fork config (postModuleFrame 0 hash z) evm postModuleCheck
       (.ok (postModuleFrame 0 hash z) evm) := by
   exact .iteFalse (by simpa using safePostModuleCondition evm 0 hash z) .nil
 
@@ -55,7 +57,7 @@ theorem safePostModuleCheckNoCode {evm : EVM.State} {guard : EVM.Address}
     {hash target : UInt256} {z : Bool} (hg : guard ≠ 0)
     (ht : guard = AccountAddress.ofUInt256 target)
     (hc : extCodeSizeWord evm.accountMap target = ⟨0⟩) :
-    ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck .reverted := by
+    ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck .reverted := by
   apply ExecStmt.iteTrue (by simpa [hg] using safePostModuleCondition evm guard hash z)
   apply checkedExternalCallNoCode
   simpa only [hc, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using
@@ -65,9 +67,9 @@ theorem safePostModuleCheckFailed {evm evm' : EVM.State} {guard : EVM.Address}
     {hash target : UInt256} {z : Bool} {out : ByteArray} (hg : guard ≠ 0)
     (ht : guard = AccountAddress.ofUInt256 target)
     (hc : extCodeSizeWord evm.accountMap target ≠ ⟨0⟩)
-    (hcall : typedCallViaEVM config evm (EVM.address guard) "checkAfterModuleExecution" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address guard) "checkAfterModuleExecution" 0
       [.fixedBytes bytes32Width (EVM.Word.toBytesBE hash), .bool z] (false, evm', out)) :
-    ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck .reverted := by
+    ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck .reverted := by
   apply ExecStmt.iteTrue (by simpa [hg] using safePostModuleCondition evm guard hash z)
   apply checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) _ (safePostModuleReceiver evm guard hash z)
     (safePostModuleArguments evm guard hash z) hcall
@@ -80,9 +82,9 @@ theorem safePostModuleCheckSuccess {evm evm' : EVM.State} {guard : EVM.Address}
     {hash target : UInt256} {z : Bool} {out : ByteArray} (hg : guard ≠ 0)
     (ht : guard = AccountAddress.ofUInt256 target)
     (hc : extCodeSizeWord evm.accountMap target ≠ ⟨0⟩)
-    (hcall : typedCallViaEVM config evm (EVM.address guard) "checkAfterModuleExecution" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address guard) "checkAfterModuleExecution" 0
       [.fixedBytes bytes32Width (EVM.Word.toBytesBE hash), .bool z] (true, evm', out)) :
-    ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck
+    ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck
       (.ok { postModuleFrame guard hash z with
         locals := (postModuleArgs guard hash z).insert "_after" (collapseReturns []) } evm') := by
   apply ExecStmt.iteTrue (by simpa [hg] using safePostModuleCondition evm guard hash z)
@@ -96,7 +98,7 @@ theorem safePostModuleCheckSuccess {evm evm' : EVM.State} {guard : EVM.Address}
 theorem safePostModuleEvent (evm : EVM.State) (frame : Frame) (z : Bool)
     (hs : frame.locals["success"]? = some (.bool z))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm postModuleEmit (.ok frame evm) := by
+    ExecStmt fork config frame evm postModuleEmit (.ok frame evm) := by
   have he : evalExpr? config frame evm (.var "success") = .ok (.bool z) := by
     simp [evalExpr?, EvalResult.ofOption, hs]
   have ha : evalExprs? config frame evm [sender] = .ok [.address evm.executionEnv.source] := by
@@ -108,7 +110,7 @@ theorem safePostModuleEvent (evm : EVM.State) (frame : Frame) (z : Bool)
 theorem safePostModuleEventStatic (evm : EVM.State) (frame : Frame) (z : Bool)
     (hs : frame.locals["success"]? = some (.bool z))
     (hp : evm.executionEnv.perm = false) :
-    ExecStmt config frame evm postModuleEmit .staticViolation := by
+    ExecStmt fork config frame evm postModuleEmit .staticViolation := by
   have he : evalExpr? config frame evm (.var "success") = .ok (.bool z) := by
     simp [evalExpr?, EvalResult.ofOption, hs]
   have ha : evalExprs? config frame evm [sender] = .ok [.address evm.executionEnv.source] := by
@@ -119,25 +121,25 @@ theorem safePostModuleEventStatic (evm : EVM.State) (frame : Frame) (z : Bool)
 
 theorem safePostModuleSourceRevert {evm : EVM.State} {guard : EVM.Address}
     {hash : UInt256} {z : Bool}
-    (hc : ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck .reverted) :
-    ExecFuncBody config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
+    (hc : ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck .reverted) :
+    ExecFuncBody fork config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
       .reverted :=
   .execBlockRevert (.consRevert hc)
 
 theorem safePostModuleSourceSuccess {evm evm' : EVM.State} {guard : EVM.Address}
     {hash : UInt256} {z : Bool} {frame : Frame}
-    (hc : ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck (.ok frame evm'))
+    (hc : ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck (.ok frame evm'))
     (hs : frame.locals["success"]? = some (.bool z))
     (hperm : evm'.executionEnv.perm = true) :
-    ExecFuncBody config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
+    ExecFuncBody fork config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
       (.returned frame evm' none) :=
-  .execBlockOK (.consNormal hc (.consNormal (safePostModuleEvent (hperm := by assumption) evm' frame z hs) .nil))
+  .execBlockOK (.consNormal hc (.consNormal (safePostModuleEvent (fork := fork) (hperm := by assumption) evm' frame z hs) .nil))
 
 theorem safePostModuleSourceStatic {evm evm' : EVM.State} {guard : EVM.Address}
     {hash : UInt256} {z : Bool} {frame : Frame}
-    (hc : ExecStmt config (postModuleFrame guard hash z) evm postModuleCheck (.ok frame evm'))
+    (hc : ExecStmt fork config (postModuleFrame guard hash z) evm postModuleCheck (.ok frame evm'))
     (hs : frame.locals["success"]? = some (.bool z)) (hp : evm'.executionEnv.perm = false) :
-    ExecFuncBody config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
+    ExecFuncBody fork config (postModuleFrame guard hash z) evm postModuleExecutionFunction.body
       .staticViolation :=
   .execBlockStatic (.consNormal hc (.consStatic (safePostModuleEventStatic evm' frame z hs hp)))
 

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.PokeCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -13,7 +15,7 @@ theorem spotPokeSourceBodyPipNoCode {σ σ₀ A I} {g : UInt256}
           (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -32,7 +34,7 @@ theorem spotPokeSourceBodyPipNoCode {σ σ₀ A I} {g : UInt256}
           .ok (.bool false) := by
     exact evalExpr_pokePipCodeGuard_false hsz36 hpip hpipNoCode0
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -52,11 +54,11 @@ theorem spotPokeSourceBodyPeekCallFailed {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (false, evmPip, out) true) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -79,7 +81,7 @@ theorem spotPokeSourceBodyPeekCallFailed {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -87,7 +89,7 @@ theorem spotPokeSourceBodyPeekCallFailed {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     exact ExecBlock.consRevert
-      (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip (by simp [evalExpr?, pure]) hargs
+      (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip (by simp [evalExpr?, pure]) hargs
         (by simpa [evm0] using hcall))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -102,12 +104,12 @@ theorem spotPokeSourceBodyPeekReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = none) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -130,7 +132,7 @@ theorem spotPokeSourceBodyPeekReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -138,7 +140,7 @@ theorem spotPokeSourceBodyPeekReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     exact ExecBlock.consRevert
-        (ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+        (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
           (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -153,7 +155,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (hhas : pokePeekHasWord out = ⟨0⟩)
@@ -163,7 +165,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -186,7 +188,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hvalStmt :
-      ExecStmt config { contract := contract, locals := pokePeekLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokePeekLocals I out } evmPip
         (.letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0))
         (.ok { contract := contract, locals := pokeValLocals I out } evmPip) := by
     simpa [pokeValLocals] using
@@ -200,7 +202,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
         (evalExpr_pokePeekVal evmPip I out))
   have hhasStmt :
-      ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
         (.ok { contract := contract, locals := pokeHasLocals I out } evmPip) := by
     simpa [pokeHasLocals] using
@@ -218,7 +220,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp [evalExpr?, pure]
   have hspotStmt :
-      ExecStmt config { contract := contract, locals := pokeHasLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
@@ -246,7 +248,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
           .ok (.bool false) :=
     evalExpr_pokeVatCodeGuard_false_ofLocals hvat hvatNoCode
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -254,7 +256,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, pokePeekLocals, collapseReturns] using hvalStmt) ?_
@@ -278,7 +280,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (hhas : pokePeekHasWord out = ⟨0⟩)
@@ -288,7 +290,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
           ((evmPip.lookupAccount (pokeVatAddress evmPip.accountMap evmPip.executionEnv)).option 0
             (fun acc => acc.code.size))).toNat)
     (hfileCall :
-      typedCallViaEVM config evmPip
+      typedCallViaEVM fork config evmPip
         (EVM.address (pokeVatAddress evmPip.accountMap evmPip.executionEnv)) "file" 0
         [.fixedBytes bytes32Width (pokeIlkBytes I),
           .fixedBytes bytes32Width pokeSpotParamBytes,
@@ -296,7 +298,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
         (false, evmFile, fileOut) true) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -319,7 +321,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hvalStmt :
-      ExecStmt config { contract := contract, locals := pokePeekLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokePeekLocals I out } evmPip
         (.letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0))
         (.ok { contract := contract, locals := pokeValLocals I out } evmPip) := by
     simpa [pokeValLocals] using
@@ -333,7 +335,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
         (evalExpr_pokePeekVal evmPip I out))
   have hhasStmt :
-      ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
         (.ok { contract := contract, locals := pokeHasLocals I out } evmPip) := by
     simpa [pokeHasLocals] using
@@ -351,7 +353,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp [evalExpr?, pure]
   have hspotStmt :
-      ExecStmt config { contract := contract, locals := pokeHasLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
@@ -386,7 +388,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
             .int (Int.ofNat (⟨0⟩ : UInt256).toNat)] :=
     evalExprs_pokeVatFileArgs evmPip I out ⟨0⟩
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -394,7 +396,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, pokePeekLocals, collapseReturns] using hvalStmt) ?_
@@ -406,7 +408,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.iteFalse hhasGuard ExecBlock.nil) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     exact ExecBlock.consRevert
-      (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+      (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
         (by simp [evalExpr?, pure]) hfileArgs hfileCall)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -434,7 +436,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (hhas : pokePeekHasWord out = ⟨0⟩)
@@ -444,7 +446,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
           ((evmPip.lookupAccount (pokeVatAddress evmPip.accountMap evmPip.executionEnv)).option 0
             (fun acc => acc.code.size))).toNat)
     (hfileCall :
-      typedCallViaEVM config evmPip
+      typedCallViaEVM fork config evmPip
         (EVM.address (pokeVatAddress evmPip.accountMap evmPip.executionEnv)) "file" 0
         [.fixedBytes bytes32Width (pokeIlkBytes I),
           .fixedBytes bytes32Width pokeSpotParamBytes,
@@ -453,10 +455,10 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let fileLocals := (pokeSpotLocals I out ⟨0⟩).insert "_fileRet" .unit
-    (evmFile.executionEnv.perm = true → ExecTransitionBody config contract evm0 locals pokeTransition.body
+    (evmFile.executionEnv.perm = true → ExecTransitionBody fork config contract evm0 locals pokeTransition.body
       (.returned { contract := contract, locals := fileLocals } evmFile none)) ∧
       (evmFile.executionEnv.perm = false →
-        ExecTransitionBody config contract evm0 locals pokeTransition.body .staticViolation) := by
+        ExecTransitionBody fork config contract evm0 locals pokeTransition.body .staticViolation) := by
   intro locals evm0 fileLocals
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -479,7 +481,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hvalStmt :
-      ExecStmt config { contract := contract, locals := pokePeekLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokePeekLocals I out } evmPip
         (.letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0))
         (.ok { contract := contract, locals := pokeValLocals I out } evmPip) := by
     simpa [pokeValLocals] using
@@ -493,7 +495,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
         (evalExpr_pokePeekVal evmPip I out))
   have hhasStmt :
-      ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
         (.ok { contract := contract, locals := pokeHasLocals I out } evmPip) := by
     simpa [pokeHasLocals] using
@@ -511,7 +513,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp [evalExpr?, pure]
   have hspotStmt :
-      ExecStmt config { contract := contract, locals := pokeHasLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
@@ -548,11 +550,11 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
   have hfileDecode : config.externalABI.decode? "file" fileOut = some [] :=
     pokeVatFileDecode_ok fileOut
   have hfileReturn :
-      ExecStmt config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         (.externalCall (.storage vatRef) "file" (.intLit 0)
           [.var "ilk", spotParamLit, .var "spot"] "_fileRet" (perm := true))
         (.ok { contract := contract, locals := fileLocals } evmFile) := by
-    have h := ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config)
+    have h := ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config)
       (stele := { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ })
       (evm := evmPip) (receiver := .storage vatRef) (name := "file") (eth := .intLit 0)
       (args := [.var "ilk", spotParamLit, .var "spot"]) (retVar := "_fileRet")
@@ -566,9 +568,9 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
       hvat (by simp [evalExpr?, pure]) hfileArgs hfileCall hfileDecode
     simpa [fileLocals, collapseReturns] using h
   have hprefix {result : ExecResult}
-      (hlog : ExecBlock config { contract := contract, locals := fileLocals } evmFile
+      (hlog : ExecBlock fork config { contract := contract, locals := fileLocals } evmFile
         [.emit "Poke" [.var "ilk", .var "val", .var "spot"]] result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         pokeTransition.body result := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -576,7 +578,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, pokePeekLocals, collapseReturns] using hvalStmt) ?_
@@ -592,7 +594,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
   · intro hperm
     exact ExecFuncBody.execBlockOK
       (hprefix (ExecBlock.consNormal
-        (ExecStmt.emit (hperm := hperm) (evalExprs_spotPokeFalseEvent evmFile I out)) ExecBlock.nil))
+        (ExecStmt.emit (fork := fork) (hperm := hperm) (evalExprs_spotPokeFalseEvent evmFile I out)) ExecBlock.nil))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic
@@ -609,15 +611,15 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (htail :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         pokeAfterSpotStmts .reverted) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body .reverted := by
   intro locals evm0
   have hpip :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -640,7 +642,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hvalStmt :
-      ExecStmt config { contract := contract, locals := pokePeekLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokePeekLocals I out } evmPip
         (.letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0))
         (.ok { contract := contract, locals := pokeValLocals I out } evmPip) := by
     simpa [pokeValLocals] using
@@ -654,7 +656,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
         (evalExpr_pokePeekVal evmPip I out))
   have hhasStmt :
-      ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
         (.ok { contract := contract, locals := pokeHasLocals I out } evmPip) := by
     simpa [pokeHasLocals] using
@@ -672,7 +674,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp [evalExpr?, pure]
   have hspotStmt :
-      ExecStmt config { contract := contract, locals := pokeHasLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
@@ -686,7 +688,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
         (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
         hspotExpr)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -694,7 +696,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, pokePeekLocals, collapseReturns] using hvalStmt) ?_
@@ -717,15 +719,15 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (htail :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         pokeAfterSpotStmts result) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := locals } evm0
+    ExecBlock fork config { contract := contract, locals := locals } evm0
       pokeTransition.body result := by
   intro locals evm0
   have hpip :
@@ -749,7 +751,7 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := locals } evm0 [] = .ok [] := by
     simpa [locals] using evalExprs_pokePeekArgs evm0 I
   have hvalStmt :
-      ExecStmt config { contract := contract, locals := pokePeekLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokePeekLocals I out } evmPip
         (.letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0))
         (.ok { contract := contract, locals := pokeValLocals I out } evmPip) := by
     simpa [pokeValLocals] using
@@ -763,7 +765,7 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
         (evalExpr_pokePeekVal evmPip I out))
   have hhasStmt :
-      ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
         (.ok { contract := contract, locals := pokeHasLocals I out } evmPip) := by
     simpa [pokeHasLocals] using
@@ -781,7 +783,7 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp [evalExpr?, pure]
   have hspotStmt :
-      ExecStmt config { contract := contract, locals := pokeHasLocals I out } evmPip
+      ExecStmt fork config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
@@ -795,7 +797,7 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
         (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
         hspotExpr)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 pokeTransition.body
         result := by
     simp only [pokeTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -803,7 +805,7 @@ theorem spotPokeSourceBlockPeekHasTrueTail {σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hpipGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hpip
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, pokePeekLocals, collapseReturns] using hvalStmt) ?_
@@ -826,15 +828,15 @@ theorem spotPokeSourceBodyPeekHasTrueTailReturns {σ σ₀ A I} {g : UInt256}
             (pokePipAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (htail :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         pokeAfterSpotStmts (.ok { contract := contract, locals := fileLocals } evmFile)) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals pokeTransition.body
+    ExecTransitionBody fork config contract evm0 locals pokeTransition.body
       (.returned { contract := contract, locals := fileLocals } evmFile none) :=
   ExecFuncBody.execBlockOK
     (spotPokeSourceBlockPeekHasTrueTail hwv hsz36 hpipCode hcall hdec htail)
@@ -850,21 +852,21 @@ theorem spotPokeSourceBodyPeekHasTrueTailReturnsSplit {σ σ₀ A I} {g : UInt25
             (pokePipAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
+      typedCallViaEVM fork config evm0 (EVM.address (pokePipAddress σ I)) "peek" 0 []
         (true, evmPip, out) true)
     (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out))
     (htail :
-      (evmFile.executionEnv.perm = true → ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+      (evmFile.executionEnv.perm = true → ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         pokeAfterSpotStmts (.ok { contract := contract, locals := fileLocals } evmFile)) ∧
       (evmFile.executionEnv.perm = false →
-        ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
+        ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
           pokeAfterSpotStmts .staticViolation)) :
     let locals := pokeLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    (evmFile.executionEnv.perm = true → ExecTransitionBody config contract evm0 locals pokeTransition.body
+    (evmFile.executionEnv.perm = true → ExecTransitionBody fork config contract evm0 locals pokeTransition.body
       (.returned { contract := contract, locals := fileLocals } evmFile none)) ∧
       (evmFile.executionEnv.perm = false →
-        ExecTransitionBody config contract evm0 locals pokeTransition.body .staticViolation) := by
+        ExecTransitionBody fork config contract evm0 locals pokeTransition.body .staticViolation) := by
   intro locals evm0
   constructor
   · intro hperm
@@ -878,9 +880,9 @@ theorem spotPokeTrueTailArithmeticReverts {evm : EVM.State} {I : ExecutionEnv}
     {out : ByteArray}
     (hhas : pokePeekHasWord out ≠ ⟨0⟩)
     (harith :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
         pokeTrueBranchStmts .reverted) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       pokeAfterSpotStmts .reverted := by
   have hhasGuard :
       evalExpr? config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
@@ -895,7 +897,7 @@ theorem spotPokeTrueTailVatNoCode {evm : EVM.State} {I : ExecutionEnv}
     {out : ByteArray} {valScaled spot1 spot2 : UInt256}
     (hhas : pokePeekHasWord out ≠ ⟨0⟩)
     (harith :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
         pokeTrueBranchStmts
         (.ok { contract := contract, locals := pokeSpotAssignedLocals I out valScaled spot1 spot2 }
           evm))
@@ -903,7 +905,7 @@ theorem spotPokeTrueTailVatNoCode {evm : EVM.State} {I : ExecutionEnv}
       (UInt256.ofNat
         ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       pokeAfterSpotStmts .reverted := by
   let localsA := pokeSpotAssignedLocals I out valScaled spot1 spot2
   have hhasGuard :
@@ -931,7 +933,7 @@ theorem spotPokeTrueTailVatCallFailed {evm evmFile : EVM.State} {I : ExecutionEn
     {out fileOut : ByteArray} {valScaled spot1 spot2 : UInt256}
     (hhas : pokePeekHasWord out ≠ ⟨0⟩)
     (harith :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
         pokeTrueBranchStmts
         (.ok { contract := contract, locals := pokeSpotAssignedLocals I out valScaled spot1 spot2 }
           evm))
@@ -941,13 +943,13 @@ theorem spotPokeTrueTailVatCallFailed {evm evmFile : EVM.State} {I : ExecutionEn
           ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
             (fun acc => acc.code.size))).toNat)
     (hfileCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (pokeVatAddress evm.accountMap evm.executionEnv)) "file" 0
         [.fixedBytes bytes32Width (pokeIlkBytes I),
           .fixedBytes bytes32Width pokeSpotParamBytes,
           .int (Int.ofNat spot2.toNat)]
         (false, evmFile, fileOut) true) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       pokeAfterSpotStmts .reverted := by
   let localsA := pokeSpotAssignedLocals I out valScaled spot1 spot2
   have hhasGuard :
@@ -980,7 +982,7 @@ theorem spotPokeTrueTailVatCallFailed {evm evmFile : EVM.State} {I : ExecutionEn
     (ExecStmt.iteTrue hhasGuard (by simpa [pokeTrueBranchStmts] using harith)) ?_
   refine ExecBlock.consNormal (by simpa [localsA] using ExecStmt.requireTrue hvatGuard) ?_
   exact ExecBlock.consRevert
-    (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+    (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
       (by simp [evalExpr?, pure]) hfileArgs hfileCall)
 
 theorem evalExprs_spotPokeTrueEvent (evm : EVM.State) (I : ExecutionEnv)
@@ -1001,7 +1003,7 @@ theorem spotPokeTrueTailVatCallSucceededReturnsSplit {evm evmFile : EVM.State}
     {I : ExecutionEnv} {out fileOut : ByteArray} {valScaled spot1 spot2 : UInt256}
     (hhas : pokePeekHasWord out ≠ ⟨0⟩)
     (harith :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
         pokeTrueBranchStmts
         (.ok { contract := contract, locals := pokeSpotAssignedLocals I out valScaled spot1 spot2 }
           evm))
@@ -1011,17 +1013,17 @@ theorem spotPokeTrueTailVatCallSucceededReturnsSplit {evm evmFile : EVM.State}
           ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
             (fun acc => acc.code.size))).toNat)
     (hfileCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (pokeVatAddress evm.accountMap evm.executionEnv)) "file" 0
         [.fixedBytes bytes32Width (pokeIlkBytes I),
           .fixedBytes bytes32Width pokeSpotParamBytes,
           .int (Int.ofNat spot2.toNat)]
         (true, evmFile, fileOut) true) :
     let fileLocals := (pokeSpotAssignedLocals I out valScaled spot1 spot2).insert "_fileRet" .unit
-    (evmFile.executionEnv.perm = true → ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    (evmFile.executionEnv.perm = true → ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       pokeAfterSpotStmts (.ok { contract := contract, locals := fileLocals } evmFile)) ∧
       (evmFile.executionEnv.perm = false →
-        ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+        ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
           pokeAfterSpotStmts .staticViolation) := by
   intro fileLocals
   let localsA := pokeSpotAssignedLocals I out valScaled spot1 spot2
@@ -1052,11 +1054,11 @@ theorem spotPokeTrueTailVatCallSucceededReturnsSplit {evm evmFile : EVM.State}
   have hfileDecode : config.externalABI.decode? "file" fileOut = some [] :=
     pokeVatFileDecode_ok fileOut
   have hfileReturn :
-      ExecStmt config { contract := contract, locals := localsA } evm
+      ExecStmt fork config { contract := contract, locals := localsA } evm
         (.externalCall (.storage vatRef) "file" (.intLit 0)
           [.var "ilk", spotParamLit, .var "spot"] "_fileRet" (perm := true))
         (.ok { contract := contract, locals := fileLocals } evmFile) := by
-    have h := ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config)
+    have h := ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config)
       (stele := { contract := contract, locals := localsA })
       (evm := evm) (receiver := .storage vatRef) (name := "file") (eth := .intLit 0)
       (args := [.var "ilk", spotParamLit, .var "spot"]) (retVar := "_fileRet")
@@ -1070,9 +1072,9 @@ theorem spotPokeTrueTailVatCallSucceededReturnsSplit {evm evmFile : EVM.State}
       hvat (by simp [evalExpr?, pure]) hfileArgs hfileCall hfileDecode
     simpa [fileLocals, localsA, collapseReturns] using h
   have hprefix {result : ExecResult}
-      (hlog : ExecBlock config { contract := contract, locals := fileLocals } evmFile
+      (hlog : ExecBlock fork config { contract := contract, locals := fileLocals } evmFile
         [.emit "Poke" [.var "ilk", .var "val", .var "spot"]] result) :
-      ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+      ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
         pokeAfterSpotStmts result := by
     simp only [pokeAfterSpotStmts, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -1083,7 +1085,7 @@ theorem spotPokeTrueTailVatCallSucceededReturnsSplit {evm evmFile : EVM.State}
   constructor
   · intro hperm
     exact hprefix (ExecBlock.consNormal
-      (ExecStmt.emit (hperm := hperm) (evalExprs_spotPokeTrueEvent evmFile I out valScaled spot1 spot2))
+      (ExecStmt.emit (fork := fork) (hperm := hperm) (evalExprs_spotPokeTrueEvent evmFile I out valScaled spot1 spot2))
       ExecBlock.nil)
   · intro hperm
     exact hprefix (ExecBlock.consStatic

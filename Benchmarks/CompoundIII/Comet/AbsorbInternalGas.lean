@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbInternalEvm
 import Benchmarks.CompoundIII.Comet.InternalCostBoundedOutcome
 import Benchmarks.CompoundIII.Comet.GasBound
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,11 +17,11 @@ theorem cometAbsorbInternal_cost {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 480 + 1856 * v.numAssets.toNat + 256 < 2^64)
     (hs : SourceState s0 ee σ evm) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16978⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16978⟩
       (absorber :: EVM.word account.val :: ret :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ result, AbsorbInternalTrace v account evm result ∧
-        internalCostBoundedRun (deployedRuntime v) ee g s0 C 96
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ result, AbsorbInternalTrace fork v account evm result ∧
+        internalCostBoundedRun fork (deployedRuntime v) ee g s0 C 96
           (free.toNat + 480 + 1856 * v.numAssets.toNat) ret R result := by
   obtain hoog | ⟨s, hbase, hp, ht, hm, ha, hd, hσ⟩ := rd_remainingGas h
   · exact Or.inl hoog
@@ -33,9 +35,9 @@ theorem absorbMemoryBound_or_outOfGas {code ee g s0 pc stk mem aw data σ k C}
     {i free assets : Nat} (hgas : cometGasBound g.toUInt256)
     (hspent : 229 * i + 214 ≤ C)
     (hfree : free ≤ 128 + i * absorbAllocationPerAccount) (hassets : assets < 256)
-    (h : RD code ee g s0 pc stk mem aw data σ k C) :
+    (h : RD fork code ee g s0 pc stk mem aw data σ k C) :
     free + 480 + 1856 * assets + 256 < 2^64 ∨
-      X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+      X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   by_cases hC : C ≤ g.toNat
   · exact Or.inl (absorbMemoryBudget_entry
       (by simpa only [cometGasBound, Sat256.toUInt256_toNat] using hgas)

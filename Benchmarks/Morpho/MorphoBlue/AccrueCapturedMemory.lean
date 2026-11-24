@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WordComparisons
 import Benchmarks.Morpho.MorphoBlue.AfterAccrueMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -41,7 +43,7 @@ theorem afterAccrueMemoryCost_active (p : MarketParamsWords) (before after : EVM
 theorem morphoAfterAccrueCapturedCall (p : MarketParamsWords) (base : Nat)
     (before evm : EVM.State) (locals imms : Store) (hl : MarketLocals p locals)
     (ha : locals.get? "__accrued" = some (.bool (accrueActive p before))) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "Solc_afterAccrueMemory" [.intLit (Int.ofNat base), .var "__accrued",
         .storage ⟨"market", [.mindex (.var "id"), .field "fee"]⟩] "__memory")
       (.ok { contract := contract, locals := locals.insert "__memory" (.int (Int.ofNat (base + accrueMemoryCost p before evm))), immutables := imms } evm) := by
@@ -49,7 +51,7 @@ theorem morphoAfterAccrueCapturedCall (p : MarketParamsWords) (base : Nat)
       (.storage ⟨"market", [.mindex (.var "id"), .field "fee"]⟩) =
       .ok (.int (Int.ofNat (marketFieldWord evm.accountMap evm.executionEnv p.id 5).toNat)) := by
     simpa only [marketFieldName] using hl.evalField imms evm ⟨5, by decide⟩
-  have hf := morphoAfterAccrueMemoryCall base (accrueActive p before)
+  have hf := morphoAfterAccrueMemoryCall (fork := fork) base (accrueActive p before)
     (marketFieldWord evm.accountMap evm.executionEnv p.id 5) evm locals imms
     [.intLit (Int.ofNat base), .var "__accrued", .storage ⟨"market", [.mindex (.var "id"), .field "fee"]⟩] "__memory"
     (by simp only [evalExprs?, hefee,

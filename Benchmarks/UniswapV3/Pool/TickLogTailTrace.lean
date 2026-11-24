@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.TickSqrtTrace
 import Benchmarks.UniswapV3.Pool.TickLogStartTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,11 +14,11 @@ set_option maxRecDepth 1000
 theorem tickLogCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw log x4 x5 x6 x7 price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14740⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14740⟩
       (tickLogBoundsStack log (x4 :: x5 :: x6 :: x7 :: price :: R)) mem aw rdata σ k C)
     (he : tickLogLow log ≠ tickLogHigh log) (hov : R.length + 19 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ tickLogSafe log) ∨
-      (tickLogSafe log ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14788⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ tickLogSafe log) ∨
+      (tickLogSafe log ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
         (tickLogChoiceRaw log (tickLogPrice price) ::
           tickLogBoundsStack log (x4 :: x5 :: x6 :: x7 :: price :: R))
         mem aw rdata σ k' C') := by
@@ -38,19 +40,19 @@ theorem tickLogCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   rcases tickSqrtX (v := v) rcall hjReturn
       (by simp only [List.length_cons]; omega) with ⟨rrev, hv⟩ | ⟨hv, k', C', rout⟩
   · exact Or.inl ⟨rrev, fun hs ↦ hs.elim he hv⟩
-  · change RD _ _ _ _ _ (tickSqrtRaw (tickLogHigh log) :: _) _ _ _ _ _ _ at rout
+  · change RD fork _ _ _ _ _ (tickSqrtRaw (tickLogHigh log) :: _) _ _ _ _ _ _ at rout
     obtain ⟨k'', C'', rchosen⟩ := tickLogChooseX rout he (by simp only [List.length_cons]; omega)
     exact Or.inr ⟨Or.inr hv, k'', C'', rchosen⟩
 
 theorem tickLogReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw log price x4 x5 x6 x7 original ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14788⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
       (tickLogChoiceRaw log price ::
         tickLogBoundsStack log (x4 :: x5 :: x6 :: x7 :: original :: ret :: R))
       mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (tickLogChoiceRaw log price :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (tickLogChoiceRaw log price :: R)
       mem aw rdata σ k' C' := by
   unfold tickLogBoundsStack at rd
   exact ⟨_, _, uniswapV3Pool_block_14788 (immWords := wordsOf (immStore v)) hov hret rd⟩

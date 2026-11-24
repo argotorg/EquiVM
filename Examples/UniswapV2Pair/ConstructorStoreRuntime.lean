@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.ConstructorDomainHashRuntime
 import Examples.UniswapV2Pair.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -17,10 +19,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorStoreAndReturn {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {domainHash : UInt256} {mem : ByteArray} {R : List UInt256} {k C : Nat}
     {σ : AccountMap}
-    (rd225 : RD uniswapV2PairInitcode I g s0 ⟨225⟩ (domainHash :: ⟨128⟩ :: R)
+    (rd225 : RD fork uniswapV2PairInitcode I g s0 ⟨225⟩ (domainHash :: ⟨128⟩ :: R)
       mem ⟨14⟩ ByteArray.empty σ k C)
     (hperm : I.perm = true) (hov : R.length + 8 ≤ 1024) :
-    RDret uniswapV2PairInitcode g s0 (constructorStoredAccountMap σ I domainHash)
+    RDret fork uniswapV2PairInitcode g s0 (constructorStoredAccountMap σ I domainHash)
       uniswapV2PairBytecode := by
   have rd227 := evm_run rd225 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd228⟩ := rd227.sstore hperm (by native_decide) (by evm_ov)

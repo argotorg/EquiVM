@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.StairstepExponentialDecrease.RpowArithmeticLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem execRpowLoopBodyRevertXX {evm : EVM.State} {locals : Store}
     {x n b z half : UInt256}
     (hstore : RpowLoopStore x n b z half locals)
     (hover : UInt256.size ≤ x.toNat * x.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
   have hmul :
       evalExpr? config { contract := contract, locals := locals } evm
         (mul256 (.var "x") (.var "x")) = .revert :=
@@ -29,7 +31,7 @@ theorem execRpowLoopBodyRevertXXRound {evm : EVM.State} {locals : Store}
     (hstore : RpowLoopStore x n b z half locals)
     (hfit : x.toNat * x.toNat < UInt256.size)
     (hover : UInt256.size ≤ (x * x).toNat + half.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
   let xx := x * x
   let localsXX := locals.insert "xx" (.int (Int.ofNat xx.toNat))
   have hmul :
@@ -132,7 +134,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
     let x' := UInt256.div xxRound b
     let n' := UInt256.div n ⟨2⟩
     ∃ locals',
-      ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody
         (.ok { contract := contract, locals := locals' } evm) ∧
       RpowLoopStore x' n' b z half locals' := by
   intro xx xxRound x' n'
@@ -298,7 +300,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
   have hstoreN : RpowLoopStore x' n' b z half localsN :=
     hstoreX.set_n n'
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "xx" (some uint256) (mul256 (.var "x") (.var "x")),
           .require
             (.binary .or
@@ -320,9 +322,9 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hmulReq) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue haddReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hdivX hassignX) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hdivX hassignX) ?_
     refine ExecBlock.consNormal (ExecStmt.iteFalse hoddCond ExecBlock.nil) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hdivN hassignN) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hdivN hassignN) ExecBlock.nil
   exact ⟨localsN, by
     simpa [rpowLoopBody, checkedMulUintInto, checkedAddUintInto, xx, xxRound, x', n',
       localsXX, localsRound, localsX, localsN] using hblock, hstoreN⟩

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.ExecTransactionExecutePrepare
 import Benchmarks.Safe.V1_0227664.ExecuteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -22,7 +24,7 @@ set_option maxRecDepth 100000 in
 theorem safeExecTransactionExecute (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src ptr locals} {sigPtr guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3644⟩ (execGuardSaved p src sigPtr guard hash R)
+    (h : RD fork safeBytecode I g s0 ⟨3644⟩ (execGuardSaved p src sigPtr guard hash R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hl : ExecTransactionLocals p locals)
@@ -31,17 +33,17 @@ theorem safeExecTransactionExecute (p : ExecTransactionInput) (evm : EVM.State)
     (hd : src + p.tx.payload.size ≤ I.calldata.size)
     (hdata : I.calldata.extract src (src + p.tx.payload.size) = p.tx.payload)
     (ho : p.tx.operation.toNat < 2) (hov : R.length + 36 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 10) .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDstatic fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 10) .staticViolation) ∨
     ∃ before gasLeft z evm' σ' out aw' k' C',
-      (∀ result, ExecBlock config (execAfterExecute locals before gasLeft z) evm'
+      (∀ result, ExecBlock fork config (execAfterExecute locals before gasLeft z) evm'
         (exectransactionTransition.body.drop 13) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 10) result) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨3754⟩
+      RD fork safeBytecode I g s0 ⟨3754⟩
         (z.toUInt256 :: before :: execGuardSaved p src sigPtr guard hash R)
         (execDataMemory p I.calldata mem src ptr) aw' out σ' k' C' ∧
       out.size < UInt256.size := by
@@ -52,7 +54,7 @@ theorem safeExecTransactionExecute (p : ExecTransactionInput) (evm : EVM.State)
   · have hg : (execExecuteFrame locals before gasLeft).locals["txGasLeft"]? =
         some (uint256Value gasLeft) := by
       simp [execExecuteFrame, Std.HashMap.getElem_insert]
-    have hs := safeExecExecuteArgsRevert p evm (execExecuteFrame_locals hl before gasLeft)
+    have hs := safeExecExecuteArgsRevert (fork := fork) p evm (execExecuteFrame_locals hl before gasLeft)
       (safeExecCallGasRevert p evm (execExecuteFrame_locals hl before gasLeft) hg hz hlow)
     exact .inl ⟨hr, .consNormal (.letGas before)
       (.consNormal (.letGas gasLeft) (.consRevert hs))⟩

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -15,7 +17,7 @@ namespace UniswapV2Pair
 
 theorem uniswapBytesLiteralBodyReturns (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.bytesLit bytes)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.bytesLit bytes)] ])
       (.returned { contract := contract, locals := locals } evm (some [(.bytes bytes)])) := by
   simpa [nonpayable] using
     nonpayableBytesLiteralBodyReturns (cfg := config) (contract := contract) evm locals bytes h
@@ -37,7 +39,7 @@ theorem uniswapReachNameBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨572⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨572⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x06fdde03⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x06 0xfd 0xde 0x03 ⟨0x06fdde03⟩ (by decide) hsel
@@ -59,7 +61,7 @@ theorem uniswapReachSymbolBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1226⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1226⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x95d89b41⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x95 0xd8 0x9b 0x41 ⟨0x95d89b41⟩ (by decide) hsel

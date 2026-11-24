@@ -4,19 +4,21 @@ import Benchmarks.UniswapV4PoolManager.PoolStorage
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_028
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def beforeDonateReturn (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def beforeDonateReturn (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem : ByteArray) (free id keyPtr src amount0 amount1 len junk : UInt256) (R : List UInt256)
     (post : State) (values : Option (List Value)) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ values = none ∧
   ∃ out data nextFree aw k C j0 j1,
     HookReturnMemory 4000 mem out free nextFree ∧ Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 ⟨10191⟩
+    RD fork (deployedRuntime v) I g s0 ⟨10191⟩
       (j0 :: j1 :: (keyPtr+UInt256.ofNat 128) :: keyPtr :: src :: amount1 :: amount0 :: len ::
         poolSlot id :: id :: junk :: R) out aw data post.accountMap k C
 
@@ -31,16 +33,16 @@ theorem beforeDonateHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+49)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10153⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10153⟩
       (keyPtr :: src :: amount1 :: amount0 :: len :: poolSlot id :: id :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
-      (hookEnabled I.source hook ⟨32⟩ → callViaEVM evm hook 0
+      (hookEnabled I.source hook ⟨32⟩ → callViaEVM fork evm hook 0
         (donateHookPayload false I.source key amount0 amount1 (I.calldata.extract src.toNat (src.toNat+len.toNat)))
         (z, post, out)) ∧
-      functionResultTrace (deployedRuntime v) g s0
-        (beforeDonateReturn v I g s0 mem free id keyPtr src amount0 amount1 len junk R)
+      functionResultTrace fork (deployedRuntime v) g s0
+        (beforeDonateReturn fork v I g s0 mem free id keyPtr src amount0 amount1 len junk R)
         (hookInvocationResult f evm post (hookEnabled I.source hook ⟨32⟩) z
           (donateHookPayload false I.source key amount0 amount1 (I.calldata.extract src.toNat (src.toNat+len.toNat))) out) := by
   have hload : memLoad (keyPtr+UInt256.ofNat 128) mem = accountWord hook :=

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cure.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -56,17 +58,17 @@ theorem cureAmtBodyCoreOk
       config.externalABI.decodeCalldata? (amtTransition.params.map Param.name)
         (transitionSignature amtTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (amtMappingArg I))))
-    (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork cureBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := amtMappingKey I
   let slot := solcMappingSlot ⟨6⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (amtMappingArg I))
   have hslot : amtMappingSlotFor I = slot := by
     simp [slot, key, amtMappingSlotFor_eq]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals amtTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -106,7 +108,7 @@ theorem cureAmtBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret cureBytecode (Sat256.ofUInt256 g)
+      RDret fork cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -142,10 +144,10 @@ theorem cureAmtBodyCoreDecodeFailed_short
     (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some amtTransition)
-    (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork cureBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -167,12 +169,12 @@ theorem cureAmtBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 0) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some amtTransition :=
     cureDispatchAmt hsel
-  have hreach := cureReachAmtBody (σ := σ)
+  have hreach := cureReachAmtBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,12 +10,12 @@ theorem easRevokeSchemaCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {request idx slot schema revoker : UInt256} {R : List UInt256} (v : EASImmutables) (kind : RevokeKind)
     (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.schemaPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.schemaPC
       (revokeSchemaStack kind request idx slot schema revoker R) mem aw rdata σ k C) :
     if solcSlotWord σ ee (slot+⟨1⟩) = schema then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.attesterPC
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.attesterPC
         (revokeAttesterStack kind request idx slot schema revoker R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hv : solcSlotWord σ ee (slot+⟨1⟩) = schema
   · rw [if_pos hv]
     have hc : UInt256.sub (solcSlotWord σ ee (slot+⟨1⟩)) schema = UInt256.ofNat 0 := u256_sub_eq_zero_iff_eq.mpr hv
@@ -37,12 +39,12 @@ theorem easRevokeAttesterCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {request idx slot schema revoker : UInt256} {R : List UInt256} (v : EASImmutables) (kind : RevokeKind)
     (hstack : R.length+11 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.attesterPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.attesterPC
       (revokeAttesterStack kind request idx slot schema revoker R) mem aw rdata σ k C) :
     if UInt256.land (solcSlotWord σ ee (slot+⟨5⟩)) solcAddrMask = UInt256.land revoker solcAddrMask then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.revocablePC
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.revocablePC
         (solcSlotWord σ ee (slot+⟨5⟩)::revokePermissionStack kind request idx slot schema revoker R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hv : UInt256.land (solcSlotWord σ ee (slot+⟨5⟩)) solcAddrMask = UInt256.land revoker solcAddrMask
   · rw [if_pos hv]
     have hc := u256_sub_eq_zero_iff_eq.mpr hv

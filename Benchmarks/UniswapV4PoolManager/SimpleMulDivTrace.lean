@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,9 +18,9 @@ theorem simpleMulDivFeeGrowthTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024)
     (hf : memLoad (step+UInt256.ofNat 192) mem = fee)
     (hg : memLoad (step+UInt256.ofNat 224) mem = growth)
-    (h : RD (deployedRuntime v) I g s0 ⟨20222⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20222⟩
       ([liquidity, x1, x2, x3, x4, x5, x6, x7, x8, x9, step] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19833⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19833⟩
       ([⟨0⟩, x1, x2, x3, x4, x5, x6, x7, x8, x9, step] ++ R)
       ((growth + simpleMulDiv fee (UInt256.ofNat (2^128)) liquidity).toByteArray.write
         0 mem (step+UInt256.ofNat 224).toNat 32)

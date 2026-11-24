@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.TupleReturn
 import Benchmarks.UniswapV3.Pool.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `protocolFees()`
 
@@ -21,7 +23,7 @@ set_option maxRecDepth 2000000
 theorem uniswapV3PoolProtocolFeesReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "protocolFees" = none) :
-    ExecTransitionBody config contract evm locals protocolFeesTransition.body
+    ExecTransitionBody fork config contract evm locals protocolFeesTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (Int.ofNat (protocolFeesToken0Word evm.accountMap evm.executionEnv).toNat),
           .int (Int.ofNat (protocolFeesToken1Word evm.accountMap evm.executionEnv).toNat)]))
@@ -35,7 +37,7 @@ theorem uniswapV3PoolProtocolFeesX {σ σ₀ A I} {g : Sat256} (v : UniswapV3Poo
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 3)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       ((protocolFeesToken0Word σ I).toByteArray ++ (protocolFeesToken1Word σ I).toByteArray) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachProtocolFeesBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -58,7 +60,7 @@ theorem uniswapV3PoolProtocolFeesBody {σ σ₀ A I} {g : UInt256} (v : UniswapV
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 3) rfl hsel
   have hd : dispatchMsg contract I.calldata = some protocolFeesTransition := by
     apply uniswapV3PoolDispatch_protocolFees <;>

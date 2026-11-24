@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCollateralEvent
 import Benchmarks.Morpho.MorphoBlue.SafeTransferFunctionRefine
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -31,9 +33,9 @@ theorem morphoSupplyCollateralTransfer {v : MorphoImmutables} {ee : ExecutionEnv
     (hm : MorphoHeap mem (UInt256.ofNat 544) 0) (hsize : 192 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 160) mem = p.collateralToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10286)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10286)
       [x0, x1, solcAddrMask, assets, UInt256.ofNat 0, UInt256.ofNat 128] mem aw out σ k C) :
-    VoidBlockRefines config (deployedRuntime v) ee g s0
+    VoidBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm (supplyCollateralTransition.body.drop 11) := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_10286_packed
     (immWords := wordsOf (immStore v)) (by decide)

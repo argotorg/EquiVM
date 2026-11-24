@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.PreModuleReturn
 import Benchmarks.Safe.Runs1e6.PreModuleSource
 import Benchmarks.Safe.Runs1e6.RawValueCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -13,7 +15,7 @@ set_option maxHeartbeats 1000000 in
 theorem safePreModuleCheckTrace (words : List UInt256) (payload : ByteArray) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {guard target value operation : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8923⟩
+    (h : RD fork safeBytecode I g s0 ⟨8923⟩
       (⟨0⟩ :: guard :: operation :: UInt256.ofNat src :: value :: target :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -27,16 +29,16 @@ theorem safePreModuleCheckTrace (words : List UInt256) (payload : ByteArray) (ev
     (hb : ptr + 228 + 32 * words.length < UInt256.size)
     (hsmall : 196 + 32 * words.length ≤ maxReturnDataSizeByGas)
     (ho : operation.toNat < 2) (hov : R.length + 29 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecStmt config (preModuleCheckingFrame (AccountAddress.ofUInt256 target)
+    (RDrev fork safeBytecode g s0 ∧
+      ExecStmt fork config (preModuleCheckingFrame (AccountAddress.ofUInt256 target)
         value payload operation guard) evm preModuleCheck .reverted) ∨
     ∃ frame evm' σ' mem' aw' rdata' hash k' C',
-      ExecStmt config (preModuleCheckingFrame (AccountAddress.ofUInt256 target)
+      ExecStmt fork config (preModuleCheckingFrame (AccountAddress.ofUInt256 target)
         value payload operation guard) evm preModuleCheck (.ok frame evm') ∧
       frame.locals["guard"]? = some (.address (AccountAddress.ofUInt256 guard)) ∧
       frame.locals["guardHash"]? = some (.fixedBytes bytes32Width (EVM.Word.toBytesBE hash)) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨9108⟩
+      RD fork safeBytecode I g s0 ⟨9108⟩
         (hash :: guard :: operation :: UInt256.ofNat src :: value :: target :: R)
         mem' aw' rdata' σ' k' C' ∧
       (mem' = mem ∨ ∃ out, out.size < 2 ^ 138 ∧ mem' = preModuleReturnMemory
@@ -75,7 +77,7 @@ theorem safePreModuleCheckTrace (words : List UInt256) (payload : ByteArray) (ev
       AccountAddress.ofUInt256 (UInt256.land guard solcAddrMask) := by
     simpa only [accountAddress_ofUInt256_eq_ofNat_toNat] using
       addressOfNat_eq_of_masked_word guard
-  have htyped : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+  have htyped : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkModuleTransaction" 0 [.address (AccountAddress.ofUInt256 target),
         .int (Int.ofNat value.toNat), .bytes payload, .int (Int.ofNat operation.toNat),
         .address evm.executionEnv.source] (called, evm', out) := by

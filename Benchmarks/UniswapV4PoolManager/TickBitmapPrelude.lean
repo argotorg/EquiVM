@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickBitmapArithmetic
 import Benchmarks.UniswapV4PoolManager.SignedDivisionSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -32,10 +34,10 @@ theorem tickBitmapPreludeFrame_compressed (f : Frame) (tick spacing : Int) :
 theorem tickBitmapPrelude {f : Frame} {evm : EVM.State} {tick spacing : Int}
     (ht : f.locals.get? "tick" = some (.int tick))
     (hs : f.locals.get? "tickSpacing" = some (.int spacing)) :
-    ExecBlock config f evm (tickBitmapFunction.body.take 2)
+    ExecBlock fork config f evm (tickBitmapFunction.body.take 2)
       (if tickBitmapAligned tick spacing then .ok (tickBitmapPreludeFrame f tick spacing) evm else .reverted) := by
   let f1 : Frame := {f with locals := f.locals.insert "compressed" (.int 0)}
-  have hlet : ExecStmt config f evm tickBitmapFunction.body[0]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm tickBitmapFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure])
   have ht1 : f1.locals.get? "tick" = some (.int tick) :=
     (store_get_ne _ _ (by decide : ("compressed" == "tick") = false)).trans ht
@@ -58,7 +60,7 @@ theorem tickBitmapPrelude {f : Frame} {evm : EVM.State} {tick spacing : Int}
       rw [decide_eq_true ha] at heq
       exact ExecBlock.consNormal hlet (execBlock_singleton (ExecStmt.iteTrue hcond
         (ExecBlock.consNormal (ExecStmt.requireTrue heq) (execBlock_singleton
-          (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSignedDiv (evalLocalValue ht1) (evalLocalValue hs1) hz)
+          (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSignedDiv (evalLocalValue ht1) (evalLocalValue hs1) hz)
             (assignLocalValue (store_get_self _ _ _)))))))
     · rw [if_neg (by exact fun h => h.elim hz ha)]
       rw [decide_eq_false ha] at heq

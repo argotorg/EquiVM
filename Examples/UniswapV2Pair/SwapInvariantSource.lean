@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapInvariantRuntime
 import Examples.UniswapV2Pair.SwapAdjustmentPrefix
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000
@@ -60,7 +62,7 @@ theorem uniswapSwapInvariantSourceRevert {caller : Frame} (evm : EVM.State)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hc1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hnot : ¬ swapInvariantValid adjusted0 adjusted1 reserve0 reserve1) :
-    ExecStmt config caller evm swapInvariantStmt .reverted := by
+    ExecStmt fork config caller evm swapInvariantStmt .reverted := by
   by_cases hfit : adjusted0.toNat * adjusted1.toNat < UInt256.size
   · have hle : ¬ (swapInvariantReserveWord reserve0 reserve1).toNat ≤ (UInt256.mul adjusted0 adjusted1).toNat :=
       fun h ↦ hnot ⟨hfit, h⟩
@@ -78,7 +80,7 @@ theorem uniswapSwapInvariantSourceSuccess {caller : Frame} (evm : EVM.State)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hc1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hvalid : swapInvariantValid adjusted0 adjusted1 reserve0 reserve1) :
-    ExecStmt config caller evm swapInvariantStmt (.ok caller evm) := by
+    ExecStmt fork config caller evm swapInvariantStmt (.ok caller evm) := by
   exact ExecStmt.requireTrue (by simpa only [decide_eq_true hvalid.2] using
     (evalExpr_swap_invariant evm adjusted0 adjusted1 reserve0 reserve1 ha0 ha1 hr0 hr1 hc0 hc1 hvalid.1))
 
@@ -100,11 +102,11 @@ theorem swapAfterAdjustmentsFrame_invariantGets (caller : Frame) (adjusted0 adju
     (swapAfterAdjustmentsFrame_get_ne _ _ _ _ (by decide) (by decide)).trans hr1⟩
 
 theorem uniswapSwapBodyReverts_invariant (evm evmB : EVM.State) (I : ExecutionEnv) (caller : Frame)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapAdjustmentPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapAdjustmentPrefix
       (.ok caller evmB))
-    (hrequire : ExecStmt config caller evmB swapInvariantStmt .reverted) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
-  have htail : ExecBlock config caller evmB [swapInvariantStmt] .reverted := ExecBlock.consRevert hrequire
+    (hrequire : ExecStmt fork config caller evmB swapInvariantStmt .reverted) :
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
+  have htail : ExecBlock fork config caller evmB [swapInvariantStmt] .reverted := ExecBlock.consRevert hrequire
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapAdjustmentPrefix, swapInputGuardPrefix, swapInputsPrefix,
       swapBalancesPrefix, swapCallbackPrefix, swapTransferPrefix, swapRecipientGuardPrefix,

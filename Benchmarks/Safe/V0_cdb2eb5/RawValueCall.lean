@@ -1,5 +1,7 @@
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -9,7 +11,7 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
     {s0 : State} (evm : EVM.State) {code mem rdata : ByteArray}
     {pc aw gasArg target value inOffset inSize outOffset outSize : UInt256}
     {k C : Nat} {R : List UInt256}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -17,10 +19,10 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
     (hperm : I.perm = true ∨ value = ⟨0⟩) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
         (mem.readWithPadding inOffset.toNat inSize.toNat) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD code I g s0 (pc + ⟨1⟩)
+      RD fork code I g s0 (pc + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) (callOutputMem mem out outOffset outSize)
         aw' out σ' k' C' ∧ out.size < UInt256.size ∧
       ((mem.readWithPadding inOffset.toNat inSize.toNat).size ≤ maxReturnDataSizeByGas →
@@ -28,7 +30,7 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.callValueDepthLimitOr h hperm hdec hd hov
     refine ⟨{ evm with substate :=
-        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+        (Ethereum.EVM.callSubstate fork evm.accountMap (AccountAddress.ofUInt256
           target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
@@ -42,7 +44,7 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
   swap
   · obtain ⟨k', C', hr⟩ := RD.callValueInsufficientBalanceOr h hperm hdec hb hdl hov
     refine ⟨{ evm with substate :=
-        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+        (Ethereum.EVM.callSubstate fork evm.accountMap (AccountAddress.ofUInt256
           target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩

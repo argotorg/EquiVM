@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.WordArrayBytes
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_009
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 theorem observeCopyLoopX (second : Bool) {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C i n : Nat} {aw src dest : UInt256} {mem rdata : ByteArray}
     {ws : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨1806⟩ else ⟨1743⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨1806⟩ else ⟨1743⟩)
       (UInt256.ofNat (32 * i) :: src :: dest :: UInt256.ofNat (32 * n) :: R)
       mem aw rdata σ k C)
     (ha : ActiveWords aw) (hn : i + ws.length = n)
@@ -19,7 +21,7 @@ theorem observeCopyLoopX (second : Bool) {σ : AccountMap} {ee : ExecutionEnv} {
     (hdisj : src.toNat + 32 * n ≤ dest.toNat) (hb : dest.toNat + 32 * n ≤ 2 ^ 200)
     (hov : R.length + 7 ≤ 1024) :
     ∃ aw' k' C', ActiveWords aw' ∧
-      RD (deployedRuntime v) ee g s0 (if second then ⟨1830⟩ else ⟨1767⟩)
+      RD fork (deployedRuntime v) ee g s0 (if second then ⟨1830⟩ else ⟨1767⟩)
         (UInt256.ofNat (32 * n) :: src :: dest :: UInt256.ofNat (32 * n) :: R)
         (writeWordArray mem (dest.toNat + 32 * i) ws) aw' rdata σ k' C' := by
   induction ws generalizing i mem aw k C with
@@ -55,7 +57,7 @@ theorem observeCopyLoopX (second : Bool) {σ : AccountMap} {ee : ExecutionEnv} {
           (UInt256.ofNat (32 * n))) = UInt256.ofNat 0 := by
         rw [ult_one (by rw [hword i (by omega), hword n (le_refl _)]; omega)]
         rfl
-      have r1 : RD (deployedRuntime v) ee g s0 (if second then ⟨1815⟩ else ⟨1752⟩)
+      have r1 : RD fork (deployedRuntime v) ee g s0 (if second then ⟨1815⟩ else ⟨1752⟩)
           (UInt256.ofNat (32 * i) :: src :: dest :: UInt256.ofNat (32 * n) :: R)
           mem aw rdata σ (k + 7) (C + 26) := by
         cases second
@@ -67,7 +69,7 @@ theorem observeCopyLoopX (second : Bool) {σ : AccountMap} {ee : ExecutionEnv} {
         change (32 + 32 * i) % UInt256.size = _
         rw [Nat.mod_eq_of_lt (by change _ < 2 ^ 256; omega)]
         omega
-      have r2 : ∃ k' C', RD (deployedRuntime v) ee g s0 (if second then ⟨1806⟩ else ⟨1743⟩)
+      have r2 : ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if second then ⟨1806⟩ else ⟨1743⟩)
           (UInt256.ofNat (32 * (i + 1)) :: src :: dest :: UInt256.ofNat (32 * n) :: R)
           (writeWord mem (dest.toNat + 32 * i) w)
           (M (M aw (src + UInt256.ofNat (32 * i)) ⟨32⟩) (dest + UInt256.ofNat (32 * i)) ⟨32⟩)

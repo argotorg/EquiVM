@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_002
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_003
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_004
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,7 +14,7 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 100000 in
 theorem safeReachShort {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = safeBytecode) (hshort : I.calldata.size < 4) :
-    ∃ k C, RD safeBytecode I g (initState σ σ₀ g A I) ⟨14⟩ []
+    ∃ k C, RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨14⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt : UInt256.lt (UInt256.ofNat I.calldata.size) (UInt256.ofNat 4) ≠
       UInt256.ofNat 0 := by
@@ -20,8 +22,8 @@ theorem safeReachShort {σ σ₀ A I} {g : Sat256}
       rw [ulit_toNat' _ (lt_size_of_lt256 (by omega))]
       exact hshort)]
     decide
-  have h := safeRuntime_block_0_fallthrough (by decide) (isZero_eq_zero_of_ne hlt)
-    (RD.initState (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode)
+  have h := safeRuntime_block_0_fallthrough (fork := fork) (by decide) (isZero_eq_zero_of_ne hlt)
+    (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode)
   exact ⟨_, _, h⟩
 
 /-- First equality arm of Safe's linear selector search. -/
@@ -31,15 +33,15 @@ set_option maxRecDepth 100000 in
 theorem safeReachSelectorGroup {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = safeBytecode) (hsize : I.calldata.size < UInt256.size)
     (hlong : 4 ≤ I.calldata.size) :
-    ∃ k C, RD safeBytecode I g (initState σ σ₀ g A I) (safeSelectorStart (selWord I))
+    ∃ k C, RD fork safeBytecode I g (initState σ σ₀ g A I) (safeSelectorStart (selWord I))
       [selWord I, ⟨0⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt : UInt256.lt (UInt256.ofNat I.calldata.size) (UInt256.ofNat 4) =
       UInt256.ofNat 0 := by
     apply ult_zero
     rw [ulit_toNat' _ hsize, ulit_toNat' _ (lt_size_of_lt256 (by decide))]
     omega
-  have h161 := safeRuntime_block_0_taken (by decide) (by rw [hlt]; decide) (by jump_dest)
-    (RD.initState (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode)
+  have h161 := safeRuntime_block_0_taken (fork := fork) (by decide) (by rw [hlt]; decide) (by jump_dest)
+    (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode)
   have h168 := evm_run h161 with [jumpdest, push0, push0, calldataload, push1 ⟨224⟩, shr]
   exact ⟨_, _, h168⟩
 
@@ -64,9 +66,9 @@ theorem safeReachEntry {σ σ₀ A I} {g : Sat256} (w : UInt256) (i : ℕ) (body
     (hcode : I.code = safeBytecode) (hsize : I.calldata.size < UInt256.size)
     (hlong : 4 ≤ I.calldata.size) (hword : selWord I = w)
     (hcert : safeDispatchCertificate w i bodyPc) :
-    ∃ k C, RD safeBytecode I g (initState σ σ₀ g A I) bodyPc
+    ∃ k C, RD fork safeBytecode I g (initState σ σ₀ g A I) bodyPc
       [selWord I, ⟨0⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨k, C, hgroup⟩ := safeReachSelectorGroup (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hgroup⟩ := safeReachSelectorGroup (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) hcode hsize hlong
   rw [hword] at hgroup ⊢
   rcases hcert with ⟨hwf, hskip, htake, hjd, hbody⟩
@@ -81,15 +83,15 @@ theorem safeReachSelectorEnd {σ σ₀ A I} {g : Sat256}
     (hlong : 4 ≤ I.calldata.size)
     (hskip : ∀ j : Fin 30, UInt256.eq
       (armSelNat safeBytecode (nthArmPc safeBytecode ⟨168⟩ j)) (selWord I) = ⟨0⟩) :
-    ∃ k C, RD safeBytecode I g (initState σ σ₀ g A I) ⟨498⟩
+    ∃ k C, RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨498⟩
       [selWord I, ⟨0⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hwf : ∀ j : Fin 30, armWellFormed safeBytecode
       (nthArmPc safeBytecode ⟨168⟩ j) := by native_decide
-  obtain ⟨k, C, hgroup⟩ := safeReachSelectorGroup (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hgroup⟩ := safeReachSelectorGroup (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) hcode hsize hlong
   obtain ⟨k', C', hend⟩ := skipSelectorArms 30 hgroup
     (fun j hj ↦ hwf ⟨j, hj⟩) (fun j hj ↦ hskip ⟨j, hj⟩) (by decide)
-  change RD safeBytecode I g (initState σ σ₀ g A I)
+  change RD fork safeBytecode I g (initState σ σ₀ g A I)
     (nthArmPc safeBytecode ⟨168⟩ 30) _ _ _ _ _ _ _ at hend
   rw [show nthArmPc safeBytecode ⟨168⟩ 30 = ⟨498⟩ from by native_decide] at hend
   exact ⟨k', C', hend⟩

@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeNoAdjustSource
 import Benchmarks.Dss.Clipper.Chost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -286,7 +288,7 @@ theorem clipperEvalTakeVarOweAdjusted (v : ClipperImmutables)
 theorem clipperTakeAssignOweFromAdjusted (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe chost remainingTab oweAdjusted : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe chost
           remainingTab oweAdjusted) (immStore v))
       evmRead (.assign .localVar (varRef "owe") (.var "oweAdjusted"))
@@ -376,7 +378,7 @@ theorem clipperTakeAssignSliceFromChostOwe (v : ClipperImmutables)
     (price slice owe0 owe chost remainingTab oweAdjusted : UInt256)
     (hprice : price ≠ ⟨0⟩) :
     let sliceAdjusted := UInt256.div oweAdjusted price
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
           oweAdjusted) (immStore v))
       evmRead (.assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")))
@@ -418,7 +420,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
     let owe0 := UInt256.mul slice price
     let chost := Stele.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩
     let remainingTab := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt
       (.ok
@@ -451,7 +453,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
       clipperTakeLocalsDone, clipperTakeLocalsSt, clipperTakeLocalsTic,
       clipperTakeLocalsUsr, clipperTakeStore]
   have hletChost :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.letDecl "_chost" (some uint256) (.storage chostRef))
         (.ok chostFrame evmRead) := by
     simpa [oweFrame, chostFrame, chost, clipperTakeLocalsChost] using
@@ -463,7 +465,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
           (clipperEvalChost v evmRead
             (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) hbase)))
   have hletRemaining :
-      ExecStmt config chostFrame evmRead
+      ExecStmt fork config chostFrame evmRead
         (.letDecl "remainingTab" (some uint256)
           (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
         (.ok remainingFrame evmRead) := by
@@ -482,7 +484,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
       clipperEvalTakeRemainingTabLtChost_false v evmLoc evmRead I price slice owe0 owe0
         chost remainingTab hchostLe
   have hadjust :
-      ExecStmt config remainingFrame evmRead
+      ExecStmt fork config remainingFrame evmRead
         (.ite (.binary .lt (.var "remainingTab") (.var "_chost"))
           ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
             wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
@@ -492,7 +494,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
         (.ok remainingFrame evmRead) :=
     ExecStmt.iteFalse hadjustCond ExecBlock.nil
   have hinnerBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
           wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
           [ .ite
@@ -509,7 +511,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
         (ExecBlock.consNormal hletRemaining
           (ExecBlock.consNormal hadjust ExecBlock.nil)))
   have hinner :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.ite
           (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
@@ -527,7 +529,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
         (.ok remainingFrame evmRead) :=
     ExecStmt.iteTrue hinnerCond hinnerBlock
   have helse :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         [ .ite
           (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
@@ -565,7 +567,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
     let remainingTab := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
     let oweAdjusted := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) chost
     let sliceAdjusted := UInt256.div oweAdjusted price
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt
       (.ok
@@ -607,7 +609,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
       clipperTakeLocalsDone, clipperTakeLocalsSt, clipperTakeLocalsTic,
       clipperTakeLocalsUsr, clipperTakeStore]
   have hletChost :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.letDecl "_chost" (some uint256) (.storage chostRef))
         (.ok chostFrame evmRead) := by
     simpa [oweFrame, chostFrame, chost, clipperTakeLocalsChost] using
@@ -619,7 +621,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
           (clipperEvalChost v evmRead
             (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) hbase)))
   have hletRemaining :
-      ExecStmt config chostFrame evmRead
+      ExecStmt fork config chostFrame evmRead
         (.letDecl "remainingTab" (some uint256)
           (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
         (.ok remainingFrame evmRead) := by
@@ -644,7 +646,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
       clipperEvalTakeTabGtChost_true v evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab hchostTab
   have hletAdjusted :
-      ExecStmt config remainingFrame evmRead
+      ExecStmt fork config remainingFrame evmRead
         (.letDecl "oweAdjusted" (some uint256)
           (wrap256 (.binary .sub (.var "tab") (.var "_chost"))))
         (.ok adjustedFrame evmRead) := by
@@ -660,21 +662,21 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
           (clipperEvalTakeTabSubChostAtRemainingTab v evmLoc evmRead I price slice owe0
             owe0 chost remainingTab hleChost)))
   have hassignOwe :
-      ExecStmt config adjustedFrame evmRead
+      ExecStmt fork config adjustedFrame evmRead
         (.assign .localVar (varRef "owe") (.var "oweAdjusted"))
         (.ok chostOweFrame evmRead) := by
     simpa [adjustedFrame, chostOweFrame] using
       clipperTakeAssignOweFromAdjusted v evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab oweAdjusted
   have hassignSlice :
-      ExecStmt config chostOweFrame evmRead
+      ExecStmt fork config chostOweFrame evmRead
         (.assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")))
         (.ok sliceFrame evmRead) := by
     simpa [chostOweFrame, sliceFrame, sliceAdjusted] using
       clipperTakeAssignSliceFromChostOwe v evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab oweAdjusted hprice
   have hadjustBlock :
-      ExecBlock config remainingFrame evmRead
+      ExecBlock fork config remainingFrame evmRead
         ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
           wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
           [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
@@ -686,7 +688,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
           (ExecBlock.consNormal hassignOwe
             (ExecBlock.consNormal hassignSlice ExecBlock.nil))))
   have hadjust :
-      ExecStmt config remainingFrame evmRead
+      ExecStmt fork config remainingFrame evmRead
         (.ite (.binary .lt (.var "remainingTab") (.var "_chost"))
           ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
             wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
@@ -696,7 +698,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (.ok sliceFrame evmRead) :=
     ExecStmt.iteTrue hadjustCond hadjustBlock
   have hinnerBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
           wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
           [ .ite (.binary .lt (.var "remainingTab") (.var "_chost"))
@@ -711,7 +713,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (ExecBlock.consNormal hletRemaining
           (ExecBlock.consNormal hadjust ExecBlock.nil)))
   have hinner :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
           ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
@@ -727,7 +729,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (.ok sliceFrame evmRead) :=
     ExecStmt.iteTrue hinnerCond hinnerBlock
   have helse :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         [ .ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
           ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
@@ -758,7 +760,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
       (clipperTakeSalesTabEVMWord evmRead I).toNat ≤
         (Stele.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩).toNat) :
     let owe0 := UInt256.mul slice price
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt .reverted := by
   intro owe0
@@ -790,7 +792,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
       clipperTakeLocalsDone, clipperTakeLocalsSt, clipperTakeLocalsTic,
       clipperTakeLocalsUsr, clipperTakeStore]
   have hletChost :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.letDecl "_chost" (some uint256) (.storage chostRef))
         (.ok chostFrame evmRead) := by
     simpa [oweFrame, chostFrame, chost, clipperTakeLocalsChost] using
@@ -802,7 +804,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
           (clipperEvalChost v evmRead
             (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) hbase)))
   have hletRemaining :
-      ExecStmt config chostFrame evmRead
+      ExecStmt fork config chostFrame evmRead
         (.letDecl "remainingTab" (some uint256)
           (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
         (.ok remainingFrame evmRead) := by
@@ -827,7 +829,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
       clipperEvalTakeTabGtChost_false v evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab htabLeChost
   have hadjust :
-      ExecStmt config remainingFrame evmRead
+      ExecStmt fork config remainingFrame evmRead
         (.ite (.binary .lt (.var "remainingTab") (.var "_chost"))
           ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
             wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
@@ -837,7 +839,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
     apply ExecStmt.iteTrue hadjustCond
     exact ExecBlock.consRevert (ExecStmt.requireFalse hrequireCond)
   have hinnerBlock :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
           wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
           [ .ite (.binary .lt (.var "remainingTab") (.var "_chost"))
@@ -852,7 +854,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
         (ExecBlock.consNormal hletRemaining
           (ExecBlock.consRevert hadjust)))
   have hinner :
-      ExecStmt config oweFrame evmRead
+      ExecStmt fork config oweFrame evmRead
         (.ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
           ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
@@ -867,7 +869,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
           []) .reverted :=
     ExecStmt.iteTrue hinnerCond hinnerBlock
   have helse :
-      ExecBlock config oweFrame evmRead
+      ExecBlock fork config oweFrame evmRead
         [ .ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
           ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++

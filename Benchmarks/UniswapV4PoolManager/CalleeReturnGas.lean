@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV4PoolManager.CalleeMemoryGas
 import Benchmarks.UniswapV4PoolManager.ThetaSuccess
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
 -- LIBRARY CANDIDATE: the returned byte span fits the active memory charged by RETURN.
 theorem stepReturn_outputWords {cost : Nat} {arg : Option (UInt256 × Nat)} {state state' : State}
-    (h : step cost (.RETURN, arg) state = .ok state') :
+    (h : step fork cost (.RETURN, arg) state = .ok state') :
     state'.machineState.H_return.size ≤ 32*state'.machineState.activeWords.toNat := by
   unfold step at h
   simp [binaryMachineStateOp] at h
@@ -24,7 +26,7 @@ theorem stepReturn_outputWords {cost : Nat} {arg : Option (UInt256 × Nat)} {sta
     exact MachineState.evmReturn_H_return_size_le_words_mul state.machineState offset len
 
 theorem Xstep_success_outputWords {validJumps : Array UInt256} {state state' : State} {out : ByteArray}
-    (h : Xstep validJumps state = .ok (state', some (.success, out))) :
+    (h : Xstep fork validJumps state = .ok (state', some (.success, out))) :
     out.size ≤ 32*state'.machineState.activeWords.toNat := by
   unfold Xstep at h
   simp [bind, Except.bind] at h
@@ -60,14 +62,14 @@ theorem Xstep_success_outputWords {validJumps : Array UInt256} {state state' : S
 
 theorem X_success_outputWords {fuel : Nat} {validJumps : Array UInt256}
     {state state' : State} {out : ByteArray}
-    (h : X fuel validJumps state = .ok (.success state' out)) :
+    (h : X fork fuel validJumps state = .ok (.success state' out)) :
     out.size ≤ 32*state'.machineState.activeWords.toNat := by
   induction fuel generalizing state with
   | zero => simp [X] at h
   | succ fuel ih =>
     unfold X at h
     simp only [bind, Except.bind] at h
-    cases hstep : Xstep validJumps state with
+    cases hstep : Xstep fork validJumps state with
     | error e => simp [hstep] at h
     | ok res =>
       rcases res with ⟨state₁, ret⟩
@@ -83,11 +85,11 @@ theorem X_success_outputWords {fuel : Nat} {validJumps : Array UInt256}
 -- LIBRARY CANDIDATE: a fresh EVM callee pays the memory cost of every returned byte.
 theorem Xi_success_returnMemoryCost {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     {res : AccountMap × UInt256 × Substate} {out : ByteArray}
-    (h : Ξ σ σ₀ g A I = .ok (.success res out)) :
+    (h : Ξ fork σ σ₀ g A I = .ok (.success res out)) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+res.2.1.toNat ≤ g.toNat := by
   unfold Ξ at h
   simp [bind, Except.bind] at h
-  cases hx : X (g.toNat+1) (D_J I.code 0)
+  cases hx : X fork (g.toNat+1) (D_J I.code 0)
       { (default : State) with
         accountMap := σ, σ₀ := σ₀, executionEnv := I, substate := A,
         machineState.gasAvailable := .ofUInt256 g } with

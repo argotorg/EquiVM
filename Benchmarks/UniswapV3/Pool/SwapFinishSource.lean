@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapPayment
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.TupleReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -15,7 +17,7 @@ theorem swapFinishSource (frame : Frame) (evm : EVM.State) (recipient : AccountA
     (hs : frame.locals.get? "state" = some s.value)
     (hslot : frame.locals.get? "slot0" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm (swapTransition.body.drop 19)
+    ExecBlock fork config frame evm (swapTransition.body.drop 19)
       (.returned frame (storeSlot0Unlocked evm true) (some [.int amount0, .int amount1])) := by
   have hp : evalExpr? config frame evm (.field (.var "state") "sqrtPriceX96") =
       .ok (.int (Int.ofNat s.price.toNat)) :=
@@ -25,7 +27,7 @@ theorem swapFinishSource (frame : Frame) (evm : EVM.State) (recipient : AccountA
     evalExpr_structField (evalExpr_var_get hs) rfl
   have ht : evalExpr? config frame evm (.field (.var "state") "tick") = .ok (.int s.tick) :=
     evalExpr_structField (evalExpr_var_get hs) rfl
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := hperm) (vals :=
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := hperm) (vals :=
     [.address evm.executionEnv.source, .address recipient, .int amount0, .int amount1,
       .int (Int.ofNat s.price.toNat), .int (Int.ofNat s.liquidity.toNat), .int s.tick]) ?_) ?_
   · simp only [evalExprs?, hp, hl, ht, evalExpr_var_get hr, evalExpr_var_get h0,
@@ -34,7 +36,7 @@ theorem swapFinishSource (frame : Frame) (evm : EVM.State) (recipient : AccountA
       (.bool true) = .ok (frame, storeSlot0Unlocked evm true) := by
     rw [frame_eq_of_parts hf rfl]
     exact assignSlot0Unlocked evm frame.locals frame.immutables true hslot
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]) hass) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]) hass) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by
     simp only [evalExprs?, evalExpr_var_get h0, evalExpr_var_get h1,
       bind, EvalResult.bind, pure]))

@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.CallHelpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `previewUnwrap(uint256)`
 
@@ -44,7 +46,7 @@ theorem wrapperPreviewUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hf
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 3) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -89,7 +91,7 @@ theorem wrapperPreviewUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hf
       have h := evalExpr_intLit_word (cfg := config) (stele := frame imms (pStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) 0 (by decide)
       rw [show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from by decide] at h
       exact h
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (pStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (pStore I)
         previewUnwrapTransition.body
         (.returned (frame imms (pStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [uint256Value ⟨0⟩]))
         (restrictImmutables contract imms) := by
@@ -173,9 +175,9 @@ theorem wrapperPreviewUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hf
     set L2 : Store := L1.insert "held" (uint256Value hw) with hL2
     have hdecode : config.externalABI.decode? "balanceOf" out = some [uint256Value hw] := by
       rw [decode_balanceOf, decodeReturn_uint256_ok out h32 (by omega), hhw]; rfl
-    have hcallS : ExecStmt config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    have hcallS : ExecStmt fork config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.externalCall (.var "__a0") "balanceOf" (.intLit 0) [.env .this] "held" false) (.ok (frame imms L2) evm') :=
-      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
+      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
         (.intLit 0) [.env .this] [.address I.codeOwner] "balanceOf" evm' out false [uint256Value hw] "held"
         hrecv heth hargs hcall hdecode
     have hso : ∀ evm, evalExpr? config (frame imms L2) evm (.var "sharesOut") = .ok (uint256Value (argWord I)) := fun evm =>
@@ -238,7 +240,7 @@ theorem wrapperPreviewUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hf
     have rd11 := wrapperBlocks.wrapper_block_1637 (by simp) rd10
     rw [ulit_toNat' 96 (by decide), ulit_toNat' 32 (by decide),
       toByteArray_write_read_back_of_gap _ _ 96 (by rw [hM2size]; exact lt_usize _ (by decide))] at rd11
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (pStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (pStore I)
         previewUnwrapTransition.body
         (.returned (frame imms L2) evm'
           (some [uint256Value (UInt256.div (UInt256.mul (argWord I) hw) (solcSlotWordAt (UInt256.ofNat 2) σ' I))]))

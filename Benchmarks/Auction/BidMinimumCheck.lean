@@ -2,15 +2,17 @@ import Benchmarks.Auction.BidInitialChecks
 import Benchmarks.Auction.CheckedMul
 import Benchmarks.Auction.CheckedDivSub
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw ptr) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨5650⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨5650⟩
       (s.amount :: bidPercentage σ I :: ⟨1537⟩ :: ⟨100⟩ :: ptr :: noun :: ret :: R)
       mem aw rdata σ k' C' := by
   have rd1514 := evm_run h with [jumpdest, push1 ⟨205⟩]
@@ -24,17 +26,17 @@ theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata σ k C}
     push1 ⟨255⟩, swap1, swap2, and, swap1, push2 ⟨5650⟩, jump (by jump_dest)]⟩
 
 theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hm : SnapshotMemory s mem aw ptr)
     (hv : BidValues locals s noun) (hov : R.length + 13 ≤ 1024) :
     (∃ k' C',
-      ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
         (.require bidMinimumGuard) (.ok { contract := auctionContract, locals := locals } evm) ∧
-      RD auctionBytecode I g s0 ⟨1681⟩ (ptr :: noun :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨1681⟩ (ptr :: noun :: ret :: R)
         mem aw rdata σ k' C') ∨
-    (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
-      (.require bidMinimumGuard) .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
+      (.require bidMinimumGuard) .reverted ∧ RDrev fork auctionBytecode g s0) := by
   obtain ⟨_, _, rd5650⟩ := bidMinimumPrefix h hm (by omega)
   by_cases hmul : s.amount.toNat * (bidPercentage σ I).toNat < UInt256.size
   · obtain ⟨_, _, rd1537⟩ := checkedMulOk rd5650 (by rwa [Nat.mul_comm])
@@ -45,7 +47,7 @@ theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals}
     have rd5673 := evm_run rd1537 with [jumpdest, push2 ⟨1547⟩, swap2, swap1,
       push2 ⟨5673⟩, jump (by jump_dest)]
     obtain ⟨_, _, rd1547⟩ := checkedDivOk rd5673 (by decide) (by jump_dest) (by evm_ov)
-    change RD _ _ _ _ ⟨1547⟩ (bidIncrement s.amount (bidPercentage σ I) :: ptr :: noun :: ret :: R)
+    change RD fork _ _ _ _ ⟨1547⟩ (bidIncrement s.amount (bidPercentage σ I) :: ptr :: noun :: ret :: R)
       mem aw rdata σ _ _ at rd1547
     have rd1553 := evm_run rd1547 with [jumpdest, dup2, push1 ⟨32⟩, add,
       raw mloadSymbolic (by native_decide) (by evm_ov)]

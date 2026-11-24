@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0Denominator
 import Benchmarks.UniswapV3.Pool.LowGasSafeAdd
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -52,7 +54,7 @@ theorem evalNextSqrt0FallbackArgs (imms : Store) (evm : EVM.State) (a : NextSqrt
 
 theorem nextSqrt0FallbackAddReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt0FallbackValid a) :
-    ExecStmt config (nextSqrt0FallbackFrame imms a) evm
+    ExecStmt fork config (nextSqrt0FallbackFrame imms a) evm
       (.internalCall "LowGasSafeMath_add" nextSqrt0FallbackArgs "__c1")
       (.ok (nextSqrt0FallbackAddFrame imms a) evm) :=
   internalCallFunctionReturn (callee := safeAddFunction)
@@ -64,7 +66,7 @@ theorem nextSqrt0FallbackAddReturns (imms : Store) (evm : EVM.State) (a : NextSq
 
 theorem nextSqrt0FallbackAddReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt0FallbackValid a) :
-    ExecStmt config (nextSqrt0FallbackFrame imms a) evm
+    ExecStmt fork config (nextSqrt0FallbackFrame imms a) evm
       (.internalCall "LowGasSafeMath_add" nextSqrt0FallbackArgs "__c1") .reverted := by
   by_cases hn : a.price.toNat = 0
   · obtain ⟨hp, _, hnum⟩ := nextSqrt0FallbackGet imms a
@@ -82,7 +84,7 @@ theorem nextSqrt0FallbackAddReverts (imms : Store) (evm : EVM.State) (a : NextSq
       (safeAddReverts imms evm _ _ (fun h ↦ hv ⟨hn, h⟩))
 
 theorem nextSqrt0FallbackDivReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs) :
-    ExecStmt config (nextSqrt0FallbackAddFrame imms a) evm
+    ExecStmt fork config (nextSqrt0FallbackAddFrame imms a) evm
       (.internalCall "UnsafeMath_divRoundingUp" [.var "numerator1", .var "__c1"] "__c2")
       (.ok (nextSqrt0FallbackDivFrame imms a) evm) := by
   have en : evalExpr? config (nextSqrt0FallbackAddFrame imms a) evm (.var "numerator1") =

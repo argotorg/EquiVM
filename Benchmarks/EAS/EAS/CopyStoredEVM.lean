@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopyStoredFields
 import Benchmarks.EAS.EAS.CopyStoredPayload
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -31,12 +33,12 @@ theorem easCopyStored {evm : EVM.State} {g : Sat256} {s0 : State}
     (hstack : R.length + 13 ≤ 1024)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨6501⟩ (dbSlot word :: ret :: R)
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨6501⟩ (dbSlot word :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     if copyStoredValid evm word heap.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) evm.executionEnv g s0 ret (heap :: R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) evm.executionEnv g s0 ret (heap :: R)
         (copyStoredOutputMemory evm word heap mem) aw' rdata evm.accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hg : allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320
   · obtain ⟨aw1, k1, C1, rd1⟩ := easCopyStored_fields v (by omega) hh hlo hg rd
     have hd : solcSlotWord evm.accountMap evm.executionEnv (dbSlot word + ⟨6⟩) = attestationHeader evm word :=

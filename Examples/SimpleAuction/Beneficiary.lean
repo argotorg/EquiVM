@@ -1,6 +1,8 @@
 import Examples.SimpleAuction.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -18,7 +20,7 @@ abbrev beneficiaryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "beneficiary" = none) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals beneficiaryGetter.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm locals beneficiaryGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
@@ -38,10 +40,10 @@ theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
 
 theorem simpleAuctionX_beneficiary {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (beneficiaryReturnWord σ I)) := by
   obtain ⟨_, _, rd144⟩ := hreach
   have rd155 := evm_run rd144 with [
@@ -65,10 +67,10 @@ theorem simpleAuctionX_beneficiary {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_beneficiary_nonzero {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd144⟩ := hreach
   exact evm_run rd144 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨155⟩,
@@ -109,11 +111,11 @@ theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨144⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor fork simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := simpleAuctionBeneficiarySelector_size hsel
@@ -121,7 +123,7 @@ theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
   have hdec := simpleAuctionDecode_beneficiary (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -134,7 +136,7 @@ theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
       |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ I)))
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           .reverted := by
       exact bodyReverts_nonPayable (by simp only [initState]; exact hwv)

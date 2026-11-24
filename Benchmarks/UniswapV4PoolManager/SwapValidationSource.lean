@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TransientSource
 import Benchmarks.UniswapV4PoolManager.NoDelegateCall
 import Benchmarks.UniswapV4PoolManager.PoolProtocolFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -33,9 +35,9 @@ theorem swapValidationSource {f : Frame} {evm : State} {key : PoolKeyWords} {p :
     (v : PoolManagerImmutables) (hf : f.contract = contract) (him : f.immutables = immStore v)
     (hc : PoolKeyCanonical key) (hk : f.locals.get? "key" = some (poolKeyValue key))
     (hparams : f.locals.get? "params" = some (swapParamsValue p)) :
-    ExecBlock config f evm ((swapTransition.body.drop 6).take 9)
+    ExecBlock fork config f evm ((swapTransition.body.drop 6).take 9)
       (swapValidationResult v f evm key p) := by
-  have hlock := lockCall (evm := evm) hf "__c0"
+  have hlock := lockCall (fork := fork) (evm := evm) hf "__c0"
   rw [swapValidationResult]
   by_cases hl : transientWord evm lockSlot = ⟨0⟩
   · rw [if_pos hl]
@@ -46,9 +48,9 @@ theorem swapValidationSource {f : Frame} {evm : State} {key : PoolKeyWords} {p :
   rw [if_neg hl]
   rw [decide_eq_true hl] at hlock
   let f1 : Frame := {f with locals := f.locals.insert "__c0" (.bool true)}
-  have hguard : ExecStmt config f1 evm swapTransition.body[7]! (.ok f1 evm) :=
+  have hguard : ExecStmt fork config f1 evm swapTransition.body[7]! (.ok f1 evm) :=
     ExecStmt.iteFalse (evalNotBool (va := true) (evalLocalValue (store_get_self _ _ _))) ExecBlock.nil
-  have hdelegate := noDelegateCallCall (f := f1) (evm := evm) v hf him "__c1"
+  have hdelegate := noDelegateCallCall (fork := fork) (f := f1) (evm := evm) v hf him "__c1"
   by_cases hd : evm.executionEnv.codeOwner = v.original
   swap
   · rw [if_neg hd] at hdelegate ⊢
@@ -69,21 +71,21 @@ theorem swapValidationSource {f : Frame} {evm : State} {key : PoolKeyWords} {p :
       (ExecBlock.consRevert (ExecStmt.iteTrue (hzero.trans (by rw [decide_eq_true hz]))
         (ExecBlock.consRevert (ExecStmt.requireFalse (by simp only [evalExpr?, pure])))))))
   rw [if_neg hz]
-  have hnonzero : ExecStmt config f2 evm swapTransition.body[9]! (.ok f2 evm) :=
+  have hnonzero : ExecStmt fork config f2 evm swapTransition.body[9]! (.ok f2 evm) :=
     ExecStmt.iteFalse (hzero.trans (by rw [decide_eq_false hz])) ExecBlock.nil
   let f3 : Frame := {f2 with locals := f2.locals.insert "id" (wordBytes32Value (poolKeyId key))}
   let f4 : Frame := {f3 with locals := f3.locals.insert "__c3" (poolRefValue (poolKeyId key))}
   let f5 : Frame := {f4 with locals := f4.locals.insert "pool" (poolRefValue (poolKeyId key))}
   let f6 : Frame := {f5 with locals := f5.locals.insert swapCheckAlias (poolRefValue (poolKeyId key))}
-  have hid := poolIdCall (f := f2) (evm := evm) hf hc (evalLocalValue
+  have hid := poolIdCall (fork := fork) (f := f2) (evm := evm) hf hc (evalLocalValue
     ((store_get_ne2 _ _ _ (by decide : ("__c0" == "key") = false)
       (by decide : ("__c1" == "key") = false)).trans hk)) "id"
-  have hget := poolGetCall (f := f3) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c3"
-  have href : ExecStmt config f4 evm swapTransition.body[12]! (.ok f5 evm) :=
+  have hget := poolGetCall (fork := fork) (f := f3) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c3"
+  have href : ExecStmt fork config f4 evm swapTransition.body[12]! (.ok f5 evm) :=
     ExecStmt.letStorage (resolveStorageAlias (store_get_self _ _ _))
-  have halias : ExecStmt config f5 evm swapTransition.body[13]! (.ok f6 evm) :=
+  have halias : ExecStmt fork config f5 evm swapTransition.body[13]! (.ok f6 evm) :=
     ExecStmt.letStorage (resolveStorageAlias (store_get_self _ _ _))
-  have hcheck := poolCheckCall (f := f6) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c4"
+  have hcheck := poolCheckCall (fork := fork) (f := f6) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c4"
   by_cases hp : poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩
   · rw [if_pos hp] at hcheck ⊢
     exact ExecBlock.consNormal hlock (ExecBlock.consNormal hguard (ExecBlock.consNormal hdelegate

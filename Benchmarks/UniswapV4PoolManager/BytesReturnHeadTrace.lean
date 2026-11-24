@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -24,11 +26,11 @@ theorem bytesReturnHeadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
     (hout : out.size < 2^138) (hptr : ptr.toNat ≤ solcMaxU64)
     (hlo : 96 ≤ ptr.toNat) (hmem : ptr.toNat ≤ mem.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9259⟩ (UInt256.ofNat out.size :: ptr :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9259⟩ (UInt256.ofNat out.size :: ptr :: R)
       (copiedReturnMemory out mem ptr.toNat next) aw out σ k C) :
-    (¬BytesReturnBounds out ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬BytesReturnBounds out ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (BytesReturnHeadBounds out ∧ ∃ aw' k' C', C+134+Cₘ aw' ≤ C'+Cₘ aw ∧ aw.toNat ≤ aw'.toNat ∧
-      RD (deployedRuntime v) I g s0 ⟨9321⟩
+      RD fork (deployedRuntime v) I g s0 ⟨9321⟩
         ((ptr+calldataWord out 0) :: calldataWord out (calldataWord out 0).toNat ::
           (ptr+UInt256.ofNat out.size) :: R)
         (copiedReturnMemory out mem ptr.toNat next) aw' out σ k' C') := by

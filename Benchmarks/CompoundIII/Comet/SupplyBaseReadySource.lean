@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.SupplyBaseEventsSource
 import Benchmarks.CompoundIII.Comet.UpdateBaseSource
 import Benchmarks.CompoundIII.Comet.InternalBlockComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,18 +17,18 @@ attribute [local irreducible] signed104
 
 theorem supplyBaseInitial_source (v : CometWithExtendedAssetListImmutables)
     (sender dst : AccountAddress) (requested amount : UInt256) (evm : EVM.State) :
-    ExecBlock config (supplyBaseAccruedFrame v sender dst requested amount) evm
+    ExecBlock fork config (supplyBaseAccruedFrame v sender dst requested amount) evm
       (supplyBaseReadBlock ++ supplyBaseMathBlock)
       (if SupplyBaseMathFits evm (withdrawBaseBasic evm dst).principal amount then
         .ok (supplyBaseReadyFrame v sender dst requested amount evm) evm else .reverted) := by
   let frame := supplyBaseAccruedFrame v sender dst requested amount
   let read := supplyBaseReadFrame frame evm dst
-  have hread := supplyBaseRead_source frame evm dst rfl (by
+  have hread := supplyBaseRead_source (fork := fork) frame evm dst rfl (by
     simp only [frame, supplyBaseAccruedFrame, supplyBaseReceivedFrame, supplyBaseEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl) (by
     simp only [frame, supplyBaseAccruedFrame, supplyBaseReceivedFrame, supplyBaseEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl)
-  have hmath := supplyBaseMath_source read evm (withdrawBaseBasic evm dst).principal amount rfl
+  have hmath := supplyBaseMath_source (fork := fork) read evm (withdrawBaseBasic evm dst).principal amount rfl
     (by simp only [read, supplyBaseReadFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert]; rfl)
     (by simp only [read, frame, supplyBaseReadFrame, supplyBaseAccruedFrame, supplyBaseReceivedFrame, supplyBaseEntry,
@@ -35,7 +37,7 @@ theorem supplyBaseInitial_source (v : CometWithExtendedAssetListImmutables)
 
 theorem supplyBaseReady_totals (v : CometWithExtendedAssetListImmutables)
     (sender dst : AccountAddress) (requested amount : UInt256) (evm : EVM.State) :
-    ExecBlock config (supplyBaseReadyFrame v sender dst requested amount evm) evm supplyBaseTotalsBlock
+    ExecBlock fork config (supplyBaseReadyFrame v sender dst requested amount evm) evm supplyBaseTotalsBlock
       (supplyBaseTotalsResult (supplyBaseReadyFrame v sender dst requested amount evm) evm
         (supplyBaseSupplied evm dst amount) (supplyBaseRepaid evm dst amount)) := by
   have hfargs := supplyBaseReady_args v sender dst requested amount evm
@@ -52,7 +54,7 @@ theorem supplyBaseReady_totals (v : CometWithExtendedAssetListImmutables)
 theorem supplyBaseReady_update {v sender dst requested amount evm}
     (evm' : EVM.State)
     (hf : SupplyBaseMathFits evm (withdrawBaseBasic evm dst).principal amount) :
-    ExecStmt config (supplyBaseReadyFrame v sender dst requested amount evm) evm' supplyBaseUpdateStmt
+    ExecStmt fork config (supplyBaseReadyFrame v sender dst requested amount evm) evm' supplyBaseUpdateStmt
       (internalStmtResult (supplyBaseReadyFrame v sender dst requested amount evm) "__c6"
         (updateBaseOutcome v evm' dst (withdrawBaseBasic evm dst) (supplyBaseNext evm dst amount))) := by
   have hfargs := supplyBaseReady_args v sender dst requested amount evm
@@ -66,16 +68,16 @@ theorem supplyBaseReady_finish {v sender dst requested amount evm evm' evm''}
     (hf : SupplyBaseMathFits evm (withdrawBaseBasic evm dst).principal amount)
     (hu : updateBaseOutcome v evm' dst (withdrawBaseBasic evm dst)
       (supplyBaseNext evm dst amount) = .ok evm'') :
-    internalBlockResult config (supplyBaseReadyFrame v sender dst requested amount evm) evm'
+    internalBlockResult fork config (supplyBaseReadyFrame v sender dst requested amount evm) evm'
       (supplyBaseUpdateStmt :: supplyBaseEvents) (.ok evm'') := by
   let ready := supplyBaseReadyFrame v sender dst requested amount evm
   let final := { ready with locals := ready.locals.insert "__c6" .unit }
-  have hcall := supplyBaseReady_update (v := v) (sender := sender) (requested := requested) evm' hf
+  have hcall := supplyBaseReady_update (fork := fork) (v := v) (sender := sender) (requested := requested) evm' hf
   have hcall := internalStmtResult.cast hcall hu
   have hargs := (supplyBaseReady_args v sender dst requested amount evm).insert
     "__c6" .unit (by decide)
-  obtain ⟨frame', he⟩ := supplyBaseEvents_source (hperm := updateBaseOutcome_result_perm hu) final evm'' hargs (supplyAmount_lt _ _)
-  exact (show internalBlockResult config final evm'' supplyBaseEvents (.ok evm'') from
+  obtain ⟨frame', he⟩ := supplyBaseEvents_source (fork := fork) (hperm := updateBaseOutcome_result_perm hu) final evm'' hargs (supplyAmount_lt _ _)
+  exact (show internalBlockResult fork config final evm'' supplyBaseEvents (.ok evm'') from
     ⟨frame', he⟩).prepend hcall
 
 end Benchmarks.CompoundIII.Comet

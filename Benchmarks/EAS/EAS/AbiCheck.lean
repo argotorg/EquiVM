@@ -58,7 +58,7 @@ private def checkProbes (dir : System.FilePath) : IO UInt32 := do
         let calldata := calldataWords s!"{name}((bytes32,uint256[])[])" words
         let world := t.world runtime
         let I := t.env runtime (EVM.address 0x6004) 0 calldata true 1000 16756728
-        let trace := runTrace (initialState world world (.ofNat t.gas) default I) (t.gas + 1)
+        let trace := runTrace t.fork (initialState world world (.ofNat t.gas) default I) (t.gas + 1)
         let succeeds := label == "canonical" || (name == "direct" && label != "out of bounds")
         let expected := match trace.result with
           | .ok (.success _ out) => succeeds && out == wordBytes 0

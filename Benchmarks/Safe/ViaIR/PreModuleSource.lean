@@ -3,6 +3,8 @@ import Reasoning.ExternalCall
 import Reasoning.ABIViews
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -75,12 +77,12 @@ theorem safePreModuleLoadGuard (evm : EVM.State) (locals : Store)
 
 theorem safePreModulePrefix (evm : EVM.State) (target : EVM.Address) (value : UInt256)
     (payload : ByteArray) (operation : UInt256) {result : ExecResult}
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       { contract := contract, locals :=
         preModuleLocals target value payload operation (preModuleGuardWord evm) ⟨0⟩ } evm
       [.require (andE (neE sender sentinelAddr) (neE (.storage (modulesRef sender)) zeroAddr)),
         preModuleCheck, .return [.var "guard", .var "guardHash"]] result) :
-    ExecBlock config (preModuleFrame target value payload operation) evm
+    ExecBlock fork config (preModuleFrame target value payload operation) evm
       preModuleExecutionFunction.body result := by
   refine .consNormal (.letDecl (safePreModuleLoadGuard evm _ ?_))
     (.consNormal (.letDecl ?_) htail)
@@ -154,7 +156,7 @@ theorem safePreModuleArguments (evm : EVM.State) (target : EVM.Address) (value :
 theorem safePreModuleCheckZero (evm : EVM.State) (target : EVM.Address) (value : UInt256)
     (payload : ByteArray) (operation guard : UInt256)
     (hz : UInt256.land guard solcAddrMask = ⟨0⟩) :
-    ExecStmt config (preModuleCheckingFrame target value payload operation guard) evm
+    ExecStmt fork config (preModuleCheckingFrame target value payload operation guard) evm
       preModuleCheck (.ok (preModuleCheckingFrame target value payload operation guard) evm) :=
   .iteFalse (by simpa only [hz, ne_eq, not_true_eq_false, decide_false] using
     safePreModuleCondition evm target value payload operation guard) .nil
@@ -162,10 +164,10 @@ theorem safePreModuleCheckZero (evm : EVM.State) (target : EVM.Address) (value :
 theorem safePreModuleCheckFailed {evm evm' : EVM.State} {target : EVM.Address}
     {value operation guard : UInt256} {payload out : ByteArray}
     (hz : UInt256.land guard solcAddrMask ≠ ⟨0⟩)
-    (hc : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+    (hc : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkModuleTransaction" 0 [.address target, .int (Int.ofNat value.toNat), .bytes payload,
         .int (Int.ofNat operation.toNat), .address evm.executionEnv.source] (false, evm', out)) :
-    ExecStmt config (preModuleCheckingFrame target value payload operation guard) evm
+    ExecStmt fork config (preModuleCheckingFrame target value payload operation guard) evm
       preModuleCheck .reverted := by
   apply ExecStmt.iteTrue (by
     simpa [hz] using
@@ -177,11 +179,11 @@ theorem safePreModuleCheckFailed {evm evm' : EVM.State} {target : EVM.Address}
 theorem safePreModuleCheckInvalid {evm evm' : EVM.State} {target : EVM.Address}
     {value operation guard : UInt256} {payload out : ByteArray}
     (hz : UInt256.land guard solcAddrMask ≠ ⟨0⟩)
-    (hc : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+    (hc : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkModuleTransaction" 0 [.address target, .int (Int.ofNat value.toNat), .bytes payload,
         .int (Int.ofNat operation.toNat), .address evm.executionEnv.source] (true, evm', out))
     (hd : config.externalABI.decode? "checkModuleTransaction" out = none) :
-    ExecStmt config (preModuleCheckingFrame target value payload operation guard) evm
+    ExecStmt fork config (preModuleCheckingFrame target value payload operation guard) evm
       preModuleCheck .reverted := by
   apply ExecStmt.iteTrue (by
     simpa [hz] using
@@ -193,12 +195,12 @@ theorem safePreModuleCheckInvalid {evm evm' : EVM.State} {target : EVM.Address}
 theorem safePreModuleCheckSuccess {evm evm' : EVM.State} {target : EVM.Address}
     {value operation guard hash : UInt256} {payload out : ByteArray}
     (hz : UInt256.land guard solcAddrMask ≠ ⟨0⟩)
-    (hc : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+    (hc : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkModuleTransaction" 0 [.address target, .int (Int.ofNat value.toNat), .bytes payload,
         .int (Int.ofNat operation.toNat), .address evm.executionEnv.source] (true, evm', out))
     (hd : config.externalABI.decode? "checkModuleTransaction" out =
       some [.fixedBytes bytes32Width (EVM.Word.toBytesBE hash)]) :
-    ExecStmt config (preModuleCheckingFrame target value payload operation guard) evm
+    ExecStmt fork config (preModuleCheckingFrame target value payload operation guard) evm
       preModuleCheck
         (.ok (preModuleCalledFrame target value payload operation guard hash) evm') := by
   apply ExecStmt.iteTrue (by
@@ -214,7 +216,7 @@ theorem safePreModuleCheckSuccess {evm evm' : EVM.State} {target : EVM.Address}
 
 theorem safePreModuleUnauthorized (evm : EVM.State) (target : EVM.Address) (value : UInt256)
     (payload : ByteArray) (operation : UInt256) (ha : ¬preModuleAuthorized evm) :
-    ExecFuncBody config (preModuleFrame target value payload operation) evm
+    ExecFuncBody fork config (preModuleFrame target value payload operation) evm
       preModuleExecutionFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safePreModulePrefix
@@ -225,10 +227,10 @@ theorem safePreModuleUnauthorized (evm : EVM.State) (target : EVM.Address) (valu
 
 theorem safePreModuleSourceRevert {evm : EVM.State} {target : EVM.Address}
     {value operation : UInt256} {payload : ByteArray} (ha : preModuleAuthorized evm)
-    (hc : ExecStmt config
+    (hc : ExecStmt fork config
       (preModuleCheckingFrame target value payload operation (preModuleGuardWord evm)) evm
       preModuleCheck .reverted) :
-    ExecFuncBody config (preModuleFrame target value payload operation) evm
+    ExecFuncBody fork config (preModuleFrame target value payload operation) evm
       preModuleExecutionFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safePreModulePrefix
@@ -240,14 +242,14 @@ theorem safePreModuleSourceRevert {evm : EVM.State} {target : EVM.Address}
 theorem safePreModuleSourceReturn {evm evm' : EVM.State} {target : EVM.Address}
     {value operation hash : UInt256} {payload : ByteArray} {frame : Frame}
     (ha : preModuleAuthorized evm)
-    (hc : ExecStmt config
+    (hc : ExecStmt fork config
       (preModuleCheckingFrame target value payload operation (preModuleGuardWord evm)) evm
       preModuleCheck (.ok frame evm'))
     (hg : frame.locals["guard"]? =
       some (.address (AccountAddress.ofUInt256 (preModuleGuardWord evm))))
     (hh : frame.locals["guardHash"]? =
       some (.fixedBytes bytes32Width (EVM.Word.toBytesBE hash))) :
-    ExecFuncBody config (preModuleFrame target value payload operation) evm
+    ExecFuncBody fork config (preModuleFrame target value payload operation) evm
       preModuleExecutionFunction.body (.returned frame evm'
         (some [.address (AccountAddress.ofUInt256 (preModuleGuardWord evm)),
           .fixedBytes bytes32Width (EVM.Word.toBytesBE hash)])) := by

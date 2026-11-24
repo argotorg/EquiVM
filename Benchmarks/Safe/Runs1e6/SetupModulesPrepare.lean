@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.SetupModulesSource
 import Benchmarks.Safe.Runs1e6.SetupOwnersStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -36,11 +38,11 @@ theorem setupModulesState_accounts (p : SetupModulesInput) (evm : EVM.State) :
 set_option maxRecDepth 100000 in
 theorem safeSetupModulesInitStore (p : SetupModulesInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata} {ptr ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10510⟩ (ptr :: p.target :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10510⟩ (ptr :: p.target :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hc : p.target.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 (if p.target = ⟨0⟩ then ⟨2010⟩ else ⟨10624⟩)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 (if p.target = ⟨0⟩ then ⟨2010⟩ else ⟨10624⟩)
       (ptr :: p.target :: ret :: R) (twoWordHashMem ⟨1⟩ ⟨1⟩ mem) aw' rdata
       (p.state evm).accountMap k' C' := by
   have hw (word : UInt256) : UInt256.lor (UInt256.ofNat 1)
@@ -55,7 +57,7 @@ theorem safeSetupModulesInitStore (p : SetupModulesInput) (evm : EVM.State)
     simp only [safeRuntime_block_10510_taken_memory, safeAddressMaskLiteral,
       safeAddressComplementLiteral,
       ← safeModuleSentinelSlot, hw] at h'
-    change RD safeBytecode I g s0 ⟨2010⟩ (ptr :: p.target :: ret :: R)
+    change RD fork safeBytecode I g s0 ⟨2010⟩ (ptr :: p.target :: ret :: R)
       (twoWordHashMem ⟨1⟩ ⟨1⟩ mem) aw' rdata (setupModulesAccounts σ I) k' C' at h'
     rw [ha] at h'
     exact ⟨aw', k', C', by simpa only [if_pos hz] using h'⟩
@@ -64,7 +66,7 @@ theorem safeSetupModulesInitStore (p : SetupModulesInput) (evm : EVM.State)
     simp only [safeRuntime_block_10510_fallthrough_memory, safeAddressMaskLiteral,
       safeAddressComplementLiteral,
       ← safeModuleSentinelSlot, hw] at h'
-    change RD safeBytecode I g s0 ⟨10624⟩ (ptr :: p.target :: ret :: R)
+    change RD fork safeBytecode I g s0 ⟨10624⟩ (ptr :: p.target :: ret :: R)
       (twoWordHashMem ⟨1⟩ ⟨1⟩ mem) aw' rdata (setupModulesAccounts σ I) k' C' at h'
     rw [ha] at h'
     exact ⟨aw', k', C', by simpa only [if_neg hz] using h'⟩
@@ -72,14 +74,14 @@ theorem safeSetupModulesInitStore (p : SetupModulesInput) (evm : EVM.State)
 set_option maxRecDepth 100000 in
 theorem safeSetupModulesPrepare (p : SetupModulesInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata} {ptr ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10399⟩ (ptr :: p.target :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10399⟩ (ptr :: p.target :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hc : p.target.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm setupModulesFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted) ∨
     ∃ aw' k' C', moduleLink evm ⟨1⟩ = ⟨0⟩ ∧
-      RD safeBytecode I g s0 (if p.target = ⟨0⟩ then ⟨2010⟩ else ⟨10624⟩)
+      RD fork safeBytecode I g s0 (if p.target = ⟨0⟩ then ⟨2010⟩ else ⟨10624⟩)
         (ptr :: p.target :: ret :: R) (setupModulesMemory mem) aw' rdata
         (p.state evm).accountMap k' C' := by
   have hs : moduleLinkAt σ I ⟨1⟩ = moduleLink evm ⟨1⟩ := by

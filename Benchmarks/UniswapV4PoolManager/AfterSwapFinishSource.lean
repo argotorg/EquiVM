@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapPackSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -37,9 +39,9 @@ theorem afterSwapFinishSource {f : Frame} {evm : State} {p : SwapParamsWords} {d
     (hs : f.locals.get? "specified" = some (.int specified))
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hsc : signedFits ⟨128, by decide⟩ specified) (huc : signedFits ⟨128, by decide⟩ unspecified) :
-    ExecBlock config f evm afterSwapFinishStmts (afterSwapFinishResult f evm p delta specified unspecified) := by
+    ExecBlock fork config f evm afterSwapFinishStmts (afterSwapFinishResult f evm p delta specified unspecified) := by
   let f0 := valueLocal f "hookDelta" (.int 0)
-  have h0 : ExecStmt config f evm afterSwapFinishStmts[0]! (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm afterSwapFinishStmts[0]! (.ok f0 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure])
   have hget (name : Ident) (hn : ("hookDelta" == name) = false) : f0.locals.get? name = f.locals.get? name :=
     store_get_ne _ _ hn
@@ -59,20 +61,20 @@ theorem afterSwapFinishSource {f : Frame} {evm : State} {p : SwapParamsWords} {d
     let first := afterSwapSpecifiedFirst p
     let packed := afterSwapPackWord first specified unspecified
     let f1 := afterSwapPackFrame f0 first specified unspecified
-    have hpack := afterSwapPackSource (f := f0) (evm := evm) hf hp0 hs0 hu0 (store_get_self _ _ _) hsc huc
+    have hpack := afterSwapPackSource (fork := fork) (f := f0) (evm := evm) hf hp0 hs0 hu0 (store_get_self _ _ _) hsc huc
     have hd1 : f1.locals.get? "swapDelta" = some (.int (EVM.signed delta)) :=
       (store_get_ne2 _ _ _ (by decide : ("packed" == "swapDelta") = false)
         (by decide : ("hookDelta" == "swapDelta") = false)).trans hd0
-    have hsub := balanceDeltaCombineCall (f := f1) (evm := evm) (a := delta) (b := packed) hf
+    have hsub := balanceDeltaCombineCall (fork := fork) (f := f1) (evm := evm) (a := delta) (b := packed) hf
       (evalLocalValue hd1) (evalLocalValue (store_get_self _ _ _)) true "remaining"
     by_cases hfit : balanceDeltaCombineFits true delta packed
     · rw [if_pos hfit] at hsub ⊢
-      have hset : ExecStmt config (valueLocal f1 "remaining" (.int (EVM.signed (balanceDeltaCombineWord true delta packed))))
+      have hset : ExecStmt fork config (valueLocal f1 "remaining" (.int (EVM.signed (balanceDeltaCombineWord true delta packed))))
           evm (.assign .localVar {base := "swapDelta"} (.var "remaining"))
           (.ok (afterSwapFinishFrame f first delta specified unspecified) evm) :=
         ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
           (assignLocalValue ((store_get_ne _ _ (by decide : ("remaining" == "swapDelta") = false)).trans hd1))
-      have hbranch : ExecBlock config f0 evm afterSwapFinishBranch
+      have hbranch : ExecBlock fork config f0 evm afterSwapFinishBranch
           (.ok (afterSwapFinishFrame f first delta specified unspecified) evm) :=
         ExecBlock.consNormal hpack (ExecBlock.consNormal hsub (execBlock_singleton hset))
       have hdelta : (afterSwapFinishFrame f first delta specified unspecified).locals.get? "swapDelta" =

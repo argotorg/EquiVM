@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapCallbackHeadRuntime
 import Examples.UniswapV2Pair.CalldataCopyStep
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -22,12 +24,12 @@ theorem uniswapSwapCallbackPayloadCopied
     {σ : AccountMap}
     {mem rdata : ByteArray} {ptr aw dataLen dataPtr amount1Out amount0Out senderWord selector target : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd2001 : RD uniswapV2PairBytecode I g s0 ⟨2001⟩
+    (rd2001 : RD fork uniswapV2PairBytecode I g s0 ⟨2001⟩
       ((ptr + ⟨132⟩) :: dataLen :: dataPtr :: (ptr + ⟨132⟩) :: (ptr + ⟨100⟩) :: (ptr + ⟨4⟩) ::
         dataLen :: dataPtr :: amount1Out :: amount0Out :: senderWord :: selector :: target :: R)
       mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2041⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2041⟩
       (((ptr + ⟨164⟩) + swapCallbackPaddedLen dataLen) :: selector :: target :: R)
       (swapCallbackPaddedMem I.calldata mem ptr dataPtr dataLen)
       (swapCallbackPaddedWords aw ptr dataLen) rdata σ k' C' := by

@@ -7,6 +7,8 @@ import Benchmarks.Safe.ViaIR.CheckSignaturesTrace
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_020
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -21,10 +23,10 @@ theorem safeChecksignaturesBodyCore
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checksignaturesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x93 0x4f 0x3a 0x11 ⟨0x934f3a11⟩
     hdispatch checksignaturesSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x934f3a11⟩ 13 ⟨4193⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -36,7 +38,7 @@ theorem safeChecksignaturesBodyCore
   cases hdec : decodeCalldata (signatureLegacyNames false) (signatureLegacyTypes false)
       I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       obtain hr | ⟨dataLen, len, aw', k', C', hh, hs, hdo, hdw, hdn, hdi, hso, hw, hn, hin, hr⟩ :=
         safeDecodeSignatureLegacyEvidence false hdecode hlong hsize (by simp)
       · exact hr
@@ -105,7 +107,7 @@ theorem safeChecksignaturesRefines
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checksignaturesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeChecksignaturesBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

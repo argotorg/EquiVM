@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.LiquidatorPointsPacked
 import Benchmarks.CompoundIII.Comet.InternalMemoryOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_077
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,16 +18,16 @@ theorem cometStoreLiquidatorPoints {v : CometWithExtendedAssetListImmutables}
     (addr : AccountAddress) (p : LiquidatorPointsData) (hstack : R.length + 11 ≤ 1024)
     (hm : LiquidatorPointsMemory mem ptr p) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16857⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16857⟩
       (liquidatorSlot addr :: ptr :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ret R
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ret R
       (if evm.executionEnv.perm then .ok (storeLiquidatorPoints evm addr p)
         else .staticViolation) := by
   have r1 := cometWithExtendedAssetList_block_16857
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 10 ≤ 1024; omega) h
   simp only [cometWithExtendedAssetList_block_16857_stack, hm.absorbs, hm.absorbed, hm.spend,
     u256_add_comm (UInt256.ofNat 96) ptr, hm.reserved] at r1
-  change RD _ _ _ _ _ (liquidatorSlot addr :: liquidatorPointsPackedWord p :: ret :: R)
+  change RD fork _ _ _ _ _ (liquidatorSlot addr :: liquidatorPointsPackedWord p :: ret :: R)
     _ _ _ _ _ _ at r1
   cases hp : evm.executionEnv.perm
   · simp only [Bool.false_eq_true, if_false, internalMemoryRun]

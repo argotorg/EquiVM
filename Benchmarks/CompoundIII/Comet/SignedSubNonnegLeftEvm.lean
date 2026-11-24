@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.SignedArithmeticEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,11 +15,11 @@ theorem cometSignedSubNonnegLeft {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (ha : a.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
     if signedWord a - signedWord b < (2^255 : Int) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hb : b.toNat < 2^255
   · have hf : signedWord a - signedWord b < (2^255 : Int) := by
       rw [signedWord_low ha, signedWord_low hb]

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.VerifyRevokeMemory
 import Benchmarks.EAS.EAS.VerifyStatic
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,8 +13,8 @@ theorem verifyRevokeStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+20 ≤ 1024) (hperm : ee.perm = true)
     (hv : DelegatedRevokeMemoryView mem ptr dataPtr sigPtr r heap.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hheap : heap.toNat ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13806⟩ (ptr::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13806⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (heap::⟨160⟩::⟨13715⟩::heap::(heap+UInt256.ofNat 32)::⟨13723⟩::sigPtr::⟨13745⟩::
         (ptr+UInt256.ofNat 96)::solcAddrMask::solcAddrMask::⟨13753⟩::ret::R)
       (verifyRevokeBuffer mem heap.toNat r (solcSlotWord σ ee (nonceSlot r.revoker))) aw' rdata
@@ -24,7 +26,7 @@ theorem verifyRevokeStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have hrev : UInt256.land (memLoad (ptr+UInt256.ofNat 96) mem)
       (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = UInt256.ofNat r.revoker.val := hv.revoker
   simp only [hrev] at r1
-  change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13942) _ _ aw1 rdata
+  change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13942) _ _ aw1 rdata
     (sstoreAccountMap ee.codeOwner σ
       (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (verifyRevokeScratch mem r))
       (solcSlotWord σ ee (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (verifyRevokeScratch mem r))+UInt256.ofNat 1)) k1 C1 at r1
@@ -40,19 +42,19 @@ theorem verifyRevokeHashEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+20 ≤ 1024) (hperm : ee.perm = true)
     (hv : DelegatedRevokeMemoryView mem ptr dataPtr sigPtr r heap.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hheap : heap.toNat ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13806⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13806⟩ (ptr::ret::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat 160 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 160 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15646⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15646⟩
         (verifyRevokeHash r (solcSlotWord σ ee (nonceSlot r.revoker))::⟨13723⟩::sigPtr::⟨13745⟩::
           (ptr+UInt256.ofNat 96)::solcAddrMask::solcAddrMask::⟨13753⟩::ret::R)
         (verifyBuffer (verifyRevokeScratch mem r) heap.toNat (verifyRevokeWords r (solcSlotWord σ ee (nonceSlot r.revoker)))) aw' rdata
         (sstoreAccountMap ee.codeOwner σ (nonceSlot r.revoker) (solcSlotWord σ ee (nonceSlot r.revoker)+UInt256.ofNat 1)) k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1,k1,C1,r1⟩ := verifyRevokeStart v hstack hperm hv hh hheap rd
   split_ifs with hg
   · obtain ⟨aw2,k2,C2,r2⟩ := easAllocate_ok (heap := heap) (size := UInt256.ofNat 160) v
       (by simp only [List.length_cons]; omega) hg (by rw [easPatchedValidJumps v]; jump_dest) r1
-    change RD _ _ _ _ ⟨13715⟩ _
+    change RD fork _ _ _ _ ⟨13715⟩ _
       (verifyBuffer (verifyRevokeScratch mem r) heap.toNat (verifyRevokeWords r (solcSlotWord σ ee (nonceSlot r.revoker)))) _ _ _ _ _ at r2
     obtain ⟨aw3,k3,C3,r3⟩ := easBlocks.eas_block_13715_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r2

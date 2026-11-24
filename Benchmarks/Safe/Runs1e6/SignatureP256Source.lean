@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.SignatureP256Pieces
 import Benchmarks.Safe.Runs1e6.ModuleStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -37,9 +39,9 @@ theorem evalSignatureP256SignerCondition {f : Frame} {evm : EVM.State} {owner : 
 
 theorem safeInternalP256 {p : SignatureInput} {f : Frame} {evm evm' : EVM.State}
     {q : P256Input} {z : Bool} {out : ByteArray} (hc : SignatureCore p f) (hq : q.h = p.hash)
-    (hbody : ExecFuncBody config (p256Frame q) evm p256VerifyFunction.body
+    (hbody : ExecFuncBody fork config (p256Frame q) evm p256VerifyFunction.body
       (.returned (p256FinalFrame q z out) evm' (some [.bool (p256Result z out)]))) :
-    ExecStmt config (signatureP256SignerFrame f q) evm signatureP256Body[11]!
+    ExecStmt fork config (signatureP256SignerFrame f q) evm signatureP256Body[11]!
       (.ok (signatureSet (signatureP256SignerFrame f q) "p256Ok" (.bool (p256Result z out)))
         evm') := by
   apply internalCallFunctionReturn (callee := p256VerifyFunction)
@@ -62,9 +64,9 @@ theorem signatureP256SourceSignerFailed {p : SignatureInput} {f : Frame} {evm : 
     (ho : f.locals["currentOwner"]? = some (.address (AccountAddress.ofUInt256 owner)))
     (hb : off.toNat + 128 ≤ p.signatures.size)
     (hv : ¬signatureP256Valid owner (signatureP256Input p off)) :
-    ExecBlock config f evm (signatureP256Body.drop 5) .reverted := by
-  have hpieces := signatureP256PiecesSource (evm := evm) hc hoff hb
-  have htail : ExecBlock config (signatureP256WordsFrame f (signatureP256Input p off)) evm
+    ExecBlock fork config f evm (signatureP256Body.drop 5) .reverted := by
+  have hpieces := signatureP256PiecesSource (fork := fork) (evm := evm) hc hoff hb
+  have htail : ExecBlock fork config (signatureP256WordsFrame f (signatureP256Input p off)) evm
       (signatureP256Body.drop 9) .reverted :=
     .consNormal (signatureP256SignerSource _ _ _)
       (.consRevert (.requireFalse (by simpa only [hv, decide_false] using
@@ -77,17 +79,17 @@ theorem signatureP256SourceVerified {p : SignatureInput} {f : Frame} {evm evm' :
     (ho : f.locals["currentOwner"]? = some (.address (AccountAddress.ofUInt256 owner)))
     (hb : off.toNat + 128 ≤ p.signatures.size)
     (hv : signatureP256Valid owner (signatureP256Input p off))
-    (hcall : callViaEVM evm (AccountAddress.ofNat 256) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofNat 256) 0
       (wordBytes (p256Words (signatureP256Input p off))) (z, evm', out) false) :
-    ExecBlock config f evm (signatureP256Body.drop 5)
+    ExecBlock fork config f evm (signatureP256Body.drop 5)
       (if p256Result z out then .ok
         (signatureSet (signatureP256SignerFrame f (signatureP256Input p off)) "p256Ok" (.bool true))
         evm' else .reverted) := by
-  have hpieces := signatureP256PiecesSource (evm := evm) hc hoff hb
-  have hsigner := signatureP256SignerSource f evm (signatureP256Input p off)
+  have hpieces := signatureP256PiecesSource (fork := fork) (evm := evm) hc hoff hb
+  have hsigner := signatureP256SignerSource (fork := fork) f evm (signatureP256Input p off)
   have hvalid := evalSignatureP256SignerCondition (evm := evm) (q := signatureP256Input p off) ho
   have hverify := safeInternalP256 hc (by rfl) (safeP256Source hcall)
-  have htail : ExecBlock config (signatureP256WordsFrame f (signatureP256Input p off)) evm
+  have htail : ExecBlock fork config (signatureP256WordsFrame f (signatureP256Input p off)) evm
       (signatureP256Body.drop 9)
       (if p256Result z out then .ok
         (signatureSet (signatureP256SignerFrame f (signatureP256Input p off)) "p256Ok" (.bool true))

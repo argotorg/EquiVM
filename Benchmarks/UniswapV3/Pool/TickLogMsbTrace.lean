@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickLogMsbPrefixTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,10 +11,10 @@ set_option maxRecDepth 10000
 theorem tickLogMsbFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ratio price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14216⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14216⟩
       (tickLogMsbPrefixStack ratio price R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14273⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14273⟩
       (UInt256.ofNat (tickLogMsbCount ratio) :: tickLogNormalized ratio (tickLogMsbCount ratio) ::
         ratio :: ⟨0⟩ :: price :: R) mem aw rdata σ k' C' := by
   have h6 : UInt256.shiftLeft (UInt256.gt (tickLogMsbScan ratio 6) (UInt256.ofNat 3))
@@ -32,7 +34,7 @@ theorem tickLogMsbFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       ult_zero (by rw [hmword]; exact h)
     have r1 := uniswapV3Pool_block_14216_fallthrough (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [h6, hr6, h7, hm]; exact hlt) rd
-    have rmsb : RD (deployedRuntime v) ee g s0 ⟨14250⟩
+    have rmsb : RD fork (deployedRuntime v) ee g s0 ⟨14250⟩
         (UInt256.ofNat (tickLogMsbCount ratio) :: tickLogMsbScan ratio 7 ::
           ratio :: ⟨0⟩ :: price :: R) mem aw rdata σ (k + 30) (C + 97) := by
       simpa only [uniswapV3Pool_block_14216_fallthrough_stack, h6, hr6, h7, hm] using r1
@@ -45,7 +47,7 @@ theorem tickLogMsbFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have r1 := uniswapV3Pool_block_14216_taken (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [h6, hr6, h7, hm, hlt]; decide)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
-    have rmsb : RD (deployedRuntime v) ee g s0 ⟨14263⟩
+    have rmsb : RD fork (deployedRuntime v) ee g s0 ⟨14263⟩
         (UInt256.ofNat (tickLogMsbCount ratio) :: tickLogMsbScan ratio 7 ::
           ratio :: ⟨0⟩ :: price :: R) mem aw rdata σ (k + 30) (C + 97) := by
       simpa only [uniswapV3Pool_block_14216_taken_stack, h6, hr6, h7, hm] using r1
@@ -56,9 +58,9 @@ theorem tickLogMsbFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickLogMsbX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14102⟩ (⟨0⟩ :: price :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14102⟩ (⟨0⟩ :: price :: R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14273⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14273⟩
       (UInt256.ofNat (tickLogMsb (tickLogPrice price)).1 ::
         tickLogNormalized (tickLogRatio (tickLogPrice price)) (tickLogMsb (tickLogPrice price)).1 ::
         tickLogRatio (tickLogPrice price) :: ⟨0⟩ :: price :: R) mem aw rdata σ k' C' := by

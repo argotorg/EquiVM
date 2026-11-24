@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ModuleStorage
 import Benchmarks.Safe.ViaIR.LocalArrays
 import Benchmarks.Safe.ViaIR.LinkedPages
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -64,7 +66,7 @@ theorem safeModulesCountNextLocals (evm : EVM.State) {locals start pageSize inde
 theorem safeModulesCountStep (evm : EVM.State) {locals start pageSize index current last}
     (hl : ModulesCountLocals locals start pageSize index current last)
     (hc : current.toNat < EVM.addressModulus) (hfit : index + 1 < UInt256.size) :
-    ExecBlock config { contract := contract, locals := locals } evm modulesCountBody
+    ExecBlock fork config { contract := contract, locals := locals } evm modulesCountBody
       (.ok { contract := contract, locals := modulesCountNextLocals evm locals index current }
         evm) := by
   let ls₁ := locals.insert "last" (.address (AccountAddress.ofNat current.toNat))
@@ -86,7 +88,7 @@ theorem safeModulesCountLoop (evm : EVM.State) {locals start pageSize index curr
     (hc : current.toNat < EVM.addressModulus)
     (hf : index + fuel = pageSize.toNat)
     (hp : LinkedPage (moduleLink evm) fuel current words next) :
-    ∃ locals', ExecStmt config { contract := contract, locals := locals } evm modulesCountLoop
+    ∃ locals', ExecStmt fork config { contract := contract, locals := locals } evm modulesCountLoop
         (.ok { contract := contract, locals := locals' } evm) ∧
       ModulesCountLocals locals' start pageSize (index + words.length) next (words.getLastD last)
         := by

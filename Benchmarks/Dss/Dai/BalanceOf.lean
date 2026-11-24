@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Dai.Dispatch
 import Benchmarks.Dss.Dai.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Dai
@@ -52,7 +54,7 @@ theorem daiDecode_balanceOf_none_short {I : ExecutionEnv}
 /-- The Stele `balanceOf(address)` body returns `balanceOf[arg0]`. -/
 theorem daiBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (balanceOfStore I) balanceOfTransition.body
+    ExecTransitionBody fork config contract evm (balanceOfStore I) balanceOfTransition.body
       (.returned { contract := contract, locals := balanceOfStore I } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -88,10 +90,10 @@ theorem daiBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 theorem daiBalanceOfX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨734⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2392⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2392⟩
         [balanceOfArgMaskedWord I, ⟨524⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd756⟩ := RD.daiOneAddressExternalLenOk
@@ -106,20 +108,20 @@ theorem daiBalanceOfX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem daiBalanceOfX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨734⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiOneAddressExternalShort
     (entry := ⟨734⟩) (ret := ⟨524⟩) (routine := ⟨2392⟩)
     hreach dai_one_address_external_entry_wf hsz4 hsize hshort
 
 theorem daiX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨734⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I) σ
+    RDret fork daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
   obtain ⟨_, _, rd2392⟩ := daiBalanceOfX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨k524, C524, rd524raw⟩ := RD.daiSingleMappingGetter (pc := ⟨2392⟩)
@@ -133,7 +135,7 @@ theorem daiX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         = balanceOfWord σ I := by
     unfold balanceOfWord
     rw [hslot]
-  have rd524 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨524⟩
+  have rd524 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨524⟩
       (balanceOfWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨2⟩ (balanceOfArgMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
@@ -159,12 +161,12 @@ theorem daiBalanceOfBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (balanceOfTransition.params.map Param.name)
         (transitionSignature balanceOfTransition).paramTypes I.calldata = some (balanceOfStore I))
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (balanceOfStore I)
         balanceOfTransition.body
@@ -186,10 +188,10 @@ theorem daiBalanceOfBodyCoreDecodeFailed_short
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition)
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := daiDecode_balanceOf_none_short (I := I) hsz4 hshort
   exact (daiBalanceOfX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -199,12 +201,12 @@ theorem daiBalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 2) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition :=
     daiDispatchBalanceOf hsel
-  have hreach := daiReachBalanceOfBody (σ := σ)
+  have hreach := daiReachBalanceOfBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

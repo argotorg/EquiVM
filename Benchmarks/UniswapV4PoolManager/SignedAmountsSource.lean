@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SignedAmount0Source
 import Benchmarks.UniswapV4PoolManager.SignedAmount1Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -19,7 +21,7 @@ theorem signedAmountCall {f : Frame} {evm : State} {a b : UInt256} {delta : Int}
     (hea : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (heb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hed : evalExpr? config f evm ed = .ok (.int delta)) (one : Bool) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (signedAmountName one) [ea, eb, ed] ret)
+    ExecStmt fork config f evm (.internalCall (signedAmountName one) [ea, eb, ed] ret)
       (if signedAmountFits one a b delta then
         .ok {f with locals := f.locals.insert ret (.int (EVM.signed (signedAmountWord one a b delta)))} evm
        else .reverted) := by

@@ -2,6 +2,8 @@ import Reasoning.ABIViews
 import Benchmarks.Dss.Clipper.UintEntry
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -165,7 +167,7 @@ theorem clipperDispatch_sales {I : ExecutionEnv}
 
 theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (clipperSalesStore I)
+    ExecTransitionBody fork config contract evm (clipperSalesStore I)
       salesTransition.body
       (.returned { contract := contract, locals := clipperSalesStore I, immutables := immStore v } evm
         (some [
@@ -637,9 +639,9 @@ theorem clipperReachSalesBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 18)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1161⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨1161⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperSalesSelectorWord hsz hsel
   have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -851,12 +853,12 @@ set_option maxHeartbeats 4000000 in
 theorem RD.clipperSalesStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨6668⟩ : UInt256) (key :: ret :: R)
+    (h : RD fork code ee g s0 (⟨6668⟩ : UInt256) (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperSalesStructGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ key) + ⟨4⟩) ::
         clipperSalesPackedTicWord (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ key) + ⟨3⟩)) ::
         UInt256.land (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ key) + ⟨3⟩)) solcAddrMask ::
@@ -987,10 +989,10 @@ theorem clipperSalesX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨6668⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨6668⟩ : UInt256)
       (clipperSalesArgWord I :: ⟨1190⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -1117,7 +1119,7 @@ theorem RD.clipperSalesReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ} {top tic usr lot tab pos ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 (⟨1190⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨1190⟩ : UInt256)
         (top :: tic :: usr :: lot :: tab :: pos :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperSalesReturnFromMemWf code)
@@ -1129,7 +1131,7 @@ theorem RD.clipperSalesReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 13 ≤ 1024) :
-    RDret code g s0 acc
+    RDret fork code g s0 acc
       (clipperSalesReturnBytes pos tab lot usr (UInt256.land clipperSalesUint96Mask tic) top) := by
   rcases hwf with
     ⟨hd1190, hd1191, hd1193, hd1194, hd1195, hd1196, hd1197, hd1198, hd1200,
@@ -1248,10 +1250,10 @@ theorem clipperSalesX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1304,10 +1306,10 @@ theorem clipperSalesBodyCoreDecodeFailed_short
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some salesTransition)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1161⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hdec := clipperDecode_sales_none_short (I := I) hsz4 hshort
   exact (clipperSalesX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4 hsize
     hshort hreach)
@@ -1319,12 +1321,12 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 18) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some salesTransition :=
     clipperDispatch_sales hsel
-  have hreach := clipperReachSalesBody (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachSalesBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · let key : UInt256 := clipperSalesArgWord I
@@ -1344,7 +1346,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
       (clipperJumpDestBeforeFirstPatch v hpatch (⟨1190⟩ : UInt256) (by native_decide))
       (by simp)
     have hretRaw :
-        RDret code (Sat256.ofUInt256 g)
+        RDret fork code (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (clipperSalesReturnBytes posE tabE lotE usrE
             (UInt256.land clipperSalesUint96Mask ticE) topE) := by
@@ -1371,13 +1373,13 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
       rw [u256_land_comm]
       exact u256LandMaskCleanOfToNat ticE clipperSalesUint96Mask hmask96 hticLt
     have hret :
-        RDret code (Sat256.ofUInt256 g)
+        RDret fork code (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (clipperSalesReturnBytes posE tabE lotE packedE ticE topE) := by
       simpa [clipperSalesReturnBytes, usrE, husrClean, hticClean] using hretRaw
     have hdec := clipperDecode_sales_ok (I := I) hsz36
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperSalesStore I) salesTransition.body
           (.returned { contract := contract, locals := clipperSalesStore I, immutables := immStore v }

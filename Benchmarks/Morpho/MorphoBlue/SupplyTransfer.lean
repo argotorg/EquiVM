@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LoanTransferPair
 import Benchmarks.Morpho.MorphoBlue.SupplyEvent
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -16,9 +18,9 @@ theorem morphoSupplyTransfer {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     (hget : locals.get? "__memory" = some (.int (Int.ofNat ptr.toNat)))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4186)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4186)
       (supplyCallbackTail assets shares x0 x1 []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (supplyTransition.body.drop 19) supplyTransition.returnType := by
   exact morphoLoanTransferPairAt p locals imms "__c8" (by decide) (by decide) hc hl hs hm hsize hptr

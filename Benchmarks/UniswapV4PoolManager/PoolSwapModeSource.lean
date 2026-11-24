@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapFinishSource
 import Benchmarks.UniswapV4PoolManager.LocalBytes
 import Benchmarks.UniswapV4PoolManager.ConditionalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -14,7 +16,7 @@ instance (fee specified : UInt256) : Decidable (poolSwapModeValid fee specified)
 theorem poolSwapModeSource {f : Frame} {evm : State} {fee : UInt256} {p : PoolSwapParamsWords}
     (hf : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p)) :
-    ExecStmt config f evm poolSwapFunction.body[23]!
+    ExecStmt fork config f evm poolSwapFunction.body[23]!
       (if poolSwapModeValid fee p.amountSpecified then .ok f evm else .reverted) := by
   have hfee := evalNatGeLiteral (k := 1000000) (evalLocalValue (cfg := config) (evm := evm) hf)
   have hpos : evalExpr? config f evm (.binary .gt (.field (.var "params") "amountSpecified") (.intLit 0)) =
@@ -39,7 +41,7 @@ theorem poolSwapZeroSource {f : Frame} {evm : State} {fee : UInt256} {p : PoolSw
     (hf : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p))
     (hr : f.locals.get? "result" = some (poolSwapResultValue r)) :
-    ExecStmt config f evm poolSwapFunction.body[24]!
+    ExecStmt fork config f evm poolSwapFunction.body[24]!
       (if p.amountSpecified = ⟨0⟩ then .returned f evm (some (poolSwapReturnValues ⟨0⟩ fee ⟨0⟩ r)) else .ok f evm) := by
   have hg : evalExpr? config f evm (.binary .eq (.field (.var "params") "amountSpecified") (.intLit 0)) =
       .ok (.bool (decide (p.amountSpecified = ⟨0⟩))) := by

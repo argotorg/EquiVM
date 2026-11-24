@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordArrayLoop
 import Benchmarks.UniswapV4PoolManager.CalldataWordSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 3000
@@ -50,7 +52,7 @@ def arrayEmptyReadBody (transient : Bool) : List Stmt := [
 theorem wordArrayEmptyReturns (transient : Bool) {f : Frame} {evm : EVM.State}
     (hf : f.contract = contract) (hlen : 36 ≤ evm.executionEnv.calldata.size)
     (hr : f.locals.get? "result" = some (.array [])) (hraw : f.locals.get? "rawSlots" = none) :
-    ∃ f', ExecBlock config f evm (arrayEmptyReadBody transient) (.returned f' evm (some [.array []])) := by
+    ∃ f', ExecBlock fork config f evm (arrayEmptyReadBody transient) (.returned f' evm (some [.array []])) := by
   let f1 := {f with locals := f.locals.insert "data" (.bytes evm.executionEnv.calldata)}
   let f2 := {f1 with locals := f1.locals.insert "offset" (.int (Int.ofNat ((calldataWord evm.executionEnv.calldata 4).toNat + 36)))}
   have hoff : evalExpr? config f1 evm (.binary .add arrayHeadOffsetExpr (.intLit 36)) =
@@ -95,7 +97,7 @@ def wordArrayBody (transient : Bool) : List Stmt := nonpayableCalldataPrefix ++ 
 
 theorem wordArrayPrelude (transient : Bool) (evm : EVM.State) (slots : List Value) (imms : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ABlock config evm {contract := contract, locals := wordArrayArgs slots, immutables := imms}
+    ABlock fork config evm {contract := contract, locals := wordArrayArgs slots, immutables := imms}
       (wordArrayBody transient) (wordArrayResultFrame evm slots imms)
       ((wordArrayBody transient).drop 4) := by
   refine ABlock.start.requireStep (evalCallvalueEq_true hwv)
@@ -108,7 +110,7 @@ theorem wordArrayPrelude (transient : Bool) (evm : EVM.State) (slots : List Valu
 
 theorem wordArraySource (transient : Bool) (evm : EVM.State) (slots : List Value) (imms : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hd : WordArrayDecoded evm.executionEnv.calldata slots) :
-    ∃ f, ExecTransitionBody config contract evm (wordArrayArgs slots)
+    ∃ f, ExecTransitionBody fork config contract evm (wordArrayArgs slots)
       (wordArrayBody transient)
       (.returned f evm (some [.array (wordArrayValues (wordArrayValue transient evm) 0 slots.length)])) imms := by
   let f := wordArrayResultFrame evm slots imms
@@ -122,14 +124,14 @@ theorem wordArraySource (transient : Bool) (evm : EVM.State) (slots : List Value
       store_get_ne (k := "__calldata") (a := "rawSlots") _ _ (by decide),
       store_get_ne (k := "slots") (a := "rawSlots") _ _ (by decide), store_get_empty]
   have heq := evalNatEqZero (cfg := config) (f := f) (evm := evm) (evalLocalArrayLength hslots)
-  have hp := wordArrayPrelude transient evm slots imms hwv (by have := hd.bounds.2.1; unfold calldataLimit; omega)
+  have hp := wordArrayPrelude (fork := fork) transient evm slots imms hwv (by have := hd.bounds.2.1; unfold calldataLimit; omega)
   by_cases hz : slots.length = 0
   · have hr : f.locals.get? "result" = some (.array []) := by
       simp only [f, wordArrayResultFrame, hz, List.replicate_zero, store_get_self]
     obtain ⟨last, hb⟩ := wordArrayEmptyReturns transient rfl hd.bounds.1 hr hraw
     refine ⟨last, ExecFuncBody.execBlockRet (hp.run ?_)⟩
     simp only [hz, wordArrayValues, wordArrayWords, List.map_nil]
-    change ExecBlock config f evm _ (.returned last evm (some [.array []]))
+    change ExecBlock fork config f evm _ (.returned last evm (some [.array []]))
     exact ExecBlock.consReturn (ExecStmt.iteTrue (by simpa only [hz, decide_true] using heq) hb)
   · let res := List.replicate slots.length (wordBytes32Value ⟨0⟩)
     let locals := f.locals.insert "i" (.int 0)

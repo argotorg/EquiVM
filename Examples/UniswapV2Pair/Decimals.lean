@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,7 +19,7 @@ def decimalsReturnWord : UInt256 :=
 /-- The Stele `decimals()` body returns the uint8 literal `18`. -/
 theorem uniswapDecimalsBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals decimalsTransition.body
+    ExecTransitionBody fork config contract evm locals decimalsTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat decimalsReturnWord.toNat))])) := by
   simpa [decimalsTransition, decimalsReturnWord, decimalsWord] using
@@ -25,10 +27,10 @@ theorem uniswapDecimalsBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `decimals()`'s external body entry (pc 941), bytecode returns `18` as uint8. -/
 theorem uniswapX_decimals {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨941⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray decimalsReturnWord) := by
   simpa [decimalsReturnWord] using
     RD.uniswapUint8ConstGetterExternal (entry := ⟨941⟩) (routine := ⟨3128⟩)
@@ -53,12 +55,12 @@ theorem uniswapDecimalsBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (decimalsTransition.params.map Param.name)
         (transitionSignature decimalsTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨941⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ decimalsTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -88,7 +90,7 @@ theorem uniswapDecimalsBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some decimalsTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩ rfl hsel
   exact uniswapDecimalsBodyCore hcode hwv hdispatch (uniswapDecode_decimals hsz)

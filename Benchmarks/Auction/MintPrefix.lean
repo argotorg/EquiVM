@@ -1,6 +1,8 @@
 import Benchmarks.Auction.DepositPrefix
 import Benchmarks.Auction.BurnPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -11,10 +13,10 @@ theorem mintWord_prefix : mintWord.toByteArray.extract 0 4 = mintSelector := by
   native_decide
 
 theorem mintPrefix {I g s0 ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨3066⟩
+    ∃ gasArg k' C', RD fork auctionBytecode I g s0 ⟨3066⟩
       (gasArg :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨4⟩ :: ptr :: ⟨32⟩ ::
         (ptr + ⟨4⟩) :: ⟨0x1249c58b⟩ :: nounsWord σ I :: ret :: R)
       (selectorMem mem ptr mintWord) (expandedWords aw ptr ⟨32⟩)
@@ -28,7 +30,7 @@ theorem mintPrefix {I g s0 ret R mem aw ptr rdata σ k C}
   have he : UInt256.exp ⟨256⟩ ⟨0⟩ = ⟨1⟩ := by native_decide
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   simp only [he, hmask, word_div_one, u256_land_comm solcAddrMask, maskTwice] at rd3036
-  change RD _ _ _ _ ⟨3036⟩ (⟨0x1249c58b⟩ :: nounsWord σ I :: ret :: R)
+  change RD fork _ _ _ _ ⟨3036⟩ (⟨0x1249c58b⟩ :: nounsWord σ I :: ret :: R)
     mem aw rdata σ _ _ at rd3036
   have rd3039 := evm_run rd3036 with [push1 ⟨64⟩,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -38,7 +40,7 @@ theorem mintPrefix {I g s0 ret R mem aw ptr rdata σ k C}
   have hsel : UInt256.shiftLeft (UInt256.land ⟨0xffffffff⟩ ⟨0x1249c58b⟩) ⟨224⟩ =
       mintWord := by native_decide
   simp only [hsel] at rd3051
-  change RD _ _ _ _ ⟨3051⟩ (ptr :: ⟨0x1249c58b⟩ :: nounsWord σ I :: ret :: R)
+  change RD fork _ _ _ _ ⟨3051⟩ (ptr :: ⟨0x1249c58b⟩ :: nounsWord σ I :: ret :: R)
     (selectorMem mem ptr mintWord) (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd3051
   have hh := selectorMem_heap hm mintWord hb
   have rd3059 := evm_run rd3051 with [push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩,

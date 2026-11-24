@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralUpdates
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralAccrueRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ theorem morphoWithdrawCollateralRefine {v : MorphoImmutables} {ee : ExecutionEnv
     (hr : receiver.toNat < EVM.addressModulus)
     (hl : CollateralTransferLocals p assets account receiver locals) (hs : SourceState s0 ee σ evm)
     (hac : locals.get? "__accrued" = some (.bool (accrueActive p evm)))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5620)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5620)
       (withdrawCollateralGuardTail p.id assets account receiver []) (withdrawCollateralGuardMem p ee account) aw out σ k C) :
-    VoidBlockRefines config (deployedRuntime v) ee g s0
+    VoidBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawCollateralTransition.body.drop 10) := by
   have hf := morphoWithdrawCollateralAccrueRefine p locals imms (by decide) hc hl hac hs h

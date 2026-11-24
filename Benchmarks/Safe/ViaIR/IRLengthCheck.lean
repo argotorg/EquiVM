@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_005
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_019
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -116,10 +118,10 @@ theorem safeIRHugeNonceReverts {I : ExecutionEnv} {σ σ₀ : AccountMap} {A : S
     (hsize : I.calldata.size = 2 ^ 255 + 4)
     (hdispatch : selectorDispatchMsg contract I.calldata = some nonceTransition)
     (hvalue : I.weiValue = ⟨0⟩) :
-    RDrev safeBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork safeBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xaf 0xfe 0xd0 0xe0 ⟨0xaffed0e0⟩
     hdispatch nonceSelectorBytes (by decide)
-  obtain ⟨k, C, h4018⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h4018⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) ⟨0xaffed0e0⟩ 15 ⟨4018⟩ hcode (by rw [hsize]; decide) hlong hword
     (by native_decide)
   have h4025 := safeRuntime_block_4018_fallthrough (by simp) hvalue h4018
@@ -135,7 +137,7 @@ theorem safeIRHugeNonceReverts {I : ExecutionEnv} {σ σ₀ : AccountMap} {A : S
 /-- The unchanged source body returns normally, independent of the unused calldata tail. -/
 theorem safeIRNonceSourceReturns {I : ExecutionEnv} {σ σ₀ : AccountMap} {A : Substate}
     {g : Sat256} (hvalue : I.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅ nonceTransition.body
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅ nonceTransition.body
       (.returned { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
         (some [.int (Int.ofNat (solcSlotWordAt ⟨5⟩ σ I).toNat)])) := by
   simpa only [nonceTransition, nonpayable, solcSlotWordAt, initState,
@@ -150,7 +152,7 @@ private theorem nonpayableReturnCannotRevert {cfg : Config} {frame : Frame} {evm
     {exprs : List Expr} {values : List Value}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hreturn : evalExprs? cfg frame evm exprs = .ok values) :
-    ¬ ExecFuncBody cfg frame evm
+    ¬ ExecFuncBody fork cfg frame evm
       [.require (.binary .eq (.env .callvalue) (.intLit 0)), .return exprs] .reverted := by
   intro h
   cases h with
@@ -171,7 +173,7 @@ private theorem nonpayableReturnCannotRevert {cfg : Config} {frame : Frame} {evm
 
 theorem safeIRNonceSourceCannotRevert {I : ExecutionEnv} {σ σ₀ : AccountMap} {A : Substate}
     {g : Sat256} (hvalue : I.weiValue = ⟨0⟩) :
-    ¬ ExecTransitionBody config contract (initState σ σ₀ g A I) ∅ nonceTransition.body
+    ¬ ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅ nonceTransition.body
       .reverted := by
   apply nonpayableReturnCannotRevert
     (values := [.int (Int.ofNat (solcSlotWordAt ⟨5⟩ σ I).toNat)]) hvalue

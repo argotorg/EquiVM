@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0Denominator
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -10,10 +12,10 @@ def nextSqrt0FastBody : List Stmt :=
 
 theorem nextSqrt0FastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = true) (hv : nextSqrt0FullValid a) :
-    ExecBlock config (nextSqrt0DenominatorFrame imms a) evm nextSqrt0FastBody
+    ExecBlock fork config (nextSqrt0DenominatorFrame imms a) evm nextSqrt0FastBody
       (.returned (nextSqrt0FullFrame imms a) evm (some [.int (Int.ofNat
         (UInt256.land (nextSqrt0FullResult a) (UInt256.ofNat (2 ^ 160 - 1))).toNat)])) := by
-  have hc := nextSqrt0FullReturns imms evm a hv
+  have hc := nextSqrt0FullReturns (fork := fork) imms evm a hv
   simp only [nextSqrt0FullCallName, ha, if_true] at hc
   refine ExecBlock.consNormal hc (ExecBlock.consReturn (ExecStmt.return ?_))
   have he : evalExpr? config (nextSqrt0FullFrame imms a) evm (.var "__c0") =
@@ -28,7 +30,7 @@ theorem nextSqrt0FastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt0FastReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = true) (hv : ¬nextSqrt0FullValid a) :
-    ExecBlock config (nextSqrt0DenominatorFrame imms a) evm nextSqrt0FastBody .reverted := by
+    ExecBlock fork config (nextSqrt0DenominatorFrame imms a) evm nextSqrt0FastBody .reverted := by
   apply ExecBlock.consRevert
   simpa only [nextSqrt0FullCallName, ha, if_true] using nextSqrt0FullReverts imms evm a hv
 
@@ -50,7 +52,7 @@ theorem evalNextSqrt0CastArgs (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt0CastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = false) (hv : safeCast160Valid (nextSqrt0FullResult a)) :
-    ExecStmt config (nextSqrt0FullFrame imms a) evm
+    ExecStmt fork config (nextSqrt0FullFrame imms a) evm
       (.internalCall "SafeCast_toUint160" [.var "__c3"] "__c4")
       (.ok (nextSqrt0CastFrame imms a) evm) :=
   internalCallFunctionReturn (callee := safeCast160Function)
@@ -62,7 +64,7 @@ theorem nextSqrt0CastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt0CastReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = false) (hv : ¬safeCast160Valid (nextSqrt0FullResult a)) :
-    ExecStmt config (nextSqrt0FullFrame imms a) evm
+    ExecStmt fork config (nextSqrt0FullFrame imms a) evm
       (.internalCall "SafeCast_toUint160" [.var "__c3"] "__c4") .reverted :=
   internalCallFunctionRevert (callee := safeCast160Function)
     (locals := safeCast160Locals (nextSqrt0FullResult a))
@@ -72,10 +74,10 @@ theorem nextSqrt0CastReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 theorem nextSqrt0FullCastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = false) (hv : nextSqrt0FullValid a)
     (hc : safeCast160Valid (nextSqrt0FullResult a)) :
-    ExecBlock config (nextSqrt0DenominatorFrame imms a) evm ((nextSqrt0Branch false).drop 4)
+    ExecBlock fork config (nextSqrt0DenominatorFrame imms a) evm ((nextSqrt0Branch false).drop 4)
       (.returned (nextSqrt0CastFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt0FullResult a).toNat)])) := by
-  have hf := nextSqrt0FullReturns imms evm a hv
+  have hf := nextSqrt0FullReturns (fork := fork) imms evm a hv
   simp only [nextSqrt0FullCallName, ha, Bool.false_eq_true, if_false] at hf
   refine ExecBlock.consNormal hf (ExecBlock.consNormal (nextSqrt0CastReturns imms evm a ha hc)
     (ExecBlock.consReturn (ExecStmt.return ?_)))
@@ -87,10 +89,10 @@ theorem nextSqrt0FullCastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtA
 theorem nextSqrt0FullCastReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = false) (hv : ¬(nextSqrt0FullValid a ∧
       safeCast160Valid (nextSqrt0FullResult a))) :
-    ExecBlock config (nextSqrt0DenominatorFrame imms a) evm ((nextSqrt0Branch false).drop 4)
+    ExecBlock fork config (nextSqrt0DenominatorFrame imms a) evm ((nextSqrt0Branch false).drop 4)
       .reverted := by
   by_cases hf : nextSqrt0FullValid a
-  · have hs := nextSqrt0FullReturns imms evm a hf
+  · have hs := nextSqrt0FullReturns (fork := fork) imms evm a hf
     simp only [nextSqrt0FullCallName, ha, Bool.false_eq_true, if_false] at hs
     exact ExecBlock.consNormal hs
       (ExecBlock.consRevert (nextSqrt0CastReverts imms evm a ha (fun hc ↦ hv ⟨hf, hc⟩)))

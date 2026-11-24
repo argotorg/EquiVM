@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionTickModel
 import Benchmarks.UniswapV3.Pool.UpdatePositionObserveTrace
 import Benchmarks.UniswapV3.Pool.TickUpdateMaskedTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -37,10 +39,10 @@ theorem updatePositionTickEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionTickEntryPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionTickEntryPC upper)
       (updatePositionTickEntryWords v a evm upper ++ R) mem aw rdata σ k C)
     (hov : R.length + 27 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20795⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20795⟩
       (tickUpdateWords ((updatePositionTickArgs v a evm upper).withRaw
         (UInt256.ofNat evm.executionEnv.header.timestamp) v.maxLiquidityPerTick) ++
         updatePositionTickReturnPC upper :: updatePositionTickSavedWords v a evm upper ++ R)

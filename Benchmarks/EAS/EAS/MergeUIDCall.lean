@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MergeUIDRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,18 +15,18 @@ theorem mergeUIDCallRun {L : Store} {args : List Expr} {retVar : Ident}
     (hm : WordArrayArrayMemoryView mem lists groups heap.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hsize : ee.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11975⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11975⟩
       (lists::UInt256.ofNat groups.flatten.length::ret::R) mem aw rdata σ k C) :
     let next := allocateNext heap.toNat (32+32*groups.flatten.length)
     (∃ mem' aw' k' C' words, words.length = groups.flatten.length ∧ next ≤ 2^64-1 ∧
       MemoryPrefix mem mem' heap.toNat ∧ WordArrayMemoryView mem' heap words next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm (.internalCall "_mergeUIDs" args retVar)
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm (.internalCall "_mergeUIDs" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := immStore v} retVar
           (some [wordListValue words,.int (Int.ofNat next)])) evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm (.internalCall "_mergeUIDs" args retVar) .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm (.internalCall "_mergeUIDs" args retVar) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   have hd : (mergeUIDArgs groups groups.flatten.length heap.toNat).get? "uidLists" = some (.array (groups.map wordListValue)) := store_get_self _ _ _
   have hn : (mergeUIDArgs groups groups.flatten.length heap.toNat).get? "uidsCount" = some (.int (Int.ofNat groups.flatten.length)) := by
     simp (disch := decide) only [mergeUIDArgs,store_get_ne,store_get_self]

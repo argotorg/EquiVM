@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_025
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `baseMinForRewards()`
 
@@ -24,7 +26,7 @@ theorem baseMinForRewardsX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAss
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 40)) :
-    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    GetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       v.baseMinForRewards.toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachBaseMinForRewardsBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -56,7 +58,7 @@ theorem baseMinForRewardsX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAss
 theorem cometWithExtendedAssetListBaseMinForRewardsBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 40)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 40) rfl hsel
   exact immutableGetter_refines (t := baseMinForRewardsTransition) hcode hsz (cometDecode_empty hsz)

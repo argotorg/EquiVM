@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickPriceCanonical
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,15 +15,15 @@ theorem poolSwapRepriceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+34 ≤ 1024)
     (hpc : price.toNat < 2^160) (hsc : start.toNat < 2^160) (hs : memLoad step mem = start)
-    (h : RD (deployedRuntime v) I g s0 ⟨20162⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20162⟩
       ([price, tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
       mem aw rdata σ k C) :
-    if price = start then ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19964⟩
+    if price = start then ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19964⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
       mem (M aw step ⟨32⟩) rdata σ k' C'
     else match tickPriceResult price with
-      | none => RDrev (deployedRuntime v) g s0
-      | some tick => ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19964⟩
+      | none => RDrev fork (deployedRuntime v) g s0
+      | some tick => ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19964⟩
           ([tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
           (tick.toByteArray.write 0 mem (state+UInt256.ofNat 32).toNat 32)
           (M (M aw step ⟨32⟩) (state+UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' := by
@@ -53,7 +55,7 @@ theorem poolSwapRepriceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       · exact hr
       · rw [ht] at hsome; contradiction
     | some tick =>
-      have hpass : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨20208⟩
+      have hpass : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨20208⟩
           ([tick, tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
           mem (M aw step ⟨32⟩) rdata σ k' C' := by
         obtain ⟨k', C', hC, rd⟩ := RD_retainCost (fun budget first hrd => by

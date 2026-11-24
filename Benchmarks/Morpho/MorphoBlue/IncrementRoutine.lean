@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ArithmeticRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,9 +13,9 @@ theorem morphoCheckedIncrementOk {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     {k C : Nat} {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : x.toNat + 1 < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
       (x :: ret :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((x + UInt256.ofNat 1) :: R) mem aw out σ k' C' := by
   have hn : x ≠ UInt256.ofNat
       115792089237316195423570985008687907853269984665640564039457584007913129639935 := by
@@ -26,15 +28,15 @@ theorem morphoCheckedIncrementOk {v : MorphoImmutables} {ee : ExecutionEnv} {g :
   have rd2 := morphoBlocks.morpho_block_13091 (immWords := wordsOf (immStore v))
     (by omega) hvalid rd1
   simpa only [morphoBlocks.morpho_block_13091_stack, u256_add_comm] using
-    (show ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (show ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((UInt256.ofNat 1 + x) :: R) mem aw out σ k' C' from ⟨_, _, rd2⟩)
 
 theorem morphoCheckedIncrementOverflow {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw x ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hfit : UInt256.size ≤ x.toNat + 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
-      (x :: ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
+      (x :: ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hx : x = UInt256.ofNat
       115792089237316195423570985008687907853269984665640564039457584007913129639935 := by
     apply u256_inj

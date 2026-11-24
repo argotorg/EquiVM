@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokeLoopRun
 import Benchmarks.EAS.EAS.RevokeFinishRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,9 +14,9 @@ theorem revokeLoopFinishRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
     (hm : RevokeLoopMemory mem site rs s ptrs values ats heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hlast : site.kind = .single → site.last = true)
     (hret : (D_J (deployedRuntime v) 0).contains site.ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.loopPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
       (revokeLoopStack site ee (UInt256.ofNat 0) R) mem aw rdata σ k C) :
-    ∃ used : UInt256, HeapReturnPostOrStatic (used.toNat ≤ site.available.toNat)
+    ∃ used : UInt256, HeapReturnPostOrStatic fork (used.toNat ≤ site.available.toNat)
       config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v} evm
       ([revokeLoop] ++ revokeFinish) (.int (Int.ofNat used.toNat)) site.ret (used::R) mem site.records.toNat := by
   have hr := revokeLoopRun v site hstack hs hf hm hh rd

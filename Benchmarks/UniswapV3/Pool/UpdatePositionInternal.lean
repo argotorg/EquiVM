@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,19 +15,19 @@ theorem updatePositionInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     (he : evalExprs? config caller evm args =
       .ok [.address a.owner, .int a.lower, .int a.upper, .int a.delta, .int a.current])
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19151⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19151⟩
       (updatePositionEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 602 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 44 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "_updatePosition" args retVar) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall "_updatePosition" args retVar) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "_updatePosition" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "_updatePosition" args retVar) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall "_updatePosition" args retVar) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_updatePosition" args retVar)
       (.ok (resumeAfterInternalCall caller retVar (some [updatePositionKeyValue a]))
         (updatePositionFinalState v a evm)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (updatePositionFinalState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
+      RD fork (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
         (updatePositionMemory mem p v a evm) aw' rdata σ' k' C' ∧
       HeapMemory (updatePositionMemory mem p v a evm) aw' (updatePositionFree p a evm)) := by
   have hc : {caller with locals := updatePositionLocals a} = updatePositionFrame (immStore v) a := by

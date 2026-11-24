@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.AttestPublicMemory
 import Benchmarks.EAS.EAS.MemoryArrayIndex
 import Benchmarks.EAS.EAS.RuntimeBlocks_015
 import Benchmarks.EAS.EAS.ReferenceTail
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -25,8 +27,8 @@ theorem easRevokePublicPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+14 ≤ 1024)
     (hsize : ee.calldata.size < UInt256.size) (h100 : 100 ≤ ee.calldata.size) (hbig : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3588⟩ R attestPublicInitialMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨12085⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3588⟩ R attestPublicInitialMemory aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨12085⟩
       (calldataWord ee.calldata 4::UInt256.ofNat 224::UInt256.ofNat ee.source.val::ee.weiValue::UInt256.ofNat 1180::R)
       (revokePublicInputMemory ee.calldata) aw' rdata σ k' C' := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_3588_packed (immWords := wordsOf (immStore v))
@@ -47,7 +49,7 @@ theorem easRevokePublicPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨a5,k5,C5,r5⟩ := easBlocks.eas_block_5897_packed (immWords := wordsOf (immStore v))
     (by simp only [easBlocks.eas_block_5854_fallthrough_stack,easBlocks.eas_block_3598_stack,List.length_cons]; omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r4
-  change RD (deployedRuntime v) ee g s0 ⟨4798⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨4798⟩
     (memLoad (UInt256.ofNat 64) revokePublicArrayMemory::UInt256.ofNat 5909::UInt256.ofNat 3607::
       memLoad (UInt256.ofNat 64) revokePublicArrayMemory::UInt256.ofNat 224::UInt256.ofNat 1180::R)
     revokePublicArrayMemory a5 rdata σ k5 C5 at r5
@@ -56,7 +58,7 @@ theorem easRevokePublicPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by native_decide) (by rw [easPatchedValidJumps v]; jump_dest) r5
   obtain ⟨a7,k7,C7,r7⟩ := easBlocks.eas_block_5909_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r6
-  change RD (deployedRuntime v) ee g s0 ⟨3607⟩ (UInt256.ofNat 352::UInt256.ofNat 224::UInt256.ofNat 1180::R)
+  change RD fork (deployedRuntime v) ee g s0 ⟨3607⟩ (UInt256.ofNat 352::UInt256.ofNat 224::UInt256.ofNat 1180::R)
     (revokePublicCopiedMemory ee.calldata) a7 rdata σ k7 C7 at r7
   obtain ⟨a8,k8,C8,r8⟩ := easBlocks.eas_block_3607_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r7
@@ -70,7 +72,7 @@ theorem easRevokePublicPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by rw [hlen]; decide) (by rw [easPatchedValidJumps v]; jump_dest) r8
   obtain ⟨a10,k10,C10,r10⟩ := easBlocks.eas_block_3616_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r9
-  change RD (deployedRuntime v) ee g s0 ⟨5712⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨5712⟩
     (UInt256.ofNat 224::UInt256.ofNat 3626::UInt256.ofNat 224::UInt256.ofNat 1180::R)
     (revokePublicInputMemory ee.calldata) a10 rdata σ k10 C10 at r10
   have hlen' : memLoad (UInt256.ofNat 224) (revokePublicInputMemory ee.calldata) = ⟨1⟩ := by

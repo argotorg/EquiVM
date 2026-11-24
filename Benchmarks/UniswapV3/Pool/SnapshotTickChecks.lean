@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SnapshotMapping
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,14 +20,14 @@ def snapshotTickStack (lower upper : Int) (σ : AccountMap) (I : ExecutionEnv)
 theorem snapshotTickChecksX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw a b c lowerRaw upperRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (lower upper : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10065⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10065⟩
       (snapshotLowerStack lower upper σ ee a b c lowerRaw upperRaw R) mem aw rdata σ k C)
     (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ (tickOutside lower σ ee).initialized = false) ∨
-    (RDrev (deployedRuntime v) g s0 ∧ (tickOutside lower σ ee).initialized = true ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧ (tickOutside lower σ ee).initialized = false) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ (tickOutside lower σ ee).initialized = true ∧
       (tickOutside upper σ ee).initialized = false) ∨
     ((tickOutside lower σ ee).initialized = true ∧ (tickOutside upper σ ee).initialized = true ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨10148⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨10148⟩
         (snapshotTickStack lower upper σ ee (a :: b :: c :: upperRaw :: lowerRaw :: R))
         mem aw rdata σ k' C') := by
   simp only [snapshotLowerStack, List.cons_append, List.nil_append] at rd
@@ -57,7 +59,7 @@ theorem snapshotTickChecksX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         (by evm_ov) (by rw [← hui']; exact hu)
         (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rdLower
       simp only [uniswapV3Pool_block_10079_taken_stack, ← hui'] at rdUpper
-      change RD (deployedRuntime v) ee g s0 ⟨10148⟩
+      change RD fork (deployedRuntime v) ee g s0 ⟨10148⟩
         (tickFieldWord upper 3 31 1 σ ee :: tickFieldWord lower 3 31 1 σ ee ::
          solcMappingSlot ⟨5⟩ (EVM.wordOfInt upper) :: solcMappingSlot ⟨5⟩ (EVM.wordOfInt lower) ::
          UInt256.land (UInt256.ofNat 4294967295) (UInt256.div (solcSlotWordAt (tickFieldSlot upper 3) σ ee)

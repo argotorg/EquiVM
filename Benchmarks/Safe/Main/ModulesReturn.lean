@@ -5,6 +5,8 @@ import Benchmarks.Safe.Main.Blocks.Runtime_010
 import Benchmarks.Safe.Main.Blocks.Runtime_047
 import Benchmarks.Safe.Main.Blocks.Runtime_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -14,14 +16,14 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 800000
 
 theorem safeModulesReturn {I g s0 σ k C aw mem rdata capacity words next} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1301⟩ (next :: ⟨128⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨1301⟩ (next :: ⟨128⟩ :: R)
       (writeWord mem 128 (UInt256.ofNat words.length)) aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024)
     (hm : AddressArrayMemory mem capacity (words ++ List.replicate (capacity - words.length) ⟨0⟩))
     (hn : capacity ≤ 2 ^ 64 - 1) (hlen : words.length ≤ capacity)
     (hc : ∀ w ∈ words, w.toNat < EVM.addressModulus)
     (hnext : next.toNat < EVM.addressModulus) :
-    RDret safeBytecode g s0 σ (modulesReturnBytes words next) := by
+    RDret fork safeBytecode g s0 σ (modulesReturnBytes words next) := by
   let baseMem := writeWord mem 128 (UInt256.ofNat words.length)
   let fp := 160 + 32 * capacity
   have hbsize : baseMem.size = mem.size := by
@@ -44,7 +46,7 @@ theorem safeModulesReturn {I g s0 σ k C aw mem rdata capacity words next} {R : 
   have hfree : memLoad (UInt256.ofNat 64) baseMem = addressArrayFreePtr capacity :=
     memLoad_of_wordRead _ _ _ hbfree
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeRuntime_block_1301_packed (by omega) (by jump_dest) h
-  change RD safeBytecode I g s0 ⟨10638⟩
+  change RD fork safeBytecode I g s0 ⟨10638⟩
     (memLoad (UInt256.ofNat 64) baseMem :: next :: ⟨128⟩ :: ⟨771⟩ :: R)
     baseMem aw₁ rdata σ k₁ C₁ at h₁
   rw [hfree] at h₁
@@ -59,7 +61,7 @@ theorem safeModulesReturn {I g s0 σ k C aw mem rdata capacity words next} {R : 
       (.inl ⟨by dsimp [fp]; omega, by rw [hbsize]; exact hm.lower⟩)]
     exact writeWord_sparse_read_back _ _ _
   obtain ⟨aw₃, k₃, C₃, h₃⟩ := safeRuntime_block_10238_packed (by simp; omega) h₂
-  change RD safeBytecode I g s0 ⟨10256⟩
+  change RD fork safeBytecode I g s0 ⟨10256⟩
     (⟨0⟩ :: (⟨128⟩ + UInt256.ofNat 32) :: memLoad ⟨128⟩ (writeWord baseMem fp ⟨64⟩) ::
       ⟨0⟩ :: ⟨128⟩ :: (UInt256.ofNat (fp + 64) + UInt256.ofNat 32) ::
       ⟨10656⟩ :: ⟨0⟩ :: addressArrayFreePtr capacity :: next :: ⟨128⟩ :: ⟨771⟩ :: R)
@@ -92,7 +94,7 @@ theorem safeModulesReturn {I g s0 σ k C aw mem rdata capacity words next} {R : 
       have := hm.lower
       omega)]
     exact hbfree
-  change RDret safeBytecode g s0 σ (encoded.readWithPadding
+  change RDret fork safeBytecode g s0 σ (encoded.readWithPadding
     (memLoad (UInt256.ofNat 64) encoded).toNat
     (UInt256.sub (UInt256.ofNat (fp + 96 + 32 * words.length))
       (memLoad (UInt256.ofNat 64) encoded)).toNat) at hret

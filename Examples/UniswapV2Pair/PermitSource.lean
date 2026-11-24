@@ -4,6 +4,8 @@ import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.PermitABI
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -824,12 +826,12 @@ theorem bindParams_permit_approve_call (I : ExecutionEnv) :
 
 theorem uniswapPermitApproveFunctionBody (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config { contract := contract, locals := permitApproveCallStore I } evm
+    ExecFuncBody fork config { contract := contract, locals := permitApproveCallStore I } evm
       approveFunction.body
       (.returned { contract := contract, locals := permitApproveCallStore I }
         (permitApprovePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
-  change ExecBlock config { contract := contract, locals := permitApproveCallStore I } evm
+  change ExecBlock fork config { contract := contract, locals := permitApproveCallStore I } evm
     [ .assign .storage (allowanceRef (.var "owner") (.var "spender")) (.var "value") ]
     (.ok { contract := contract, locals := permitApproveCallStore I }
       (permitApprovePostState evm I))
@@ -842,7 +844,7 @@ theorem uniswapPermitApproveFunctionBody (evm : EVM.State) (I : ExecutionEnv)
 theorem uniswapPermitApproveCallSuccessAt {base cur : EVM.State} {I : ExecutionEnv}
     {structHash digest recovered : Value}
     (hperm : cur.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterEcrecoverStore base I structHash digest recovered }
       cur
       [ .internalCall "_approve" [.var "owner", .var "spender", .var "value"]
@@ -852,7 +854,7 @@ theorem uniswapPermitApproveCallSuccessAt {base cur : EVM.State} {I : ExecutionE
           locals := permitAfterApproveStore base I structHash digest recovered })
         (permitApprovePostState cur I)) := by
   have hstmt :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered }
         cur
@@ -879,7 +881,7 @@ theorem uniswapPermitApproveCallSuccessAt {base cur : EVM.State} {I : ExecutionE
       (evalExprs_permit_approve_args_at base cur I structHash digest recovered)
       uniswapLookupApproveFunction
       (bindParams_permit_approve_call I)
-      (uniswapPermitApproveFunctionBody (hperm := by assumption) cur I))
+      (uniswapPermitApproveFunctionBody (fork := fork) (hperm := by assumption) cur I))
   exact ExecBlock.consNormal hstmt ExecBlock.nil
 
 theorem evalExpr_permit_zeroAddr (stele : Frame) (evm : EVM.State) :
@@ -984,10 +986,10 @@ theorem evalExpr_permit_ecrecover_value (stele : Frame) (evm : EVM.State) :
 
 theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionEnv}
     {structHash digest recovered : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, evm', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered]) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore evm I structHash digest } evm
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
@@ -995,7 +997,7 @@ theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionE
         { contract := contract,
           locals := permitAfterEcrecoverStore evm I structHash digest recovered }) evm') := by
   simpa [permitAfterEcrecoverStore, collapseReturns] using
-    (Reasoning.Theory.externalCallSuccess (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := evm) (evm' := evm')
       (locals := permitAfterDigestStore evm I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")
@@ -1011,10 +1013,10 @@ theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionE
 
 theorem uniswapPermitEcrecoverCallSuccessAt {base cur cur' : EVM.State} {I : ExecutionEnv}
     {structHash digest recovered : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered]) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore base I structHash digest } cur
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
@@ -1022,7 +1024,7 @@ theorem uniswapPermitEcrecoverCallSuccessAt {base cur cur' : EVM.State} {I : Exe
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered }) cur') := by
   simpa [permitAfterEcrecoverStore, collapseReturns] using
-    (Reasoning.Theory.externalCallSuccess (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := cur) (evm' := cur')
       (locals := permitAfterDigestStore base I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")
@@ -1038,15 +1040,15 @@ theorem uniswapPermitEcrecoverCallSuccessAt {base cur cur' : EVM.State} {I : Exe
 
 theorem uniswapPermitEcrecoverCallFailure {evm evm' : EVM.State} {I : ExecutionEnv}
     {structHash digest : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (false, evm', out) false) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore evm I structHash digest } evm
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
   exact
-    (Reasoning.Theory.externalCallFailure (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallFailure (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := evm) (evm' := evm')
       (locals := permitAfterDigestStore evm I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")
@@ -1061,15 +1063,15 @@ theorem uniswapPermitEcrecoverCallFailure {evm evm' : EVM.State} {I : ExecutionE
 
 theorem uniswapPermitEcrecoverCallFailureAt {base cur cur' : EVM.State} {I : ExecutionEnv}
     {structHash digest : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (false, cur', out) false) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore base I structHash digest } cur
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
   exact
-    (Reasoning.Theory.externalCallFailure (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallFailure (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := cur) (evm' := cur')
       (locals := permitAfterDigestStore base I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")
@@ -1084,16 +1086,16 @@ theorem uniswapPermitEcrecoverCallFailureAt {base cur cur' : EVM.State} {I : Exe
 
 theorem uniswapPermitEcrecoverCallDecodeRevert {evm evm' : EVM.State} {I : ExecutionEnv}
     {structHash digest : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, evm', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = none) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore evm I structHash digest } evm
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
   exact
-    (Reasoning.Theory.externalCallDecodeRevert (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallDecodeRevert (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := evm) (evm' := evm')
       (locals := permitAfterDigestStore evm I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")
@@ -1108,16 +1110,16 @@ theorem uniswapPermitEcrecoverCallDecodeRevert {evm evm' : EVM.State} {I : Execu
 
 theorem uniswapPermitEcrecoverCallDecodeRevertAt {base cur cur' : EVM.State} {I : ExecutionEnv}
     {structHash digest : Value} {out : ByteArray}
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = none) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := permitAfterDigestStore base I structHash digest } cur
       [ .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
   exact
-    (Reasoning.Theory.externalCallDecodeRevert (hperm := Or.inl rfl)
+    (Reasoning.Theory.externalCallDecodeRevert (fork := fork) (hperm := Or.inl rfl)
       (cfg := config) (C := contract) (evm := cur) (evm' := cur')
       (locals := permitAfterDigestStore base I structHash digest)
       (receiver := .cast (.intLit 1) addrSt) (name := "ecrecover")

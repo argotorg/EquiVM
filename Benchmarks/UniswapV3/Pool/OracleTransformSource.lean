@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModularWords
 import Benchmarks.UniswapV3.Pool.PackedStorage
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -198,7 +200,7 @@ theorem evalOracleTransformResult (imms : Store) (evm : EVM.State) (last : Oracl
 theorem oracleTransformReturns (imms : Store) (evm : EVM.State) (last : OracleObservation)
     (time : UInt256) (tick : Int) (liquidity : UInt256)
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23) :
-    ExecFuncBody config (oracleTransformFrame imms last time tick liquidity) evm
+    ExecFuncBody fork config (oracleTransformFrame imms last time tick liquidity) evm
       oracleTransformFunction.body
       (.returned (oracleTransformDeltaFrame imms last time tick liquidity) evm
         (some [(oracleTransformed last time tick liquidity).value])) := by

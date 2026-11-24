@@ -4,6 +4,8 @@ import Reasoning.EVMWord
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -424,7 +426,7 @@ theorem accessControlDecode_supportsInterface_none_pad {I : ExecutionEnv}
 
 theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (supportsInterfaceStore I)
+    ExecTransitionBody fork config contract evm (supportsInterfaceStore I)
       supportsInterfaceTransition.body
       (.returned { contract := contract, locals := supportsInterfaceStore I } evm
         (some [(.bool (supportsInterfaceResult I))])) := by
@@ -440,10 +442,10 @@ theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : Executi
 
 theorem accessControlSupportsInterfaceX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨853⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨853⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨140⟩, ⟨145⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
@@ -456,10 +458,10 @@ theorem accessControlSupportsInterfaceX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨299⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨299⟩
       [supportsInterfaceWord I, ⟨145⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
@@ -490,11 +492,11 @@ theorem accessControlSupportsInterfaceX_decoded {σ σ₀ A I} {g : Sat256}
 theorem accessControlReturnBool145 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap} {val : UInt256}
-    (h : RD accessControlBenchBytecode ee g s0 ⟨145⟩ (val :: R) solcFreePtrMem
+    (h : RD fork accessControlBenchBytecode ee g s0 ⟨145⟩ (val :: R) solcFreePtrMem
         (UInt256.ofNat 3) rdata acc k C)
     (hnorm : UInt256.isZero (UInt256.isZero val) = val)
     (hov : R.length + 8 ≤ 1024) :
-    RDret accessControlBenchBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork accessControlBenchBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -517,11 +519,11 @@ theorem accessControlReturnBool145 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem accessControlSupportsInterfaceX_body {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨299⟩
       [supportsInterfaceWord I, ⟨145⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨145⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨145⟩
       [supportsInterfaceResultWord I, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd299⟩ := hreach
@@ -591,10 +593,10 @@ theorem accessControlX_supportsInterface {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (supportsInterfaceResultWord I)) := by
   obtain ⟨_, _, rd299⟩ := accessControlSupportsInterfaceX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -608,10 +610,10 @@ theorem accessControlSupportsInterfaceX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
@@ -626,10 +628,10 @@ theorem accessControlSupportsInterfaceX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
@@ -645,10 +647,10 @@ theorem accessControlSupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = none)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨126⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
@@ -675,11 +677,11 @@ theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨126⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := supportsInterfaceSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_supportsInterface (cd := I.calldata) (by
@@ -700,7 +702,7 @@ theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
           have hdec := accessControlDecode_supportsInterface_ok
             (I := I) hsz36 hbig hpadSome
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (supportsInterfaceStore I)
                 supportsInterfaceTransition.body

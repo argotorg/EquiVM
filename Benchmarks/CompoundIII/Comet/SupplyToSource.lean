@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SupplyInternalSource
 import Benchmarks.CompoundIII.Comet.VoidCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -17,10 +19,10 @@ theorem supplyToTransition_body : supplyToTransition.body = calldataPrologue
       .var "amount"] "__c0", .return []] := rfl
 
 theorem supplyTo_source {v dst asset amount evm result}
-    (ht : SupplyInternalTrace v evm.executionEnv.source evm.executionEnv.source
+    (ht : SupplyInternalTrace fork v evm.executionEnv.source evm.executionEnv.source
       dst asset amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    explicitVoidSourceResult config
+    explicitVoidSourceResult fork config
       { contract := contract, locals := supplyToArgs dst asset amount, immutables := immStore v }
       evm supplyToTransition.body result := by
   rw [supplyToTransition_body]

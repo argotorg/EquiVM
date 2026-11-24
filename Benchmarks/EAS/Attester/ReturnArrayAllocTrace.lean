@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.ReturnArrayHeadTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -27,15 +29,15 @@ theorem wordArrayAllocRound {n : Nat} (hn : n ≤ solcMaxU64) :
 
 theorem returnArrayAllocate {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {free n : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3631⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3631⟩
       (UInt256.ofNat n :: R) mem aw out σ k C)
     (hstack : R.length + 7 ≤ 1024)
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hfree : free ≤ 2 ^ 200) (hn : n ≤ solcMaxU64) :
     (¬ free + 32 * (n + 1) ≤ solcMaxU64 ∧
-      RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
     (free + 32 * (n + 1) ≤ solcMaxU64 ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3706⟩
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3706⟩
         ([UInt256.ofNat (free + 32 * (n + 1)), UInt256.ofNat free,
           UInt256.ofNat (32 * n), UInt256.ofNat n] ++ R) mem aw' out σ k' C') := by
   have hnf : 32 * n < UInt256.size := by
@@ -69,15 +71,15 @@ theorem returnArrayAllocate {words : String → UInt256} {I g s0 σ mem out aw k
 
 theorem returnArrayDecodeStart {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {base : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
       (UInt256.ofNat base :: UInt256.ofNat (base + out.size) :: R)
       (returnArrayInputMemory mem base out) aw out σ k C)
     (hstack : R.length + 12 ≤ 1024) (hlo : 96 ≤ base) (hb : base ≤ mem.size)
     (hbound : base + out.size + 31 ≤ 2 ^ 200) :
     ((¬ ReturnArrayChecks out ∨ ¬ returnArrayEnd base out ≤ solcMaxU64) ∧
-      RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
     (ReturnArrayChecks out ∧ returnArrayEnd base out ≤ solcMaxU64 ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3743⟩
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3743⟩
         ([UInt256.ofNat (returnArrayFree base out + 32), UInt256.ofNat (returnArrayFree base out),
           UInt256.ofNat (32 * returnArrayCount out),
           UInt256.ofNat (base + returnArrayOffset out + 32 + 32 * returnArrayCount out),

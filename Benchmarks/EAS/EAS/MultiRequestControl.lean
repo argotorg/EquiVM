@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiRequestDecode
 import Benchmarks.EAS.EAS.RuntimeBlocks_020
 import Benchmarks.EAS.EAS.RuntimeBlocks_021
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,11 +13,11 @@ theorem easMultiRequestIndex {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {base ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hi : i<n) (hn : n < UInt256.size) (hb : base.toNat+32*i < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5196⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5196⟩
       (base::UInt256.ofNat n::UInt256.ofNat i::ret::R) mem aw rdata σ k C) :
     if multiRequestReferenceValid ee.calldata base i then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (multiRequestRoot ee.calldata base i::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (multiRequestRoot ee.calldata base i::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' _ (by omega)
   have hshift : UInt256.shiftLeft (UInt256.ofNat i) (UInt256.ofNat 5) = UInt256.ofNat (32*i) :=
     shiftLeft5_ofNat_eq (by omega)
@@ -52,11 +54,11 @@ theorem easRequestArrayAccess {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {root ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5260⟩ (root::(root+UInt256.ofNat 32)::ret::R) mem aw rdata σ k C) :
-    (requestArrayAccessValid ee.calldata root → ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5260⟩ (root::(root+UInt256.ofNat 32)::ret::R) mem aw rdata σ k C) :
+    (requestArrayAccessValid ee.calldata root → ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord ee.calldata (multiRequestArray ee.calldata root).toNat::
         (multiRequestArray ee.calldata root+UInt256.ofNat 32)::R) mem aw' rdata σ k' C') ∧
-    (¬requestArrayAccessValid ee.calldata root → RDrev (deployedRuntime v) g s0) := by
+    (¬requestArrayAccessValid ee.calldata root → RDrev fork (deployedRuntime v) g s0) := by
   have hneg : (UInt256.sub (UInt256.ofNat ee.calldata.size) root)+UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639905 =
       (UInt256.ofNat ee.calldata.size-root)-⟨31⟩ := by rw [word_sub_eq_add_neg (UInt256.ofNat ee.calldata.size-root) ⟨31⟩]; rfl
   by_cases href : requestArrayReferenceValid ee.calldata root

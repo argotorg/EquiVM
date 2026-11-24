@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_076
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometCheckedIncrement32 {v : CometWithExtendedAssetListImmutables}
     {aw n ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hn : n.toNat < 2^32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16642⟩ (n :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16642⟩ (n :: ret :: R) mem aw rdata σ k C) :
     if n.toNat + 1 < 2^32 then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((n + ⟨1⟩) :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((n + ⟨1⟩) :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hmask : UInt256.land n (UInt256.ofNat 4294967295) = n :=
     u256LandMaskCleanOfToNat _ _ (bits := 32) rfl hn
   split_ifs with hi

@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.Safe.V2_0e91d99.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -23,8 +25,8 @@ theorem safeCreation_block_0_taken {tail : ByteArray} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V2_0e91d99.safeCreationBytecode 0).contains (UInt256.ofNat 14) = true)
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (safeCreation_block_0_taken_stack (ee := ee) (R := R)) (safeCreation_block_0_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (safeCreation_block_0_taken_stack (ee := ee) (R := R)) (safeCreation_block_0_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Safe.V2_0e91d99.safeCreationBytecode.size = 11782 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -43,8 +45,8 @@ theorem safeCreation_block_0_taken_packed {tail : ByteArray} {ee : ExecutionEnv}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Safe.V2_0e91d99.safeCreationBytecode 0).contains (UInt256.ofNat 14) = true)
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (safeCreation_block_0_taken_stack (ee := ee) (R := R)) (safeCreation_block_0_taken_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (safeCreation_block_0_taken_stack (ee := ee) (R := R)) (safeCreation_block_0_taken_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeCreation_block_0_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -60,8 +62,8 @@ def safeCreation_block_0_fallthrough_memory {mem : ByteArray} : ByteArray :=
 theorem safeCreation_block_0_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (safeCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (safeCreation_block_0_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (safeCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (safeCreation_block_0_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Safe.V2_0e91d99.safeCreationBytecode.size = 11782 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -79,16 +81,16 @@ theorem safeCreation_block_0_fallthrough {tail : ByteArray} {ee : ExecutionEnv} 
 theorem safeCreation_block_0_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (safeCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (safeCreation_block_0_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (safeCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (safeCreation_block_0_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (safeCreation_block_0_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 11. -/
 theorem safeCreation_block_11 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Safe.V2_0e91d99.safeCreationBytecode.size = 11782 := by native_decide
   have r1 := r0.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -99,8 +101,8 @@ theorem safeCreation_block_11 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
 theorem safeCreation_block_14 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (x0 :: R) mem aw rdata σ k C)
-    : RDret (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 4) (UInt256.ofNat 1)) (((Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail).write (UInt256.ofNat 33).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 11749).toNat).readWithPadding (⟨0⟩ : UInt256).toNat (UInt256.ofNat 11749).toNat) := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 14) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 4) (UInt256.ofNat 1)) (((Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail).write (UInt256.ofNat 33).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 11749).toNat).readWithPadding (⟨0⟩ : UInt256).toNat (UInt256.ofNat 11749).toNat) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Safe.V2_0e91d99.safeCreationBytecode.size = 11782 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -118,8 +120,8 @@ theorem safeCreation_block_14 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
 
 /-- Automatically generated RD summary for bytecode block at pc 32. -/
 theorem safeCreation_block_32 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
-    (h : RD (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 32) R mem aw rdata σ k C)
-    : RDinvalid (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 32) R mem aw rdata σ k C)
+    : RDinvalid fork (Benchmarks.Safe.V2_0e91d99.safeCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Safe.V2_0e91d99.safeCreationBytecode.size = 11782 := by native_decide
   exact RD.invalid r0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide))

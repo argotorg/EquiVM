@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperRegistry.Helpers
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `register(address)` and `register(address,uint256)`
 
@@ -121,7 +123,7 @@ abbrev rTw (σ : AccountMap) (I : ExecutionEnv) (wgt : UInt256) : UInt256 := sol
 /-- The shared body from pc 805 (after the address validation) to the end. -/
 theorem registerTail {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I) (hcode : I.code = registryBytecode)
     (m : Nat) (hm : m < 10) (wgt : UInt256) {aw : UInt256} {k C : Nat}
-    (rd : RD registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 805)
+    (rd : RD fork registryBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 805)
       [argWord I, solcSelectorWord I] (rM0 m wgt) aw ByteArray.empty σ k C)
     (hcanon : (argWord I).toNat < EVM.addressModulus)
     (t : TransitionDecl) (hd : dispatchMsg contract I.calldata = some t) (callargs : Store)
@@ -132,9 +134,9 @@ theorem registerTail {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I) (hcode 
     (hLw : L.get? "weight" = some (uint256Value wgt))
     (hL1 : L.get? "nextId" = none) (hL2 : L.get? "entries" = none) (hL3 : L.get? "ids" = none)
     (hL4 : L.get? "totalWeight" = none)
-    (hprefix : ∀ result, ExecBlock config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) registerTailStmts result →
-      ExecBlock config (frame callargs) (initState σ σ₀ (Sat256.ofUInt256 g) A I) t.body result) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    (hprefix : ∀ result, ExecBlock fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I) registerTailStmts result →
+      ExecBlock fork config (frame callargs) (initState σ σ₀ (Sat256.ofUInt256 g) A I) t.body result) :
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have rd1 := registryBlocks.registry_block_805 (by simp) (by jump_dest) rd
   simp only [registryBlocks.registry_block_805_stack, registryBlocks.registry_block_805_memory,
     ulit_toNat' 256 (by decide)] at rd1
@@ -156,7 +158,7 @@ theorem registerTail {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I) (hcode 
     (by rw [slotWord_eq]; exact isZero_xor_ne_zero_of_eq hown) (by jump_dest) rd1
   have rd3 := registryBlocks.registry_block_1659 (by simp) (by jump_dest) rd2
   simp only [registryBlocks.registry_block_1659_stack] at rd3
-  have hcheck : ExecStmt config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcheck : ExecStmt fork config (frame L) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "ownable__check_owner" [] "__c0")
       (.ok (resumeAfterInternalCall (frame L) "__c0" none) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     ExecStmt.internalCallReturn (callee := checkOwnerCallee) rfl checkOwnerCallee_lookup rfl
@@ -367,7 +369,7 @@ theorem registerTail {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I) (hcode 
       .ok [uint256Value nid, .address (AccountAddress.ofNat (argWord I).toNat), uint256Value wgt] := by
     rw [evalExprs?, hid, evalExprs?, hacc2, evalExprs?, hw2, evalExprs?]
     rfl
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body
       (.returned (frame L2) (Stele.EVM.storageStore evm6 I.codeOwner (UInt256.ofNat 20) (rTw σ I wgt + wgt))
         (some [uint256Value nid])) :=
     ExecFuncBody.execBlockRet (hprefix _
@@ -413,7 +415,7 @@ theorem raDecode_noncanon {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
 theorem registryRegister_addressBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 2) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachRegister_addressBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some register_addressTransition :=

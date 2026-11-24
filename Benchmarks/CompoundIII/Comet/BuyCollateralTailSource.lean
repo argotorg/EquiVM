@@ -2,19 +2,21 @@ import Benchmarks.CompoundIII.Comet.BuyCollateralFrames
 import Benchmarks.CompoundIII.Comet.SafeUintSource
 import Benchmarks.CompoundIII.Comet.ReentrancySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem buyCollateralTransfer_source {asset recipient amount evm result}
-    (ht : BuyCollateralTransfer asset recipient amount evm result)
+    (ht : BuyCollateralTransfer fork asset recipient amount evm result)
     {v minimum base} (frame : Frame) (hf : BuyCollateralArgs frame v asset recipient minimum base)
     (hh : frame.locals.get? "collateralAmount" = some (.int amount.toNat)) :
-    internalBlockResult config frame evm buyCollateralTransferBody result := by
+    internalBlockResult fork config frame evm buyCollateralTransferBody result := by
   have ha : evalExpr? config frame evm (.var "collateralAmount") = .ok (.int amount.toNat) := by
     simp only [evalExpr?, hh, EvalResult.ofOption]
-  have hc := safeUint_call ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
+  have hc := safeUint_call (fork := fork) ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
     (.var "collateralAmount") "__c6" hf.contract ha
   let ready : Frame := { frame with locals := frame.locals.insert "__c6" (.int amount.toNat) }
   have hready : BuyCollateralArgs ready v asset recipient minimum base :=
@@ -46,17 +48,17 @@ theorem buyCollateralTransfer_source {asset recipient amount evm result}
           .int amount.toNat] := by
       simp only [evalExprs?, evalExpr?, envValue, hfinal.asset, hfinal.base, hh',
         EvalResult.ofOption, pure, bind, EvalResult.bind]
-    have hend := reentrancy_call final evm' false "__c8" hfinal.contract
+    have hend := reentrancy_call (fork := fork) final evm' false "__c8" hfinal.contract
     simp only [reentrancyOutcome, Bool.false_and, Bool.false_eq_true, if_false,
       reentrancyWriteOutcome, hp, if_true, internalStmtResult] at hend
     exact ⟨_, ExecBlock.consNormal hc (ExecBlock.consNormal ho
       (ExecBlock.consNormal (ExecStmt.emit (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hemit) (execBlock_singleton hend)))⟩
 
 theorem buyCollateralAfterQuote_source {asset recipient minimum amount evm result}
-    (ht : BuyCollateralAfterQuote asset recipient minimum amount evm result)
+    (ht : BuyCollateralAfterQuote fork asset recipient minimum amount evm result)
     {v base} (frame : Frame) (hf : BuyCollateralArgs frame v asset recipient minimum base)
     (hh : frame.locals.get? "collateralAmount" = some (.int amount.toNat)) :
-    internalBlockResult config frame evm buyCollateralAfterQuoteBody result := by
+    internalBlockResult fork config frame evm buyCollateralAfterQuoteBody result := by
   have hm : evalExpr? config frame evm
       (.binary .ge (.var "collateralAmount") (.var "minAmount")) =
       .ok (.bool (decide (minimum.toNat ≤ amount.toNat))) := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyPositionUpdate
 import Benchmarks.UniswapV4PoolManager.PositionUpdateCorrect
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,11 +13,11 @@ theorem poolModifyPositionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id key fee0 upper x0 x1 x2 ptr x4 x5 lower x9 fee1 : UInt256} {delta : Int}
     {k C : Nat} {R : List UInt256} (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+31 ≤ 1024)
     (hI : evm.executionEnv = I) (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨5915⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionUpdateInputStack evm id key delta fee0 upper x0 x1 x2 ptr x4 x5 lower x9 fee1 R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
-      post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ k' C', RD (deployedRuntime v) I g s0 ⟨12458⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
+      post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨12458⟩
         (positionUpdateOwed evm id key delta fee0 false :: ⟨5993⟩ :: ⟨5999⟩ ::
           positionUpdateOwed evm id key delta fee1 true ::
           positionUpdateContinuation delta upper x0 x1 x2 ptr x4 x5 lower x9 R)

@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.RawStaticCall
 import Benchmarks.Safe.ViaIR.Memory
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -54,16 +56,16 @@ theorem thetaEcrecoverOutput {fork : Ethereum.Fork} (σ σ₀ : AccountMap) (A :
   exact precompileEcrecoverOutput _ _ _ _
 
 theorem callEcrecoverOutput {evm evm' : EVM.State} {d out : ByteArray} {z perm : Bool}
-    (hc : callViaEVM evm (AccountAddress.ofNat 1) 0 d (z, evm', out) perm) :
+    (hc : callViaEVM fork evm (AccountAddress.ofNat 1) 0 d (z, evm', out) perm) :
     EcrecoverOutput out := by
   cases hc with
   | callNotMade => exact Or.inl rfl
   | callMade hvalue hcall hevm hbal hdepth =>
       obtain ⟨gas, A, hΘ⟩ := hcall
-      have hto : toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofNat 1) =
+      have hto : toExecute fork evm.accountMap (AccountAddress.ofNat 1) =
           .Precompiled 1 := toExecute_ecrecover_precompile evm.accountMap
       rw [hto, hvalue] at hΘ
-      have hs := thetaEcrecoverOutput (fork := evm.executionEnv.fork) evm.accountMap evm.σ₀ A
+      have hs := thetaEcrecoverOutput (fork := fork) evm.accountMap evm.σ₀ A
         evm.executionEnv.codeOwner
         evm.executionEnv.sender (AccountAddress.ofNat 1) gas (.ofNat evm.executionEnv.gasPrice)
         (EVM.wordOfInt 0) (EVM.wordOfInt 0) d (evm.executionEnv.depth + 1) evm.executionEnv.header
@@ -74,13 +76,13 @@ theorem callEcrecoverOutput {evm evm' : EVM.State} {d out : ByteArray} {z perm :
 -- The source semantics abstracts call gas; zero gas witnesses a failed recovery call.
 set_option maxRecDepth 2000 in
 theorem callEcrecoverCanFail (evm : EVM.State) (d : ByteArray) :
-    ∃ evm', callViaEVM evm (AccountAddress.ofNat 1) 0 d (false, evm', ByteArray.empty) false := by
+    ∃ evm', callViaEVM fork evm (AccountAddress.ofNat 1) 0 d (false, evm', ByteArray.empty) false := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨_, callViaEVM.callNotMade rfl rfl (fun hh ↦ hh.2 hd)⟩
   · refine ⟨{ evm with substate := default },
       callViaEVM.callMade (g' := ⟨0⟩) wordOfInt_zero.symm ⟨⟨0⟩, default, ?_⟩ rfl
         (Fin.zero_le _) hd⟩
-    have hto : toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofNat 1) =
+    have hto : toExecute fork evm.accountMap (AccountAddress.ofNat 1) =
         .Precompiled 1 := toExecute_ecrecover_precompile evm.accountMap
     rw [hto]
     change (_, _, _, _, _) = Θ _ _ _ _ _ _ _ (.Precompiled 1) ⟨0⟩ _ _ _ _ _ _ _ _ _

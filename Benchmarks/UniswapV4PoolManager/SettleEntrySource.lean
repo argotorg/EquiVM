@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SettleSource
 import Benchmarks.UniswapV4PoolManager.ReturnCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,8 +18,8 @@ def settleEntryFrame (locals imms : Store) (evm : EVM.State) : Frame :=
 
 theorem settleEntryLocked {evm : EVM.State} {locals imms : Store} (recipientExpr : Expr)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hl : transientWord evm lockSlot = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals (settleEntryStatements recipientExpr) .reverted imms := by
-  have hlock := lockCall (f := calldataFrame contract locals imms evm) (evm := evm) rfl "__c0"
+    ExecTransitionBody fork config contract evm locals (settleEntryStatements recipientExpr) .reverted imms := by
+  have hlock := lockCall (fork := fork) (f := calldataFrame contract locals imms evm) (evm := evm) rfl "__c0"
   rw [decide_eq_false (not_not.mpr hl)] at hlock
   apply ExecFuncBody.execBlockRevert
   apply calldataBlock hhi
@@ -29,12 +31,12 @@ theorem settleEntryReturnsCall {evm : EVM.State} {locals imms : Store} {recipien
     {recipientExpr : Expr} {result : ExecResult}
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hl : transientWord evm lockSlot ≠ ⟨0⟩)
     (hr : evalExpr? config (settleEntryFrame locals imms evm) evm recipientExpr = .ok (.address recipient))
-    (hbody : ExecFuncBody config
+    (hbody : ExecFuncBody fork config
       {settleEntryFrame locals imms evm with locals := (∅ : Store).insert "recipient" (.address recipient)}
       evm settleFunction.body result) :
-    ExecTransitionBody config contract evm locals (settleEntryStatements recipientExpr)
+    ExecTransitionBody fork config contract evm locals (settleEntryStatements recipientExpr)
       (returnCallResult (settleEntryFrame locals imms evm) "__c1" result) imms := by
-  have hlock := lockCall (f := calldataFrame contract locals imms evm) (evm := evm) rfl "__c0"
+  have hlock := lockCall (fork := fork) (f := calldataFrame contract locals imms evm) (evm := evm) rfl "__c0"
   rw [decide_eq_true hl] at hlock
   have hcall := internalCallThenReturn (retVar := "__c1") (evalExprs?_singleton hr)
     settleFunction_lookup rfl hbody

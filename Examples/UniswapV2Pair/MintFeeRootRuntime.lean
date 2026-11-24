@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.Routines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,14 +13,14 @@ theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hrootLe : rootK.toNat ≤ rootKLast.toNat)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
       mem aw rdata σFee k' C' := by
@@ -38,13 +40,13 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨6879⟩
       (rootKLast :: rootK :: ⟨7930⟩ :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
@@ -69,7 +71,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd6879 : RD uniswapV2PairBytecode I g
+    (rd6879 : RD fork uniswapV2PairBytecode I g
       s0 ⟨6879⟩
       (rootKLast :: rootK :: ⟨7930⟩ :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
@@ -77,7 +79,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
       mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (UInt256.sub rootK rootKLast :: solcSlotWordAt ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -87,7 +89,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
       (by simp only [List.length_cons]; omega)
   have rd7933 := evm_run rd7930 with [jumpdest, push1 ⟨0⟩]
   obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.sload (by native_decide) (by evm_ov)
-  have rd7934 : RD uniswapV2PairBytecode I g
+  have rd7934 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7934⟩
       (solcSlotWordAt ⟨0⟩ σFee I :: UInt256.sub rootK rootKLast :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -106,7 +108,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd6780 : RD uniswapV2PairBytecode I g
+    (rd6780 : RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (UInt256.sub rootK rootKLast :: solcSlotWordAt ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -115,7 +117,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorEntryOfTail
       (solcSlotWordAt ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
         UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7945⟩
       (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -129,13 +131,13 @@ theorem uniswapMintFeeRuntimePositiveDenominatorMulEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7945 : RD uniswapV2PairBytecode I g
+    (rd7945 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7945⟩
       (numerator :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 ::
         ret :: R)
       mem aw rdata σFee k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (⟨5⟩ :: rootK :: ⟨7970⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -154,14 +156,14 @@ theorem uniswapMintFeeRuntimePositiveDenominatorProductEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd6780 : RD uniswapV2PairBytecode I g
+    (rd6780 : RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (⟨5⟩ :: rootK :: ⟨7970⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hrootK5Fit : rootK.toNat * 5 < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7970⟩
       (UInt256.mul rootK ⟨5⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -175,14 +177,14 @@ theorem uniswapMintFeeRuntimePositiveDenominatorAddEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denProduct numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7970 : RD uniswapV2PairBytecode I g
+    (rd7970 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7970⟩
       (denProduct :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨8515⟩
       (rootKLast :: denProduct :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
@@ -201,7 +203,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denProduct numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd8515 : RD uniswapV2PairBytecode I g
+    (rd8515 : RD fork uniswapV2PairBytecode I g
       s0 ⟨8515⟩
       (rootKLast :: denProduct :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
@@ -209,7 +211,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorEntryOfTail
       mem aw rdata σFee k C)
     (hdenFit : denProduct.toNat + rootKLast.toNat < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7982⟩
       ((denProduct + rootKLast) :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
@@ -224,14 +226,14 @@ theorem uniswapMintFeeRuntimePositiveLiquidityEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7982 : RD uniswapV2PairBytecode I g
+    (rd7982 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7982⟩
       (denominator :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 ::
         reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hdenominatorNe : denominator ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7999⟩
       (UInt256.div numerator denominator :: denominator :: numerator :: rootKLast :: rootK ::
         kLast ::
@@ -248,7 +250,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityZeroNoMintReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7999 : RD uniswapV2PairBytecode I g
+    (rd7999 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7999⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -256,7 +258,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityZeroNoMintReturnOfTail
     (hliqZero : liquidity = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
       mem aw rdata σFee k' C' := by
@@ -276,14 +278,14 @@ theorem uniswapMintFeeRuntimeAfterInternalMintReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd8014 : RD uniswapV2PairBytecode I g
+    (rd8014 : RD fork uniswapV2PairBytecode I g
       s0 ⟨8014⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
       mem aw rdata σFee k' C' := by
@@ -299,14 +301,14 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7999 : RD uniswapV2PairBytecode I g
+    (rd7999 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7999⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hliqNonzero : liquidity ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨8128⟩
       (liquidity :: feeTo :: ⟨8014⟩ :: liquidity :: denominator :: numerator :: rootKLast ::
         rootK ::
@@ -324,7 +326,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
@@ -335,7 +337,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
     (hrootK5Fit : rootK.toNat * 5 < UInt256.size)
     (hdenFit : (UInt256.mul rootK ⟨5⟩).toNat + rootKLast.toNat < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7982⟩
       ((UInt256.mul rootK ⟨5⟩ + rootKLast) :: ⟨0⟩ ::
         UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: rootKLast :: rootK ::

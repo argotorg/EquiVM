@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionUpdateSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -39,7 +41,7 @@ theorem evalModifyPositionRangeGuard (imms : Store) (a : ModifyPositionArgs)
 
 theorem modifyPositionZeroTailSource (imms : Store) (a : ModifyPositionArgs)
     (evm evm' : EVM.State) (hz : a.delta = 0) :
-    ExecBlock config (modifyPositionUpdatedFrame imms a evm) evm'
+    ExecBlock fork config (modifyPositionUpdatedFrame imms a evm) evm'
       (modifyPositionFunction.body.drop 8)
       (.returned (modifyPositionUpdatedFrame imms a evm) evm'
         (some [modifyPositionKeyValue a, .int 0, .int 0])) := by

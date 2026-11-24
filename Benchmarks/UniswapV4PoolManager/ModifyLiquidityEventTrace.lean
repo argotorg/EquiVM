@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityEventStatic
 import Benchmarks.UniswapV4PoolManager.MemoryAccessCost
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,12 +20,12 @@ theorem modifyLiquidityEventTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hkb : keyPtr.toNat+160 ≤ free.toNat) (hpb : paramsPtr.toNat+128 ≤ free.toNat)
     (hf : free.toNat+128 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨6084⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6084⟩
       ([a1, a0, paramsPtr, id, fees, src, len, ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
       mem aw rdata σ k C) :
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g s0) ∨
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g s0) ∨
     I.perm = true ∧ ∃ aw' k' C', Cₘ aw' ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨14427⟩
+      RD fork (deployedRuntime v) I g s0 ⟨14427⟩
         ([key.hooks, keyPtr, paramsPtr, balanceDeltaWord a0 a1, fees, src, len,
           ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
         (modifyLiquidityEventMemory mem free p) aw' rdata σ k' C' := by

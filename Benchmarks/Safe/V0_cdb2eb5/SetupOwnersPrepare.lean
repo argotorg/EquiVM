@@ -4,6 +4,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_035
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -13,15 +15,15 @@ set_option maxRecDepth 100000
 
 theorem safeSetupOwnersPrepare (p : SetupOwnersInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8143⟩
+    (h : RD fork safeBytecode I g s0 ⟨8143⟩
       (p.threshold :: UInt256.ofNat ptr :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hm : WordArrayBuffer mem ptr p.owners)
     (hb : ptr + 32 + 32 * p.owners.length < UInt256.size) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecFuncBody config p.frame evm setupOwnersFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecFuncBody fork config p.frame evm setupOwnersFunction.body .reverted) ∨
     ∃ aw' k' C', (storedThreshold evm).toNat = 0 ∧ p.threshold.toNat ≤ p.owners.length ∧
       p.threshold.toNat ≠ 0 ∧
-      RD safeBytecode I g s0 ⟨8225⟩
+      RD fork safeBytecode I g s0 ⟨8225⟩
         (⟨0⟩ :: UInt256.ofNat p.owners.length :: ⟨1⟩ :: p.threshold ::
           UInt256.ofNat ptr :: ret :: R) mem aw' rdata σ k' C' := by
   have hs : (σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SafeTransferReturnCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ theorem uniswapSafeTransferCallRuntimeCases
     {mem rdata : ByteArray} {value toWord tokenWord ret : UInt256} {R : List UInt256} {k C : ℕ}
     {caller : Frame} {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (evm : EVM.State) (token recipient : AccountAddress)
-    (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩
+    (rd6370 : RD fork uniswapV2PairBytecode I g s0 ⟨6370⟩
       (value :: toWord :: tokenWord :: ret :: R) mem balanceOfThisStaticcallActiveWords rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hσ0 : evm.σ₀ = s0.σ₀)
@@ -27,13 +29,13 @@ theorem uniswapSafeTransferCallRuntimeCases
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 20 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
-        .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+        .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' out k' C',
-      ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+      ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
         (.ok (resumeAfterInternalCall caller retVar none) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧ out.size < 2 ^ 255 ∧
-      RD uniswapV2PairBytecode I g s0 ret R
+      RD fork uniswapV2PairBytecode I g s0 ret R
         (safeTransferRuntimeFinalMem mem toWord value out) (safeTransferRuntimeFinalActiveWords out)
         out σ' k' C') := by
   have hmload := mloadFreePtrValue
@@ -42,7 +44,7 @@ theorem uniswapSafeTransferCallRuntimeCases
     RD.uniswapSafeTransferEntryToCallMade rd6370 hmem hmload hdepth hov
   obtain ⟨evm', hcallRaw, hpost, hs, he⟩ := rawZeroCall_source_of_theta
     hAccounts henv hσ0 hdepth hperm hΘ
-  have hcall : callViaEVM evm (EVM.address token) 0
+  have hcall : callViaEVM fork evm (EVM.address token) 0
       ((safeTransferRuntimeCallMem2 mem toWord value).readWithPadding 292 68) (z, evm', out) := by
     simpa only [htoken] using hcallRaw
   have hdata : transferCalldata? recipient value =

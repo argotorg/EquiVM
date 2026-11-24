@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleWriteEntryTrace
 import Benchmarks.UniswapV3.Pool.OracleWriteStoreTrace
 import Benchmarks.UniswapV3.Pool.OracleWriteResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -20,17 +22,17 @@ theorem oracleWriteRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14801⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
       (oracleWriteEntryWords {a with time := timeRaw} ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits)
     (htime : UInt256.land timeRaw (UInt256.ofNat (2 ^ 32 - 1)) = a.time) (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 27 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ ¬ oracleWriteValid a evm) ∨
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ ¬ oracleWriteValid a evm) ∨
       (oracleWriteValid a evm ∧
-        ((RDstatic (deployedRuntime v) g s0 ∧ oracleWriteSame a evm = false ∧ ee.perm = false) ∨
+        ((RDstatic fork (deployedRuntime v) g s0 ∧ oracleWriteSame a evm = false ∧ ee.perm = false) ∨
           (∃ σ' aw' k' C', (oracleWriteSame a evm = true ∨ ee.perm = true) ∧
             SourceState s0 ee σ' (oracleWriteState a evm) ∧
-            RD (deployedRuntime v) ee g s0 ret
+            RD fork (deployedRuntime v) ee g s0 ret
               (oracleWriteResultCardinality a evm :: oracleWriteResultIndex a evm :: R)
               (oracleWriteMemory mem p a evm) aw' rdata σ' k' C' ∧
             HeapMemory (oracleWriteMemory mem p a evm) aw' (oracleWriteFree p a evm)))) := by
@@ -82,16 +84,16 @@ theorem oracleWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14801⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
       (oracleWriteEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 27 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ ¬ oracleWriteValid a evm) ∨
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ ¬ oracleWriteValid a evm) ∨
       (oracleWriteValid a evm ∧
-        ((RDstatic (deployedRuntime v) g s0 ∧ oracleWriteSame a evm = false ∧ ee.perm = false) ∨
+        ((RDstatic fork (deployedRuntime v) g s0 ∧ oracleWriteSame a evm = false ∧ ee.perm = false) ∨
           (∃ σ' aw' k' C', (oracleWriteSame a evm = true ∨ ee.perm = true) ∧
             SourceState s0 ee σ' (oracleWriteState a evm) ∧
-            RD (deployedRuntime v) ee g s0 ret
+            RD fork (deployedRuntime v) ee g s0 ret
               (oracleWriteResultCardinality a evm :: oracleWriteResultIndex a evm :: R)
               (oracleWriteMemory mem p a evm) aw' rdata σ' k' C' ∧
             HeapMemory (oracleWriteMemory mem p a evm) aw' (oracleWriteFree p a evm)))) := by

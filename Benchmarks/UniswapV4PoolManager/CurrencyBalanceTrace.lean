@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.CurrencyBalanceSource
 import Benchmarks.UniswapV4PoolManager.CurrencyBalanceReturnTrace
 import Benchmarks.UniswapV4PoolManager.StaticCallBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,28 +18,28 @@ theorem currencyBalanceWordTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hptr : 96 ≤ ptr.toNat) (hfit : ptr.toNat+63 ≤ solcMaxU64)
     (hgap : ptr.toNat-mem.size < USize.size) (hfree : memLoad ⟨64⟩ mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14994⟩ (currencyWord :: ret :: R) mem aw rdata evm.accountMap k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14994⟩ (currencyWord :: ret :: R) mem aw rdata evm.accountMap k C) :
     ∃ evm' z out,
-      typedCallViaEVM config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false ∧
+      typedCallViaEVM fork config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      ((¬(z = true ∧ 32 ≤ out.size) ∧ RDrev (deployedRuntime v) g s0) ∨
+      ((¬(z = true ∧ 32 ≤ out.size) ∧ RDrev fork (deployedRuntime v) g s0) ∨
        (z = true ∧ 32 ≤ out.size ∧ ∃ mem' aw' k' C',
          96 ≤ mem'.size ∧ (memLoad ⟨64⟩ mem').toNat ≤ mem'.size ∧
-         RD (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out evm'.accountMap k' C')) := by
+         RD fork (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out evm'.accountMap k' C')) := by
   have hclean : UInt256.land solcAddrMask currencyWord = accountWord currency := by
     rw [u256_land_comm]; exact hcurrency
   have hnword : accountWord currency ≠ ⟨0⟩ := fun he => hn ((accountWord_eq_iff currency ⟨0⟩ (by decide)).2 he)
   have rd1 := poolManagerBlocks.poolManager_block_14994_taken (by simp; omega)
     (by change UInt256.land solcAddrMask currencyWord ≠ ⟨0⟩; rw [hclean]; exact hnword)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ (UInt256.land solcAddrMask currencyWord :: ret :: R) _ _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ (UInt256.land solcAddrMask currencyWord :: ret :: R) _ _ _ _ _ _ at rd1
   rw [hclean] at rd1
   obtain ⟨aw2, k2, C2, rd2⟩ := poolManagerBlocks.poolManager_block_15026_packed (by simp; omega) rd1
   have h4 : (ptr+UInt256.ofNat 4).toNat = ptr.toNat+4 :=
     uadd_word_ofNat_toNat ptr 4 (by change _ < 2^256; change _ ≤ 2^64-1 at hfit; omega)
   have hfree' : memLoad (UInt256.ofNat 64) mem = ptr := hfree
   simp only [poolManagerBlocks.poolManager_block_15026_stack, poolManagerBlocks.poolManager_block_15026_memory, hfree', h4] at rd2
-  change RD _ _ _ _ ⟨15081⟩ (_ :: accountWord currency :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: ptr :: ret :: R)
+  change RD fork _ _ _ _ ⟨15081⟩ (_ :: accountWord currency :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: ptr :: ret :: R)
     (singleWordCallMemory mem ptr.toNat balanceOfSelectorWord (accountWord I.codeOwner)) aw2 rdata evm.accountMap k2 C2 at rd2
   let requestMem := singleWordCallMemory mem ptr.toNat balanceOfSelectorWord (accountWord I.codeOwner)
   have hencode := balanceOfCallMemory_encode mem ptr.toNat I.codeOwner hgap
@@ -49,7 +51,7 @@ theorem currencyBalanceWordTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨15081⟩ : UInt256),
       UInt8.ofNat 250, .STATICCALL, none, poolManagerBlocks.immutableLayout_inBounds, poolManagerBlocks.immutableTemplate_size64))
     hencode hsmall (by simp; omega)
-  have hc : typedCallViaEVM config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false := by
+  have hc : typedCallViaEVM fork config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false := by
     rw [hI, ← accountAddress_roundtrip currency]
     exact hcall
   have ho256 : out.size < UInt256.size := lt_trans ho (by decide)
@@ -73,13 +75,13 @@ theorem currencyBalanceTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {m
     (hptr : 96 ≤ ptr.toNat) (hfit : ptr.toNat+63 ≤ solcMaxU64)
     (hgap : ptr.toNat-mem.size < USize.size) (hfree : memLoad ⟨64⟩ mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14994⟩ (accountWord currency :: ret :: R) mem aw rdata evm.accountMap k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14994⟩ (accountWord currency :: ret :: R) mem aw rdata evm.accountMap k C) :
     ∃ evm' z out,
-      typedCallViaEVM config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false ∧
+      typedCallViaEVM fork config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      ((¬(z = true ∧ 32 ≤ out.size) ∧ RDrev (deployedRuntime v) g s0) ∨
+      ((¬(z = true ∧ 32 ≤ out.size) ∧ RDrev fork (deployedRuntime v) g s0) ∨
        (z = true ∧ 32 ≤ out.size ∧ ∃ mem' aw' k' C',
-         RD (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out evm'.accountMap k' C')) := by
+         RD fork (deployedRuntime v) I g s0 ret (returnedBalanceWord out :: R) mem' aw' out evm'.accountMap k' C')) := by
   obtain ⟨evm', z, out, hc, hI', hσ0', ho, hr⟩ := currencyBalanceWordTrace v hstack
     (solcAddrMask_clean (accountWord_canonical currency)) hI hσ0 hn hptr hfit hgap hfree hret h
   refine ⟨evm', z, out, hc, hI', hσ0', ho, ?_⟩

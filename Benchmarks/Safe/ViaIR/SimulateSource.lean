@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.Common
 import Benchmarks.Safe.ViaIR.AddressBytesCalldata
 import Benchmarks.Safe.ViaIR.RawDelegateCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -18,7 +20,7 @@ theorem safeSimulateLength (evm : EVM.State) (target : EVM.Address) (payload : B
     evalBinaryOp?, Int.ofNat_eq_natCast]
 
 theorem safeSimulateSource (evm : EVM.State) (target : EVM.Address) (payload : ByteArray) :
-    ExecTransitionBody config contract evm (simulateArgs target payload)
+    ExecTransitionBody fork config contract evm (simulateArgs target payload)
       simulateandrevertTransition.body .reverted := by
   by_cases hv : evm.executionEnv.weiValue = ⟨0⟩
   swap

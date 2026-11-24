@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -14,7 +16,7 @@ theorem poolUpdateTickCall {f : Frame} {evm : EVM.State} {es et ed eu : Expr}
     (ht : evalExpr? config f evm et = .ok (.int tick))
     (hd : evalExpr? config f evm ed = .ok (.int delta))
     (hu : evalExpr? config f evm eu = .ok (.bool upper)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_updateTick" [es, et, ed, eu] ret)
+    ExecStmt fork config f evm (.internalCall "Pool_updateTick" [es, et, ed, eu] ret)
       (poolUpdateTickCallResult f evm id tick delta upper ret) := by
   obtain ⟨f', hb⟩ := poolUpdateTickBody
     (f := {f with locals := ((((∅ : Store).insert "upper" (.bool upper)).insert

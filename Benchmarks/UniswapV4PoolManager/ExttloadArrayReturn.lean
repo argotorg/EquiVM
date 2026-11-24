@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.ExttloadArrayTrace
 import Benchmarks.UniswapV4PoolManager.WordArrayTraceReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,10 +13,10 @@ theorem exttloadArrayPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} {n : Nat} (v : PoolManagerImmutables)
     (hstack : R.length + 9 ≤ 1024) (hn : n ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨2879⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2879⟩
       (UInt256.ofNat n :: UInt256.ofNat (36+(calldataWord I.calldata 4).toNat) :: R)
       entryMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n 0 R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n 0 R)
       (arrayHeaderMemory n) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd⟩ := poolManagerBlocks.poolManager_block_2879_packed (by omega) h
   have hs : UInt256.shiftLeft (UInt256.ofNat n) (UInt256.ofNat 5) = UInt256.ofNat (32*n) :=
@@ -31,10 +33,10 @@ theorem exttloadArrayTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} {n : Nat} (v : PoolManagerImmutables)
     (hstack : R.length + 9 ≤ 1024) (hn : n ≤ solcMaxU64)
     (ho : (calldataWord I.calldata 4).toNat ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨2879⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2879⟩
       (UInt256.ofNat n :: UInt256.ofNat (36+(calldataWord I.calldata 4).toNat) :: R)
       entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat n] ++ wordArrayWords (exttloadTraceValue I σ) 0 n)) := by
   obtain ⟨aw1, k1, C1, rd⟩ := exttloadArrayPrepareTrace v hstack hn h
   exact wordArrayTraceReturn v hstack hn

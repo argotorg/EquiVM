@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.StringReturn
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 dynamic-string getter — LONG case (`len ≥ 32`)
 
@@ -61,12 +63,12 @@ theorem weth9NameLongReachLoop {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [⟨160⟩, weth9LongDataBase, weth9LongEnd (solcSlotWord σ I ⟨0⟩),
        weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9LongScratchMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       ByteArray.empty σ k C := by
-  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
+  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   have h910 := evm_run h897 with [
     dup1, iszero, push2 ⟨973⟩, jumpiNT (isZero_eq_zero_of_ne (weth9LongLen_ne hge31)),
@@ -107,21 +109,21 @@ def Weth9LongLoopState.stack (s : Weth9LongLoopState) (endp len : UInt256) (I : 
 theorem weth9NameLongCopyContinue {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore : UInt256} {m memout : ByteArray}
     {mstoreCost : Nat}
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+    (hreach : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [ptr, slot, endp, len, ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       m aw ByteArray.empty σ k C)
     (hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) ≠ ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
     (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [(⟨32⟩ : UInt256) + ptr, (⟨1⟩ : UInt256) + slot, endp, len, ⟨0⟩,
         ⟨128⟩, ⟨187⟩, weth9SelWord I]
       memout awStore ByteArray.empty σ k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
   obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
+  obtain ⟨_, _, rd947⟩ : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty σ k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
@@ -137,19 +139,19 @@ theorem weth9NameLongCopyContinue {σ σ₀ A I}
 theorem weth9NameLongCopyExit {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore : UInt256} {m memout : ByteArray}
     {mstoreCost : Nat}
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+    (hreach : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [ptr, slot, endp, len, ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       m aw ByteArray.empty σ k C)
     (hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) = ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
     (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty σ k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
   obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
+  obtain ⟨_, _, rd947⟩ : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty σ k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
@@ -223,9 +225,9 @@ theorem weth9NameLongCopySchedule {σ σ₀ A I} {g : Sat256} {endp len : UInt25
     (fuel : Nat) (st : Nat → Weth9LongLoopState)
     (hsteps : ∀ i, i < fuel → Weth9LongLoopStep σ I endp len (st i) (st (i + 1)))
     (hfinal : Weth9LongLoopFinal σ I endp len (st fuel))
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+    (hreach : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       ((st 0).stack endp len I) (st 0).mem (st 0).aw ByteArray.empty σ k C) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] hfinal.memout hfinal.awStore ByteArray.empty σ k C := by
   induction fuel generalizing st with
   | zero =>
@@ -244,7 +246,7 @@ theorem weth9NameLongCopySchedule {σ σ₀ A I} {g : Sat256} {endp len : UInt25
         (m := (st 0).mem) (memout := (st 1).mem) (awStore := (st 1).aw)
         (mstoreCost := hs.mstoreCost)
         hreach hs.hcontinue hs.hmemout hs.hmstoreCost hs.hawStore
-      have hnext : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+      have hnext : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
           (((fun i => st i.succ) 0).stack endp len I)
           ((fun i => st i.succ) 0).mem ((fun i => st i.succ) 0).aw ByteArray.empty σ k C := by
         obtain ⟨k, C, rd⟩ := hnext₀
@@ -268,7 +270,7 @@ theorem weth9LongLoopMstoreCost_spec {σ : AccountMap} {I : ExecutionEnv} {endp 
       weth9LongLoopMstoreCost σ I endp len s := rfl
 
 /-- One generated copy-loop step, given the continue condition at state `i`. -/
-def weth9LongGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
+def weth9LongGeneratedLoopStep (fork : Ethereum.Fork) {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {i : Nat}
     (hcontinue : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (weth9LongGeneratedLoopState σ I i).ptr) ≠ ⟨0⟩) :
@@ -285,7 +287,7 @@ def weth9LongGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
     hslotNext := by simp [weth9LongGeneratedLoopState_succ] }
 
 /-- The generated final step, given the done condition at state `fuel`. -/
-def weth9LongGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
+def weth9LongGeneratedLoopFinal (fork : Ethereum.Fork) {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {fuel : Nat}
     (hdone : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (weth9LongGeneratedLoopState σ I fuel).ptr) = ⟨0⟩) :
@@ -407,15 +409,15 @@ theorem weth9NameLongReach187 {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] (weth9LongFinalMem σ I) (weth9LongFinalAw σ I)
       ByteArray.empty σ k C := by
-  obtain ⟨_, _, hloop⟩ := weth9NameLongReachLoop (σ := σ)
+  obtain ⟨_, _, hloop⟩ := weth9NameLongReachLoop (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   exact weth9NameLongCopySchedule (weth9LongWC σ I) (weth9LongGeneratedLoopState σ I)
-    (fun i hi => weth9LongGeneratedLoopStep
+    (fun i hi => weth9LongGeneratedLoopStep fork
       (len := weth9StringLen (solcSlotWord σ I ⟨0⟩)) (weth9LongContinue hi))
-    (weth9LongGeneratedLoopFinal
+    (weth9LongGeneratedLoopFinal fork
       (len := weth9StringLen (solcSlotWord σ I ⟨0⟩)) (weth9LongDone hge31))
     ⟨_, _, by simpa [weth9LongGeneratedLoopState_zero, Weth9LongLoopState.stack, weth9LongEnd]
       using hloop⟩

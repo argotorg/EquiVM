@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapProtocolMemory
 import Benchmarks.UniswapV3.Pool.SwapAccountingFirstLoad
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,14 +14,14 @@ theorem swapProtocolUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free tmp : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3536⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3536⟩
       ([d.feeAmount, c.feeProtocol, tmp, q, p] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 8 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R)
         (swapProtocolUpdateMem mem p q c s d) aw' rdata σ k' C' ∧
       HeapMemory (swapProtocolUpdateMem mem p q c s d) aw' free ∧
       SwapStateMemory (swapProtocolUpdateMem mem p q c s d) p (swapProtocolUpdatedState c s d) ∧
@@ -44,7 +46,7 @@ theorem swapProtocolUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have rr := uniswapV3Pool_block_3536 (immWords := wordsOf (immStore v)) hov rd
   simp only [uniswapV3Pool_block_3536_stack, uniswapV3Pool_block_3536_memory,
     solcMask128, hfee, hq192, hp160, hprotocol, hsum] at rr
-  have rr' : RD (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R)
+  have rr' : RD fork (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R)
       (swapProtocolUpdateMem mem p q c s d)
       (M (M (M (M aw (q + UInt256.ofNat 192) ⟨32⟩) (q + UInt256.ofNat 192) ⟨32⟩)
         (p + UInt256.ofNat 160) ⟨32⟩) (p + UInt256.ofNat 160) ⟨32⟩) rdata σ

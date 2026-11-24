@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor vat slot load trace
 -/
@@ -14,11 +16,11 @@ theorem spotCtorVatSloadReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨79⟩
       [solcSlotWord σWards I ⟨2⟩, ⟨2⟩, ⟨1⟩, EVM.word vat.val]
       (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty

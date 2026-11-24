@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapWriteStoreSource
 import Benchmarks.UniswapV3.Pool.SwapWriteStoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 def swapWriteWrites : List Ident :=
   ["__c16", "observationIndex", "observationCardinality", "__t17", "__t18", "__t19", "__t20"]
 
-structure SwapWriteExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
+structure SwapWriteExit (fork : Ethereum.Fork) (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
     (s0 : EVM.State) (rdata : ByteArray) (p cache snap : UInt256) (stack : List UInt256)
     (c : SwapCacheData) (s : SwapStateData) (initial : EVM.State)
     (frame : Frame) (evm : EVM.State) (initMem : ByteArray) (initFree : UInt256) where
@@ -21,12 +23,12 @@ structure SwapWriteExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : S
   free : UInt256
   k : Nat
   cost : Nat
-  source : ExecStmt config frame evm swapTransition.body[14]! (.ok frame' evm')
+  source : ExecStmt fork config frame evm swapTransition.body[14]! (.ok frame' evm')
   source_state : SourceState s0 ee accounts evm'
   contract_eq : frame'.contract = frame.contract
   immutables_eq : frame'.immutables = frame.immutables
   locals_get : ∀ name, name ∉ swapWriteWrites → frame'.locals.get? name = frame.locals.get? name
-  rd : RD (deployedRuntime v) ee g s0 ⟨4268⟩ stack mem aw rdata accounts k cost
+  rd : RD fork (deployedRuntime v) ee g s0 ⟨4268⟩ stack mem aw rdata accounts k cost
   heap : HeapMemory mem aw free
   cache_mem : SwapCacheMemory mem cache c
   state_mem : SwapStateMemory mem p s
@@ -39,7 +41,7 @@ theorem swapWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache snap exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3999⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3999⟩
       ([p, exactWord, cache, snap] ++ R) mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hi : frame.immutables = immStore v)
@@ -56,11 +58,11 @@ theorem swapWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hsnapc : snap.toNat + 224 ≤ cache.toNat) (hcp : cache.toNat + 192 ≤ p.toNat)
     (hpfree : p.toNat + 224 ≤ free.toNat) (hb : free.toNat + 384 ≤ 2 ^ 200)
     (hov : R.length + 33 ≤ 1024) :
-    (ExecStmt config frame evm swapTransition.body[14]! .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecStmt config frame evm swapTransition.body[14]! .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    Nonempty (SwapWriteExit v ee g s0 rdata p cache snap
+    (ExecStmt fork config frame evm swapTransition.body[14]! .reverted ∧
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm swapTransition.body[14]! .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    Nonempty (SwapWriteExit fork v ee g s0 rdata p cache snap
       ([p, exactWord, cache, snap] ++ R) c s initial frame evm mem free) := by
   obtain ⟨aw1, k1, C1, hC1, r1, hm1, hmono1⟩ :=
     swapWriteGuardX (v := v) s initial rd hm hs hsnap hsf (by omega) (by omega) (by omega)
@@ -68,7 +70,7 @@ theorem swapWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   by_cases ht : s.tick = slot0TickValue initial.accountMap initial.executionEnv
   · simp only [ht, if_true] at r1
     simp only [ht, ne_eq, not_true_eq_false, decide_false] at he
-    have hassign : ExecStmt config frame evm
+    have hassign : ExecStmt fork config frame evm
         (.assign .storage ⟨"slot0", [.field "sqrtPriceX96"]⟩
           (.field (.var "state") "sqrtPriceX96"))
         (.ok frame (swapSlotFieldState evm false s.price)) :=
@@ -101,7 +103,7 @@ theorem swapWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       have hget (name : Ident) (hn : name ≠ "__c16") :
           f.locals.get? name = frame.locals.get? name :=
         resumeAfterInternalCall_get _ _ _ _ hn
-      have hstores := swapWriteStoresSource (hperm := (congrArg ExecutionEnv.perm hsrc2.env).trans hperm) (evm := oracleWriteState a evm) s index cardinality
+      have hstores := swapWriteStoresSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hsrc2.env).trans hperm) (evm := oracleWriteState a evm) s index cardinality
         (show f.contract = contract from hf) ((hget "state" (by decide)).trans hsget)
         ((hget "slot0" (by decide)).trans hbase)
         (show f.locals.get? "__c16" = some (.tuple

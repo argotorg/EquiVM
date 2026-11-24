@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapCall
 import Benchmarks.UniswapV4PoolManager.TupleLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -16,7 +18,7 @@ def swapAfterHookFrame (f : Frame) (delta hook : UInt256) : Frame :=
 theorem swapAfterAssignSource {f : Frame} {evm : State} {delta hook : UInt256} {oldDelta oldHook : Value}
     (hd : f.locals.get? "swapDelta" = some oldDelta)
     (hh : f.locals.get? "hookDelta" = some oldHook) :
-    ExecBlock config (swapAfterCallFrame f delta hook) evm ((swapTransition.body.drop 27).take 2)
+    ExecBlock fork config (swapAfterCallFrame f delta hook) evm ((swapTransition.body.drop 27).take 2)
       (.ok (swapAfterHookFrame f delta hook) evm) :=
   assignTuplePair (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("__c7" == "swapDelta") = false)).trans hd)

@@ -898,11 +898,11 @@ def simulate(block: list[Instruction], branch: str | None,
                 raise AssertionError("JUMPI requires a branch")
         elif op == 0x00:
             proof.append(f"  exact {before}.stop {decode} {ov}")
-            terminal = "RDret __CODE__ g s0 " + world_map + " ByteArray.empty"
+            terminal = "RDret fork __CODE__ g s0 " + world_map + " ByteArray.empty"
             break
         elif op == 0xFE:
             proof.append(f"  exact RD.invalid {before} {decode}")
-            terminal = "RDinvalid __CODE__ g s0"
+            terminal = "RDinvalid fork __CODE__ g s0"
             break
         elif op in {0xF3, 0xFD}:
             off, length = stack.pop(0), stack.pop(0)
@@ -910,12 +910,12 @@ def simulate(block: list[Instruction], branch: str | None,
                 return_window = (off, length, mem)
                 proof.append(f"  exact RD.genRet {before} {decode} {ov}")
                 terminal = (
-                    f"RDret __CODE__ g s0 {world_map} "
+                    f"RDret fork __CODE__ g s0 {world_map} "
                     f"({mem}.readWithPadding {off}.toNat {length}.toNat)"
                 )
             else:
                 proof.append(f"  exact RD.genRev {before} {decode} {ov}")
-                terminal = "RDrev __CODE__ g s0"
+                terminal = "RDrev fork __CODE__ g s0"
             break
         elif op in {0xA0, 0xA1, 0xA2, 0xA3, 0xA4}:
             count = {0xA0: 2, 0xA1: 3, 0xA2: 4, 0xA3: 5, 0xA4: 6}[op]
@@ -994,7 +994,7 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     )
 
     input_rd = (
-        f"RD {effective_code_term} ee g s0 {u256_nat(block[0].pc)} {stack_term(summary.stack_in)} "
+        f"RD fork {effective_code_term} ee g s0 {u256_nat(block[0].pc)} {stack_term(summary.stack_in)} "
         f"mem aw rdata σ k C"
     )
     assumptions.append(f"(h : {input_rd})")
@@ -1007,7 +1007,7 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
                                              creation_code, immutable_sites is not None,
                                              runtime_suffix)
         result_rd = (
-            f"RD {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
+            f"RD fork {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
             f"{final_defs.memory} {summary.aw} rdata {summary.world_map}"
         )
         if summary.existential_counters:
@@ -1071,7 +1071,7 @@ def render_packed_summary(base_name: str, params: str, assumptions: list[str],
                           final_defs: FinalValueDefs) -> list[str]:
     packed_name = f"{base_name}_packed"
     result_rd = (
-        f"RD {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
+        f"RD fork {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
         f"{final_defs.memory} aw' rdata {summary.world_map}"
     )
     word_binders = "" if not summary.existential_words else (
@@ -1128,7 +1128,7 @@ def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruct
     if (static_word_value(src) != code_size or static_word_value(length) != suffix_size
             or base != "mem" or summary.mem != write):
         return None
-    expected = (f"RDret __CODE__ g s0 σ ({write}.readWithPadding "
+    expected = (f"RDret fork __CODE__ g s0 σ ({write}.readWithPadding "
                 f"{dest}.toNat {length}.toNat)")
     if summary.terminal != expected:
         return None
@@ -1140,8 +1140,8 @@ def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruct
              "    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray}",
              "    {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}",
              f"    (hstack : R.length + {summary.max_stack_prefix} ≤ 1024)",
-             f"    (h : RD {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
-             f"    RDret {code} g s0 σ ({suffix}) := by",
+             f"    (h : RD fork {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
+             f"    RDret fork {code} g s0 σ ({suffix}) := by",
              f"  have hcode : {code_term}.size = {code_size} := by native_decide",
              f"  have hsize : ({suffix}).size = {layout_term}.size :=",
              f"    Reasoning.VyperImmutables.Layout.suffixWords_size {layout_term} immWords",
@@ -1177,7 +1177,7 @@ def render_vyper_scalar_return(prefix: str, code_term: str, block: list[Instruct
     key = scalar_slots.get(static_word_value(src))
     if not key or static_word_value(length) != 32 or base != "mem" or summary.mem != write:
         return None
-    expected = (f"RDret __CODE__ g s0 σ ({write}.readWithPadding "
+    expected = (f"RDret fork __CODE__ g s0 σ ({write}.readWithPadding "
                 f"{dest}.toNat {length}.toNat)")
     if summary.terminal != expected:
         return None
@@ -1192,8 +1192,8 @@ def render_vyper_scalar_return(prefix: str, code_term: str, block: list[Instruct
              "    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray}",
              "    {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}",
              f"    (hstack : R.length + {summary.max_stack_prefix} ≤ 1024)",
-             f"    (h : RD {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
-             f"    RDret {code} g s0 σ ({word}).toByteArray := by",
+             f"    (h : RD fork {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
+             f"    RDret fork {code} g s0 σ ({word}).toByteArray := by",
              f"  have hcode : {code_term}.size = {code_size} := by native_decide",
              f"  have hcopy : {write.replace('__CODE__', code)} = {named_write} := by",
              f"    simpa [hcode] using {module}.immutableCopyWord_{ident} immWords mem {dest}.toNat",
@@ -1279,7 +1279,7 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
     assumptions = [f"(hstack : R.length + {summary.max_stack_prefix} ≤ 1024)"]
     assumptions.extend(f"({hyp} : {named(term)})"
                        for hyp, term in summary.extra_hypotheses)
-    assumptions.append(f"(h : RD {code} ee g s0 {u256_nat(block[0].pc)} "
+    assumptions.append(f"(h : RD fork {code} ee g s0 {u256_nat(block[0].pc)} "
                        f"{stack_term(summary.stack_in)} mem aw rdata σ k C)")
     if summary.terminal:
         result = named(summary.terminal)
@@ -1288,7 +1288,7 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
             read = f"({write}.readWithPadding {off}.toNat {length}.toNat)"
             result = result.replace(named(read), f"({named(value)}).toByteArray")
     else:
-        result_rd = (f"RD {code} ee g s0 {valued.pc} {final_defs.stack} {final_defs.memory} "
+        result_rd = (f"RD fork {code} ee g s0 {valued.pc} {final_defs.stack} {final_defs.memory} "
                      f"{valued.aw} rdata {valued.world_map}")
     if not summary.terminal and summary.existential_counters:
         word_binders = (f"({' '.join(summary.existential_words)} : UInt256) "
@@ -1345,7 +1345,7 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
     if summary.terminal or summary.existential_counters:
         lines.append(f"  have hraw := {last}")
     else:
-        raw_result_rd = (f"RD {code} ee g s0 {summary.pc} "
+        raw_result_rd = (f"RD fork {code} ee g s0 {summary.pc} "
                          f"{stack_term(summary.stack_out)} {summary.mem} {summary.aw} "
                          f"rdata {summary.world_map}").replace("__CODE__", code)
         raw_result = (f"{raw_result_rd} (k + {len(block)}) "
@@ -1623,7 +1623,7 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
     if immutable_sites is not None:
         output.append("import Reasoning.Immutables")
     output.extend(f"import {module}" for module in imports)
-    output += ["", "open Stele ABI Ethereum Ethereum.EVM",
+    output += ["", "variable {fork : Ethereum.Fork}", "", "open Stele ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
                f"namespace {namespace}", ""]
     if max_rec_depth is not None:

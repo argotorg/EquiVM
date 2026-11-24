@@ -11,6 +11,8 @@ import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -209,13 +211,13 @@ theorem accessControlPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 theorem accessControlReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I)
         accessControlSplitPc [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed accessControlBenchBytecode accessControlSplitPc := by
     solc_dispatch_prefix
   simpa [accessControlSelWord, solcSelectorWord] using
-    (solcDispatchReachSelector (σ := σ) (σ₀ := σ₀)
+    (solcDispatchReachSelector (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix (by jump_dest))
 
 theorem accessControlReachHighBody {σ σ₀ A I} {g : Sat256}
@@ -236,7 +238,7 @@ theorem accessControlReachHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J accessControlBenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt accessControlBenchBytecode
         (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hprefix : solcDispatchPrefixWellFormed accessControlBenchBytecode accessControlSplitPc := by
@@ -282,7 +284,7 @@ theorem accessControlReachLowBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J accessControlBenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt accessControlBenchBytecode
         (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hprefix : solcDispatchPrefixWellFormed accessControlBenchBytecode accessControlSplitPc := by
@@ -354,14 +356,14 @@ theorem accessControlDispatch_none_nomatch {cd : ByteArray}
 
 theorem accessControlBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
 theorem accessControlX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt accessControlBenchBytecode)
     (opC := solcGuardTgtOp accessControlBenchBytecode)
@@ -373,8 +375,8 @@ theorem accessControlX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem accessControlX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -394,7 +396,7 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have heqLow0 : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat accessControlBenchBytecode
@@ -451,11 +453,11 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
         simpa [accessControlHighSelBytes, accessControlSelBytes] using h
       rw [hfalse]
       rfl
-  obtain ⟨kS, CS, hsplit⟩ := accessControlReachSplit
+  obtain ⟨kS, CS, hsplit⟩ := accessControlReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   by_cases hpivot : UInt256.gt (armSelNat accessControlBenchBytecode accessControlSplitPc)
       (accessControlSelWord I) = ⟨0⟩
-  · have h41 := RD.selectorSplitNotTakenAuto hsplit accessControlSplitWellFormed hpivot (by simp)
+  · have h41 := RD.selectorSplitNotTakenAuto (fork := fork) hsplit accessControlSplitWellFormed hpivot (by simp)
     have h85 := h41
       |>.selectorArmNotTakenAuto (accessControlHighArmsWellFormed 0 (by omega))
           (heqHigh0 0 (by omega)) (by simp)
@@ -465,7 +467,7 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqHigh0 2 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (accessControlHighArmsWellFormed 3 (by omega))
           (heqHigh0 3 (by omega)) (by simp)
-    have h85' : ∃ k C, RD accessControlBenchBytecode I g
+    have h85' : ∃ k C, RD fork accessControlBenchBytecode I g
         (initState σ σ₀ g A I) ⟨85⟩ [accessControlSelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
@@ -483,7 +485,7 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
           (heqLow0 1 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (accessControlLowArmsWellFormed 2 (by omega))
           (heqLow0 2 (by omega)) (by simp)
-    have h122' : ∃ k C, RD accessControlBenchBytecode I g
+    have h122' : ∃ k C, RD fork accessControlBenchBytecode I g
         (initState σ σ₀ g A I) ⟨122⟩ [accessControlSelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22, ?_⟩

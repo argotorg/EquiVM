@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AuthorizationSigRecoveryMemory
 import Benchmarks.Morpho.MorphoBlue.EcrecoverFacts
 import Benchmarks.Morpho.MorphoBlue.StaticCallBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -53,9 +55,9 @@ theorem morphoAuthorizationRecoverySource (v : MorphoImmutables) (a : Authorizat
     (hd : locals.get? "digest" = some (wordBytes32Value (authorizationDigest v a)))
     (hs : locals.get? "signature" = some (signatureValue cd))
     (hp : locals.get? "precompile" = some (.address (AccountAddress.ofNat 1)))
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0
       (returnWordBytes (authorizationRecoveryWords v a cd)) (z, evm', out) false) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       setAuthorizationWithSigTransition.body[18]!
       (.ok {
         contract := contract, locals := authorizationRecoveredLocals locals z out,
@@ -75,15 +77,15 @@ theorem morphoAuthorizationRecoveryCall {v : MorphoImmutables} {ee : ExecutionEn
     {s0 evm : State} {rdata : ByteArray} {aw gasArg : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords)
     (hs : SourceState s0 ee σ evm) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6409)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6409)
       ([gasArg, UInt256.ofNat 1, UInt256.ofNat 768, UInt256.ofNat 128,
         UInt256.ofNat 0, UInt256.ofNat 32] ++ authorizationRecoveryTail R)
       (authorizationRecoveryMem v a ee.calldata) aw rdata σ k C) :
     ∃ evm' z out aw' k' C',
-      callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0
         (returnWordBytes (authorizationRecoveryWords v a ee.calldata)) (z, evm', out) false ∧
       SourceState s0 ee evm'.accountMap evm' ∧ EcrecoverOutput out ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
         ((if z then ⟨1⟩ else ⟨0⟩) :: authorizationRecoveryTail R)
         (callOutputMem (authorizationRecoveryMem v a ee.calldata) out (UInt256.ofNat 0) (UInt256.ofNat 32))
         aw' out evm'.accountMap k' C' := by

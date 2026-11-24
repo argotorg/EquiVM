@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.SignatureBranchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -16,7 +18,7 @@ theorem signatureDynamicLocals {f : Frame} {evm : EVM.State} {r s : UInt256} {ol
     (name : Ident) (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old) :
-    ExecBlock config f evm (signatureDynamicPrefix name)
+    ExecBlock fork config f evm (signatureDynamicPrefix name)
       (.ok (signatureDynamicFrame f r s name) evm) := by
   exact .consNormal (signatureCurrentSource hr ho)
     (.consNormal (.letDecl (evalWordBytesAsUint256 (evalLocalValue (by

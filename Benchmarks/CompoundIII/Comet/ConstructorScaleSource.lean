@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorScaleWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -47,11 +49,11 @@ theorem constructorScaleExpr_eval {c : ConstructorConfig} {w feed : UInt256} {ev
 
 theorem constructorSourceScale_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State} (hw : w.toNat ≤ 18)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
       (.ok (constructorSourceInitialImms c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 18)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 18)
       (.ok (constructorSourceScale c w feed) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 16 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 16 ++
     [.setImmutable "baseScale" constructorScaleExpr,
       .setImmutable "trackingIndexScale" (.field (.var "config") "trackingIndexScale")]) _
   apply execBlockAppendOk hp
@@ -90,12 +92,12 @@ theorem constructorSource_scaleGuard {c : ConstructorConfig} {w feed : UInt256} 
 
 theorem constructorSourceScaleChecked_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State} (hw : w.toNat ≤ 18) (hlo : 6 ≤ w.toNat)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
       (.ok (constructorSourceInitialImms c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 19)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 19)
       (.ok (constructorSourceScale c w feed) evm') := by
   have hd := constructorSourceScale_exec hw hp
-  change ExecBlock config _ _ (contract.ctor.body.take 18 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 18 ++
     [.require (.binary .ge (.immutable "baseScale") (.intLit 1000000))]) _
   apply execBlockAppendOk hd
   exact .consNormal (.requireTrue (by
@@ -103,9 +105,9 @@ theorem constructorSourceScaleChecked_exec {c : ConstructorConfig} {w feed : UIn
 
 theorem constructorSourceScaleChecked_revert {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State} (hw : w.toNat ≤ 18) (hlo : ¬ 6 ≤ w.toNat)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
       (.ok (constructorSourceInitialImms c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   have hd := constructorSourceScale_exec hw hp
   rw [← List.take_append_drop 18 contract.ctor.body]
   apply execBlockAppendOk hd

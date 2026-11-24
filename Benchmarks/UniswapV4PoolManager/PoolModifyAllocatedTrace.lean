@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyAfterPreludeTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyStartTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyAllocationMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -23,11 +25,11 @@ theorem poolModifyAllocatedTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hsp : memLoad (params+UInt256.ofNat 128) mem = p.spacing)
     (hp : 160 ≤ params.toNat) (hps : params.toNat+192 ≤ mem.size) (hpb : params.toNat+192 ≤ ptr.toNat)
     (hptr : 160 ≤ ptr.toNat) (hfit : ptr.toNat+128 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨5680⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5680⟩
       (x1 :: x2 :: ⟨0⟩ :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: extra :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (poolModifyReturnTrace v I g s0 σ₀ (poolModifyAllocatedMemory mem ptr id p evm)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (poolModifyReturnTrace fork v I g s0 σ₀ (poolModifyAllocatedMemory mem ptr id p evm)
         rdata x1 x2 x4 x5 x9 extra R)
       (poolModifyAfterPreludeResult (poolModifyPreludeFrame f p) evm id p) := by
   have hfit256 : ptr.toNat+128 < UInt256.size := by

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.RecoverSource
 import Benchmarks.EAS.EAS.ECDSAErrorEVM
 import Benchmarks.EAS.EAS.HeapPost
 import Benchmarks.EAS.EAS.RuntimeBlocks_041
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,9 +21,9 @@ theorem recoverRun {L imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : E
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hv : sigV.toNat < 2^8) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩
       (hash::sigV::r::s::⟨13745⟩::saved0::saved1::saved2::ret::R) mem aw rdata σ k C) :
-    ∃ a : AccountAddress, HeapReturnPost (a ≠ 0) config (deployedRuntime v) ee g s0
+    ∃ a : AccountAddress, HeapReturnPost fork (a ≠ 0) config (deployedRuntime v) ee g s0
       {contract := contract,locals := L,immutables := imms} evm recoverFunction.body (.address a)
       ret (saved0::saved1::saved2::UInt256.ofNat a.val::R) mem heap.toNat := by
   have he : evalExprs? config {contract := contract,locals := L,immutables := imms} evm recoverCallArgs =
@@ -34,7 +36,7 @@ theorem recoverRun {L imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : E
   refine ⟨a,?_⟩
   rcases hcall with ⟨evm1,σ1,mem1,out,aw1,k1,C1,heap1,hs1,hlo1,hheap1,hprefix,hfree,hcall,r1⟩ | ⟨hcall,hrev⟩
   · have hp := recoverPrefixSource hf hcall
-    have htail := recoverTailSource (imms := imms) (evm := evm1)
+    have htail := recoverTailSource (fork := fork) (imms := imms) (evm := evm1)
       (recoverLocals_recovered L a error heap1) (recoverLocals_error L a error heap1)
       (recoverLocals_heap L a error heap1)
     have r2 := easBlocks.eas_block_13745 (immWords := wordsOf (immStore v)) (by omega)
@@ -68,9 +70,9 @@ theorem recoverCallRun {L imms : Store} {args : List Expr} {retVar : Ident}
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hv : sigV.toNat < 2^8) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩
       (hash::sigV::r::s::⟨13745⟩::saved0::saved1::saved2::ret::R) mem aw rdata σ k C) :
-    ∃ a : AccountAddress, HeapCallPost (a ≠ 0) config (deployedRuntime v) ee g s0
+    ∃ a : AccountAddress, HeapCallPost fork (a ≠ 0) config (deployedRuntime v) ee g s0
       {contract := contract,locals := L,immutables := imms} evm "ECDSA_recover" args retVar (.address a)
       ret (saved0::saved1::saved2::UInt256.ofNat a.val::R) mem heap.toNat := by
   obtain ⟨a,h⟩ := recoverRun (L := recoverArgs hash sigV r s heap.toNat) (imms := imms) v

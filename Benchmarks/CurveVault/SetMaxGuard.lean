@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.SetMaxAdminCall
 import Benchmarks.CurveVault.AddressWord
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -30,12 +32,12 @@ theorem vaultSetMaxGuard {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcanon : admin.toNat < EVM.addressModulus)
     (hfactory : (codeOwnerStorageWord I σ ⟨4⟩).toNat < EVM.addressModulus)
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 932) (admin :: unused1 :: unused2 :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 932) (admin :: unused1 :: unused2 :: R) mem aw rdata σ k C) :
     (evalExpr? config {contract := contract, locals := locals} evm vaultSetMaxGuardExpr = .ok (.bool true) ∧
-      ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 966) R
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 966) R
         (admin.toByteArray.write 0 mem 128 32) aw' rdata σ k' C') ∨
     (evalExpr? config {contract := contract, locals := locals} evm vaultSetMaxGuardExpr = .ok (.bool false) ∧
-      RDrev vaultBytecode g s0) := by
+      RDrev fork vaultBytecode g s0) := by
   have hf := vaultFactoryEval evm locals hbase
   rw [hs.storageRead, accountAddress_ofUInt256_eq_ofNat_toNat] at hf
   have heval := vaultSetMaxGuardSource evm locals _ _ hadmin hf
@@ -62,7 +64,7 @@ theorem vaultSetMaxGuard {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (by rw [hword]; exact u256_xor_ne_zero_of_ne ha) (by native_decide) h
     obtain ⟨_, _, rd960⟩ := vaultBlocks.vault_block_953
       (by simp only [vaultBlocks.vault_block_932_taken_stack]; omega) rd953
-    change RD vaultBytecode I g s0 (UInt256.ofNat 960)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 960)
       (UInt256.isZero (UInt256.xor (UInt256.ofNat I.source.val) (codeOwnerStorageWord I σ ⟨4⟩)) :: R)
       _ _ rdata σ _ _ at rd960
     have haa : I.source ≠ AccountAddress.ofNat admin.toNat :=

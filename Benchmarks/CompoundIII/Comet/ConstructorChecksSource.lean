@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorChecks
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -26,12 +28,12 @@ theorem constructorSource_baseMinGuard (c : ConstructorConfig) (w : UInt256) (ev
 
 theorem constructorSourceChecks_exec {c : ConstructorConfig} {w : UInt256}
     {evm evm' : EVM.State}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 4)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 4)
       (.ok (constructorSourceDecimals c w) evm'))
     (hvalid : ConstructorChecksValid c) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
       (.ok (constructorSourceDecimals c w) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 4 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 4 ++
     [.require (.binary .le (.field (.var "config") "storeFrontPriceFactor")
       (.intLit 1000000000000000000)),
       .require (.binary .le (.arrayLength .localVar ⟨"config", [.field "assetConfigs"]⟩)
@@ -47,10 +49,10 @@ theorem constructorSourceChecks_exec {c : ConstructorConfig} {w : UInt256}
 
 theorem constructorSourceChecks_revert {c : ConstructorConfig} {w : UInt256}
     {evm evm' : EVM.State}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 4)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 4)
       (.ok (constructorSourceDecimals c w) evm'))
     (hvalid : ¬ ConstructorChecksValid c) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   rw [← List.take_append_drop 4 contract.ctor.body]
   apply execBlockAppendOk hp
   by_cases hfactor : c.storeFrontPriceFactor.val ≤ 1000000000000000000

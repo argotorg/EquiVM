@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V2_0e91d99.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -11,10 +13,10 @@ theorem reEquivFallbackExecution {cfg : Config} {c : ContractDecl} {imms : Store
     (hr : receiveDispatchMsg c I.calldata = none) (hf : c.fallback = some t)
     (ha : fallbackCallargs I.calldata t.params = some args)
     (hc : fallbackReturnConvention t = some convention)
-    (hbody : ExecTransitionBody cfg c (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg c (initState σ σ₀ (.ofUInt256 g) A I)
       args t.body result imms)
-    (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) result convention) :
-    runtimeRefinementFor cfg c σ σ₀ g A I imms :=
+    (hequiv : execResultsEquiv (Ξ fork σ σ₀ g A I) result convention) :
+    runtimeRefinementFor fork cfg c σ σ₀ g A I imms :=
   .execution rfl (.fallback hd hr hf ha hc rfl hbody) hequiv
 
 end Benchmarks.Safe.V2_0e91d99

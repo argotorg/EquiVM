@@ -2,6 +2,8 @@ import Benchmarks.Auction.SettleStorePrefix
 import Benchmarks.Auction.NounRoutines
 import Benchmarks.Auction.CallGrowth
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -32,7 +34,7 @@ theorem settleBidderGuardSource {evm locals s}
     rw [beq_eq_false_iff_ne.mpr hne, decide_eq_false hz]
 
 theorem settleNounRoutine {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4434⟩
+    (h : RD fork auctionBytecode I g s0 ⟨4434⟩
       (⟨4536⟩ :: Snapshot.bidderWord s :: snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
@@ -40,14 +42,14 @@ theorem settleNounRoutine {I g s0 s snap ret R mem aw ptr rdata σ k C evm local
     (hv : SettleValues locals s ptr) (hov : R.length + 17 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleNounStmt (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SettleValues locals' s ptr ∧ SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' ptr ∧ SnapshotMemory s mem' aw' snap ∧
       MemoryPrefix mem mem' ptr.toNat ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
-      settleNounStmt .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settleNounStmt .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have hn : loadedWord mem snap = s.nounId := by
     have hl : loadedWord mem (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩
     rwa [u256_add_comm snap ⟨0⟩, u256_zero_add] at hl

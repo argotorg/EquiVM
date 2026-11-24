@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Tests.Pipeline.VyperWrapper.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -14,8 +16,8 @@ private abbrev j := Reasoning.Theory.D_J_contains_append_left Tests.Pipeline.Vyp
 theorem wrapperCreation_block_1798_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1798) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1798) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.callvalue (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -28,16 +30,16 @@ theorem wrapperCreation_block_1798_fallthrough {tail : ByteArray} {ee : Executio
 theorem wrapperCreation_block_1798_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1798) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1798) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (wrapperCreation_block_1798_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1803. -/
 theorem wrapperCreation_block_1803 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1803) R mem aw rdata σ k C)
+    : RDret fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 2) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -51,8 +53,8 @@ theorem wrapperCreation_block_1803 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 /-- Automatically generated RD summary for bytecode block at pc 1814. -/
 theorem wrapperCreation_block_1814 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1814) R mem aw rdata σ k C)
-    : RDrev (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1814) R mem aw rdata σ k C)
+    : RDrev fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -63,8 +65,8 @@ theorem wrapperCreation_block_1814 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 /-- Automatically generated RD summary for bytecode block at pc 1818. -/
 theorem wrapperCreation_block_1818 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1818) R mem aw rdata σ k C)
-    : RDrev (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1818) R mem aw rdata σ k C)
+    : RDrev fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -75,8 +77,8 @@ theorem wrapperCreation_block_1818 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 /-- Automatically generated RD summary for bytecode block at pc 1822. -/
 theorem wrapperCreation_block_1822 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 0 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1822) R mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1822) R mem aw rdata σ k C)
+    : RDret fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) g s0 σ ByteArray.empty := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   exact r0.stop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -90,8 +92,8 @@ def wrapperCreation_block_1824_stack {x0 : UInt256} {x1 : UInt256} {R : List UIn
 /-- Automatically generated RD summary for bytecode block at pc 1824. -/
 theorem wrapperCreation_block_1824 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1824) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1825) (wrapperCreation_block_1824_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 1) (C + ((5))) := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1824) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1825) (wrapperCreation_block_1824_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 1) (C + ((5))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.mod (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -101,8 +103,8 @@ theorem wrapperCreation_block_1824 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem wrapperCreation_block_1824_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1824) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1825) (wrapperCreation_block_1824_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1824) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1825) (wrapperCreation_block_1824_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (wrapperCreation_block_1824 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -115,8 +117,8 @@ def wrapperCreation_block_1826_stack {x0 : UInt256} {x1 : UInt256} {R : List UIn
 /-- Automatically generated RD summary for bytecode block at pc 1826. -/
 theorem wrapperCreation_block_1826 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1826) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1837) (wrapperCreation_block_1826_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 3) (C + ((13))) := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1826) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1837) (wrapperCreation_block_1826_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 3) (C + ((13))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperWrapper.wrapperCreationBytecode.size = 1838 := by native_decide
   have r1 := r0.mod (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -128,8 +130,8 @@ theorem wrapperCreation_block_1826 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem wrapperCreation_block_1826_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1826) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1837) (wrapperCreation_block_1826_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1826) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperWrapper.wrapperCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1837) (wrapperCreation_block_1826_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (wrapperCreation_block_1826 hstack h)
   exact ⟨_, k', C', h'⟩
 

@@ -4,6 +4,8 @@ import Reasoning.ABIComposite
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -245,7 +247,7 @@ theorem erc6909ApproveBodyReturns (evm : EVM.State)
     (hspender :
       AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore evm.executionEnv) approveTransition.body
       (.returned { contract := contract, locals := approveStore evm.executionEnv }
         (approvePostState evm evm.executionEnv) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
@@ -268,7 +270,7 @@ theorem erc6909ApproveBodyStatic (evm : EVM.State)
     (hspender :
       AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore evm.executionEnv) approveTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -283,7 +285,7 @@ theorem erc6909ApproveBodyStatic (evm : EVM.State)
 theorem erc6909ApproveBodyReverts_sender (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsource : evm.executionEnv.source = AccountAddress.ofNat 0) :
-    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore evm.executionEnv) approveTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -295,7 +297,7 @@ theorem erc6909ApproveBodyReverts_spender (evm : EVM.State)
     (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
     (hspender :
       AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat = AccountAddress.ofNat 0) :
-    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore evm.executionEnv) approveTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -564,9 +566,9 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
 /-! ## EVM ABI decode traces for the approve body wrapper -/
 
 theorem erc6909ApproveX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1742⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1742⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨242⟩, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
@@ -578,9 +580,9 @@ theorem erc6909ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨522⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨522⟩
       [approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
@@ -608,9 +610,9 @@ theorem erc6909ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
     solcCalldataStaticLenCheckShort (words := 3) hsz4 (by simpa using hshort) hsize
       (by norm_num)
@@ -624,9 +626,9 @@ theorem erc6909ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
     solcCalldataStaticLenCheckHuge (words := 3) hbig hsize (by norm_num)
   obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
@@ -641,9 +643,9 @@ theorem erc6909ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (approveSpenderWord I)
       (UInt256.land (approveSpenderWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
   obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
@@ -698,9 +700,9 @@ theorem erc6909ApproveX_toHelper {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨766⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨766⟩
       [approveAmountWord I, approveIdWord I, approveSpenderWord I, approveOwnerWord I,
         ⟨512⟩, ⟨0⟩, approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -718,16 +720,16 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
+    (I.perm = true ∧ ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
       [⟨32⟩, ⟨64⟩, approveOwnerWord I, approveSpenderWord I, approveAmountWord I,
         approveIdWord I, approveSpenderWord I, approveOwnerWord I, ⟨512⟩, ⟨0⟩,
         approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
       (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I) (approveIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C)
-    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
@@ -823,9 +825,9 @@ theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source = AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
@@ -862,9 +864,9 @@ theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt25
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
@@ -914,9 +916,9 @@ theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+    RDret fork erc6909BenchBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd900⟩ := permSplit_true hperm (erc6909ApproveX_stored
@@ -993,11 +995,11 @@ theorem erc6909ApproveBodyCore
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 3))
-    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hselApprove : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩ := by
     simpa [erc6909SelBytes] using hsel
@@ -1011,7 +1013,7 @@ theorem erc6909ApproveBodyCore
         let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
         by_cases hsource : I.source = AccountAddress.ofNat 0
         · have hbody :
-              ExecTransitionBody config contract evmS (approveStore I)
+              ExecTransitionBody fork config contract evmS (approveStore I)
                 approveTransition.body .reverted := by
             simpa [evmS, initState] using erc6909ApproveBodyReverts_sender evmS
               (by simp only [evmS, initState]; exact hwv)
@@ -1022,7 +1024,7 @@ theorem erc6909ApproveBodyCore
         · by_cases hspender :
             AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0
           · have hbody :
-                ExecTransitionBody config contract evmS (approveStore I)
+                ExecTransitionBody fork config contract evmS (approveStore I)
                   approveTransition.body .reverted := by
               simpa [evmS, initState] using erc6909ApproveBodyReverts_spender evmS
                 (by simp only [evmS, initState]; exact hwv)
@@ -1033,7 +1035,7 @@ theorem erc6909ApproveBodyCore
               |>.reEquivExecutionRevert hcode hd hdec hbody
           · by_cases hperm : I.perm = true
             · have hbody :
-                  ExecTransitionBody config contract evmS (approveStore I)
+                  ExecTransitionBody fork config contract evmS (approveStore I)
                     approveTransition.body
                     (.returned { contract := contract, locals := approveStore I }
                       (approvePostState evmS I) (some [(.bool true)])) := by
@@ -1049,7 +1051,7 @@ theorem erc6909ApproveBodyCore
                   (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
             · have hpf : I.perm = false := by simpa using hperm
               have hbody :
-                  ExecTransitionBody config contract evmS (approveStore I)
+                  ExecTransitionBody fork config contract evmS (approveStore I)
                     approveTransition.body .staticViolation := by
                 simpa [evmS, initState] using erc6909ApproveBodyStatic evmS
                   (by simp only [evmS, initState]; exact hwv)

@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.ExecGuardCallPrepare
 import Benchmarks.Safe.Runs1e6.SafeAddTrace
 import Benchmarks.Safe.Runs1e6.MaximumTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -11,11 +13,11 @@ namespace Benchmarks.Safe.Runs1e6
 set_option maxRecDepth 100000 in
 theorem safeExecRequiredGasTrace (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src} {sigPtr guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4417⟩
+    (h : RD fork safeBytecode I g s0 ⟨4417⟩
       (execGuardSaved p src sigPtr guard hash R) mem aw rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬ ExecGasFits p.tx.safeTxGas) ∨
-    ∃ k' C', ExecGasFits p.tx.safeTxGas ∧ RD safeBytecode I g s0 ⟨4465⟩
+    (RDrev fork safeBytecode g s0 ∧ ¬ ExecGasFits p.tx.safeTxGas) ∨
+    ∃ k' C', ExecGasFits p.tx.safeTxGas ∧ RD fork safeBytecode I g s0 ⟨4465⟩
       (execRequiredGas p.tx.safeTxGas :: execGuardSaved p src sigPtr guard hash R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_4417 (by simp; omega) (by jump_dest) h

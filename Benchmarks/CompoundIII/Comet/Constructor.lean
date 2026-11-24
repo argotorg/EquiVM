@@ -11,6 +11,8 @@ import Benchmarks.CompoundIII.Comet.ConstructorAssetsSource
 import Benchmarks.CompoundIII.Comet.ConstructorRuntimeFinish
 import Stele.RefineWithCodeBound
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList constructor correctness
 
@@ -28,7 +30,7 @@ set_option maxRecDepth 2000 in
 theorem cometWithExtendedAssetListConstructorCorrect :
     typedConstructorRefinementWithCodeBound config cometWithExtendedAssetListCreationBytecode
       contract (immutableLayout.deployed cometWithExtendedAssetListBytecode) := by
-  intro σ σ₀ g A I args code hdeploy hcode hcalldata hperm hsize
+  intro fork _hfork σ σ₀ g A I args code hdeploy hcode hcalldata hperm hsize
   by_cases hv : I.weiValue = ⟨0⟩
   · obtain ⟨c, rfl, hinitcode, hbound⟩ := cometConstructorBoundedInput hdeploy hcode hsize
     rcases cometConstructorInitialCalls (σ := σ) (σ₀ := σ₀) (A := A) (g := g)

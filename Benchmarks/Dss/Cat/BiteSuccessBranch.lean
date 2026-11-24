@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.BiteConnect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,7 +19,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
     {iArt iRate iSpot iLine iDust ink art id : UInt256}
     {acc : AccountMap}
     (hcode : I.code = catBytecode)
-    (hret : RDret catBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id))
     (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
     (hdecode :
@@ -30,7 +32,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
           (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat)
     (hIlksCall :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
     (hIlksDec :
@@ -40,7 +42,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat
         ((evmIlk.lookupAccount (biteVatAddr evmIlk)).option 0 (fun acc => acc.code.size))).toNat)
     (hUrnsCall :
-      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+      typedCallViaEVM fork config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
     (hUrnsDec : config.externalABI.decode? "urns" urnsOut = some [bw ink, bw art])
     (hlive : solcSlotWordAt ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
@@ -65,7 +67,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat
         ((evmUrn.lookupAccount (biteVatAddr evmUrn)).option 0 (fun acc => acc.code.size))).toNat)
     (hGrabCall :
-      typedCallViaEVM config evmUrn (EVM.address (biteVatAddr evmUrn)) "grab" 0
+      typedCallViaEVM fork config evmUrn (EVM.address (biteVatAddr evmUrn)) "grab" 0
         [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
           .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn iRate art ink).toNat)),
           .int (-(Int.ofNat (biteDartV I evmUrn iRate art).toNat))] (true, evmGrab, grabOut) true)
@@ -74,7 +76,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat
         ((evmGrab.lookupAccount (biteVowAddrV evmGrab)).option 0 (fun acc => acc.code.size))).toNat)
     (hFessCall :
-      typedCallViaEVM config evmGrab (EVM.address (biteVowAddrV evmGrab)) "fess" 0
+      typedCallViaEVM fork config evmGrab (EVM.address (biteVowAddrV evmGrab)) "fess" 0
         [bw (biteDartRateV I evmUrn iRate art)] (true, evmFess, fessOut) true)
     (hFessDec : config.externalABI.decode? "fess" fessOut = some [])
     (hLitStore :
@@ -84,13 +86,13 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat
         ((evmLit.lookupAccount (biteFlipAddrV I evmUrn)).option 0 (fun acc => acc.code.size))).toNat)
     (hKickCall :
-      typedCallViaEVM config evmLit (EVM.address (biteFlipAddrV I evmUrn)) "kick" 0
+      typedCallViaEVM fork config evmLit (EVM.address (biteFlipAddrV I evmUrn)) "kick" 0
         [biteUrnVal I, .address (biteVowAddrV evmLit), bw (biteTabV I evmUrn iRate art),
           bw (biteDinkV I evmUrn iRate art ink), .int 0] (true, evmKick, kickOut) true)
     (hKickDec : config.externalABI.decode? "kick" kickOut = some [bw id])
     (hAccountsFinal : acc = evmKick.accountMap)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact catBiteSuccessLeaf (hperm := hperm) hcode hret hdispatch hdecode hsz36 hwv hvatCode0 hIlksCall hIlksDec
     hvatCodeIlk hUrnsCall hUrnsDec hlive hfitInkSpot hfitArtRate hfitDunkRoomWad hfitInkDart
     hfitDartRate hfitTabBase hfitLitterNew hspotPos hratePos hartPos hmilkChopPos hunsafe hlitLtBox

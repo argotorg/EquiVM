@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.DentBodyBranch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -9,13 +11,13 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (flipperSelBytes 4) rfl hsel
     have hdispatch : dispatchMsg contract I.calldata = some dentTransition :=
       flipperDispatchDent hsel
-    have hreach := flipperReachDentBody
+    have hreach := flipperReachDentBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     have hdecode := flipperDecode_dent_ok (I := I) hsz100
@@ -40,7 +42,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     · have hguyStele : bidGuyWord (dentId I) σ I = ⟨0⟩ := by
         simpa [← hguyEq] using hguyEvm
       have hbody :
-          ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
         simpa [evm0, locals] using
           (flipperDentSourceBodyGuyNotSet
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hguyStele)
@@ -63,7 +65,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat I.header.timestamp).toNat := by
             simpa [← hticEq] using hticLeEvm
           have hbody :
-              ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
             simpa [evm0, locals] using
               (flipperDentSourceBodyAlreadyFinishedTic
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -99,7 +101,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                   (UInt256.ofNat I.header.timestamp).toNat := by
               simpa [← hendEq] using hendLeEvm
             have hbody :
-                ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
               simpa [evm0, locals] using
                 (flipperDentSourceBodyAlreadyFinishedEnd
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -199,7 +201,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                       (bidLotWord (dentId I) σ I).toNat ≤ (dentLot I).toNat := by
                     simpa [← hlotWordEq] using hlotLeEvm
                   have hbody :
-                      ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                      ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
                     simpa [evm0, locals] using
                       (flipperDentSourceBodyLotNotLower
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -218,7 +220,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                   intro htab
                   exact htabEvm (by simpa [htabWordEq] using htab)
                 have hbody :
-                    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
                   simpa [evm0, locals] using
                     (flipperDentSourceBodyTendNotFinished
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -233,7 +235,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                 intro hbid
                 exact hbidEvm (by simpa [hbidWordEq] using hbid)
               have hbody :
-                  ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                  ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
                 simpa [evm0, locals] using
                   (flipperDentSourceBodyNotMatchingBid
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -265,7 +267,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat I.header.timestamp).toNat := by
             simpa [← hendEq] using hendLeEvm
           have hbody :
-              ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
             simpa [evm0, locals] using
               (flipperDentSourceBodyAlreadyFinishedEnd
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -375,7 +377,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                     (bidLotWord (dentId I) σ I).toNat ≤ (dentLot I).toNat := by
                   simpa [← hlotWordEq] using hlotLeEvm
                 have hbody :
-                    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
                   simpa [evm0, locals] using
                     (flipperDentSourceBodyLotNotLower
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -398,7 +400,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                 intro htab
                 exact htabEvm (by simpa [htabWordEq] using htab)
               have hbody :
-                  ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                  ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
                 simpa [evm0, locals] using
                   (flipperDentSourceBodyTendNotFinished
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -416,7 +418,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
               intro hbid
               exact hbidEvm (by simpa [hbidWordEq] using hbid)
             have hbody :
-                ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+                ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
               simpa [evm0, locals] using
                 (flipperDentSourceBodyNotMatchingBid
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -432,7 +434,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     have hshort : I.calldata.size < 100 := by omega
     have hdispatch : dispatchMsg contract I.calldata = some dentTransition :=
       flipperDispatchDent hsel
-    have hreach := flipperReachDentBody
+    have hreach := flipperReachDentBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     exact (flipperDentX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)

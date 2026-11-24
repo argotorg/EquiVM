@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.GetUIDCall
 import Benchmarks.EAS.EAS.UIDControl
 import Benchmarks.EAS.EAS.Time
 import Benchmarks.EAS.EAS.AllocateBounds
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -30,10 +32,10 @@ structure UIDLoopLocals (L : Store) (a : AttestationRecord) (bump : UInt256) (he
 
 theorem uidComputeSource {cfg : Config} {L imms : Store} {evm : EVM.State} {word : UInt256} {heap : Nat} {old oldHeap : Value}
     (hh : L.get? "$EAS.freeMemory" = some oldHeap) (hu : L.get? "uid" = some old)
-    (hc : ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm uidCompute[0]!
+    (hc : ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm uidCompute[0]!
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} "__c3$allocation"
         (some [wordBytes32Value word,.int (Int.ofNat heap)])) evm)) :
-    ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm uidCompute
+    ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm uidCompute
       (.ok {contract := contract,locals := uidComputeLocals L word heap,immutables := imms} evm) := by
   apply ExecBlock.consNormal hc
   let first := L.insert "__c3$allocation" (.tuple [wordBytes32Value word,.int (Int.ofNat heap)])
@@ -42,10 +44,10 @@ theorem uidComputeSource {cfg : Config} {L imms : Store} {evm : EVM.State} {word
   have hret : first.get? "__c3$allocation" = some (.tuple [wordBytes32Value word,.int (Int.ofNat heap)]) := store_get_self _ _ _
   have hheap : first.get? "$EAS.freeMemory" = some oldHeap := by
     simpa only [first,store_get_ne _ _ (by decide : ("__c3$allocation" == "$EAS.freeMemory") = false)] using hh
-  have hUnpack := unpackHeapResult (cfg := cfg) (frame := {contract := contract,locals := first,immutables := imms}) (evm := evm)
+  have hUnpack := unpackHeapResult (fork := fork) (cfg := cfg) (frame := {contract := contract,locals := first,immutables := imms}) (evm := evm)
     (tmp := "__c3$allocation") (result := "__c3") (cursor := "$EAS.freeMemory") hret hheap (by decide) (by decide)
   apply execBlock_append (s2 := [.assign .localVar {base := "uid"} (.var "__c3")]) hUnpack
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalBase_ok (old := old) ?_)) ExecBlock.nil
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalBase_ok (old := old) ?_)) ExecBlock.nil
   · simp only [evalExpr?,unpackHeapLocals,store_get_ne _ _ (by decide : ("$EAS.freeMemory" == "__c3") = false),
       store_get_self,EvalResult.ofOption]
   · simpa only [unpackHeapLocals,first,store_get_ne _ _ (by decide : ("$EAS.freeMemory" == "uid") = false),

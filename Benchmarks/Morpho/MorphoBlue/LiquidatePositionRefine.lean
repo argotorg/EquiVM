@@ -1,30 +1,32 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidatePositionReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive LiquidatePositionRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidatePositionRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets seized shares account srcOff len : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 19) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidatePositionRefines v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 19) .staticViolation → RDstatic (deployedRuntime v) g s0 →
-      LiquidatePositionRefines v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 19) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidatePositionRefines fork v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 19) .staticViolation → RDstatic fork (deployedRuntime v) g s0 →
+      LiquidatePositionRefines fork v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
   | ok {evm' σ' mem' fp' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (liquidateTransition.body.drop 19)
         { contract := contract, locals := locals.insert "__c12" (.int (Int.ofNat shares.toNat)), immutables := imms }
         evm' (liquidateTransition.body.drop 21) → SourceState s0 ee σ' evm' → ee.perm = true →
       MorphoHeap mem' fp' 768 → HeapAdvance mem fp mem' fp' 64 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
         ([shares, UInt256.ofNat 2249, UInt256.ofNat 2342] ++ liquidateMarketTail p.id assets seized shares srcOff len R)
         mem' aw' out' σ' k' C' →
-      LiquidatePositionRefines v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
+      LiquidatePositionRefines fork v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R
 
 theorem morphoLiquidatePositionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets seized shares account srcOff len : UInt256} {out mem : ByteArray}
@@ -33,9 +35,9 @@ theorem morphoLiquidatePositionRefine {v : MorphoImmutables} {ee : ExecutionEnv}
     (haccount : calldataWord ee.calldata 164 = account)
     (hl : LiquidateLocals p account seized shares data locals) (hs : SourceState s0 ee σ evm)
     (hm : MorphoHeap mem fp 832)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
       (assets :: liquidateFinishMathTail p.id seized shares srcOff len R) mem aw out σ k C) :
-    LiquidatePositionRefines v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R := by
+    LiquidatePositionRefines fork v ee g s0 p assets seized shares account srcOff len locals imms evm mem fp R := by
   obtain ⟨k1, C1, rd1⟩ := morphoLiquidatePositionReachCast (v := v) (by omega) h
   by_cases hc : shares.toNat < 2 ^ 128
   swap
@@ -44,12 +46,12 @@ theorem morphoLiquidatePositionRefine {v : MorphoImmutables} {ee : ExecutionEnv}
       (morphoToUint128Reverts (v := v) (by change R.length + 8 + 16 ≤ 1024; omega)
         (hm.alloc64Guard (by decide)) hm.size (by rw [hm.free]; exact hm.lower)
         hm.errorGap hm.errorHi (Nat.le_of_not_gt hc) rd1)
-  have he1 := morphoToUint128CallOk shares evm locals imms (.var "repaidShares") "__c12" (hl.evalShares imms evm) hc
+  have he1 := morphoToUint128CallOk (fork := fork) shares evm locals imms (.var "repaidShares") "__c12" (hl.evalShares imms evm) hc
   let l1 := locals.insert "__c12" (.int (Int.ofNat shares.toNat))
   have hl1 : LiquidateLocals p account seized shares data l1 := hl.insert _ _ (by decide) (by decide)
   have he5 : evalExpr? config { contract := contract, locals := l1, immutables := imms } evm (.var "__c12") =
       .ok (.int (Int.ofNat shares.toNat)) := by simp only [evalExpr?, l1, store_get_self, EvalResult.ofOption]
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (liquidateTransition.body.drop 19) { contract := contract, locals := l1, immutables := imms }
       evm (liquidateTransition.body.drop 20) := StateBlock.start.step he1
   obtain ⟨a2, k2, C2, rd2⟩ := morphoToUint128Ok (v := v) (by change R.length + 8 + 16 ≤ 1024; omega)
@@ -68,7 +70,7 @@ theorem morphoLiquidatePositionRefine {v : MorphoImmutables} {ee : ExecutionEnv}
       (morphoCheckedSub128Reverts (v := v) (by change R.length + 11 + 6 ≤ 1024; omega) hb hc (Nat.lt_of_not_ge hf) rd3)
   have hf' : shares.toNat ≤ (positionFieldWord evm.accountMap evm.executionEnv p.id account 1).toNat := by
     simpa only [hs.env, ← hs.accounts] using hf
-  have hass : ExecStmt config { contract := contract, locals := l1, immutables := imms }
+  have hass : ExecStmt fork config { contract := contract, locals := l1, immutables := imms }
       evm liquidateTransition.body[20]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := l1, immutables := imms }
         (storePositionPacked evm p.id account false

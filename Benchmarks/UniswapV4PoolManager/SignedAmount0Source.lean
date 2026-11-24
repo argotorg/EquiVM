@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.SignedAmount0Path
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -14,7 +16,7 @@ theorem signedAmount0Body {f : Frame} {evm : EVM.State} {a b : UInt256} {delta :
     (hea : f.locals.get? "sqrtPriceAX96" = some (.int (Int.ofNat a.toNat)))
     (heb : f.locals.get? "sqrtPriceBX96" = some (.int (Int.ofNat b.toNat)))
     (hed : f.locals.get? "liquidity" = some (.int delta)) :
-    ∃ f', ExecFuncBody config f evm signedAmount0Function.body
+    ∃ f', ExecFuncBody fork config f evm signedAmount0Function.body
       (if signedAmount0Fits a b delta then
         .returned f' evm (some [.int (EVM.signed (signedAmount0Word a b delta))]) else .reverted) := by
   exact signedAmountBody (fits := fun r => amount0Fits a b (liquidityMagnitude delta) r)
@@ -27,7 +29,7 @@ theorem signedAmount0Call {f : Frame} {evm : EVM.State} {a b : UInt256} {delta :
     (hea : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (heb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hed : evalExpr? config f evm ed = .ok (.int delta)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "SqrtPriceMath_getAmount0Delta" [ea, eb, ed] ret)
+    ExecStmt fork config f evm (.internalCall "SqrtPriceMath_getAmount0Delta" [ea, eb, ed] ret)
       (if signedAmount0Fits a b delta then
         .ok {f with locals := f.locals.insert ret (.int (EVM.signed (signedAmount0Word a b delta)))} evm
        else .reverted) := by

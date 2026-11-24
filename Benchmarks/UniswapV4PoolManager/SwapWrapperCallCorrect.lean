@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.SwapWrapperBodyCorrect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -25,14 +27,14 @@ theorem swapWrapperCallCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     (hfree : memLoad (UInt256.ofNat 64) mem = state) (hspacing : int24Canonical p.tickSpacing)
     (hlimit : p.priceLimit.toNat < 2^160) (hoverride : p.lpFeeOverride.toNat < 2^24)
     (hpaid : Cₘ aw ≤ C) (dest : Ident)
-    (h : RD (deployedRuntime v) I g s0 ⟨18777⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18777⟩
       ([poolSlot id, params, ⟨1755⟩, id, UInt256.ofNat 16777215, callerParams, accountWord currency,
         x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecStmt config f evm (.internalCall "_swap" [es, ei, ep, ec] dest) (resumeCallResult f dest result) ∧
-      functionResultTrace (deployedRuntime v) g s0
-        (swapWrapperReturn v I g s0 mem rdata state callerParams x8 x9 x10 x11 x12 x13 hookPtr junk R) result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecStmt fork config f evm (.internalCall "_swap" [es, ei, ep, ec] dest) (resumeCallResult f dest result) ∧
+      functionResultTrace fork (deployedRuntime v) g s0
+        (swapWrapperReturn fork v I g s0 mem rdata state callerParams x8 x9 x10 x11 x12 x13 hookPtr junk R) result := by
   rcases swapWrapperBodyCorrect (f := swapWrapperCallFrame f id p currency) v hstack hI hσ0 hf
       (store_get_self _ _ _)
       ((store_get_ne _ _ (by decide : ("pool" == "id") = false)).trans (store_get_self _ _ _))

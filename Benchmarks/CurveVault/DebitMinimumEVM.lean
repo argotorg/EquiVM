@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_016
 import Benchmarks.CurveVault.RuntimeBlocks_019
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -23,12 +25,12 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
     (hmt : memLoad (UInt256.ofNat 640) (vaultDebitMinimumMemory isWithdraw mem) = total)
     (hma : vaultDebitMinimumAssets isWithdraw I (vaultDebitMinimumMemory isWithdraw mem) = assets)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumEntry isWithdraw)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumEntry isWithdraw)) R mem aw rdata σ k C) :
     (assets.toNat ≤ total.toNat ∧ (10000 ≤ (UInt256.sub total assets).toNat ∨ total = assets) ∧
-      ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumNext isWithdraw)) R
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumNext isWithdraw)) R
         (vaultDebitMinimumMemory isWithdraw mem) aw' rdata σ k' C') ∨
-    (total.toNat < assets.toNat ∧ RDrev vaultBytecode g s0) ∨
-    (assets.toNat ≤ total.toNat ∧ (UInt256.sub total assets).toNat < 10000 ∧ total ≠ assets ∧ RDrev vaultBytecode g s0) := by
+    (total.toNat < assets.toNat ∧ RDrev fork vaultBytecode g s0) ∨
+    (assets.toNat ≤ total.toNat ∧ (UInt256.sub total assets).toNat < 10000 ∧ total ≠ assets ∧ RDrev fork vaultBytecode g s0) := by
   let prepared := vaultDebitMinimumMemory isWithdraw mem
   by_cases hsub : assets.toNat ≤ total.toNat
   swap
@@ -59,7 +61,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
         (by simp only [vaultBlocks.vault_block_4202_taken_stack, List.length_cons]; omega) rdFail
   have hno : UInt256.gt (UInt256.sub total assets) total = ⟨0⟩ :=
     ugt_zero (by rw [usub_toNat hsub]; omega)
-  have rdCompare : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumCompare isWithdraw))
+  have rdCompare : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumCompare isWithdraw))
       (UInt256.sub total assets :: assets :: total :: UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' := by
     cases isWithdraw with
     | false =>
@@ -70,7 +72,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
           change UInt256.gt (UInt256.sub (memLoad (UInt256.ofNat 640) prepared) (memLoad (UInt256.ofNat 672) prepared))
             (memLoad (UInt256.ofNat 640) prepared) = _
           rw [hmt, hma]; exact hno) h
-      change RD vaultBytecode I g s0 (UInt256.ofNat 5302)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 5302)
         (UInt256.sub (memLoad (UInt256.ofNat 640) prepared) (memLoad (UInt256.ofNat 672) prepared) :: memLoad (UInt256.ofNat 672) prepared ::
           memLoad (UInt256.ofNat 640) prepared :: UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' at rd
       rw [hmt, hma] at rd
@@ -83,7 +85,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
           change UInt256.gt (UInt256.sub (memLoad (UInt256.ofNat 640) prepared) (calldataWord I.calldata 4))
             (memLoad (UInt256.ofNat 640) prepared) = _
           rw [hmt, hma]; exact hno) h
-      change RD vaultBytecode I g s0 (UInt256.ofNat 4231)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 4231)
         (UInt256.sub (memLoad (UInt256.ofNat 640) prepared) (calldataWord I.calldata 4) :: calldataWord I.calldata 4 ::
           memLoad (UInt256.ofNat 640) prepared :: UInt256.ofNat 10000 :: R) prepared aw' rdata σ k' C' at rd
       rw [hmt, hma] at rd
@@ -92,7 +94,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
   by_cases hmin : 10000 ≤ (UInt256.sub total assets).toNat
   · have hcond : UInt256.isZero (UInt256.lt (UInt256.sub total assets) (UInt256.ofNat 10000)) ≠ ⟨0⟩ := by
       rw [ult_zero (by exact hmin)]; decide +kernel
-    have hrd : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumRequire isWithdraw))
+    have hrd : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumRequire isWithdraw))
         (⟨1⟩ :: R) prepared aw' rdata σ k' C' := by
       cases isWithdraw
       · obtain ⟨aw1, k1, C1, rdTrue⟩ := vaultBlocks.vault_block_5302_taken_packed (by omega) hcond (by native_decide) rdCompare
@@ -107,7 +109,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
   have hlt : (UInt256.sub total assets).toNat < 10000 := by omega
   have hcond : UInt256.isZero (UInt256.lt (UInt256.sub total assets) (UInt256.ofNat 10000)) = ⟨0⟩ := by
     rw [ult_one (by exact hlt)]; decide +kernel
-  have hrd : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumRequire isWithdraw))
+  have hrd : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumRequire isWithdraw))
       (UInt256.isZero (UInt256.xor total assets) :: R) prepared aw' rdata σ k' C' := by
     cases isWithdraw with
     | false =>
@@ -115,7 +117,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
       change memLoad (UInt256.ofNat 672) prepared = assets at hma
       obtain ⟨aw1, k1, C1, rdEqual⟩ := vaultBlocks.vault_block_5302_fallthrough_packed (by omega) hcond rdCompare
       obtain ⟨aw2, k2, C2, rdRequire⟩ := vaultBlocks.vault_block_5312_packed (by change R.length + 2 ≤ 1024; omega) (by native_decide) rdEqual
-      change RD vaultBytecode I g s0 (UInt256.ofNat 5329)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 5329)
         (UInt256.isZero (UInt256.xor (memLoad (UInt256.ofNat 640) prepared) (memLoad (UInt256.ofNat 672) prepared)) :: R)
         prepared aw2 rdata σ k2 C2 at rdRequire
       rw [hmt, hma] at rdRequire
@@ -125,7 +127,7 @@ theorem vaultDebitMinimumEVM (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256}
       change calldataWord I.calldata 4 = assets at hma
       obtain ⟨aw1, k1, C1, rdEqual⟩ := vaultBlocks.vault_block_4231_fallthrough_packed (by omega) hcond rdCompare
       obtain ⟨aw2, k2, C2, rdRequire⟩ := vaultBlocks.vault_block_4241_packed (by change R.length + 2 ≤ 1024; omega) (by native_decide) rdEqual
-      change RD vaultBytecode I g s0 (UInt256.ofNat 4257)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 4257)
         (UInt256.isZero (UInt256.xor (memLoad (UInt256.ofNat 640) prepared) (calldataWord I.calldata 4)) :: R)
         prepared aw2 rdata σ k2 C2 at rdRequire
       rw [hmt, hma] at rdRequire

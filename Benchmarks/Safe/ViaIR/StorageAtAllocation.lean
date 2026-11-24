@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.AddressArrayMemory
 import Benchmarks.Safe.ViaIR.Memory
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -56,10 +58,10 @@ theorem safeStorageAtAllocationMemory (bytes : UInt256) :
       storageAtAllocatedMemory bytes := by rfl
 
 theorem safeStorageAtLengthCheck {I g s0 σ k C aw mem rdata bytes ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7181⟩ (bytes :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7181⟩ (bytes :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) (hn : bytes.toNat ≤ 2 ^ 64 - 1)
     (ha : bytes.toNat % 32 = 0) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret ((UInt256.ofNat 32 + bytes) :: R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret ((UInt256.ofNat 32 + bytes) :: R)
       mem aw rdata σ k' C' := by
   have h7196 := safeRuntime_block_7181_fallthrough (by simp; omega) (ugt_zero hn) h
   have hout := safeRuntime_block_7196 (by omega) hret h7196
@@ -67,12 +69,12 @@ theorem safeStorageAtLengthCheck {I g s0 σ k C aw mem rdata bytes ret} {R : Lis
   exact ⟨_, _, hout⟩
 
 theorem safeStorageAtAllocate {I g s0 σ k C aw rdata bytes len offset} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6127⟩
+    (h : RD fork safeBytecode I g s0 ⟨6127⟩
       ((UInt256.ofNat 32 + bytes) :: offset :: len :: bytes :: R)
       solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hsize : I.calldata.size < UInt256.size)
     (hn : bytes.toNat ≤ 2 ^ 64 - 161) (ha : bytes.toNat % 32 = 0) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨6165⟩ (⟨0⟩ :: offset :: len :: ⟨128⟩ :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨6165⟩ (⟨0⟩ :: offset :: len :: ⟨128⟩ :: R)
       (storageAtAllocatedMemory bytes) aw' rdata σ k' C' := by
   have hb : bytes.toNat ≤ 2 ^ 64 - 1 := by omega
   have hp := safeStorageAtFinalPointer bytes hb ha
@@ -92,7 +94,7 @@ theorem safeStorageAtAllocate {I g s0 σ k C aw rdata bytes len offset} {R : Lis
   simp only [safeRuntime_block_7157_stack] at h6141
   obtain ⟨_, _, _, h7181⟩ := safeRuntime_block_6141_packed (by simp; omega) (by jump_dest) h6141
   simp only [safeRuntime_block_6141_stack] at h7181
-  change RD _ _ _ _ _ _ (storageAtAllocatedMemory bytes) _ _ _ _ _ at h7181
+  change RD fork _ _ _ _ _ _ (storageAtAllocatedMemory bytes) _ _ _ _ _ at h7181
   obtain ⟨_, _, h6156⟩ := safeStorageAtLengthCheck h7181 (by simp; omega) hb ha (by jump_dest)
   obtain ⟨_, _, _, h6165⟩ := safeRuntime_block_6156_packed (by omega) h6156
   have hcopy : safeRuntime_block_6156_memory (ee := I)
@@ -108,10 +110,10 @@ theorem safeStorageAtAllocate {I g s0 σ k C aw rdata bytes len offset} {R : Lis
   exact ⟨_, _, _, h6165⟩
 
 theorem safeStorageAtLengthFail {I g s0 σ k C aw rdata bytes len offset} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7181⟩
+    (h : RD fork safeBytecode I g s0 ⟨7181⟩
       (bytes :: ⟨6127⟩ :: offset :: len :: bytes :: R) solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (ha : bytes.toNat % 32 = 0)
-    (hn : ¬bytes.toNat ≤ 2 ^ 64 - 161) : RDrev safeBytecode g s0 := by
+    (hn : ¬bytes.toNat ≤ 2 ^ 64 - 161) : RDrev fork safeBytecode g s0 := by
   by_cases hb : bytes.toNat ≤ 2 ^ 64 - 1
   · obtain ⟨_, _, h6127⟩ := safeStorageAtLengthCheck h (by simp; omega) hb ha (by jump_dest)
     obtain ⟨_, _, _, h7128⟩ := safeRuntime_block_6127_packed (by omega) (by jump_dest) h6127

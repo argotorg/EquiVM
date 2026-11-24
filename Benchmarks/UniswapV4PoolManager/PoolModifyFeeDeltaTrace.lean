@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyFeeDelta
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaTrace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,11 +13,11 @@ theorem poolModifyFeeDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw a b x2 x4 x5 x6 x7 x8 x9 x10 x11 x12 : UInt256} {delta : Int}
     {k C : Nat} {R : List UInt256} (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+17 ≤ 1024)
     (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨12458⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12458⟩
       (a :: ⟨5993⟩ :: ⟨5999⟩ :: b :: x2 :: EVM.wordOfInt delta :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 (if delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 (if delta < 0 then ⟨6620⟩ else ⟨6036⟩)
         (balanceDeltaOutputStack a b x2 (EVM.wordOfInt delta) x4 x5 x6 x7 x8 x9 x10 x11 x12 R)
         mem aw rdata post.accountMap k' C') (fun _ _ => False) (poolModifyFeeDeltaResult f evm a b) := by
   by_cases ha : a.toNat < 2^127

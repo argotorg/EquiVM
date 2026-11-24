@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.MemoryBytesDecoded
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_007
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -11,7 +13,7 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000 in
 theorem safeBoolBytesReturn {I g s0 σ k C aw mem rdata src dst} {R : List UInt256}
     (z : Bool) (out : ByteArray)
-    (h : RD safeBytecode I g s0 ⟨873⟩ (UInt256.ofNat src :: z.toUInt256 :: R)
+    (h : RD fork safeBytecode I g s0 ⟨873⟩ (UInt256.ofNat src :: z.toUInt256 :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat dst)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat out.size)
@@ -19,7 +21,7 @@ theorem safeBoolBytesReturn {I g s0 σ k C aw mem rdata src dst} {R : List UInt2
     (hm : 96 ≤ mem.size) (hp : 96 ≤ dst)
     (hin : src + 32 + out.size ≤ mem.size) (ha : src + 32 + out.size ≤ dst)
     (hb : dst + 160 + out.size < UInt256.size) (hov : R.length + 18 ≤ 1024) :
-    RDret safeBytecode g s0 σ (boolBytesReturnBytes z out) := by
+    RDret fork safeBytecode g s0 σ (boolBytesReturnBytes z out) := by
   let headMem := boolBytesHeaderMemory mem dst z
   let words := memoryWords headMem (src + 32) ((out.size + 31) / 32)
   have hn : words.length = (out.size + 31) / 32 := memoryWords_length _ _ _
@@ -51,7 +53,7 @@ theorem safeBoolBytesReturn {I g s0 σ k C aw mem rdata src dst} {R : List UInt2
   have h₂ := safeRuntime_block_9679 (by simp; omega) (by jump_dest) h₁
   simp only [safeRuntime_block_9679_stack, safeRuntime_block_9679_memory, hz,
     h32, h64, ulit_toNat' dst (by omega)] at h₂
-  change RD safeBytecode I g s0 ⟨9612⟩
+  change RD fork safeBytecode I g s0 ⟨9612⟩
     (UInt256.ofNat src :: UInt256.ofNat (dst + 64) :: ⟨9705⟩ :: ⟨0⟩ ::
       UInt256.ofNat dst :: UInt256.ofNat src :: z.toUInt256 :: ⟨771⟩ :: R)
     headMem _ rdata σ _ _ at h₂

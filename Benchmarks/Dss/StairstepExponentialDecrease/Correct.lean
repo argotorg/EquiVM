@@ -8,6 +8,8 @@ import Benchmarks.Dss.StairstepExponentialDecrease.Step
 import Benchmarks.Dss.StairstepExponentialDecrease.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS StairstepExponentialDecrease benchmark correctness stub
 
@@ -24,8 +26,8 @@ namespace Benchmarks.Dss.StairstepExponentialDecrease
 
 theorem stairstepExponentialDecreaseCorrect :
     runtimeRefinement config stairstepExponentialDecreaseBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
     · exact stairstepCutBody hcode hsize hwv hcut

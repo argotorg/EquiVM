@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyAccounting
 import Benchmarks.UniswapV4PoolManager.PoolModifyTickOutput
 import Benchmarks.UniswapV4PoolManager.PoolModifyPreludeFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,8 +18,8 @@ theorem poolModifyAfterPrelude {f : Frame} {evm : State} {id : UInt256} {p : Poo
     (hlo : int24Canonical p.lower) (hup : int24Canonical p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
     (hd : f.locals.get? "delta" = some (.int 0)) (hf : f.locals.get? "feeDelta" = some oldFee) :
-    ExecBlock config f evm (poolModifyFunction.body.drop 7) (poolModifyAfterPreludeResult f evm id p) := by
-  have hticks := poolModifyTicks (evm := evm) hc hs ht
+    ExecBlock fork config f evm (poolModifyFunction.body.drop 7) (poolModifyAfterPreludeResult f evm id p) := by
+  have hticks := poolModifyTicks (fork := fork) (evm := evm) hc hs ht
   apply execBlock_continue (execBlock_singleton hticks)
   intro f1 post hpost
   obtain ⟨gl, gu, hstate⟩ := poolModifyTicksResult_flips hs hpost
@@ -35,12 +37,12 @@ theorem poolModifyBlock {f : Frame} {evm : State} {id : UInt256} {p : PoolModify
     (hp : f.locals.get? "params" = some (poolModifyParamsValue p))
     (hlo : int24Canonical p.lower) (hup : int24Canonical p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127) :
-    ExecBlock config f evm poolModifyFunction.body (poolModifyBlockResult f evm id p) := by
-  have hpre := poolModifyPrelude (evm := evm) hf hp
+    ExecBlock fork config f evm poolModifyFunction.body (poolModifyBlockResult f evm id p) := by
+  have hpre := poolModifyPrelude (fork := fork) (evm := evm) hf hp
   by_cases ht : poolTicksValid p.lower p.upper
   · rw [if_pos ht] at hpre
     rw [poolModifyBlockResult, if_pos ht]
-    have htail := poolModifyAfterPrelude (evm := evm) (poolModifyPreludeFrame_context hf hs hp)
+    have htail := poolModifyAfterPrelude (fork := fork) (evm := evm) (poolModifyPreludeFrame_context hf hs hp)
       (store_get_self _ _ _) ht hlo hup hdlo hdhi (poolModifyPreludeFrame_delta f p) (poolModifyPreludeFrame_fee f p)
     exact execBlock_append hpre htail
   · rw [if_neg ht] at hpre
@@ -52,7 +54,7 @@ theorem poolModifyBody {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyP
     (hp : f.locals.get? "params" = some (poolModifyParamsValue p))
     (hlo : int24Canonical p.lower) (hup : int24Canonical p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127) :
-    ExecFuncBody config f evm poolModifyFunction.body (poolModifyResult f evm id p) :=
+    ExecFuncBody fork config f evm poolModifyFunction.body (poolModifyResult f evm id p) :=
   execFuncBody_block (poolModifyBlock hf hs hp hlo hup hdlo hdhi)
 
 end Benchmarks.UniswapV4PoolManager

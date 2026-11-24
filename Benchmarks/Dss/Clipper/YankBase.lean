@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.Dispatch
 import Benchmarks.Dss.Clipper.UintEntry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -207,12 +209,12 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 28)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨608⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨608⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperYankSelectorWord hsz hsel
-  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -235,7 +237,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -393,10 +395,10 @@ theorem clipperYankX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨608⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1912⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨1912⟩ : UInt256)
       (clipperYankArgWord I :: ⟨502⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := solcOneUintExternalLenOk
@@ -417,10 +419,10 @@ theorem clipperYankX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨608⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   exact solcOneUintExternalShort (entry := (⟨608⟩ : UInt256))
     (ret := (⟨502⟩ : UInt256)) (routine := (⟨1912⟩ : UInt256)) hreach
     (clipperYankEntryWf v hpatch) hsz4 hsize hshort

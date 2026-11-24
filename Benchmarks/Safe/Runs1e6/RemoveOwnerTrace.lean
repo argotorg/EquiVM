@@ -5,6 +5,8 @@ import Benchmarks.Safe.Runs1e6.Blocks.Runtime_028
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_029
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -58,24 +60,24 @@ theorem safeRemoveOwnerLinksEnv (evm : EVM.State) (prev key : UInt256) :
 
 theorem safeRemoveOwnerCountReach {I g s0 σ k C aw mem rdata} {threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7990⟩
+    (h : RD fork safeBytecode I g s0 ⟨7990⟩
       (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩ :: ⟨0⟩ :: ⟨3⟩ :: threshold :: R)
       mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) (hperm : I.perm = true)
     (hle : threshold.toNat ≤ (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩).toNat) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8042⟩ R mem aw rdata
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8042⟩ R mem aw rdata
       (removeOwnerCountAccounts σ I) k' C' := by
   exact safeRuntime_block_7990_taken hov hperm
     (by rw [ult_zero hle]; decide) (by jump_dest) h
 
 theorem safeRemoveOwnerCountRevert {I g s0 σ k C aw mem rdata} {threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7990⟩
+    (h : RD fork safeBytecode I g s0 ⟨7990⟩
       (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩ :: ⟨0⟩ :: ⟨3⟩ :: threshold :: R)
       mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true)
     (hle : ¬threshold.toNat ≤ (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩).toNat) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h6601⟩ := safeRuntime_block_7990_fallthrough (by omega) hperm
     (by rw [ult_one (by omega)]; decide) h
   have h6898 := safeRuntime_block_8002
@@ -86,19 +88,19 @@ theorem safeRemoveOwnerCountRevert {I g s0 σ k C aw mem rdata} {threshold : UIn
 
 theorem safeRemoveOwnerCountStatic {I g s0 σ k C aw mem rdata} {value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7990⟩ (value :: ⟨0⟩ :: ⟨3⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7990⟩ (value :: ⟨0⟩ :: ⟨3⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hstore := evm_run h with [jumpdest, swap2, dup3, swap1]
   exact hstore.sstoreStatic hperm (by native_decide) (by simp; omega)
 
 theorem safeRemoveOwnerLinksTrace {I g s0 σ k C aw mem rdata} {prev key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8052⟩ (threshold :: key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8052⟩ (threshold :: key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) (hm : mem.size = 96)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hperm : I.perm = true) :
-    ∃ mem' ptr aw' k' C', RD safeBytecode I g s0 ⟨8162⟩
+    ∃ mem' ptr aw' k' C', RD fork safeBytecode I g s0 ⟨8162⟩
       (⟨0⟩ :: ptr :: key :: threshold :: key :: prev :: R) mem' aw' rdata
       (removeOwnerLinkAccounts σ I prev key) k' C' := by
   -- The generated summary now includes the event and threshold branch. Stop at the
@@ -188,11 +190,11 @@ theorem safeRemoveOwnerLinksTrace {I g s0 σ k C aw mem rdata} {prev key thresho
 
 theorem safeRemoveOwnerThresholdUnchanged {I g s0 σ k C aw mem rdata}
     {ptr prev key threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8162⟩
+    (h : RD fork safeBytecode I g s0 ⟨8162⟩
       (⟨0⟩ :: ptr :: key :: threshold :: key :: prev :: ⟨664⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ σ I = threshold) :
-    RDret safeBytecode g s0 σ ByteArray.empty := by
+    RDret fork safeBytecode g s0 σ ByteArray.empty := by
   have htopic := h.pushConst
     ⟨112549260719532661292031762456511781745355494859329508612328448226810028203695⟩
     (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by simp; omega)
@@ -209,11 +211,11 @@ theorem safeRemoveOwnerThresholdUnchanged {I g s0 σ k C aw mem rdata}
 
 theorem safeRemoveOwnerThresholdChanged {I g s0 σ k C aw mem rdata}
     {ptr prev key threshold ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8162⟩
+    (h : RD fork safeBytecode I g s0 ⟨8162⟩
       (⟨0⟩ :: ptr :: key :: threshold :: key :: prev :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ σ I ≠ threshold) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4000⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4000⟩
       (threshold :: ⟨8214⟩ :: threshold :: key :: prev :: ret :: R) mem aw' rdata σ k' C' := by
   have htopic := h.pushConst
     ⟨112549260719532661292031762456511781745355494859329508612328448226810028203695⟩

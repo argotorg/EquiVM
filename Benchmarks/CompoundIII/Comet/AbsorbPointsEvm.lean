@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.LiquidatorPointsStoreEvm
 import Benchmarks.CompoundIII.Comet.MappingScratch
 import Benchmarks.CompoundIII.Comet.InternalDynamicOutcome
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,10 +21,10 @@ theorem cometAbsorbPoints {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hmem : 96 ≤ mem.size)
     (hlo : 96 ≤ ptr.toNat) (hb : ptr.toNat + 128 < 2^64)
     (hs : SourceState s0 ee σ evm) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16733⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16733⟩
       (gasUsed :: ⟨13846⟩ :: ⟨16819⟩ :: ⟨16850⟩ :: EVM.word addr.val :: ⟨16857⟩ ::
         n :: ⟨3121⟩ :: ret :: R) mem aw rdata σ k C) :
-    internalDynamicRun (deployedRuntime v) ee g s0 ret R
+    internalDynamicRun fork (deployedRuntime v) ee g s0 ret R
       (absorbPointsOutcome evm addr n gasUsed) := by
   let p := absorbPointsLoaded evm addr
   let fee := UInt256.ofNat ee.header.baseFeePerGas
@@ -56,7 +58,7 @@ theorem cometAbsorbPoints {v : CometWithExtendedAssetListImmutables}
   rw [← hp] at hm4
   have hcounts := cometAbsorbPointsCounts (v := v) (by omega) hm4 ha hac hn r4
   simp only [absorbPointsOutcome, hs.env]
-  change internalDynamicRun _ _ _ _ _ _
+  change internalDynamicRun fork _ _ _ _ _ _
     (if AbsorbPointsValid p n gasUsed fee then
       if ee.perm then .ok (storeLiquidatorPoints evm addr
         (absorbPointsSpend (absorbPointsCounts p n) gasUsed fee)) else .staticViolation

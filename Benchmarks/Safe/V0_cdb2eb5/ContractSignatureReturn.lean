@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.ContractSignatureSource
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -14,21 +16,21 @@ def signatureReturnMemory (mem : ByteArray) (ptr : Nat) (out : ByteArray) : Byte
   preModuleReturnMemory mem out (UInt256.ofNat ptr)
 
 theorem safeContractSignatureCallFailure {I g s0 σ k C aw mem out} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7250⟩ (⟨0⟩ :: R) mem aw out σ k C)
-    (hov : R.length + 4 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨7250⟩ (⟨0⟩ :: R) mem aw out σ k C)
+    (hov : R.length + 4 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_7250_fallthrough (by omega) (by decide) h
   exact safeRuntime_block_7257 (by
     simp only [safeRuntime_block_7250_fallthrough_stack, List.length_cons]; omega) h₁
 
 theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
     {out : ByteArray} {a b c : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7250⟩ (⟨1⟩ :: a :: b :: c :: R)
+    (h : RD fork safeBytecode I g s0 ⟨7250⟩ (⟨1⟩ :: a :: b :: c :: R)
       (preModuleOutputMemory mem out (UInt256.ofNat ptr)) aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hm : ptr + 32 ≤ mem.size) (hp : 96 ≤ ptr) (hptr : ptr < UInt256.size)
     (hb : out.size < 2 ^ 255) (hov : R.length + 8 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ contractSignatureDecoded true out = false) ∨
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨7300⟩ (calldataWord out 0 :: R)
+    (RDrev fork safeBytecode g s0 ∧ contractSignatureDecoded true out = false) ∨
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7300⟩ (calldataWord out 0 :: R)
       (signatureReturnMemory mem ptr out) aw' out σ k' C' ∧
       contractSignatureDecoded true out = true := by
   have h₁ := safeRuntime_block_7250_taken (by simp; omega) (by decide) (by jump_dest) h
@@ -38,7 +40,7 @@ theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
     preModuleOutputFree hf (by rw [ulit_toNat' ptr hptr]; omega)
       (by rw [ulit_toNat' ptr hptr]; exact hp)
   simp only [safeRuntime_block_7264_stack, safeRuntime_block_7264_memory, hfree] at h₂
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (UInt256.ofNat ptr :: (UInt256.ofNat ptr + UInt256.ofNat out.size) :: ⟨7300⟩ :: R)
     (signatureReturnMemory mem ptr out) _ out σ _ _ at h₂
   by_cases hl : 32 ≤ out.size
@@ -56,13 +58,13 @@ theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
 
 theorem safeContractSignatureFinish {I g s0 σ k C aw mem} {out : ByteArray}
     {d0 d1 d2 d3 d4 d5 ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7300⟩
+    (h : RD fork safeBytecode I g s0 ⟨7300⟩
       (calldataWord out 0 :: signatureMagicWord :: d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: ret :: R)
       mem aw out σ k C)
     (hd : contractSignatureDecoded true out = true) (hov : R.length + 13 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧ contractSignatureResult true out = false) ∨
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R mem aw' out σ k' C' ∧
+    (RDrev fork safeBytecode g s0 ∧ contractSignatureResult true out = false) ∨
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R mem aw' out σ k' C' ∧
       contractSignatureResult true out = true := by
   have hh : 32 ≤ out.size ∧ calldataWord out 0 = UInt256.land (calldataWord out 0) bytes4Mask := by
     simpa only [contractSignatureDecoded, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq]

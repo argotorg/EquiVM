@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BytesLength
 import Benchmarks.EAS.EAS.WordSequence
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -47,9 +49,9 @@ theorem easStoredWords_loop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbound : bytesPtr.toNat + i + 32 * n + 32 < UInt256.size)
     (hbefore : n > 0 → i + 32 * (n - 1) < len.toNat)
     (hafter : len.toNat ≤ i + 32 * n)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6744⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6744⟩
       (slot :: len :: UInt256.ofNat i :: bytesPtr :: ptr :: bytesPtr :: R) mem aw rdata σ k C) :
-    ∃ last aw' k' C', RD (deployedRuntime v) ee g s0 ⟨6752⟩
+    ∃ last aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨6752⟩
       (last :: len :: UInt256.ofNat (i + 32 * n) :: bytesPtr :: ptr :: bytesPtr :: R)
       (writeWordSequence mem (bytesPtr.toNat + i + 32) (storedWords σ ee slot n)) aw' rdata σ k' C' := by
   induction n generalizing mem aw k C slot i with
@@ -74,7 +76,7 @@ theorem easStoredWords_loop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     have hstep : UInt256.ofNat i + UInt256.ofNat 32 = UInt256.ofNat (i + 32) := by
       exact (u256_add_comm _ _).trans (u256_32_add_ofNat i)
     simp only [easBlocks.eas_block_6767_stack, hstep] at rd2
-    change RD (deployedRuntime v) ee g s0 ⟨6744⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨6744⟩
       ((slot + ⟨1⟩) :: len :: UInt256.ofNat (i + 32) :: bytesPtr :: ptr :: bytesPtr :: R)
       (Reasoning.Theory.writeWord mem ((bytesPtr + UInt256.ofNat i) + UInt256.ofNat 32).toNat
         (solcSlotWord σ ee slot)) aw1 rdata σ k1 C1 at rd2

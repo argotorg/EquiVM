@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.ConvertAssetsArithmetic
 import Benchmarks.CurveVault.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -33,17 +35,17 @@ theorem vaultPriceArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hmp : memLoad (UInt256.ofNat 384) mem = precision)
     (hmt : memLoad (UInt256.ofNat 448) mem = total)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1597) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1597) R mem aw rdata σ k C) :
     let numerator := UInt256.mul vaultPriceScale (UInt256.mul total precision + ⟨1⟩)
     let denominator := supply + UInt256.ofNat 1000
     (∃ aw' k' C',
-      ExecBlock config {contract := contract, locals := locals} evm vaultPriceArithmeticBody
+      ExecBlock fork config {contract := contract, locals := locals} evm vaultPriceArithmeticBody
         (.ok {contract := contract, locals := vaultPriceArithmeticLocals locals numerator denominator} evm) ∧
       denominator ≠ ⟨0⟩ ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 1689) (denominator :: supply :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 1689) (denominator :: supply :: R)
         (numerator.toByteArray.write 0 mem 416 32) aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm vaultPriceArithmeticBody .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm vaultPriceArithmeticBody .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   dsimp only
   have htEval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ht
   have hpEval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) hp
@@ -62,7 +64,7 @@ theorem vaultPriceArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         (evalExpr_checked_binary_left_revert .add _ (evalExpr_mul256_revert htEval hpEval hover)))), hrev⟩
   have rd1622 := vaultBlocks.vault_block_1597_fallthrough hstack
     (by rw [hmt, hmp]; exact mulCheck_ok _ _ hprod) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1622)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1622)
     (UInt256.mul (memLoad (UInt256.ofNat 448) mem) (memLoad (UInt256.ofNat 384) mem) ::
       memLoad (UInt256.ofNat 384) mem :: memLoad (UInt256.ofNat 448) mem :: R) mem _ rdata σ _ _ at rd1622
   rw [hmt, hmp] at rd1622
@@ -78,7 +80,7 @@ theorem vaultPriceArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (evalExpr_checked_mul_right_revert _ hscale (evalExpr_add256_revert hprodEval h1 hover))), hrev⟩
   have rd1637 := vaultBlocks.vault_block_1622_fallthrough (by omega)
     (ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hincr]; omega)) rd1622
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1637)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1637)
     ((UInt256.mul total precision + UInt256.ofNat 1) :: UInt256.mul total precision :: R) mem _ rdata σ _ _ at rd1637
   have hincrEval := evalExpr_add256_ok hprodEval h1 rfl hincr
   by_cases hnum : vaultPriceScale.toNat * (UInt256.mul total precision + UInt256.ofNat 1).toNat < UInt256.size
@@ -94,7 +96,7 @@ theorem vaultPriceArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (by rw [u256_mul_div_right_eq_of_noOverflow _ _ (by decide +kernel)
       (by simpa only [Nat.mul_comm] using hnum), u256_xor_self]; rfl) rd1637
   let num := UInt256.mul vaultPriceScale (UInt256.mul total precision + UInt256.ofNat 1)
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1667)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1667)
     (UInt256.mul (UInt256.mul total precision + UInt256.ofNat 1) vaultPriceScale ::
       (UInt256.mul total precision + UInt256.ofNat 1) :: R) mem _ rdata σ _ _ at rd1667
   rw [u256_mul_comm (UInt256.mul total precision + UInt256.ofNat 1) vaultPriceScale] at rd1667
@@ -113,7 +115,7 @@ theorem vaultPriceArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   · have rdNext := vaultBlocks.vault_block_1667_fallthrough (by omega)
       (by change UInt256.lt (memLoad (UInt256.ofNat 352) mem1 + UInt256.ofNat 1000) (memLoad (UInt256.ofNat 352) mem1) = _
           rw [hms1]; exact ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hsum]; omega)) rd1667
-    change RD vaultBytecode I g s0 (UInt256.ofNat 1689)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 1689)
       ((memLoad (UInt256.ofNat 352) mem1 + UInt256.ofNat 1000) :: memLoad (UInt256.ofNat 352) mem1 :: R)
       mem1 _ rdata σ _ _ at rdNext
     rw [hms1] at rdNext

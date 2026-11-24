@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,9 +19,9 @@ theorem morphoSupplyUpdates {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
       (supplyUpdateTail p.id assets shares account srcOff len []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (supplyTransition.body.drop 12) supplyTransition.returnType := by
   have hp := morphoSupplyPositionRefine p data locals imms (by decide) ha hl hs h

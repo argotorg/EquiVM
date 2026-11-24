@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Benchmarks.Morpho.MorphoBlue.AdminCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `setFeeRecipient(address)`
 
@@ -31,14 +33,14 @@ theorem morphoSetFeeRecipientBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv)
     (hne : calldataWord evm.executionEnv.calldata 4 ≠
       solcAddressSlotWord ⟨1⟩ evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
       setFeeRecipientTransition.body
       (.returned (setFeeRecipientFrame v evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
           (setAddressOffset0Word (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
             (calldataWord evm.executionEnv.calldata 4))) none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
+      ExecTransitionBody fork config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
         setFeeRecipientTransition.body .staticViolation (immStore v)) := by
   exact addressAdminBodySplit v evm (setFeeRecipientArgs evm.executionEnv.calldata)
     "feeRecipient" "newFeeRecipient" "SetFeeRecipient" ⟨1⟩ (calldataWord evm.executionEnv.calldata 4)
@@ -53,7 +55,7 @@ theorem morphoSetFeeRecipientBodyRejects (v : MorphoImmutables) (evm : EVM.State
     (hbad : solcSourceWord evm.executionEnv ≠ solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv ∨
       calldataWord evm.executionEnv.calldata 4 =
         solcAddressSlotWord ⟨1⟩ evm.accountMap evm.executionEnv) :
-    ExecTransitionBody config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (setFeeRecipientArgs evm.executionEnv.calldata)
       setFeeRecipientTransition.body .reverted (immStore v) := by
   exact addressAdminBodyRejects v evm (setFeeRecipientArgs evm.executionEnv.calldata)
     "feeRecipient" "newFeeRecipient" "SetFeeRecipient" ⟨1⟩ (calldataWord evm.executionEnv.calldata 4)
@@ -67,7 +69,7 @@ theorem morphoSetFeeRecipientReachDecode {σ σ₀ A I} {g : Sat256} (v : Morpho
     (hsel : selIs I (morphoSelBytes 24))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
       [UInt256.ofNat 776, UInt256.ofNat 876, ⟨0⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachSetFeeRecipientBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -90,7 +92,7 @@ theorem morphoSetFeeRecipientReachOwnerCheck {σ σ₀ A I} {g : Sat256} (v : Mo
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.eq (solcSourceWord I) (solcAddressSlotWord ⟨0⟩ σ I),
        UInt256.ofNat 128, UInt256.ofNat 848, calldataWord I.calldata 4,
        UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960,
@@ -119,7 +121,7 @@ theorem morphoSetFeeRecipientReachChangedCheck {σ σ₀ A I} {g : Sat256} (v : 
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.isZero (UInt256.eq (calldataWord I.calldata 4) (solcAddressSlotWord ⟨1⟩ σ I)),
        UInt256.ofNat 192, UInt256.ofNat 876, solcSlotWordAt ⟨1⟩ σ I,
        UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960,
@@ -138,7 +140,7 @@ theorem morphoSetFeeRecipientReachChangedCheck {σ σ₀ A I} {g : Sat256} (v : 
   have rdRequire := morphoBlocks.morpho_block_865
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons, List.length_nil]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdCheck
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.isZero (UInt256.eq (UInt256.land (calldataWord I.calldata 4) solcAddrMask)
       (solcAddressSlotWord ⟨1⟩ σ I)), _, _, _, _,
       UInt256.land (calldataWord I.calldata 4) solcAddrMask,
@@ -157,7 +159,7 @@ theorem morphoSetFeeRecipientXRejects {σ σ₀ A I} {g : Sat256} (v : MorphoImm
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbad : solcSourceWord I ≠ solcAddressSlotWord ⟨0⟩ σ I ∨
       calldataWord I.calldata 4 = solcAddressSlotWord ⟨1⟩ σ I) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I
   · obtain ⟨aw, k, C, rd⟩ := morphoSetFeeRecipientReachChangedCheck (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho
@@ -178,7 +180,7 @@ theorem morphoSetFeeRecipientReachStore {σ σ₀ A I} {g : Sat256} (v : MorphoI
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hne : calldataWord I.calldata 4 ≠ solcAddressSlotWord ⟨1⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 876)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 876)
       [solcSlotWordAt ⟨1⟩ σ I,
        UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960,
        calldataWord I.calldata 4, calldataWord I.calldata 4, ⟨0⟩]
@@ -199,10 +201,10 @@ theorem morphoSetFeeRecipientXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hne : calldataWord I.calldata 4 ≠ solcAddressSlotWord ⟨1⟩ σ I) :
-    (I.perm = true ∧ RDret (deployedRuntime v) g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork (deployedRuntime v) g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨1⟩
         (setAddressOffset0Word (solcSlotWordAt ⟨1⟩ σ I) (calldataWord I.calldata 4))) ByteArray.empty) ∨
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g (initState σ σ₀ g A I)) := by
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g (initState σ σ₀ g A I)) := by
   obtain ⟨aw, k, C, rd⟩ := morphoSetFeeRecipientReachStore (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho hne
   by_cases hperm : I.perm = true
@@ -240,7 +242,7 @@ theorem morphoSetFeeRecipientXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 24))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 24) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachSetFeeRecipientBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -269,7 +271,7 @@ theorem morphoSetFeeRecipientXNoncanonical {σ σ₀ A I} {g : Sat256} (v : Morp
     (hsel : selIs I (morphoSelBytes 24)) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoSetFeeRecipientReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -280,7 +282,7 @@ theorem morphoSetFeeRecipientXNoncanonical {σ σ₀ A I} {g : Sat256} (v : Morp
 theorem morphoSetFeeRecipientBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 24)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 24) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some setFeeRecipientTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
@@ -297,7 +299,7 @@ theorem morphoSetFeeRecipientBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmuta
             · exact reEquivSelectorRevert hcode
                 (morphoSetFeeRecipientXRejects v hcode hsize hsel hcv hlen hbound hcanon (.inr heq)) hd hdec
                 (morphoSetFeeRecipientBodyRejects v _ hcv hbound hcanon (.inr heq))
-            · have hbody := morphoSetFeeRecipientBodySplit v (initState σ σ₀ (.ofUInt256 g) A I)
+            · have hbody := morphoSetFeeRecipientBodySplit (fork := fork) v (initState σ σ₀ (.ofUInt256 g) A I)
                 hcv hbound hcanon ho heq
               rcases morphoSetFeeRecipientXSplit (g := .ofUInt256 g) (σ₀ := σ₀) (A := A)
                 v hcode hsize hsel hcv hlen hbound hcanon ho heq with ⟨hp, hx⟩ | ⟨hp, hx⟩

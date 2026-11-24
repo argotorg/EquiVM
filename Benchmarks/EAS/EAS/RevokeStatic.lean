@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,8 +12,8 @@ theorem easRevokeSingle_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+28 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12429) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12429) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.push1 (UInt256.ofNat 32) (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨12429⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 32), 1), easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push20 (UInt256.ofNat 1461501637330902918203684832716283019655932542975) (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨12431⟩ : UInt256), UInt8.ofNat 115, .Push .PUSH20, some ((UInt256.ofNat 1461501637330902918203684832716283019655932542975), 20), easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -48,8 +50,8 @@ theorem easRevokeMany_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+7 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13063) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13063) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.dup4 (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13063⟩ : UInt256), UInt8.ofNat 131, .DUP4, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13064⟩ : UInt256), UInt8.ofNat 84, .SLOAD, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyOutsideTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountEntryTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,13 +20,13 @@ theorem poolModifyRegionExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hp : sqrtPrice.toNat < 2^160) (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0
+    (h : RD fork (deployedRuntime v) I g s0
       (if EVM.signed tick < EVM.signed p.lower then ⟨6344⟩ else ⟨6398⟩)
       (tick :: sqrtPrice :: p.lower :: p.upper :: EVM.wordOfInt p.delta :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyRegionDeltaWord p (EVM.signed tick) sqrtPrice :: R)
+        RD fork (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyRegionDeltaWord p (EVM.signed tick) sqrtPrice :: R)
           mem (poolModifyRegionActiveWords aw p (EVM.signed tick)) rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyRegionResult f evm id p (EVM.signed tick) sqrtPrice) := by
   by_cases hb : EVM.signed tick < EVM.signed p.lower
@@ -57,13 +59,13 @@ theorem poolModifyRegionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hp : sqrtPrice.toNat < 2^160) (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0
+    (h : RD fork (deployedRuntime v) I g s0
       (if EVM.signed tick < EVM.signed p.lower then ⟨6344⟩ else ⟨6398⟩)
       (tick :: sqrtPrice :: p.lower :: p.upper :: EVM.wordOfInt p.delta :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyRegionDeltaWord p (EVM.signed tick) sqrtPrice :: R)
+        RD fork (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyRegionDeltaWord p (EVM.signed tick) sqrtPrice :: R)
           mem aw' rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyRegionResult f evm id p (EVM.signed tick) sqrtPrice) := by
   have hr := poolModifyRegionExactTrace f v hstack hI hm hl hu ht hp hd h

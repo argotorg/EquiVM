@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.SetupDecodeScalars
 import Benchmarks.Safe.V0_cdb2eb5.SetupDecodeOwnersEvidence
 import Benchmarks.Safe.V0_cdb2eb5.CalldataBytesDecoder
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -9,11 +11,11 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000 in
 theorem safeDecodeSetupValid {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10268⟩
+    (h : RD fork safeBytecode I g s0 ⟨10268⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hov : R.length + 24 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k' C' := by
   obtain ⟨_, _, h₁⟩ := safeSetupDecodeOwnersValid h hb.head hb.small hb.ownersOffset
     hb.ownersWord hb.ownersLength hb.ownersEnd (by omega)
@@ -37,12 +39,12 @@ theorem safeDecodeSetupValid {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
 set_option maxRecDepth 100000 in
 theorem safeDecodeSetupEvidence {I g s0 σ k C aw mem rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10268⟩
+    (h : RD fork safeBytecode I g s0 ⟨10268⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 24 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨ ∃ n len k' C', SetupCalldataBounds I.calldata n len ∧
-      RD safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
+    RDrev fork safeBytecode g s0 ∨ ∃ n len k' C', SetupCalldataBounds I.calldata n len ∧
+      RD fork safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
         mem aw rdata σ k' C' := by
   obtain hr | ⟨n, _, _, hh, hs, ho, hw, hn, hin, h₁⟩ :=
     safeSetupDecodeOwnersEvidence h hlong hsize (by omega)

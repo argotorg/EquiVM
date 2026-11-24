@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ArrayReserve
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_054
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem oracleObserveAllocateArrayHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C n : Nat} {aw p dummy : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨17124⟩ else ⟨17055⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨17124⟩ else ⟨17055⟩)
       (dummy :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (hb : p.toNat + 32 * (n + 1) ≤ 2 ^ 200)
     (hov : R.length + 4 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0
+    RD fork (deployedRuntime v) ee g s0
       (if n = 0 then (if second then ⟨17166⟩ else ⟨17097⟩)
         else (if second then ⟨17151⟩ else ⟨17082⟩))
       (UInt256.ofNat n :: p :: R) (arrayReserveHead mem p n) (M aw p ⟨32⟩) rdata σ
@@ -65,12 +67,12 @@ theorem oracleObserveAllocateArrayHeadX {σ : AccountMap} {ee : ExecutionEnv} {g
 theorem oracleObserveAllocateArrayX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C n : Nat} {aw p dummy : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨17124⟩ else ⟨17055⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨17124⟩ else ⟨17055⟩)
       (dummy :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (hb : p.toNat + 32 * (n + 1) ≤ 2 ^ 200)
     (hdata : ee.calldata.size < UInt256.size) (hov : R.length + 7 ≤ 1024) :
     ∃ dummy' k' C', C + (Cₘ (arrayReserveAw aw p n) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if second then ⟨17166⟩ else ⟨17097⟩)
+      RD fork (deployedRuntime v) ee g s0 (if second then ⟨17166⟩ else ⟨17097⟩)
         (dummy' :: p :: R) (arrayReserveMem ee.calldata mem p n) (arrayReserveAw aw p n) rdata σ k' C' := by
   have r1 := oracleObserveAllocateArrayHeadX (v := v) second rd hm hb (by omega)
   by_cases hn : n = 0
@@ -93,7 +95,7 @@ theorem oracleObserveAllocateArrayX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     have hp32' : (p + UInt256.ofNat 32).toNat = p.toNat + 32 :=
       uadd_word_ofNat_toNat p 32 (by change _ < 2 ^ 256; omega)
     have hl : (UInt256.ofNat (32 * n)).toNat = 32 * n := ulit_toNat' _ (by change _ < 2 ^ 256; omega)
-    have r2 : RD (deployedRuntime v) ee g s0 (if second then ⟨17166⟩ else ⟨17097⟩)
+    have r2 : RD fork (deployedRuntime v) ee g s0 (if second then ⟨17166⟩ else ⟨17097⟩)
         ((UInt256.mul (UInt256.ofNat n) (UInt256.ofNat 32) + (UInt256.ofNat 32 + p)) :: p :: R)
         (ee.calldata.write (UInt256.ofNat ee.calldata.size).toNat (arrayReserveHead mem p n)
           (UInt256.ofNat 32 + p).toNat (UInt256.mul (UInt256.ofNat n) (UInt256.ofNat 32)).toNat)

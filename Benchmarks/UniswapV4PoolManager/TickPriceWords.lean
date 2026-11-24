@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.WordSignextend24
 import Benchmarks.UniswapV4PoolManager.TickSqrtSource
 import Benchmarks.UniswapV4PoolManager.NarrowWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,8 +23,8 @@ def signedWordResult (f : Frame) (evm : EVM.State) (result : Option UInt256) : E
 -- LIBRARY CANDIDATE: lift a partial signed-word block result to a function result.
 theorem execFuncBodySignedWordResult {cfg : Config} {f : Frame} {evm : EVM.State}
     {stmts : List Stmt} {result : Option UInt256}
-    (h : ∃ f', ExecBlock cfg f evm stmts (signedWordResult f' evm result)) :
-    ∃ f', ExecFuncBody cfg f evm stmts (signedWordResult f' evm result) := by
+    (h : ∃ f', ExecBlock fork cfg f evm stmts (signedWordResult f' evm result)) :
+    ∃ f', ExecFuncBody fork cfg f evm stmts (signedWordResult f' evm result) := by
   obtain ⟨f', hb⟩ := h
   cases result with
   | none => exact ⟨f', .execBlockRevert hb⟩

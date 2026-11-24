@@ -2,6 +2,8 @@ import Reasoning.EVMWord
 import Examples.UniswapV2Pair.Sync
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -62,15 +64,15 @@ theorem uniswapBalanceTypedCallFromState_source
       some (calldataMem.readWithPadding inOff.toNat 36))
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ I.fork σ1 σ₀ A_in2
+        Ethereum.EVM.Θ fork σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 targetWord)
-          (toExecute I.fork σ1 (AccountAddress.ofUInt256 targetWord))
+          (toExecute fork σ1 (AccountAddress.ofUInt256 targetWord))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (calldataMem.readWithPadding inOff.toNat 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S (AccountAddress.ofUInt256 targetWord)
+      typedCallViaEVM fork config evm1S (AccountAddress.ofUInt256 targetWord)
         "balanceOf" 0 [.address evm1S.executionEnv.codeOwner] (z2, evm2S, out2) false ∧
       evm2S.accountMap = σ2 ∧ evm2S.executionEnv = evm1S.executionEnv ∧
       evm2S.σ₀ = evm1S.σ₀ := by
@@ -83,9 +85,9 @@ theorem uniswapBalanceTypedCallFromState_source
     rw [hEq] at hlt
     exact absurd hlt (by decide)
   have hΘE : (σ2, g'', A'_evm, z2, out2) =
-      Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ A_in2
+      Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner.val))
-        evmE.executionEnv.sender target (toExecute evmE.executionEnv.fork evmE.accountMap target)
+        evmE.executionEnv.sender target (toExecute fork evmE.accountMap target)
         callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
         (calldataMem.readWithPadding inOff.toNat 36)
         (evmE.executionEnv.depth + 1) evmE.executionEnv.header
@@ -98,7 +100,7 @@ theorem uniswapBalanceTypedCallFromState_source
     cases evm1S
     simp_all [evmE]
   have hcallE :
-      typedCallViaEVM config evmE target "balanceOf" 0
+      typedCallViaEVM fork config evmE target "balanceOf" 0
         [.address evmE.executionEnv.codeOwner]
         (z2, { evmE with accountMap := σ2, substate := A'_evm }, out2) false :=
     callCoincides
@@ -116,18 +118,18 @@ theorem uniswapFirstBalanceTypedCall_source
     (hdepth : I.depth.val < 1024)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+        Ethereum.EVM.Θ fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
             (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm0S : EVM.State,
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address (uniswapAddressAtSlot
           (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
@@ -181,16 +183,16 @@ theorem uniswapSyncSecondBalanceTypedCall_source
     (hσ0 : evm0S.σ₀ = σ₀) (henv : evm0S.executionEnv = I)
     (hdepth : I.depth.val < 1024) (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.fork σ1 σ₀ A_in2
+      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ fork σ1 σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I)))
-        (toExecute I.fork σ1 (AccountAddress.ofUInt256
+        (toExecute fork σ1 (AccountAddress.ofUInt256
           (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I))))
         callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm1S : EVM.State,
-      typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
+      typedCallViaEVM fork config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (z2, evm1S, out2) false ∧
       evm1S.accountMap = σ2 ∧ evm1S.executionEnv = evm0S.executionEnv ∧
       evm1S.σ₀ = evm0S.σ₀ := by

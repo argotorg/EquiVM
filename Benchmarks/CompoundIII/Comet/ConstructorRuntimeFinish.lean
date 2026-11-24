@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorFinalImms
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -38,11 +40,11 @@ theorem cometConstructorDeployReturn {c : ConstructorConfig} {w : UInt256}
     (ha : (calldataWord assetOut 0).toNat < 2^160) (hout : out.size < UInt256.size)
     (hfeed : feed.size < UInt256.size) (hf : factoryOut.size < UInt256.size)
     (hasize : assetOut.size < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
       (discard :: calldataWord assetOut 0 :: R)
       (constructorFactoryReturnMemory (constructorAssetsInputMemory c w out feed factoryOut)
         assetOut (UInt256.ofNat (constructorAssetsPtr c))) aw assetOut σ k C) :
-    RDret (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 σ
+    RDret fork (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 σ
       (immutableLayout.deployed cometWithExtendedAssetListBytecode
         (constructorFinalImms c w (calldataWord assetOut 0))) := by
   let ptr := UInt256.ofNat (constructorAssetsPtr c) + UInt256.ofNat 32

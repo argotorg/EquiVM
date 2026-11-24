@@ -7,6 +7,8 @@ import Benchmarks.Safe.Runs1e6.Blocks.Runtime_030
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_044
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -16,10 +18,10 @@ set_option maxRecDepth 100000
 
 set_option maxHeartbeats 800000 in
 theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1174⟩ (⟨128⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1174⟩ (⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) (hm : AddressArrayMemory mem n words)
     (hn : n ≤ 2 ^ 64 - 1) (hc : ∀ w ∈ words, w.toNat < EVM.addressModulus) :
-    RDret safeBytecode g s0 σ (addressArrayReturnBytes words) := by
+    RDret fork safeBytecode g s0 σ (addressArrayReturnBytes words) := by
   let fp := 160 + 32 * n
   have hfp : (addressArrayFreePtr n).toNat = fp :=
     ulit_toNat' _ (by change 160 + 32 * n < 2 ^ 256; omega)
@@ -45,7 +47,7 @@ theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List 
     rw [writeWord_sparse_read_preserved _ _ _ _ (.inl ⟨by dsimp [fp]; omega, hm.lower⟩)]
     exact hm.count
   obtain ⟨aw₃, k₃, C₃, h₃⟩ := safeRuntime_block_12850_packed (by simp; omega) h₂
-  change RD safeBytecode I g s0 ⟨12868⟩
+  change RD fork safeBytecode I g s0 ⟨12868⟩
     (⟨0⟩ :: (⟨128⟩ + UInt256.ofNat 32) :: memLoad ⟨128⟩ (writeWord mem fp ⟨32⟩) ::
       ⟨0⟩ :: ⟨128⟩ :: (UInt256.ofNat (fp + 32) + UInt256.ofNat 32) ::
       ⟨8414⟩ :: ⟨0⟩ :: addressArrayFreePtr n :: ⟨128⟩ :: ⟨771⟩ :: R)
@@ -76,7 +78,7 @@ theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List 
     mloadWordValue_of_readWithPadding
       (by change 64 < encoded.size
           dsimp [encoded]; rw [ByteArray.size_append, hmsize]; dsimp [fp]; omega) he64
-  change RDret safeBytecode g s0 σ (encoded.readWithPadding
+  change RDret fork safeBytecode g s0 σ (encoded.readWithPadding
     (memLoad (UInt256.ofNat 64) encoded).toNat
     (UInt256.sub (UInt256.ofNat (fp + 64 + 32 * words.length))
       (memLoad (UInt256.ofNat 64) encoded)).toNat) at hret

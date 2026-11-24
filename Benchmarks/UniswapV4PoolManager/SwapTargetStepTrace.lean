@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepStartTrace
 import Benchmarks.UniswapV4PoolManager.SwapStepTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,13 +21,13 @@ theorem swapTargetStepTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = limit)
     (hl : UInt256.land (memLoad (pricePtr+liquidityOffset) (swapStepStartMemory mem next writeBase writeOffset))
       (UInt256.ofNat 340282366920938463463374607431768211455) = liquidity)
-    (h : RD (deployedRuntime v) I g s0 ⟨19479⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([next, solcAddrMask, writeBase, writeOffset, ⟨1⟩, liquidityOffset,
         UInt256.ofNat 340282366920938463463374607431768211455, pricePtr, fee,
         if zeroForOne then ⟨0⟩ else ⟨1⟩, remaining, x1, paramsPtr, x3, x4, fee, x6, x7, x8, j] ++ R)
       mem aw rdata σ k C) :
     (swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19714⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19714⟩
         ([(swapStepWord price (swapTargetWord zeroForOne next limit) liquidity remaining fee).fee, j, ⟨160⟩,
           (swapStepWord price (swapTargetWord zeroForOne next limit) liquidity remaining fee).amountOut,
           (swapStepWord price (swapTargetWord zeroForOne next limit) liquidity remaining fee).amountIn,
@@ -33,7 +35,7 @@ theorem swapTargetStepTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
           remaining, x1, paramsPtr, x3, x4, fee, x6, x7, x8, j] ++ R)
         (swapStepStartMemory mem next writeBase writeOffset)
         (swapStepStartAW aw writeBase writeOffset pricePtr paramsPtr liquidityOffset) rdata σ k' C') ∧
-    (¬swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee → RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨k1, C1, hC1, rd1⟩ := swapStepStartTrace v zeroForOne (by omega) hn hlim hp ht hl h
   have hpc : price.toNat < 2^160 := by
     rw [← hp]

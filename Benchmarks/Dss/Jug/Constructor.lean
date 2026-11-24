@@ -2,6 +2,8 @@ import Benchmarks.Dss.Jug.ConstructorSource
 import Benchmarks.Dss.Jug.ConstructorTrace
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor correctness
 -/
@@ -15,13 +17,13 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem jugConstructorCorrect :
     typedConstructorRefinement config jugCreationBytecode contract (fun _ => jugBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases jugCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = jugCtorCode vat := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := jugInitcodeSuccess (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+  · have hrd := jugInitcodeSuccess (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact typedConstructorRefinementFor.outOfGas
@@ -65,12 +67,12 @@ theorem jugConstructorCorrect :
               (g := g) vat hwv)
         ?_
       exact ctorResultEquiv.success rfl rfl hMapVat.symm rfl
-  · have hrd := jugInitcodeNonpayableRevert (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+  · have hrd := jugInitcodeNonpayableRevert (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
     · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
-        (jugSteleCtorExecReverts_nonpayable (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (jugSteleCtorExecReverts_nonpayable (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

@@ -1,6 +1,8 @@
 import Examples.ERC20.Common
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -151,7 +153,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody erc20Config erc20Contract evm (allowanceStore I) allowanceTransition.body
+    ExecTransitionBody fork erc20Config erc20Contract evm (allowanceStore I) allowanceTransition.body
       (.returned { contract := erc20Contract, locals := allowanceStore I } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat))])) := by
@@ -485,9 +487,9 @@ theorem allowanceReturnMem_read128 (owner spender val : UInt256) :
     two-address tuple decoder at pc 2221. -/
 theorem erc20AllowanceX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2221⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨2221⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
@@ -503,9 +505,9 @@ theorem erc20AllowanceX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20AllowanceX_dec1874_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
         [⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2256⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
           ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -525,9 +527,9 @@ theorem erc20AllowanceX_dec2256 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2256⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨2256⟩
         [allowanceOwnerWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨343⟩, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -541,9 +543,9 @@ theorem erc20AllowanceX_dec1874_spender {σ σ₀ A I} {g : Sat256} {sel : UInt2
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
         [⟨4⟩ + ⟨32⟩, UInt256.ofNat I.calldata.size, ⟨2273⟩, ⟨32⟩, ⟨0⟩,
           allowanceOwnerWord I, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -561,9 +563,9 @@ theorem erc20AllowanceX_dec2273 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2273⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨2273⟩
         [allowanceSpenderWord I, ⟨32⟩, ⟨0⟩, allowanceOwnerWord I, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -578,9 +580,9 @@ theorem erc20AllowanceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1768⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨1768⟩
         [allowanceSpenderWord I, allowanceOwnerWord I, ⟨348⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := erc20AllowanceX_dec2273
@@ -597,9 +599,9 @@ theorem erc20X_allowance {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc20Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork erc20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (allowanceWord σ I)) := by
   obtain ⟨k, C, rd1768⟩ := erc20AllowanceX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -665,9 +667,9 @@ theorem erc20X_allowance {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20AllowanceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
   obtain ⟨k, C, rd⟩ := erc20AllowanceX_toDecoder
@@ -681,9 +683,9 @@ theorem erc20AllowanceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20AllowanceX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
   obtain ⟨k, C, rd⟩ := erc20AllowanceX_toDecoder
@@ -699,9 +701,9 @@ theorem erc20AllowanceX_noncanon_owner {σ σ₀ A I} {g : Sat256} {sel : UInt25
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (allowanceOwnerWord I)
       (UInt256.land (allowanceOwnerWord I) erc20AddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := erc20AllowanceX_dec1874_owner
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz68 hsize hszhi hreach
   exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
@@ -712,9 +714,9 @@ theorem erc20AllowanceX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hnc : UInt256.eq (allowanceSpenderWord I)
       (UInt256.land (allowanceSpenderWord I) erc20AddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := erc20AllowanceX_dec1874_spender
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonOwner hreach
@@ -749,10 +751,10 @@ theorem erc20AllowanceBodyCore
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20AllowanceSelector_size hsel
   have hd := erc20Dispatch_allowance (cd := I.calldata) hsel
@@ -762,7 +764,7 @@ theorem erc20AllowanceBodyCore
       · by_cases hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus
         · have hdec := erc20Decode_allowance_ok (I := I) hsz68 hbig hcanonOwner hcanonSpender
           have hbody :
-              ExecTransitionBody erc20Config erc20Contract
+              ExecTransitionBody fork erc20Config erc20Contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (allowanceStore I)
                 allowanceTransition.body

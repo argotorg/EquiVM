@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.GetOwnersSource
 import Reasoning.ABIViews
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -68,7 +70,7 @@ theorem safeGetOwnersEarlyReturn (evm : EVM.State)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hlen : (ownerCount evm).toNat ≤ 2 ^ 64 - 1)
     (hcurrent : ownerLink evm ⟨1⟩ = ⟨1⟩) :
-    ExecTransitionBody config contract evm ∅ getownersTransition.body
+    ExecTransitionBody fork config contract evm ∅ getownersTransition.body
       (.returned { contract := contract, locals := getOwnersInitialLocals evm } evm
         (some [.array ((List.replicate (ownerCount evm).toNat ⟨0⟩).map addressArrayValue)])) := by
   have hl := safeGetOwnersInitialLocals evm
@@ -111,7 +113,7 @@ theorem hugeOwnerAudit_current (perm : Bool) :
     solcAddrMask_clean (by decide : (⟨1⟩ : UInt256).toNat < EVM.addressModulus)]
 
 theorem hugeOwnerAudit_source (perm : Bool) :
-    ExecTransitionBody config contract (hugeOwnerAuditState perm) ∅ getownersTransition.body
+    ExecTransitionBody fork config contract (hugeOwnerAuditState perm) ∅ getownersTransition.body
       (.returned { contract := contract, locals := getOwnersInitialLocals (hugeOwnerAuditState
         perm) }
         (hugeOwnerAuditState perm)

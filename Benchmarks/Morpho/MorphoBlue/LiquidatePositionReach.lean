@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateMathRefine
 import Benchmarks.Morpho.MorphoBlue.RepayPositionRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -25,18 +27,18 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {k C : Nat} {R : List UInt256}
 
 theorem morphoLiquidatePositionReachCast (hstack : R.length + 30 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
       (assets :: liquidateFinishMathTail id seized shares srcOff len R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 2115] ++ liquidateUpdateTail id assets seized shares srcOff len R) mem aw out σ k' C' := by
   exact ⟨_, _, morphoBlocks.morpho_block_2105 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 9 ≤ 1024; omega) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h⟩
 
 theorem morphoLiquidatePositionReachSub (hstack : R.length + 30 ≤ 1024)
     (ha : account.toNat < EVM.addressModulus) (haccount : calldataWord ee.calldata 164 = account)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2115)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2115)
       (shares :: liquidateUpdateTail id assets seized shares srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([positionFieldWord σ ee id account 1, shares, UInt256.ofNat 2197] ++
         liquidatePositionStoreTail σ ee id assets seized shares account srcOff len R)
       (supplyPositionMem id account mem) aw' out σ k' C' := by
@@ -55,7 +57,7 @@ theorem morphoLiquidatePositionReachSub (hstack : R.length + 30 ≤ 1024)
       positionSlot id account := twoWordHashMem_solcMappingSlot_any _ _ _
   dsimp only [morphoBlocks.morpho_block_2115_stack, morphoBlocks.morpho_block_2115_memory] at rd1
   rw [haddr] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2 + UInt256.ofNat 1) σ ee) uint128Mask,
       shares, UInt256.ofNat 2197, uint128Mask,
       keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2 + UInt256.ofNat 1,
@@ -66,14 +68,14 @@ theorem morphoLiquidatePositionReachSub (hstack : R.length + 30 ≤ 1024)
 
 theorem morphoLiquidatePositionStore (hstack : R.length + 30 ≤ 1024) (hperm : ee.perm = true)
     (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2197)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2197)
       (value :: liquidatePositionStoreTail σ ee id assets seized shares account srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 2249, UInt256.ofNat 2342] ++ liquidateMarketTail id assets seized shares srcOff len R)
       mem aw' out (storePositionPackedAccounts σ ee id account false value) k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_2197_packed (immWords := wordsOf (immStore v))
     (by change R.length + 7 + 6 ≤ 1024; omega) hperm (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ _ _ _ _
+  change RD fork _ _ _ _ _ _ _ _ _
     (sstoreAccountMap ee.codeOwner σ (positionSlot id account + UInt256.ofNat 1)
       (UInt256.lor (UInt256.land (solcSlotWordAt (positionSlot id account + UInt256.ofNat 1) σ ee)
         (UInt256.lnot uint128Mask)) (UInt256.land value uint128Mask))) _ _ at rd1
@@ -86,9 +88,9 @@ end Reach
 theorem morphoLiquidatePositionStatic {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw value mask slot old : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2197) ([value, mask, slot, old] ++ R)
-      mem aw out σ k C) : RDstatic (deployedRuntime v) g s0 := by
-  change RD _ _ _ _ _ (value :: mask :: slot :: old :: R) _ _ _ _ _ _ at h
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2197) ([value, mask, slot, old] ++ R)
+      mem aw out σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
+  change RD fork _ _ _ _ _ (value :: mask :: slot :: old :: R) _ _ _ _ _ _ at h
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨2197⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨2198⟩ : UInt256), UInt8.ofNat 22, .AND, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

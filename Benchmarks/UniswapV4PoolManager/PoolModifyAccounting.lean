@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyFeeFrames
 import Benchmarks.UniswapV4PoolManager.PoolModifyClears
 import Benchmarks.UniswapV4PoolManager.PoolModifyFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,8 +18,8 @@ theorem poolModifyAfterFees {f : Frame} {evm : State} {id fees : UInt256} {p : P
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu)) (ht : poolTicksValid p.lower p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
     (hd : f.locals.get? "delta" = some (.int 0)) (hf : f.locals.get? "feeDelta" = some (.int (EVM.signed fees))) :
-    ExecBlock config f evm (poolModifyFunction.body.drop 23) (poolModifyAfterFeesResult f evm id p fl fu fees) := by
-  have hclear := poolModifyClears (evm := evm) hc hs
+    ExecBlock fork config f evm (poolModifyFunction.body.drop 23) (poolModifyAfterFeesResult f evm id p fl fu fees) := by
+  have hclear := poolModifyClears (fork := fork) (evm := evm) hc hs
   apply execBlock_continue (execBlock_singleton hclear)
   intro f1 post hpost
   exact poolModifyFinish (poolModifyClearsResult_context hc hpost) ht hdlo hdhi
@@ -36,8 +38,8 @@ theorem poolModifyAccounting {f : Frame} {evm : State} {id : UInt256} {p : PoolM
     (hlo : int24Canonical p.lower) (hup : int24Canonical p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
     (hd : f.locals.get? "delta" = some (.int 0)) (hf : f.locals.get? "feeDelta" = some oldFee) :
-    ExecBlock config f evm (poolModifyFunction.body.drop 8) (poolModifyAccountingResult f evm id p fl fu) := by
-  have hfees := poolModifyFees (evm := evm) hc hlo hup hf
+    ExecBlock fork config f evm (poolModifyFunction.body.drop 8) (poolModifyAccountingResult f evm id p fl fu) := by
+  have hfees := poolModifyFees (fork := fork) (evm := evm) hc hlo hup hf
   apply execBlock_continue hfees
   intro f1 post hpost
   exact poolModifyAfterFees (poolModifyFeesResult_context hc hpost)

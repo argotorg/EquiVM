@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.FinalizeVoid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -15,15 +17,15 @@ theorem wordBytesCallerBridge {code ee g s0 pc R aw out σ k C evm gasArg}
     (hencode : cfg.externalABI.encode? name [.int (Int.ofNat word.toNat), .bytes data] =
       some (wordBytesCalldata (selector.toByteArray.extract 0 4) word data))
     (hdec : decode code pc = some (.CALL, none)) (hov : R.length + 1 ≤ 1024)
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (gasArg :: UInt256.ofNat ee.source.val :: UInt256.ofNat 0 :: ptr ::
        UInt256.ofNat (100 + paddedSize len.toNat) :: ptr :: UInt256.ofNat 0 :: R)
       (wordBytesCallMem selector word ee.calldata mem srcOff.toNat ptr.toNat len.toNat) aw out σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (result : ByteArray) (k' C' : Nat),
-      typedCallViaEVM cfg evm evm.executionEnv.source name 0
+      typedCallViaEVM fork cfg evm evm.executionEnv.source name 0
         [.int (Int.ofNat word.toNat), .bytes data] (z, evm', result) ∧
       SourceState s0 ee σ' evm' ∧
-      RD code ee g s0 (pc + UInt256.ofNat 1) ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: R)
+      RD fork code ee g s0 (pc + UInt256.ofNat 1) ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: R)
         (wordBytesCallMem selector word ee.calldata mem srcOff.toNat ptr.toNat len.toNat)
         (callActiveWords aw ptr (UInt256.ofNat (100 + paddedSize len.toNat)) ptr (UInt256.ofNat 0))
         result σ' k' C' ∧ result.size < 2 ^ 138 := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.CurrencyReservesRead
 import Benchmarks.UniswapV4PoolManager.SafeCast
 import Benchmarks.UniswapV4PoolManager.AccountDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,13 +29,13 @@ theorem settlePaidBody {f : Frame} {evm : EVM.State} {recipient currency : Accou
     (hr : f.locals.get? "recipient" = some (.address recipient))
     (hc : f.locals.get? "currency" = some (.address currency))
     (hp : f.locals.get? "paid" = some (.int (Int.ofNat paid.toNat))) :
-    ExecFuncBody config f evm (settleFunction.body.drop 4) (settlePaidResult f evm recipient currency paid) := by
+    ExecFuncBody fork config f evm (settleFunction.body.drop 4) (settlePaidResult f evm recipient currency paid) := by
   rw [settlePaidResult]
   by_cases hfit : paid.toNat < 2^127
   · rw [if_pos hfit]
-    have hcast := uintToInt128Call (evm := evm) hf (evalLocalValue hp) hfit "__c5"
+    have hcast := uintToInt128Call (fork := fork) (evm := evm) hf (evalLocalValue hp) hfit "__c5"
     let f1 : Frame := {f with locals := f.locals.insert "__c5" (.int (Int.ofNat paid.toNat))}
-    have haccount := accountDeltaCall (f := f1) (evm := evm) hf
+    have haccount := accountDeltaCall (fork := fork) (f := f1) (evm := evm) hf
       (evalLocalValue ((store_get_ne _ _ (by decide : ("__c5" == "currency") = false)).trans hc))
       (evalLocalValue (store_get_self _ _ _))
       (evalLocalValue ((store_get_ne _ _ (by decide : ("__c5" == "recipient") = false)).trans hr)) "__c6"

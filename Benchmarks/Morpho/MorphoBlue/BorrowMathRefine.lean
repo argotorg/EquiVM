@@ -1,36 +1,38 @@
 import Benchmarks.Morpho.MorphoBlue.BorrowMathReach
 import Benchmarks.Morpho.MorphoBlue.MarketTransferMathSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive BorrowMathRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive BorrowMathRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account receiver : UInt256)
     (locals imms : Store) (evm : EVM.State) (σ : AccountMap) (mem : ByteArray) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (borrowTransition.body.drop 13) .reverted → RDrev (deployedRuntime v) g s0 →
-      BorrowMathRefines v ee g s0 p account receiver locals imms evm σ mem R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (borrowTransition.body.drop 13) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      BorrowMathRefines fork v ee g s0 p account receiver locals imms evm σ mem R
   | ok {assets' shares' locals' aw' k' C' out'} :
-      ABlock config evm { contract := contract, locals := locals, immutables := imms }
+      ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (borrowTransition.body.drop 13) { contract := contract, locals := locals', immutables := imms }
         (borrowTransition.body.drop 14) → MarketTransferLocals p assets' shares' account receiver locals' →
       locals'.get? "__memory" = locals.get? "__memory" →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
         (borrowUpdateTail p.id assets' shares' account receiver R)
         (twoWordHashMem p.id (UInt256.ofNat 3) mem) aw' out' σ k' C' →
-      BorrowMathRefines v ee g s0 p account receiver locals imms evm σ mem R
+      BorrowMathRefines fork v ee g s0 p account receiver locals imms evm σ mem R
 
 theorem morphoBorrowMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw assets shares account receiver : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (p : MarketParamsWords)
     (locals imms : Store) (hstack : R.length + 30 ≤ 1024)
     (hl : MarketTransferLocals p assets shares account receiver locals) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8491)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8491)
       (borrowAccrueTail p.id assets shares account receiver R) mem aw out σ k C) :
-    BorrowMathRefines v ee g s0 p account receiver locals imms evm σ mem R := by
+    BorrowMathRefines fork v ee g s0 p account receiver locals imms evm σ mem R := by
   by_cases hz : assets = ⟨0⟩
   · obtain ⟨a1, k1, C1, rd1⟩ := morphoBorrowReachAssets p hstack hz h
     by_cases hf : AssetsDownFits shares (marketFieldWord σ ee p.id 2) (marketFieldWord σ ee p.id 3)

@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapTransfersAnyDepth
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,7 +12,7 @@ theorem uniswapSwapTransfersCases
     {mem rdata : ByteArray} {aw freePtr token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} (evm : EVM.State) (token0Addr token1Addr recipient : AccountAddress)
-    (rd1870 : RD uniswapV2PairBytecode I g s0 ⟨1870⟩
+    (rd1870 : RD fork uniswapV2PairBytecode I g s0 ⟨1870⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
@@ -29,14 +31,14 @@ theorem uniswapSwapTransfersCases
     (hcap : freePtr.toNat + 2 ^ 138 + 227 ≤ 2 ^ 255 + 1024)
     (hov : R.length + 31 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecBlock config caller evm [swapFirstTransferStmt, swapSecondTransferStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config caller evm [swapFirstTransferStmt, swapSecondTransferStmt] .reverted ∧
+      RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' ptr' data' k' C',
-      ExecBlock config caller evm [swapFirstTransferStmt, swapSecondTransferStmt]
+      ExecBlock fork config caller evm [swapFirstTransferStmt, swapSecondTransferStmt]
         (.ok (swapAfterTransfersFrame caller amount0Out amount1Out) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       SafeTransferMemoryReady mem' aw' ptr' ∧ ptr'.toNat ≤ freePtr.toNat + 2 * (2 ^ 138 + 227) ∧
-      RD uniswapV2PairBytecode I g s0 ⟨1904⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨1904⟩
         (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
           toWord :: amount1Out :: amount0Out :: R) mem' aw' data' σ' k' C') := by
   have _ := hdepth

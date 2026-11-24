@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.CollateralValueModel
 import Benchmarks.CompoundIII.Comet.MappingScratch
 import Benchmarks.CompoundIII.Comet.CollateralMathEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -35,11 +37,11 @@ theorem cometCollateralBalanceRead {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (account : AccountAddress) (hstack : R.length + 16 ≤ 1024)
     (hm : AssetMemory mem ptr free out) (hc : AssetCanonical out)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10490⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10490⟩
       (ptr :: ⟨10498⟩ :: ⟨10518⟩ :: collateralPricePc borrow :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ ::
         EVM.word account.val :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (collateralPricePc borrow)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (collateralPricePc borrow)
       (collateralBalanceWord evm account out :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R)
       (collateralReadMemory mem account out) aw' rdata σ k' C' := by
@@ -76,7 +78,7 @@ theorem cometCollateralBalanceRead {v : CometWithExtendedAssetListImmutables}
     rw [userCollateralSlot, addressWord_eq_ofNat_address hc.2.1]
   have hword := hs.storageRead (userCollateralSlot account
     (AccountAddress.ofNat (calldataWord out 32).toNat))
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.land _ (solcSlotWord σ ee
       (solcMappingSlot (solcMappingSlot ⟨6⟩ (EVM.word account.val)) (calldataWord out 32))) :: _)
     _ _ _ _ _ _ at r5
@@ -92,10 +94,10 @@ theorem cometCollateralPriceStart {v : CometWithExtendedAssetListImmutables}
     {aw ptr free amount : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 11 ≤ 1024)
     (hm : AssetMemory mem ptr free out) (hc : AssetCanonical out)
-    (h : RD (deployedRuntime v) ee g s0 (collateralPricePc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralPricePc borrow)
       (amount :: ⟨10579⟩ :: UInt256.ofNat (collateralFactorOffset borrow) ::
         ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨9375⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨9375⟩
       (EVM.word (AccountAddress.ofNat (calldataWord out 64).toNat).val ::
         collateralMathPc borrow :: amount :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R)

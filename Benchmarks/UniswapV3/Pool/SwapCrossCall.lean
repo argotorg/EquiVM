@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossLoad
 import Benchmarks.UniswapV3.Pool.HashMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -15,7 +17,7 @@ theorem swapCrossCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3775⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3775⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm)
@@ -33,11 +35,11 @@ theorem swapCrossCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hbq : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 28 ≤ 1024) :
     let ca := swapCrossArgs a.zeroForOne c s d σ ee
     let m := twoWordHashMem (EVM.wordOfInt d.tickNext) ⟨5⟩ mem
-    ExecStmt config frame evm swapInitializedBody[1]!
+    ExecStmt fork config frame evm swapInitializedBody[1]!
         (.ok (swapCrossCallFrame frame evm ca) (tickCrossState evm ca)) ∧
       SourceState s0 ee (tickCrossMap ca σ ee) (tickCrossState evm ca) ∧
       ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3851⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3851⟩
           ([EVM.wordOfInt (tickCrossResult evm ca), ⟨0⟩, q] ++
             swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
           m aw' rdata (tickCrossMap ca σ ee) k' C' ∧ HeapMemory m aw' free ∧

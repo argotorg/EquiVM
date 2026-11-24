@@ -11,6 +11,8 @@ import Benchmarks.WETH9.Transfer
 import Benchmarks.WETH9.Deposit
 import Benchmarks.WETH9.Allowance
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 benchmark correctness
 
@@ -28,7 +30,7 @@ namespace Benchmarks.WETH9
 
 theorem weth9Correct :
     runtimeRefinementWithWF weth9StorageWF noGasBound config weth9Bytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hwf _ ↦ ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize hwf _ ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (weth9SelBytes 0)
     · exact weth9NameBodyCore hcode hsize h0 hwf

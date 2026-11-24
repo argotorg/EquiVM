@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdateBranchTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -41,11 +43,11 @@ theorem positionUpdateGrowthX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (positionUpdateLiquidityState a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21846⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21846⟩
       (positionUpdateWorkingWords a evm p ++ ret :: R) mem aw rdata σ k C)
     (hp : ee.perm = true) (hov : R.length + 14 ≤ 1024) :
     ∃ k' C', SourceState s0 ee (positionUpdateGrowthMap a σ ee) (positionUpdateGrowthState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨21892⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨21892⟩
         ((positionUpdateHasFees a evm).toUInt256 :: positionUpdateWorkingWords a evm p ++ ret :: R)
         mem aw rdata (positionUpdateGrowthMap a σ ee) k' C' := by
   simp only [positionUpdateWorkingWords, List.cons_append, List.nil_append] at rd

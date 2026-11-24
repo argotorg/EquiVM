@@ -1,5 +1,7 @@
 import Benchmarks.Auction.DynamicMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -19,11 +21,11 @@ def addressEventWords (mem : ByteArray) (aw value : UInt256) : UInt256 :=
     (UInt256.sub (UInt256.add ⟨32⟩ (addressEventPtr mem)) ptr')
 
 theorem addressEventReturn {I g s0 value topic ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨2971⟩ (value :: topic :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2971⟩ (value :: topic :: ret :: R)
       mem aw rdata acc k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem value)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R (addressEventMem mem value)
       (addressEventWords mem aw value) rdata acc k' C' := by
   have rd2987 := evm_run h with [
     jumpdest, push1 ⟨64⟩, raw mloadSymbolic (by native_decide) (by evm_ov),

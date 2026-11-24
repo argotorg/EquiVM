@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -9,8 +11,8 @@ set_option maxRecDepth 2000
 -- GENERALIZES internalBlockResult.iteTrue to the false branch.
 theorem internalBlockResult.iteFalse {cfg frame evm cond yes no result}
     (hc : evalExpr? cfg frame evm cond = .ok (.bool false))
-    (hb : internalBlockResult cfg frame evm no result) :
-    internalBlockResult cfg frame evm [.ite cond yes no] result := by
+    (hb : internalBlockResult fork cfg frame evm no result) :
+    internalBlockResult fork cfg frame evm [.ite cond yes no] result := by
   cases result with
   | ok evm' =>
       obtain ⟨frame', hb⟩ := hb
@@ -24,7 +26,7 @@ theorem userBasicBitUpdate_source (frame : Frame) (evm : EVM.State)
     (ha : evalExpr? config frame evm (.var "account") = .ok (.address account))
     (hb : bit < (userBasicFieldWidth i).val)
     (he : evalExpr? config frame evm bitExpr = .ok (.int (Int.ofNat bit))) :
-    internalBlockResult config frame evm
+    internalBlockResult fork config frame evm
       [.assign .storage ⟨"userBasic", [.mindex (.var "account"), .field (userBasicFieldName i)]⟩
         (typedBitUpdateExpr add (userBasicFieldWidth i)
           (.storage ⟨"userBasic", [.mindex (.var "account"), .field (userBasicFieldName i)]⟩)
@@ -57,7 +59,7 @@ theorem assetMembershipWrite_source (frame : Frame) (evm : EVM.State)
     (ha : evalExpr? config frame evm (.var "account") = .ok (.address account))
     (ho : offset.toNat < 2^8)
     (he : evalExpr? config frame evm assetMembershipOffset = .ok (.int offset.toNat)) :
-    internalBlockResult config frame evm (assetMembershipWriteBlock add)
+    internalBlockResult fork config frame evm (assetMembershipWriteBlock add)
       (assetMembershipWriteResult evm account offset add) := by
   have hlt (n : Nat) : evalExpr? config frame evm
       (.binary .lt assetMembershipOffset (.intLit n)) =

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.RecordPrepare
 import Benchmarks.EAS.EAS.StructAllocate
 import Reasoning.ExternalCall
 import Benchmarks.EAS.EAS.RecordPadding
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,22 +22,22 @@ theorem newRecordRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat2
     (hdend : dataPtr.toNat+32+32*((r.data.size+31)/32) ≤ heap.toNat)
     (hat : recordCreateAttester site mem = UInt256.ofNat attester.val)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
       (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw rdata σ k C) :
     let a := newAttestation r schema (easTimeWord ee) attester
     let next := allocateNext heap.toNat 320
     if next ≤ 2^64-1 ∧ heap.toNat ≤ next then
       ∃ mem' aw' k' C',
-        ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm newRecordBody
+        ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm newRecordBody
           (.ok {contract := contract,locals := newRecordLocals L r schema (easTimeWord ee) attester heap.toNat,immutables := immStore v} evm) ∧
         UIDLoopLocals (newRecordLocals L r schema (easTimeWord ee) attester heap.toNat) a ⟨0⟩ next ∧
         MemoryPrefix mem mem' heap.toNat ∧ MemoryPrefix (recordPadding mem heap.toNat) mem' heap.toNat ∧ AttestationMemoryView mem' heap dataPtr a ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-        RD (deployedRuntime v) ee g s0 (uidStartPC site) (⟨0⟩::uidSaved site heap (schema::idx::t3::t4::R)) mem' aw' rdata σ k' C'
-    else ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm newRecordBody .reverted ∧
-      RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (⟨0⟩::uidSaved site heap (schema::idx::t3::t4::R)) mem' aw' rdata σ k' C'
+    else ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm newRecordBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
-  have hsol := newRecordSource (imms := immStore v) (evm := evm) hr hsch ha hh
+  have hsol := newRecordSource (fork := fork) (imms := immStore v) (evm := evm) hr hsch ha hh
   rw [hs.env] at hsol
   obtain ⟨aw1,k1,C1,hr1⟩ := easRecordPrepare v site hstack hv hheap rd
   by_cases hg : allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.NextAmount0Words
 import Benchmarks.UniswapV4PoolManager.FullMathRoundSource
 import Benchmarks.UniswapV4PoolManager.SafeCast160Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,11 +20,11 @@ theorem nextAmount0RoundSource {f : Frame} {evm : EVM.State} {n price d : UInt25
     (hn : f.locals.get? "numerator1" = some (.int (Int.ofNat n.toNat)))
     (hp : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat))) :
-    ∃ f', ExecBlock config f evm (nextAmount0RoundStmts checked)
+    ∃ f', ExecBlock fork config f evm (nextAmount0RoundStmts checked)
       (if nextAmount0RoundFits n price d checked then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0RoundWord n price d checked).toNat)])
        else .reverted) := by
-  have hc := fullMathRoundCall (f := f) (evm := evm) hf (evalLocalValue hn) (evalLocalValue hp)
+  have hc := fullMathRoundCall (fork := fork) (f := f) (evm := evm) hf (evalLocalValue hn) (evalLocalValue hp)
     (evalLocalValue hd) (nextAmount0RoundName checked)
   by_cases hfit : fullMathRoundFits n price d
   · rw [if_pos hfit] at hc
@@ -36,7 +38,7 @@ theorem nextAmount0RoundSource {f : Frame} {evm : EVM.State} {n price d : UInt25
       exact ⟨f1, ExecBlock.consNormal hc (ABlock.start.returns he)⟩
     | true =>
       let f1 := wordLocal f "__c2" (fullMathRoundWord n price d)
-      have hs := uintToUint160Call (f := f1) (evm := evm) hf wordLocal_eval "__c3"
+      have hs := uintToUint160Call (fork := fork) (f := f1) (evm := evm) hf wordLocal_eval "__c3"
       simp only [nextAmount0RoundFits, hfit, if_true, true_and, nextAmount0RoundWord]
       by_cases h160 : (fullMathRoundWord n price d).toNat < 2^160
       · rw [if_pos h160] at hs

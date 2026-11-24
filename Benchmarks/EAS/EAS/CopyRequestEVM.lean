@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopyRequestBegin
 import Benchmarks.EAS.EAS.CopyRequestBytes
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -25,11 +27,11 @@ theorem easCopyRequestBytes_branches {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (v : EASImmutables) (hstack : R.length+13 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5459⟩ (off::src::stop::record::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5459⟩ (off::src::stop::record::ret::R) mem aw rdata σ k C) :
     (requestCopyBytesValid ee.calldata src off stop heap →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
         (requestCopyBytesMemory mem ee.calldata src off heap record) aw' rdata σ k' C') ∧
-    (¬ requestCopyBytesValid ee.calldata src off stop heap → RDrev (deployedRuntime v) g s0) := by
+    (¬ requestCopyBytesValid ee.calldata src off stop heap → RDrev fork (deployedRuntime v) g s0) := by
   have h := easCopyRequestBytes v hstack hfree hret rd
   constructor
   · intro hv
@@ -43,11 +45,11 @@ theorem easCopyRequest {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+14 ≤ 1024) (hlo : 96 ≤ heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5344⟩ (src::stop::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5344⟩ (src::stop::ret::R) mem aw rdata σ k C) :
     if requestCopyRunValid ee.calldata src stop heap then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
         (requestCopyMemory mem ee.calldata src heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hb := easCopyRequestBegin v (by omega) hfree rd
   by_cases hhead : UInt256.slt (UInt256.sub stop src) ⟨192⟩ = ⟨0⟩
   · rw [if_pos hhead] at hb

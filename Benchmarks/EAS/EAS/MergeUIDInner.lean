@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MergeUIDSource
 import Benchmarks.EAS.EAS.MergeUIDControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,15 +15,15 @@ theorem mergeUIDInnerLoop {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g :
     (hf : MergeUIDInnerLocals L groups words values heap.toNat c i j)
     (hm : WordArrayPrefixView mem out words c heap.toNat) (hs : WordArrayMemoryView mem src values out.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12017⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12017⟩
       (UInt256.ofNat j::lists::out::ret::UInt256.ofNat i::src::UInt256.ofNat c::R) mem aw rdata σ k C) :
     ∃ L' mem' aw' k' C' words', words'.length = words.length ∧ MemoryPrefix mem mem' out.toNat ∧
       MergeUIDInnerLocals L' groups words' values heap.toNat (c+n) i values.length ∧
       WordArrayPrefixView mem' out words' (c+n) heap.toNat ∧ memLoad (UInt256.ofNat 64) mem' = heap ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
         (.while (localArrayGuard "j" "currentUids") mergeUIDInnerIteration)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨11990⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨11990⟩
         (out::UInt256.ofNat (c+n)::UInt256.ofNat (i+1)::lists::ret::R) mem' aw' rdata σ k' C' := by
   induction n generalizing L mem aw k C j c words with
   | zero =>
@@ -45,7 +47,7 @@ theorem mergeUIDInnerLoop {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g :
     have hguard : evalExpr? config {contract := contract,locals := L,immutables := immStore v} evm (localArrayGuard "j" "currentUids") = .ok (.bool true) := by
       simpa only [List.length_map,decide_eq_true hj0] using
         evalLocalArrayGuard (cfg := config) (evm := evm) (frame := {contract := contract,locals := L,immutables := immStore v}) hf.index hf.current
-    have hsol := mergeUIDInnerSource (imms := immStore v) (evm := evm) hf hc hj0 hcb hjb
+    have hsol := mergeUIDInnerSource (fork := fork) (imms := immStore v) (evm := evm) hf hc hj0 hcb hjb
     obtain ⟨a1,k1,C1,r1⟩ := easMergeUIDInnerStep v hstack hs hj0 hm.length hc hlen rd
     have hdst : (UInt256.ofNat (out.toNat+32+32*c)).toNat = out.toNat+32+32*c := ulit_toNat' _ (by change _ < 2^256; omega)
     rw [hdst] at r1

@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.BurnTailSource
 import Examples.UniswapV2Pair.BurnKLastRuntime
 import Examples.UniswapV2Pair.BurnEventRuntime
 import Examples.UniswapV2Pair.BurnReturnRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap} {locals : Store}
     (evm : EVM.State) (fee : Bool)
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4885⟩
       (supply :: feeWord :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
         amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
@@ -27,14 +29,14 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hperm : I.perm = true) (hov : R.length + 23 ≤ 1024) :
     ∃ evm' σ',
-      ExecBlock config { contract := contract, locals := locals } evm burnAfterUpdateTail
+      ExecBlock fork config { contract := contract, locals := locals } evm burnAfterUpdateTail
         (.returned { contract := contract, locals := locals } evm'
           (some [uniswapUint256Value amount0, uniswapUint256Value amount1])) ∧
       σ' = evm'.accountMap ∧
-      RDret uniswapV2PairBytecode g s0 σ' (amount0.toByteArray ++ amount1.toByteArray) := by
+      RDret fork uniswapV2PairBytecode g s0 σ' (amount0.toByteArray ++ amount1.toByteArray) := by
   have hKLast : ∃ σK kK CK,
       σK = (uniswapKLastIfFeeState evm fee).accountMap ∧
-      RD uniswapV2PairBytecode I g s0 ⟨4933⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨4933⟩
         (supply :: feeWord :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
           amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata σK kK CK := by
     cases fee with

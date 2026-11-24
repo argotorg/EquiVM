@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.PairDynamicReturnMemory
 import Examples.UniswapV2Pair.Routines
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,12 +12,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnReturnPair {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1 amount0 aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {acc : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨1201⟩ (amount1 :: amount0 :: R) mem aw rdata acc k C)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨1201⟩ (amount1 :: amount0 :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 95 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 5 ≤ 1024) :
-    RDret uniswapV2PairBytecode g s0 acc (amount0.toByteArray ++ amount1.toByteArray) := by
+    RDret fork uniswapV2PairBytecode g s0 acc (amount0.toByteArray ++ amount1.toByteArray) := by
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
   change memoryWordActiveWords aw ⟨64⟩ = aw at hw64

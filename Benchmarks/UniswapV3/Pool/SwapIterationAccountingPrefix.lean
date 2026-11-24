@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationResultPrefix
 import Benchmarks.UniswapV3.Pool.SwapIterationStoredFrameLaws
 import Benchmarks.UniswapV3.Pool.SwapAccounting
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -21,7 +23,7 @@ theorem swapIterationAccountingPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g 
     {s0 : EVM.State} {k C : Nat} {aw p q cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3035⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3035⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hst : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -33,13 +35,13 @@ theorem swapIterationAccountingPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g 
     (hm : HeapMemory mem aw q) (hs : SwapStateMemory mem p s) (ha : a.Fits) (hfit : s.Fits)
     (hpl : 96 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 64 ≤ 1024) :
-    (ExecBlock config frame evm (swapLoopBody.take 14) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapLoopBody.take 14)
+    (ExecBlock fork config frame evm (swapLoopBody.take 14) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapLoopBody.take 14)
         (.ok (swapIterationAccountedFrame frame v a s evm) evm) ∧
       (swapIterationAccountedState v a s evm).Fits ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3504⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3504⟩
           (q :: swapLoopWords a p (swapExactInput a).toUInt256 cache snap
             dataStart dataLength ret R)
           mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' (q + ⟨224⟩) ∧

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintInitialCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -44,7 +46,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -58,7 +60,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -84,7 +86,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
               (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hfeeCall : typedCallViaEVM config evm1S
+    (hfeeCall : typedCallViaEVM fork config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
@@ -104,7 +106,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
         resumeAfterInternalCall
           { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
           "feeOn" (some [.bool false])
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             nextFrame.locals.insert "_totalSupply"
@@ -120,7 +122,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
             "rootLiquidity" (some [.int rootLiquidity]))
           evmFeeS))
-    (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd2531 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [UInt256.ofNat rootLiquidity.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1,
         amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, mintToMaskedWord I,
@@ -131,7 +133,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -146,7 +148,7 @@ theorem uniswapMintInitialFeeOffKLastZeroRootUnderflowFromFactoryWitnessCase
     rw [hkLastEq, hkLastZero]
     rfl
   have hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextFrame.locals } evmFeeS) := by
@@ -200,7 +202,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -214,7 +216,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -240,7 +242,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
               (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hfeeCall : typedCallViaEVM config evm1S
+    (hfeeCall : typedCallViaEVM fork config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
@@ -260,7 +262,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
         resumeAfterInternalCall
           { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
           "feeOn" (some [.bool true])
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             nextFrame.locals.insert "_totalSupply"
@@ -276,7 +278,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
             "rootLiquidity" (some [.int rootLiquidity]))
           evmFeeS))
-    (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd2531 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [UInt256.ofNat rootLiquidity.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1,
         amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, mintToMaskedWord I,
@@ -287,7 +289,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -302,7 +304,7 @@ theorem uniswapMintInitialFeeOnKLastZeroRootUnderflowFromFactoryWitnessCase
     rw [hkLastEq, hkLastZero]
     rfl
   have hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextFrame.locals } evmFeeS) := by
@@ -356,7 +358,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -370,7 +372,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -396,7 +398,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
               (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hfeeCall : typedCallViaEVM config evm1S
+    (hfeeCall : typedCallViaEVM fork config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
@@ -418,7 +420,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
         resumeAfterInternalCall
           { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
           "feeOn" (some [.bool false])
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             nextFrame.locals.insert "_totalSupply"
@@ -434,7 +436,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfterFee)) }
             "rootLiquidity" (some [.int rootLiquidity]))
           evmAfterFee))
-    (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd2531 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [UInt256.ofNat rootLiquidity.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1,
         amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, mintToMaskedWord I,
@@ -446,7 +448,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -464,7 +466,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroRootUnderflowFromFactoryWitnessCase
     rw [← hkLastEq]
     exact uint256_toNat_eq_zero hzero
   have hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextFrame.locals } evmAfterFee) := by

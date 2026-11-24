@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.Arithmetic
 import Benchmarks.CurveVault.RuntimeBlocks_025
 import Benchmarks.CurveVault.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -14,7 +16,7 @@ def vaultCeilDivWord (x y : UInt256) : UInt256 :=
 theorem vaultCeilDivSource {evm : EVM.State} {locals : Store} {x y : UInt256}
     (hx : locals.get? "x" = some (.int (Int.ofNat x.toNat)))
     (hy : locals.get? "y" = some (.int (Int.ofNat y.toNat))) (hy0 : y ≠ ⟨0⟩) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultCeilDivFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultCeilDivFunction.body
       (.returned {contract := contract, locals := locals} evm
         (some [.int (Int.ofNat (vaultCeilDivWord x y).toNat)])) := by
   have hevalX := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) hx
@@ -44,7 +46,7 @@ theorem vaultCeilDivSource {evm : EVM.State} {locals : Store} {x y : UInt256}
 
 theorem vaultCeilDivSourceRevert {evm : EVM.State} {locals : Store}
     (hy : locals.get? "y" = some (.int 0)) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultCeilDivFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultCeilDivFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.requireFalse
@@ -57,8 +59,8 @@ theorem vaultCeilDivReach {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hy : memLoad (UInt256.ofNat 96) mem = y) (hy0 : y ≠ ⟨0⟩)
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6946) (dest :: returnPc :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 returnPc R
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6946) (dest :: returnPc :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 returnPc R
       ((vaultCeilDivWord x y).toByteArray.write 0 mem dest.toNat 32) aw' rdata σ k' C' := by
   have rd7066 := vaultBlocks.vault_block_6946_taken
     (by simp only [List.length_cons]; omega) (by rw [hy]; exact hy0) (by native_decide) h
@@ -82,7 +84,7 @@ theorem vaultCeilDivReach {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd7103 := vaultBlocks.vault_block_7099
       (by simp only [List.length_cons]; omega) rd7099
     have rdRet := vaultBlocks.vault_block_7103 (by omega) hvalid rd7103
-    change RD vaultBytecode I g s0 returnPc R
+    change RD fork vaultBytecode I g s0 returnPc R
       ((UInt256.div (UInt256.sub (memLoad (UInt256.ofNat 64) mem) (UInt256.ofNat 1))
         (memLoad (UInt256.ofNat 96) mem) + UInt256.ofNat 1).toByteArray.write 0 mem dest.toNat 32)
       _ rdata σ _ _ at rdRet
@@ -94,8 +96,8 @@ theorem vaultCeilDivReachRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hy : memLoad (UInt256.ofNat 96) mem = ⟨0⟩) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6946) R mem aw rdata σ k C) :
-    RDrev vaultBytecode g s0 := by
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6946) R mem aw rdata σ k C) :
+    RDrev fork vaultBytecode g s0 := by
   have rd6954 := vaultBlocks.vault_block_6946_fallthrough (by omega) hy h
   exact vaultBlocks.vault_block_6954 hstack rd6954
 end Benchmarks.CurveVault

@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Benchmarks.CurveVault.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -9,8 +11,8 @@ namespace vaultBlocks
 /-- Automatically generated RD summary for bytecode block at pc 1780. -/
 theorem vault_block_1780 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1780) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDret Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding x0.toNat x1.toNat) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1780) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDret fork Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding x0.toNat x1.toNat) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   exact RD.genRet r1 (by native_decide) (by evm_ov)
@@ -20,8 +22,8 @@ theorem vault_block_1782_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -38,8 +40,8 @@ theorem vault_block_1782_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1782_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -47,8 +49,8 @@ theorem vault_block_1782_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
 theorem vault_block_1782_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -64,8 +66,8 @@ theorem vault_block_1782_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1782_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1782) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1782_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -81,8 +83,8 @@ def vault_block_1792_memory {ee : ExecutionEnv} {mem : ByteArray} : ByteArray :=
 theorem vault_block_1792 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 7108) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7108) (vault_block_1792_stack (R := R)) (vault_block_1792_memory (ee := ee) (mem := mem)) (M (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((50) + (memExpansionCost aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7108) (vault_block_1792_stack (R := R)) (vault_block_1792_memory (ee := ee) (mem := mem)) (M (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((50) + (memExpansionCost aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 4) (by native_decide) (by evm_ov)
@@ -106,16 +108,16 @@ theorem vault_block_1792 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : By
 theorem vault_block_1792_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 7108) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7108) (vault_block_1792_stack (R := R)) (vault_block_1792_memory (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1792) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7108) (vault_block_1792_stack (R := R)) (vault_block_1792_memory (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1792 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1854. -/
 theorem vault_block_1854 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1854) (x0 :: R) mem aw rdata σ k C)
-    : RDret Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding (UInt256.ofNat 576).toNat x0.toNat) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1854) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding (UInt256.ofNat 576).toNat x0.toNat) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 576) (by native_decide) (by evm_ov)
@@ -126,8 +128,8 @@ theorem vault_block_1859_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -144,8 +146,8 @@ theorem vault_block_1859_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1859_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -153,8 +155,8 @@ theorem vault_block_1859_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
 theorem vault_block_1859_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ (k + 7) (C + ((22) + (Ctload))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push0 (by native_decide) (by evm_ov)
@@ -170,8 +172,8 @@ theorem vault_block_1859_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1859_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1859) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1859_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -187,8 +189,8 @@ def vault_block_1869_memory {ee : ExecutionEnv} {mem : ByteArray} : ByteArray :=
 theorem vault_block_1869 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 7332) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7332) (vault_block_1869_stack (R := R)) (vault_block_1869_memory (ee := ee) (mem := mem)) (M (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((50) + (memExpansionCost aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7332) (vault_block_1869_stack (R := R)) (vault_block_1869_memory (ee := ee) (mem := mem)) (M (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((50) + (memExpansionCost aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 384) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 4) (by native_decide) (by evm_ov)
@@ -212,16 +214,16 @@ theorem vault_block_1869 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : By
 theorem vault_block_1869_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 7332) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7332) (vault_block_1869_stack (R := R)) (vault_block_1869_memory (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1869) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 7332) (vault_block_1869_stack (R := R)) (vault_block_1869_memory (ee := ee) (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1869 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1931. -/
 theorem vault_block_1931 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1931) (x0 :: R) mem aw rdata σ k C)
-    : RDret Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding (UInt256.ofNat 576).toNat x0.toNat) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1931) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork Benchmarks.CurveVault.vaultBytecode g s0 σ (mem.readWithPadding (UInt256.ofNat 576).toNat x0.toNat) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 576) (by native_decide) (by evm_ov)
@@ -236,8 +238,8 @@ theorem vault_block_1936_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1936_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1936_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 4) (by native_decide) (by evm_ov)
@@ -255,8 +257,8 @@ theorem vault_block_1936_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1936_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1936_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1936_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -268,8 +270,8 @@ def vault_block_1936_fallthrough_stack {ee : ExecutionEnv} {R : List UInt256} : 
 theorem vault_block_1936_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (vault_block_1936_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (vault_block_1936_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 4) (by native_decide) (by evm_ov)
@@ -286,8 +288,8 @@ theorem vault_block_1936_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1936_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (vault_block_1936_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1936) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (vault_block_1936_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1936_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -304,8 +306,8 @@ theorem vault_block_1948_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1948_taken_stack (R := R)) (vault_block_1948_taken_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1948_taken_stack (R := R)) (vault_block_1948_taken_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) + (Ctload))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 256) (by native_decide) (by evm_ov)
   have r2 := RD.genMstore r1 (by native_decide) (by evm_ov)
@@ -323,8 +325,8 @@ theorem vault_block_1948_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1948_taken_stack (R := R)) (vault_block_1948_taken_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1948_taken_stack (R := R)) (vault_block_1948_taken_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1948_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -340,8 +342,8 @@ def vault_block_1948_fallthrough_memory {mem : ByteArray} {x0 : UInt256} : ByteA
 theorem vault_block_1948_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) (vault_block_1948_fallthrough_stack (R := R)) (vault_block_1948_fallthrough_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) + (Ctload))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) (vault_block_1948_fallthrough_stack (R := R)) (vault_block_1948_fallthrough_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) + (Ctload))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 256) (by native_decide) (by evm_ov)
   have r2 := RD.genMstore r1 (by native_decide) (by evm_ov)
@@ -358,8 +360,8 @@ theorem vault_block_1948_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1948_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.eq (UInt256.ofNat 1) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.tstorage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) (vault_block_1948_fallthrough_stack (R := R)) (vault_block_1948_fallthrough_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1948) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) (vault_block_1948_fallthrough_stack (R := R)) (vault_block_1948_fallthrough_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1948_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -372,8 +374,8 @@ theorem vault_block_1961_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lnot (memLoad (UInt256.ofNat 288) ((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 5) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 288).toNat 32))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 1986) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R (vault_block_1961_taken_memory (ee := ee) (mem := mem) (σ := σ)) (M (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R (vault_block_1961_taken_memory (ee := ee) (mem := mem) (σ := σ)) (M (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 5) (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -392,8 +394,8 @@ theorem vault_block_1961_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lnot (memLoad (UInt256.ofNat 288) ((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 5) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 288).toNat 32))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 1986) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R (vault_block_1961_taken_memory (ee := ee) (mem := mem) (σ := σ)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R (vault_block_1961_taken_memory (ee := ee) (mem := mem) (σ := σ)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := vault_block_1961_taken hstack hcond hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -406,8 +408,8 @@ def vault_block_1961_fallthrough_memory {ee : ExecutionEnv} {mem : ByteArray} {�
 theorem vault_block_1961_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lnot (memLoad (UInt256.ofNat 288) ((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 5) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 288).toNat 32))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R (vault_block_1961_fallthrough_memory (ee := ee) (mem := mem) (σ := σ)) (M (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R (vault_block_1961_fallthrough_memory (ee := ee) (mem := mem) (σ := σ)) (M (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 5) (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -425,8 +427,8 @@ theorem vault_block_1961_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1961_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lnot (memLoad (UInt256.ofNat 288) ((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 5) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 288).toNat 32))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R (vault_block_1961_fallthrough_memory (ee := ee) (mem := mem) (σ := σ)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1961) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R (vault_block_1961_fallthrough_memory (ee := ee) (mem := mem) (σ := σ)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := vault_block_1961_fallthrough hstack hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -439,8 +441,8 @@ def vault_block_1977_stack {R : List UInt256} : List UInt256 :=
 theorem vault_block_1977 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 2054) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_1977_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_1977_stack (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 288) (by native_decide) (by evm_ov)
@@ -453,8 +455,8 @@ theorem vault_block_1977 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : By
 theorem vault_block_1977_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 2054) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_1977_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1977) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_1977_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1977 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -466,8 +468,8 @@ def vault_block_1986_stack {R : List UInt256} : List UInt256 :=
 theorem vault_block_1986 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 6772) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 6772) (vault_block_1986_stack (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 6772) (vault_block_1986_stack (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 1997) (by native_decide) (by evm_ov)
@@ -481,8 +483,8 @@ theorem vault_block_1986 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : By
 theorem vault_block_1986_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 6772) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 6772) (vault_block_1986_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1986) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 6772) (vault_block_1986_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1986 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -499,8 +501,8 @@ theorem vault_block_1997_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {me
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1997_taken_stack (mem := mem) (R := R)) (vault_block_1997_taken_memory (mem := mem)) (M (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) rdata σ (k + 32) (C + ((101) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1997_taken_stack (mem := mem) (R := R)) (vault_block_1997_taken_memory (mem := mem)) (M (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) rdata σ (k + 32) (C + ((101) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 352) (by native_decide) (by evm_ov)
@@ -542,8 +544,8 @@ theorem vault_block_1997_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.CurveVault.vaultBytecode 0).contains (UInt256.ofNat 8284) = true)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1997_taken_stack (mem := mem) (R := R)) (vault_block_1997_taken_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 8284) (vault_block_1997_taken_stack (mem := mem) (R := R)) (vault_block_1997_taken_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1997_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -559,8 +561,8 @@ def vault_block_1997_fallthrough_memory {mem : ByteArray} : ByteArray :=
 theorem vault_block_1997_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (vault_block_1997_fallthrough_stack (mem := mem) (R := R)) (vault_block_1997_fallthrough_memory (mem := mem)) (M (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) rdata σ (k + 32) (C + ((101) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (vault_block_1997_fallthrough_stack (mem := mem) (R := R)) (vault_block_1997_fallthrough_memory (mem := mem)) (M (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) rdata σ (k + 32) (C + ((101) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 288) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)) (UInt256.ofNat 320) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 352) (by native_decide) (by evm_ov)
@@ -601,8 +603,8 @@ theorem vault_block_1997_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 theorem vault_block_1997_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (UInt256.mul (UInt256.gt (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32))) (UInt256.xor (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)) (memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem (UInt256.ofNat 320).toNat 32)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (vault_block_1997_fallthrough_stack (mem := mem) (R := R)) (vault_block_1997_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 1997) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (vault_block_1997_fallthrough_stack (mem := mem) (R := R)) (vault_block_1997_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_1997_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -617,8 +619,8 @@ def vault_block_2041_memory {mem : ByteArray} {x0 : UInt256} : ByteArray :=
 /-- Automatically generated RD summary for bytecode block at pc 2041. -/
 theorem vault_block_2041 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_2041_stack (R := R)) (vault_block_2041_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((22) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_2041_stack (R := R)) (vault_block_2041_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((22) + (memExpansionCost aw (UInt256.ofNat 352) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.swap1 (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -634,8 +636,8 @@ theorem vault_block_2041 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : By
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem vault_block_2041_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_2041_stack (R := R)) (vault_block_2041_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2041) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.CurveVault.vaultBytecode ee g s0 (UInt256.ofNat 2054) (vault_block_2041_stack (R := R)) (vault_block_2041_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vault_block_2041 hstack h)
   exact ⟨_, k', C', h'⟩
 

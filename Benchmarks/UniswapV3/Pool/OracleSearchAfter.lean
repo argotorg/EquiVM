@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchBefore
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_070
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem oracleSearchAfterX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret card : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20581⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20581⟩
       (oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
         cardRaw indexRaw targetRaw timeRaw ret R) mem aw rdata σ k C)
     (hcard : UInt256.land cardRaw (UInt256.ofNat 65535) = card)
@@ -23,7 +25,7 @@ theorem oracleSearchAfterX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     let before := oracleSearchBefore left right card σ ee
     let after := oracleSearchAfter left right card σ ee
     ∃ k' C', C + 1 + (Cₘ (oracleReadFullAw mem aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨20184⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨20184⟩
         (targetRaw :: before.timestamp :: timeRaw :: ⟨20717⟩ :: ⟨0⟩ ::
           oracleSearchStack (oracleSearchMiddle left right) left right beforePtr p
             cardRaw indexRaw targetRaw timeRaw ret R)
@@ -46,7 +48,7 @@ theorem oracleSearchAfterX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rdMod
   obtain ⟨kh, Ch, hCh, rdHead⟩ := oracleReadHeadX (v := v) true rdRead hm hb
     (by evm_ov)
-  change RD _ _ _ _ ⟨20696⟩
+  change RD fork _ _ _ _ ⟨20696⟩
     (p :: UInt256.ofNat 96 ::
       (if (oracleSearchAfter left right card σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
       p :: oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr

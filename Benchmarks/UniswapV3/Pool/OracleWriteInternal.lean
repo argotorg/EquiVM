@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -15,21 +17,21 @@ theorem oracleWriteInternalRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
         .int (Int.ofNat a.liquidity.toNat), .int (Int.ofNat a.cardinality.toNat),
         .int (Int.ofNat a.cardinalityNext.toNat)])
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14801⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
       (oracleWriteEntryWords {a with time := timeRaw} ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits)
     (htime : UInt256.land timeRaw (UInt256.ofNat (2 ^ 32 - 1)) = a.time) (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 27 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar) .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar) .reverted ∧
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar)
       (.ok (resumeAfterInternalCall caller retVar
         (some [.int (Int.ofNat (oracleWriteResultIndex a evm).toNat),
           .int (Int.ofNat (oracleWriteResultCardinality a evm).toNat)])) (oracleWriteState a evm)) ∧
       oracleWriteValid a evm ∧ ∃ σ' aw' k' C', SourceState s0 ee σ' (oracleWriteState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret
+      RD fork (deployedRuntime v) ee g s0 ret
         (oracleWriteResultCardinality a evm :: oracleWriteResultIndex a evm :: R)
         (oracleWriteMemory mem p a evm) aw' rdata σ' k' C' ∧
       HeapMemory (oracleWriteMemory mem p a evm) aw' (oracleWriteFree p a evm)) := by
@@ -66,20 +68,20 @@ theorem oracleWriteInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         .int (Int.ofNat a.liquidity.toNat), .int (Int.ofNat a.cardinality.toNat),
         .int (Int.ofNat a.cardinalityNext.toNat)])
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14801⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
       (oracleWriteEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 27 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar) .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Oracle_write" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar) .reverted ∧
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Oracle_write" args retVar)
       (.ok (resumeAfterInternalCall caller retVar
         (some [.int (Int.ofNat (oracleWriteResultIndex a evm).toNat),
           .int (Int.ofNat (oracleWriteResultCardinality a evm).toNat)])) (oracleWriteState a evm)) ∧
       oracleWriteValid a evm ∧ ∃ σ' aw' k' C', SourceState s0 ee σ' (oracleWriteState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret
+      RD fork (deployedRuntime v) ee g s0 ret
         (oracleWriteResultCardinality a evm :: oracleWriteResultIndex a evm :: R)
         (oracleWriteMemory mem p a evm) aw' rdata σ' k' C' ∧
       HeapMemory (oracleWriteMemory mem p a evm) aw' (oracleWriteFree p a evm)) := by

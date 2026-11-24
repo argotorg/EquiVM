@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintProportionalFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,10 +13,10 @@ theorem uniswapMintBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1041⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_mint_none_short (I := I) hsz4 hshort
   exact (uniswapMintX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -27,17 +29,17 @@ theorem uniswapMintBodyCoreRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1041⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedStele :
       Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
     simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage] using hlocked
   have hbody :
-      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact uniswapMintBodyReverts_locked evmS I
       (by simp only [evmS, initState]; exact hwv)
       hlockedStele
@@ -51,7 +53,7 @@ theorem uniswapMintBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩ rfl hsel
   exact uniswapMintBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -66,7 +68,7 @@ theorem uniswapMintBodyRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩ rfl hsel
   exact uniswapMintBodyCoreRevert_locked hcode hsize hwv hsz36 hlocked hdispatch

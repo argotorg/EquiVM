@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.WordBytesCallMemory
 import Benchmarks.UniswapV4PoolManager.BytesValueTrace
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,11 +19,11 @@ theorem donateHookKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+228 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨13756⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13756⟩
       ((free+UInt256.ofNat 36) :: accountWord sender :: keyPtr :: amount0 :: amount1 :: src :: len :: R)
       (writeWord mem (free+UInt256.ofNat 32).toNat selector) aw rdata σ k C) :
     ∃ aw' k' C', C+200+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨13879⟩
+      RD fork (deployedRuntime v) I g s0 ⟨13879⟩
         (amount0 :: amount1 :: (free+UInt256.ofNat 36) :: UInt256.ofNat 288 :: len :: src :: UInt256.ofNat 13903 :: R)
         (wordCallMemory mem (free.toNat+32) selector (accountWord sender :: poolKeyWordList key))
         aw' rdata σ k' C' := by
@@ -46,12 +48,12 @@ theorem donateHookEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+len.toNat+388 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13756⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13756⟩
       ((free+UInt256.ofNat 36) :: accountWord sender :: keyPtr :: amount0 :: amount1 :: src :: len :: ret :: R)
       (writeWord mem (free+UInt256.ofNat 32).toNat selector) aw rdata σ k C) :
     ∃ aw' k' C', (free.toNat+len.toNat+419)/32 ≤ aw'.toNat ∧
       C+355+3*((len.toNat+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ret (UInt256.ofNat (free.toNat+356+paddedSize len.toNat) :: R)
+      RD fork (deployedRuntime v) I g s0 ret (UInt256.ofNat (free.toNat+356+paddedSize len.toNat) :: R)
         (wordBytesCallMemory I.calldata mem src.toNat (free.toNat+32) selector
           (donateHookHeadWords sender key amount0 amount1) len) aw' rdata σ k' C' := by
   have h36 := uadd_word_ofNat_toNat free 36 (by omega : free.toNat+36 < UInt256.size)

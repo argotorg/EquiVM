@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimSafeTransferRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -325,13 +327,13 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord : UInt256}
     {o out : ByteArray} {σ : AccountMap}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩ (d0 :: d1 :: d2 :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩ (d0 :: d1 :: d2 :: R)
       (skimSecondBalanceStaticcallMem self o toWord value out) (UInt256.ofNat 13) out
       σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5314⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5314⟩
       (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) :: R)
       (skimSecondBalanceStaticcallMem self o toWord value out) (UInt256.ofNat 13) out
       σ k' C' := by
@@ -391,13 +393,13 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeShortReverts {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord : UInt256}
     {o out : ByteArray} {σ : AccountMap}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩ (d0 :: d1 :: d2 :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩ (d0 :: d1 :: d2 :: R)
       (skimSecondBalanceStaticcallMem self o toWord value out) (UInt256.ofNat 13) out
       σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hshort : out.size < 32) (houtSize : out.size < UInt256.size)
     (hov : R.length + 4 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rdPop0 := RD.pop h (by native_decide) (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0 (by native_decide)
     (by simp only [List.length_cons]; omega)
@@ -441,11 +443,11 @@ theorem RD.uniswapSkimSecondBalanceCallFailureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {mem out : ByteArray}
     {σ : AccountMap}
     {status : UInt256} {R : List UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
       (status :: R) mem (UInt256.ofNat 13) out σ k C)
     (hstatus : status = ⟨0⟩) (houtSize : out.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨5289⟩) h hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
@@ -456,10 +458,10 @@ theorem RD.uniswapSkimSecondBalanceCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {mem out : ByteArray}
     {σ : AccountMap}
     {status : UInt256} {R : List UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
       (status :: R) mem (UInt256.ofNat 13) out σ k C)
     (hstatus : status ≠ ⟨0⟩) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩
       R mem (UInt256.ofNat 13) out σ k' C' := by
   exact RD.solcCallSuccessGuardOk (okPc := ⟨5289⟩) h hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -470,13 +472,13 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
       mem (UInt256.ofNat 13) rdata σ k C)
     (hlt : a.toNat < b.toNat)
     (hmem : mem.size = 388)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨292⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
     usub_toNat_underflow hlt
   have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
@@ -595,7 +597,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord token0 token1 sel : UInt256}
     {o out0 : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5330⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5330⟩
       (token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k C)
@@ -606,15 +608,15 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
       (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) = Ethereum.EVM.Θ
-          ee.fork σ s0.σ₀ A_in
+          fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
-          (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
             |>.readWithPadding 292 36)
           (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks false)
-      ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
+      ∧ RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
           ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨328⟩ ::
             balanceOfSelectorWord :: UInt256.land token1 solcAddrMask ::
             UInt256.land reserve112Mask (UInt256.div (solcSlotWordAt ⟨8⟩ σ ee) reserve112Shift) ::
@@ -628,7 +630,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
   let reserve1Word := UInt256.land reserve112Mask (UInt256.div packedWord reserve112Shift)
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
   obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by native_decide) (by evm_ov)
-  have rd5334 : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
+  have rd5334 : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k5334 C5334 := by
@@ -704,18 +706,18 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord token0 token1 sel : UInt256}
     {o out0 : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5330⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5330⟩
       (token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (htoken1NoCode : extCodeSizeWord σ (UInt256.land token1 solcAddrMask) = ⟨0⟩) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let packedWord := solcSlotWordAt ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
   obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by native_decide) (by evm_ov)
-  have rd5334 : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
+  have rd5334 : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k5334 C5334 := by

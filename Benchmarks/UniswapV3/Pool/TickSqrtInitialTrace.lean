@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem tickSqrtInitialX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11722⟩ (absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11722⟩ (absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11812⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11812⟩
       (tickSqrtStep absTick (tickSqrtInitial absTick)
         (2, 340248342086729790484326174814286782778) :: absTick :: R) mem aw rdata σ k' C' := by
-  have hinit : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11760⟩
+  have hinit : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11760⟩
       (tickSqrtInitial absTick :: ⟨0⟩ :: absTick :: R) mem aw rdata σ k' C' := by
     by_cases hz : UInt256.land absTick ⟨1⟩ = ⟨0⟩
     · have r1 := uniswapV3Pool_block_11722_fallthrough (immWords := wordsOf (immStore v))

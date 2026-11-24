@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.GetFeedPriceSuccessEVM
 import Benchmarks.Dss.Clipper.Redo
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -98,12 +100,12 @@ theorem RD.clipperRedoFeedPriceToRmul {code : ByteArray}
     {acc : AccountMap}
     {feedPrice discard lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7719⟩
+    (rd : RD fork code ee g s0 ⟨7719⟩
       (feedPrice :: discard :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨9233⟩
+    ∃ k' C', RD fork code ee g s0 ⟨9233⟩
       (solcSlotWord acc ee ⟨5⟩ :: feedPrice :: ⟨7733⟩ :: feedPrice :: lot ::
         tab :: done :: top :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -133,11 +135,11 @@ theorem RD.clipperRedoRmulOverflowReverts {code : ByteArray}
     {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9233⟩
+    (rd : RD fork code ee g s0 ⟨9233⟩
       (buf :: feedPrice :: ⟨7733⟩ :: keep :: R) mem aw o acc k C)
     (hover : UInt256.size ≤ buf.toNat * feedPrice.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact
     _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperRmulRoutineRevert
       v hpatch rd hover (by omega)
@@ -149,11 +151,11 @@ theorem RD.clipperRedoRmulSuccess {code : ByteArray}
     {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9233⟩
+    (rd : RD fork code ee g s0 ⟨9233⟩
       (buf :: feedPrice :: ⟨7733⟩ :: keep :: R) mem aw o acc k C)
     (hmul : buf.toNat * feedPrice.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7733⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7733⟩
       (UInt256.div (UInt256.mul buf feedPrice) clipperRayWord :: keep :: R)
       mem aw o acc k' C' := by
   exact
@@ -167,7 +169,7 @@ theorem RD.clipperRedoTopZeroReverts {code : ByteArray}
     {acc : AccountMap}
     {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7733⟩
+    (rd : RD fork code ee g s0 ⟨7733⟩
       (topNew :: feedPrice :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
       mem (UInt256.ofNat 7) o acc k C)
@@ -175,7 +177,7 @@ theorem RD.clipperRedoTopZeroReverts {code : ByteArray}
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hgt : UInt256.gt topNew ⟨0⟩ = ⟨0⟩ := by
     subst topNew
     native_decide
@@ -268,7 +270,7 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
     {σ : AccountMap}
     {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7733⟩
+    (rd : RD fork code ee g s0 ⟨7733⟩
       (topNew :: feedPrice :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
       mem (UInt256.ofNat 7) o σ k C)
@@ -278,7 +280,7 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
     (hperm : ee.perm = true) :
     let topSlot := clipperRedoTopSlotWord id
     let σTop := sstoreAccountMap ee.codeOwner σ topSlot topNew
-    ∃ k' C', RD code ee g s0 ⟨7867⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7867⟩
       (⟨0⟩ :: clipperRedoChipWord σTop ee :: clipperRedoTipWord σTop ee ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id ::
         ret :: sel :: R)
@@ -361,7 +363,7 @@ theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
     {par valBln has val pipWord ret discard lot tab done top tic usr two kpr id
       outerRet sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9290⟩
+    (rd : RD fork code ee g s0 ⟨9290⟩
       (par :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: ⟨7719⟩ ::
         discard :: lot :: tab :: done :: top :: tic :: usr :: two :: kpr :: id ::
         outerRet :: sel :: R)
@@ -384,7 +386,7 @@ theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
       (UInt256.mul (solcSlotWord σ ee ⟨5⟩) feedPrice) clipperRayWord
     let topSlot := clipperRedoTopSlotWord id
     let σTop := sstoreAccountMap ee.codeOwner σ topSlot topNew
-    ∃ k' C', RD code ee g s0 ⟨7867⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7867⟩
       (⟨0⟩ :: clipperRedoChipWord σTop ee :: clipperRedoTipWord σTop ee ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr ::
         id :: outerRet :: sel :: R)
@@ -412,12 +414,12 @@ theorem RD.clipperRedoIncentiveInactive {code : ByteArray}
     {acc : AccountMap}
     {feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7867⟩
+    (rd : RD fork code ee g s0 ⟨7867⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8118⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8118⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -449,13 +451,13 @@ theorem RD.clipperRedoIncentiveActiveOfTip {code : ByteArray}
     {acc : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7867⟩
+    (rd : RD fork code ee g s0 ⟨7867⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (htip : tip ≠ ⟨0⟩)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7886⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -486,13 +488,13 @@ theorem RD.clipperRedoIncentiveActiveOfChip {code : ByteArray}
     {acc : AccountMap}
     {coin chip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7867⟩
+    (rd : RD fork code ee g s0 ⟨7867⟩
       (coin :: chip :: ⟨0⟩ :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hchip : chip ≠ ⟨0⟩)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7886⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7886⟩
       (coin :: chip :: ⟨0⟩ :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -525,13 +527,13 @@ theorem RD.clipperRedoIncentiveActive {code : ByteArray}
     {acc : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7867⟩
+    (rd : RD fork code ee g s0 ⟨7867⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hactive : tip ≠ ⟨0⟩ ∨ chip ≠ ⟨0⟩)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7886⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -552,13 +554,13 @@ theorem RD.clipperRedoTabBelowChostSkipsIncentive {code : ByteArray}
     {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7886⟩
+    (rd : RD fork code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o σ k C)
     (htab : tab.toNat < (clipperRedoChostWord σ ee).toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8118⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o σ k' C' := by
@@ -596,13 +598,13 @@ theorem RD.clipperRedoToLotFeedCheckedMul {code : ByteArray}
     {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7886⟩
+    (rd : RD fork code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o σ k C)
     (htab : (clipperRedoChostWord σ ee).toNat ≤ tab.toNat)
     (hov : R.length + 35 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8686⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8686⟩
       (feedPrice :: lot :: ⟨7910⟩ :: clipperRedoChostWord σ ee ::
         clipperRedoChostWord σ ee :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
@@ -638,14 +640,14 @@ theorem RD.clipperRedoLotFeedOverflowReverts {code : ByteArray}
     {acc : AccountMap}
     {feedPrice lot chost coin chip tip tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8686⟩
+    (rd : RD fork code ee g s0 ⟨8686⟩
       (feedPrice :: lot :: ⟨7910⟩ :: chost :: chost :: coin :: chip :: tip ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id ::
         ret :: sel :: R)
       mem aw o acc k C)
     (hover : UInt256.size ≤ lot.toNat * feedPrice.toNat)
     (hov : R.length + 35 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact
     _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperCheckedMulRevert
       v hpatch rd (by simpa [Nat.mul_comm] using hover)
@@ -658,14 +660,14 @@ theorem RD.clipperRedoLotFeedMulSuccess {code : ByteArray}
     {acc : AccountMap}
     {feedPrice lot chost coin chip tip tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8686⟩
+    (rd : RD fork code ee g s0 ⟨8686⟩
       (feedPrice :: lot :: ⟨7910⟩ :: chost :: chost :: coin :: chip :: tip ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id ::
         ret :: sel :: R)
       mem aw o acc k C)
     (hmul : lot.toNat * feedPrice.toNat < UInt256.size)
     (hov : R.length + 35 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7910⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7910⟩
       (UInt256.mul lot feedPrice :: chost :: chost :: coin :: chip :: tip ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id ::
         ret :: sel :: R)
@@ -684,13 +686,13 @@ theorem RD.clipperRedoLotFeedBelowChostSkipsIncentive {code : ByteArray}
     {lotFeed chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7910⟩
+    (rd : RD fork code ee g s0 ⟨7910⟩
       (lotFeed :: chost :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hlt : lotFeed.toNat < chost.toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8118⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -719,13 +721,13 @@ theorem RD.clipperRedoLotFeedAtLeastChostToPayout {code : ByteArray}
     {lotFeed chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7910⟩
+    (rd : RD fork code ee g s0 ⟨7910⟩
       (lotFeed :: chost :: chost :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hle : chost.toNat ≤ lotFeed.toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7919⟩
+    ∃ k' C', RD fork code ee g s0 ⟨7919⟩
       (chost :: coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
@@ -749,12 +751,12 @@ theorem RD.clipperRedoPayoutToWmul {code : ByteArray}
     {acc : AccountMap}
     {chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨7919⟩
+    (rd : RD fork code ee g s0 ⟨7919⟩
       (chost :: coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k C)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8238⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8238⟩
       (chip :: tab :: ⟨6235⟩ :: tip :: ⟨7932⟩ :: chost :: coin :: chip :: tip ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id :: ret ::
         sel :: R)
@@ -775,11 +777,11 @@ theorem RD.clipperRedoPayoutWmulOverflowReverts {code : ByteArray}
     {acc : AccountMap}
     {chip tab tip : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8238⟩
+    (rd : RD fork code ee g s0 ⟨8238⟩
       (chip :: tab :: ⟨6235⟩ :: tip :: R) mem aw o acc k C)
     (hover : UInt256.size ≤ chip.toNat * tab.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact
     _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperWmulRoutineRevert
       v hpatch rd hover (by omega)
@@ -791,11 +793,11 @@ theorem RD.clipperRedoPayoutWmulToCheckedAdd {code : ByteArray}
     {acc : AccountMap}
     {chip tab tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8238⟩
+    (rd : RD fork code ee g s0 ⟨8238⟩
       (chip :: tab :: ⟨6235⟩ :: tip :: ⟨7932⟩ :: keep :: R) mem aw o acc k C)
     (hmul : chip.toNat * tab.toNat < UInt256.size)
     (hov : R.length + 25 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨9258⟩
+    ∃ k' C', RD fork code ee g s0 ⟨9258⟩
       (UInt256.div (UInt256.mul chip tab) ⟨1000000000000000000⟩ :: tip ::
         ⟨7932⟩ :: keep :: R)
       mem aw o acc k' C' := by
@@ -815,10 +817,10 @@ theorem RD.clipperRedoPayoutAddOverflowReverts {code : ByteArray}
     {acc : AccountMap}
     {chipCoin tip ret : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9258⟩ (chipCoin :: tip :: ret :: R) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨9258⟩ (chipCoin :: tip :: ret :: R) mem aw o acc k C)
     (hover : UInt256.size ≤ tip.toNat + chipCoin.toNat)
     (hov : R.length + 15 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have haddNat : (tip + chipCoin).toNat = tip.toNat + chipCoin.toNat - UInt256.size := by
     rw [uadd_toNat, Nat.mod_eq_sub_mod hover]
     have hlt : tip.toNat + chipCoin.toNat < UInt256.size + UInt256.size := by
@@ -856,11 +858,11 @@ theorem RD.clipperRedoPayoutAddSuccess {code : ByteArray}
     {acc : AccountMap}
     {chipCoin tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9258⟩
+    (rd : RD fork code ee g s0 ⟨9258⟩
       (chipCoin :: tip :: ⟨7932⟩ :: keep :: R) mem aw o acc k C)
     (hfit : tip.toNat + chipCoin.toNat < UInt256.size)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨7932⟩ ((tip + chipCoin) :: keep :: R) mem aw o acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ⟨7932⟩ ((tip + chipCoin) :: keep :: R) mem aw o acc k' C' := by
   exact RD.solcCheckedAddSuccess rd
     (by
       unfold solcCheckedAddSuccessWf

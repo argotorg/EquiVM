@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TotalsCollateralData
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralModel
 import Benchmarks.CompoundIII.Comet.TransferInModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -125,23 +127,23 @@ def supplyCollateralPrefixResult (frame : Frame) (evm : EVM.State) (dst asset : 
   | .reverted => .reverted
   | .staticViolation => .staticViolation
 
-inductive SupplyCollateralTrace (v : CometWithExtendedAssetListImmutables)
+inductive SupplyCollateralTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (sender dst asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
-  | transferFailed (ht : TransferInTrace asset sender amount evm none) :
-      SupplyCollateralTrace v sender dst asset amount evm .reverted
+  | transferFailed (ht : TransferInTrace fork asset sender amount evm none) :
+      SupplyCollateralTrace fork v sender dst asset amount evm .reverted
   | tooLarge {evm' received}
-      (ht : TransferInTrace asset sender amount evm (some (evm', received)))
+      (ht : TransferInTrace fork asset sender amount evm (some (evm', received)))
       (hw : ¬ received.toNat < 2^128) :
-      SupplyCollateralTrace v sender dst asset amount evm .reverted
+      SupplyCollateralTrace fork v sender dst asset amount evm .reverted
   | assetFailed {evm' received}
-      (ht : TransferInTrace asset sender amount evm (some (evm', received)))
-      (hw : received.toNat < 2^128) (ha : AssetSearch v asset 0 evm' none) :
-      SupplyCollateralTrace v sender dst asset amount evm .reverted
+      (ht : TransferInTrace fork asset sender amount evm (some (evm', received)))
+      (hw : received.toNat < 2^128) (ha : AssetSearch fork v asset 0 evm' none) :
+      SupplyCollateralTrace fork v sender dst asset amount evm .reverted
   | done {evm' received evm'' out}
-      (ht : TransferInTrace asset sender amount evm (some (evm', received)))
-      (hw : received.toNat < 2^128) (ha : AssetSearch v asset 0 evm' (some (evm'', out)))
-      (hv : AssetValid out) : SupplyCollateralTrace v sender dst asset amount evm
+      (ht : TransferInTrace fork asset sender amount evm (some (evm', received)))
+      (hw : received.toNat < 2^128) (ha : AssetSearch fork v asset 0 evm' (some (evm'', out)))
+      (hv : AssetValid out) : SupplyCollateralTrace fork v sender dst asset amount evm
         (supplyCollateralOutcome evm'' dst asset received out)
 
 end Benchmarks.CompoundIII.Comet

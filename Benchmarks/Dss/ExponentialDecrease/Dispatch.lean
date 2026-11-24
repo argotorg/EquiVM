@@ -1,5 +1,7 @@
 import Benchmarks.Dss.ExponentialDecrease.Selectors
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS ExponentialDecrease dispatcher facts
 
@@ -160,7 +162,7 @@ abbrev stairstepCutEntryPc : UInt256 := ⟨307⟩
 
 theorem stairstepBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
@@ -194,7 +196,7 @@ theorem stairstepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem stairstepReachFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [stairstepFirstArmPc, stairstepSelWord] using
@@ -231,7 +233,7 @@ theorem stairstepReachBody {σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt exponentialDecreaseBytecode
         (nthArmPc exponentialDecreaseBytecode stairstepFirstArmPc i) = bodyPC) :
-    ∃ k C, RD exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         bodyPC [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -242,7 +244,7 @@ theorem stairstepReachBody {σ σ₀ A I} {g : Sat256}
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
 theorem stairstepNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
+    (h : RD fork exponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
@@ -250,7 +252,7 @@ theorem stairstepNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (armSelNat exponentialDecreaseBytecode
           (nthArmPc exponentialDecreaseBytecode stairstepFirstArmPc j))
         (stairstepSelWord I) = ⟨0⟩) :
-    RDrev exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have h98 := h
     |>.selectorArmNotTakenAuto (stairstepArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -270,8 +272,8 @@ theorem stairstepNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 theorem stairstepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -283,8 +285,8 @@ theorem stairstepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem stairstepX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -307,7 +309,7 @@ theorem stairstepX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have heq : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat exponentialDecreaseBytecode
@@ -346,7 +348,7 @@ theorem stairstepX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem stairstepNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (stairstepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -370,7 +372,7 @@ theorem stairstepNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (stairstepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (stairstepDispatch_none_nomatch hnm)

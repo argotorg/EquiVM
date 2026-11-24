@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.OracleSurroundingTrace
 import Benchmarks.UniswapV3.Pool.OracleDeltaWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,7 +15,7 @@ theorem oracleObserveSingleNonzeroCursorX {σ : AccountMap} {ee : ExecutionEnv} 
     {s0 : EVM.State} {k C allowance : Nat} {aw free card liquidity index : UInt256}
     {tickRaw secondsAgoRaw timeRaw ret time secondsAgo : UInt256} {tick : Int}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (card :: liquidity :: index :: tickRaw :: secondsAgoRaw :: timeRaw :: ⟨8⟩ :: ret :: R)
       mem aw rdata σ k C)
     (hi : index.toNat < 2 ^ 16) (hc : card.toNat < 2 ^ 16)
@@ -25,7 +27,7 @@ theorem oracleObserveSingleNonzeroCursorX {σ : AccountMap} {ee : ExecutionEnv} 
     (hm : MemoryCursor mem aw free) (hbudget : MemoryGasBound aw C allowance)
     (hallowance : allowance ≤ 2 ^ 200) (hcover : free.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 53 ≤ 1024) :
-    OracleObserveSingleOutcome v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
+    OracleObserveSingleOutcome fork v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
       mem aw free C := by
   have r1 := uniswapV3Pool_block_13193_taken (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [u256_land_comm, hago]; exact hn)
@@ -59,7 +61,7 @@ theorem oracleObserveSingleNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {s0 : EVM.State} {k C allowance : Nat} {aw free card liquidity index : UInt256}
     {tickRaw secondsAgoRaw timeRaw ret time secondsAgo : UInt256} {tick : Int}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (card :: liquidity :: index :: tickRaw :: secondsAgoRaw :: timeRaw :: ⟨8⟩ :: ret :: R)
       mem aw rdata σ k C)
     (hi : index.toNat < 2 ^ 16) (hc : card.toNat < 2 ^ 16)
@@ -71,7 +73,7 @@ theorem oracleObserveSingleNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     (hm : HeapMemory mem aw free) (hbudget : MemoryGasBound aw C allowance)
     (hallowance : allowance ≤ 2 ^ 200) (hcover : free.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 53 ≤ 1024) :
-    OracleObserveSingleOutcome v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
+    OracleObserveSingleOutcome fork v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
       mem aw free C := by
   exact oracleObserveSingleNonzeroCursorX (v := v) rd hi hc htime hago hn htick hliq hm.cursor hbudget hallowance hcover hret hov
 

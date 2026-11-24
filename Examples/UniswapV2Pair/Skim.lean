@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimDecoded
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -10,7 +12,7 @@ theorem uniswapSkimBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode : config.externalABI.decodeCalldata?
         (skimTransition.params.map Param.name)
@@ -28,7 +30,7 @@ theorem uniswapSkimBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapSkimBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
@@ -42,10 +44,10 @@ theorem uniswapSkimBodyAnyPerm
     have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
     have hdecoded :=
-      uniswapSkimX_decoded_masked
+      uniswapSkimX_decoded_masked (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
-        (uniswapReachSkimBody
+        (uniswapReachSkimBody (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     by_cases hlocked :

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolverManyData
 import Benchmarks.EAS.EAS.ResolverCallSites
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,9 +19,9 @@ theorem resolverManyStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {junk0 junk1 junk2 array target valuesPtr last available value ptr : UInt256} {R : List UInt256}
     (v : EASImmutables) (rev : Bool) (hstack : R.length+15 ≤ 1024)
     (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
       (resolverManyEntryStack rev junk0 junk1 junk2 array target valuesPtr last available value R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14256⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14256⟩
       ((ptr+UInt256.ofNat 4)::array::valuesPtr::resolverPreparePC true rev::
         ptr::value::ptr::target::ptr::⟨32⟩::ptr::last::available::value::R)
       (resolverManyHeaderMemory mem ptr rev) aw' rdata σ k' C' := by

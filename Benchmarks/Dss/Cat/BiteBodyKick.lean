@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.BiteBodyReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -70,7 +72,7 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
     {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn ilk milkFlip p : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σx k C)
@@ -85,7 +87,7 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
     (hpsz : p.toNat + 164 < UInt256.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
     (hov : R.length + 40 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (UInt256.land biteAddrMaskWord milkFlip :: UInt256.land biteAddrMaskWord milkFlip ::
         ⟨0⟩ :: p :: ⟨164⟩ :: p :: ⟨32⟩ ::
@@ -346,7 +348,7 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
     {σx : AccountMap}
     {target p : UInt256} {args : List Value} {R : List UInt256}
     {mem' o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: p :: ⟨164⟩ :: p :: ⟨32⟩ :: R)
       mem' aw o σx k C)
@@ -356,12 +358,12 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
     (hov : R.length + 9 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' aw' : _) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (o'.write 0 mem' p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
         aw' o' σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σx }
         (AccountAddress.ofUInt256 target) "kick" 0 args
@@ -396,7 +398,7 @@ theorem catBiteKickSeg8b1P {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {status endptr target tab dink dart q art ink iDust iSpot iRate id ret urn ilk p : UInt256}
     {R3 : List UInt256} {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: endptr :: ⟨891151872⟩ :: target ::
         tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk ::
@@ -411,7 +413,7 @@ theorem catBiteKickSeg8b1P {σ σ₀ A I} {g : UInt256}
     (haw8 : p.toNat + 160 ≤ aw8.toNat * 32)
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hov : R3.length + 40 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
       (UInt256.mul dart iRate :: dart :: dink ::
         ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ ::
@@ -479,7 +481,7 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {dart dink q art ink iDust iSpot iRate id ret urn ilk flip2 p : UInt256}
     {R3 : List UInt256} {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
       (UInt256.mul dart iRate :: dart :: dink ::
         ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ ::
@@ -497,7 +499,7 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
     (hFree8 : (if (⟨64⟩ : UInt256).toNat ≥ mem8.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem8.readWithPadding 64 32))) = p)
     (hov : R3.length + 30 ≤ 1024) :
-    RDret catBytecode (Sat256.ofUInt256 g)
+    RDret fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
   have f32 : (p + ⟨32⟩).toNat = p.toNat + 32 := by
     rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide, Nat.mod_eq_of_lt (by omega)]
@@ -666,7 +668,7 @@ theorem catBiteKickReturnP {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {status endptr target tab dink dart q art ink iDust iSpot iRate id ret urn ilk milkFlip p : UInt256}
     {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: endptr :: ⟨891151872⟩ :: target ::
         tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk ::
@@ -686,7 +688,7 @@ theorem catBiteKickReturnP {σ σ₀ A I} {g : UInt256}
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hFlipEv : (if q.toNat ≥ mem8.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem8.readWithPadding q.toNat 32))) = milkFlip) :
-    RDret catBytecode (Sat256.ofUInt256 g)
+    RDret fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
   obtain ⟨_, _, rd2631⟩ :=
     catBiteKickSeg8b1P rd hstatus ho32 hoszLt hFree8 hId8 hp96 haw8 hRateFit (by simp)
@@ -828,7 +830,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
     {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn milkFlip p : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: []) mem aw o σx k C)
@@ -846,7 +848,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : _) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (p + ⟨164⟩) :: ⟨891151872⟩ ::
           UInt256.land biteAddrMaskWord milkFlip ::
@@ -857,7 +859,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
             (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
           p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
         aw o' σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σx }
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
@@ -866,7 +868,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
               accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size
     ∧ (z = true → 32 ≤ o'.size →
-        RDret catBytecode (Sat256.ofUInt256 g)
+        RDret fork catBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
           (UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))))) := by
   -- 2383 → 2516: build the kick calldata at the free pointer `p`
@@ -898,7 +900,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
     rw [hinner]; exact awInv32 aw (by omega)
   rw [hawEq] at rd2532raw
   -- the spec-side call coincidence (Θ ↔ Stele)
-  have hcall : typedCallViaEVM config
+  have hcall : typedCallViaEVM fork config
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σx }
       (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0

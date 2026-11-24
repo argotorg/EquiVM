@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetExternal
 import Benchmarks.CompoundIII.Comet.AssetSearch
 import Benchmarks.CompoundIII.Comet.AddressGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -14,9 +16,9 @@ theorem getAssetInfoByAddressTransition_body : getAssetInfoByAddressTransition.b
 theorem getAssetInfoByAddress_returns {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hsearch : AssetSearch v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+    (hsearch : AssetSearch fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       0 (initState σ σ₀ g A I) (some (evm', out))) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "asset" I) getAssetInfoByAddressTransition.body
       (.returned frame evm' (some [assetTuple out])) (immStore v) := by
   let frame := calldataLocalFrame
@@ -36,9 +38,9 @@ theorem getAssetInfoByAddress_returns {σ σ₀ A I} {g : Sat256}
 theorem getAssetInfoByAddress_reverts {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hsearch : AssetSearch v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+    (hsearch : AssetSearch fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       0 (initState σ σ₀ g A I) none) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "asset" I) getAssetInfoByAddressTransition.body
       .reverted (immStore v) := by
   let frame := calldataLocalFrame

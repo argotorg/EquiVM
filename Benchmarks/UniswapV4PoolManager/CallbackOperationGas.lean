@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.CalleeReturnWork
 import Benchmarks.UniswapV4PoolManager.CallGasEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -25,13 +27,13 @@ theorem thetaNonprecompile_success_returnWork {fork : Ethereum.Fork}
     (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (toExecute fork σ r) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+memoryFootprint out+4+g'.toNat ≤ g.toNat := by
-  obtain ⟨code, hc⟩ := toExecute_nonprecompile_code (σ := σ) hn
+  obtain ⟨code, hc⟩ := toExecute_nonprecompile_code (fork := fork) (σ := σ) hn
   rw [hc] at h
   exact thetaCode_success_returnWork hf h
 
 theorem ZeroCallGasEvidence.returnWork_le_spent {evm evm' : State}
     {target : AccountAddress} {data out : ByteArray}
-    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π evm.executionEnv.fork)
+    (w : ZeroCallGasEvidence fork evm target data evm' true out) (hn : target ∉ π fork)
     (hf : 0 < memoryFootprint out) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+memoryFootprint out+4 ≤ w.spent := by
   have hc := thetaNonprecompile_success_returnWork hn hf w.theta.symm

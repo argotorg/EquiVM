@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapPrepareTrace
 import Benchmarks.UniswapV4PoolManager.AfterSwapReplyMemory
 import Benchmarks.UniswapV4PoolManager.HookDeltaPaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,17 +23,17 @@ theorem afterSwapActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨15936⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15936⟩
       (paramsPtr :: len :: src :: keyPtr :: accountWord hook :: unspecified :: specified :: delta :: ret :: paramsPtr :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ post z out, callViaEVM evm hook 0 (afterSwapPayload I.source key p delta
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ post z out, callViaEVM fork evm hook 0 (afterSwapPayload I.source key p delta
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧
-      functionResultTrace (deployedRuntime v) g s0 (fun next values => next = post ∧
+      functionResultTrace fork (deployedRuntime v) g s0 (fun next values => next = post ∧
         values = some [.int (EVM.signed (hookDeltaWord out (afterSwapParse hook)))] ∧
         ∃ aw' k' C', Cₘ aw' ≤ C' ∧ (afterSwapFree free len).toNat+out.size+4096 ≤ solcMaxU64 ∧
-        RD (deployedRuntime v) I g s0 ⟨6381⟩
+        RD fork (deployedRuntime v) I g s0 ⟨6381⟩
           (hookDeltaWord out (afterSwapParse hook) :: UInt256.ofNat 16136 :: unspecified ::
             UInt256.ofNat 16142 :: specified :: delta :: ret :: paramsPtr :: R)
           (afterSwapReplyMemory I.calldata mem src.toNat free len I.source key p delta out)

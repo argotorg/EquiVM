@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.StringSource
 import Benchmarks.CurveVault.RuntimeBlocks_023
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -17,8 +19,8 @@ theorem vaultStringEntryPass {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 7 ≤ 1024)
     (hcond : UInt256.gt (vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName))) ⟨3⟩ = ⟨0⟩)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6470)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6470)
       (vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName)) :: ⟨0⟩ ::
         (codeOwnerStorageWord I σ (vaultStringSlot isName) + ⟨32⟩) :: ⟨96⟩ :: ⟨32⟩ :: R)
       ((⟨32⟩ : UInt256).toByteArray.write 0 mem 64 32) aw' rdata σ k' C' := by
@@ -31,8 +33,8 @@ theorem vaultStringEntryRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 7 ≤ 1024)
     (hcond : UInt256.gt (vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName))) ⟨3⟩ ≠ ⟨0⟩)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
-    RDrev vaultBytecode g s0 := by
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
+    RDrev fork vaultBytecode g s0 := by
   cases isName with
   | false =>
       obtain ⟨_, _, rdFail⟩ := vaultBlocks.vault_block_6544_taken hstack hcond (by native_decide) h
@@ -47,9 +49,9 @@ theorem vaultStringCopySkip {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {saved : UInt256} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6470)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6470)
       (⟨0⟩ :: ⟨0⟩ :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
       (⟨0⟩ :: ⟨0⟩ :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw' rdata σ k' C' := by
   cases isName with
   | false =>
@@ -63,9 +65,9 @@ theorem vaultStringCopyStart {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {count saved : UInt256} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 7 ≤ 1024) (hnz : count ≠ ⟨0⟩)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6470)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6470)
       (count :: ⟨0⟩ :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6477)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6477)
       (⟨0⟩ :: count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw' rdata σ k' C' := by
   cases isName with
   | false =>
@@ -81,9 +83,9 @@ theorem vaultStringCopyStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {index count saved : UInt256} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 8 ≤ 1024) (hmore : ⟨1⟩ + index ≠ count)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6477)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6477)
       (index :: count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6477)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6477)
       ((⟨1⟩ + index) :: count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R)
       (vaultStringCopyWord I σ (vaultStringSlot isName) index mem) aw' rdata σ k' C' := by
   cases isName with
@@ -98,9 +100,9 @@ theorem vaultStringCopyLast {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {index count saved : UInt256} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 8 ≤ 1024) (hdone : ⟨1⟩ + index = count)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6477)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6477)
       (index :: count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
       (count :: count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R)
       (vaultStringCopyWord I σ (vaultStringSlot isName) index mem) aw' rdata σ k' C' := by
   change UInt256.ofNat 1 + index = count at hdone
@@ -132,9 +134,9 @@ theorem vaultStringFinish {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {unused0 unused1 unused2 : UInt256} {R : List UInt256} (isName : Bool)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
       (unused0 :: unused1 :: unused2 :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    RDret vaultBytecode g s0 σ (vaultStringOutput I mem) := by
+    RDret fork vaultBytecode g s0 σ (vaultStringOutput I mem) := by
   cases isName with
   | false => exact vaultBlocks.vault_block_6607 hstack h
   | true => exact vaultBlocks.vault_block_6500 hstack h

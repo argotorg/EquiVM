@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.JoinTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -29,7 +31,7 @@ theorem daiJoinReachJoinBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiJoinSelBytes 4)) :
-    ∃ k C, RD daiJoinBytecode I g
+    ∃ k C, RD fork daiJoinBytecode I g
         (initState σ σ₀ g A I)
         ⟨188⟩ [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
@@ -60,10 +62,10 @@ theorem daiJoinReachJoinBody {σ σ₀ A I} {g : Sat256}
 
 theorem daiJoinJoinX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiJoinBytecode I g
+    (hreach : ∃ k C, RD fork daiJoinBytecode I g
       (initState σ σ₀ g A I) ⟨188⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiJoinBytecode I g
+    ∃ k C, RD fork daiJoinBytecode I g
         (initState σ σ₀ g A I) ⟨449⟩
         [joinWadWord I, joinUsrMaskedWord I, ⟨232⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -87,10 +89,10 @@ theorem daiJoinJoinX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem daiJoinJoinX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD daiJoinBytecode I g
+    (hreach : ∃ k C, RD fork daiJoinBytecode I g
       (initState σ σ₀ g A I) ⟨188⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiJoinBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -133,7 +135,7 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwad : joinWadWord I ≠ ⟨0⟩)
     (hguard :
       UInt256.div (daiJoinRadWord (joinWadWord I)) (joinWadWord I) ≠ daiJoinONEWord) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body .reverted := by
   have hlookupMul : lookupCallable? contract "mul" = some mulFunction.toCallable := by
     rfl
   have hbindMul :
@@ -145,7 +147,7 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       UInt256.size ≤ daiJoinONEWord.toNat * (joinWadWord I).toNat :=
     mulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := joinStore I } evm
+      ExecStmt fork config { contract := contract, locals := joinStore I } evm
         (.internalCall "mul" [.intLit ONE, .var "wad"] "rad") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -158,7 +160,7 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       (evalExprs_daiJoinJoinMulArgs evm I) hlookupMul hbindMul
       (execDaiJoinMulFunctionRevert evm (x := daiJoinONEWord) (y := joinWadWord I) hover)
   have hblock :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body .reverted := by
     simp only [joinTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -170,7 +172,7 @@ abbrev joinRadStore (I : ExecutionEnv) : Store :=
 
 theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
     (hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := joinStore I } evm
+    ExecStmt fork config { contract := contract, locals := joinStore I } evm
       (.internalCall "mul" [.intLit ONE, .var "wad"] "rad")
       (.ok { contract := contract, locals := joinRadStore I } evm) := by
   have hlookupMul : lookupCallable? contract "mul" = some mulFunction.toCallable := by
@@ -181,7 +183,7 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
         some (uintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
     simp [mulFunction, uint256, bindParams?, uintBinaryLocals, joinWadValue]
   have hbody :=
-    execDaiJoinMulFunctionReturn evm
+    execDaiJoinMulFunctionReturn (fork := fork) evm
       (x := daiJoinONEWord) (y := joinWadWord I)
       (prod := daiJoinRadWord (joinWadWord I)) rfl hfit
   have hstmt :=
@@ -205,7 +207,7 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
 theorem daiJoinJoinMulPrefixReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size) :
-    ExecBlock config { contract := contract, locals := joinStore I } evm
+    ExecBlock fork config { contract := contract, locals := joinStore I } evm
       (nonpayable ++ [.internalCall "mul" [.intLit ONE, .var "wad"] "rad"])
       (.ok { contract := contract, locals := joinRadStore I } evm) := by
   simp only [nonpayable, List.cons_append, List.nil_append]
@@ -390,9 +392,9 @@ theorem daiJoinJoinVatNoCodeReverts (evm : EVM.State) (I : ExecutionEnv)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body .reverted := by
   have hmulStmt :=
-    daiJoinJoinInternalMulReturns evm I hfit
+    daiJoinJoinInternalMulReturns (fork := fork) evm I hfit
   have hvat :
       evalExpr? config { contract := contract, locals := joinRadStore I } evm (.storage vatRef) =
         .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) :=
@@ -409,7 +411,7 @@ theorem daiJoinJoinVatNoCodeReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok (.bool false) :=
     evalExpr_daiJoinVatCodeGuard_false hvat hnoCodeNat
   have hblock :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body .reverted := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -426,15 +428,15 @@ theorem daiJoinJoinVatMoveCallFailedReverts (evm evmVat : EVM.State)
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
         [.address evm.executionEnv.codeOwner,
           .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
           .int (Int.ofNat (daiJoinRadWord (joinWadWord I)).toNat)]
         (false, evmVat, out) true) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body .reverted := by
   have hmulStmt :=
-    daiJoinJoinInternalMulReturns evm I hfit
+    daiJoinJoinInternalMulReturns (fork := fork) evm I hfit
   have hvat :
       evalExpr? config { contract := contract, locals := joinRadStore I } evm (.storage vatRef) =
         .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) :=
@@ -454,7 +456,7 @@ theorem daiJoinJoinVatMoveCallFailedReverts (evm evmVat : EVM.State)
   have hargs :=
     evalExprs_daiJoinJoinVatMoveArgs evm I
   have hblock :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body .reverted := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -462,7 +464,7 @@ theorem daiJoinJoinVatMoveCallFailedReverts (evm evmVat : EVM.State)
     refine ExecBlock.consNormal hmulStmt ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     exact ExecBlock.consRevert
-      (ExecStmt.externalCallFailure (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
+      (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hargs hcall)
   simpa [ExecTransitionBody] using ExecFuncBody.execBlockRevert hblock
 
@@ -474,7 +476,7 @@ theorem daiJoinJoinDaiBurnNoCodeAfterVatReverts (evm evmVat : EVM.State)
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
         [.address evm.executionEnv.codeOwner,
           .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
@@ -483,9 +485,9 @@ theorem daiJoinJoinDaiBurnNoCodeAfterVatReverts (evm evmVat : EVM.State)
     (hdaiNoCode :
       Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body .reverted := by
   have hmulStmt :=
-    daiJoinJoinInternalMulReturns evm I hfit
+    daiJoinJoinInternalMulReturns (fork := fork) evm I hfit
   have hvat :
       evalExpr? config { contract := contract, locals := joinRadStore I } evm (.storage vatRef) =
         .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) :=
@@ -523,7 +525,7 @@ theorem daiJoinJoinDaiBurnNoCodeAfterVatReverts (evm evmVat : EVM.State)
           .ok (.bool false) :=
     evalExpr_daiJoinDaiCodeGuard_false hdai hdaiNoCodeNat
   have hblock :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body .reverted := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -531,7 +533,7 @@ theorem daiJoinJoinDaiBurnNoCodeAfterVatReverts (evm evmVat : EVM.State)
     refine ExecBlock.consNormal hmulStmt ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
     exact execBlockAppendReverted (checkedExternalCallNoCode
       (cfg := config) (C := contract) (evm := evmVat)
@@ -548,7 +550,7 @@ theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.St
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
         [.address evm.executionEnv.codeOwner,
           .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
@@ -558,13 +560,13 @@ theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.St
       Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
     (hcallBurn :
-      typedCallViaEVM config evmVat
+      typedCallViaEVM fork config evmVat
         (EVM.address (daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)) "burn" 0
         [.address evmVat.executionEnv.source, joinWadValue I]
         (false, evmBurn, outBurn) true) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body .reverted := by
   have hmulStmt :=
-    daiJoinJoinInternalMulReturns evm I hfit
+    daiJoinJoinInternalMulReturns (fork := fork) evm I hfit
   have hvat :
       evalExpr? config { contract := contract, locals := joinRadStore I } evm (.storage vatRef) =
         .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) :=
@@ -605,7 +607,7 @@ theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.St
   have hburnArgs :=
     evalExprs_daiJoinJoinDaiBurnArgs evmVat I
   have hblock :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body .reverted := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -613,9 +615,9 @@ theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.St
     refine ExecBlock.consNormal hmulStmt ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
-    exact execBlockAppendReverted (checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    exact execBlockAppendReverted (checkedExternalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (cfg := config) (C := contract) (evm := evmVat) (evm' := evmBurn)
       (locals := joinAfterMoveStore I) (receiver := .storage daiRef)
       (retVar := "burnRet") (name := "burn")
@@ -641,7 +643,7 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
         [.address evm.executionEnv.codeOwner,
           .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
@@ -651,20 +653,20 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
       Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
     (hcallBurn :
-      typedCallViaEVM config evmVat
+      typedCallViaEVM fork config evmVat
         (EVM.address (daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)) "burn" 0
         [.address evmVat.executionEnv.source, joinWadValue I]
         (true, evmBurn, outBurn) true) :
-    (evmBurn.executionEnv.perm = true → ExecTransitionBody config contract evm (joinStore I) joinTransition.body
+    (evmBurn.executionEnv.perm = true → ExecTransitionBody fork config contract evm (joinStore I) joinTransition.body
       (.returned
         { contract := contract,
           locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
         evmBurn none)) ∧
       (evmBurn.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (joinStore I)
+        ExecTransitionBody fork config contract evm (joinStore I)
           joinTransition.body .staticViolation) := by
   have hmulStmt :=
-    daiJoinJoinInternalMulReturns evm I hfit
+    daiJoinJoinInternalMulReturns (fork := fork) evm I hfit
   have hvat :
       evalExpr? config { contract := contract, locals := joinRadStore I } evm (.storage vatRef) =
         .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) :=
@@ -707,11 +709,11 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
   have hburnDecode : config.externalABI.decode? "burn" outBurn = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hprefix {result : ExecResult}
-      (hlog : ExecBlock config
+      (hlog : ExecBlock fork config
         { contract := contract,
           locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
         evmBurn [.emit "Join" [.var "usr", .var "wad"]] result) :
-      ExecBlock config { contract := contract, locals := joinStore I } evm
+      ExecBlock fork config { contract := contract, locals := joinStore I } evm
         joinTransition.body result := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -719,9 +721,9 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
     refine ExecBlock.consNormal hmulStmt ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl) (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
-    exact execBlock_append_ok (checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    exact execBlock_append_ok (checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (cfg := config) (C := contract) (evm := evmVat) (evm' := evmBurn)
       (locals := joinAfterMoveStore I) (receiver := .storage daiRef)
       (retVar := "burnRet") (name := "burn")
@@ -734,7 +736,7 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
   · intro hperm
     exact ExecFuncBody.execBlockOK
       (hprefix (ExecBlock.consNormal
-        (ExecStmt.emit (hperm := hperm) (evalExprs_daiJoinJoinEvent evmBurn I)) ExecBlock.nil))
+        (ExecStmt.emit (fork := fork) (hperm := hperm) (evalExprs_daiJoinJoinEvent evmBurn I)) ExecBlock.nil))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic
@@ -753,7 +755,7 @@ theorem daiJoinJoinVatMoveCallFailedCore
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd580 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
+    (rd580 : RD fork daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨580⟩
       (⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
@@ -761,19 +763,19 @@ theorem daiJoinJoinVatMoveCallFailedCore
       (UInt256.ofNat 8) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', false, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', false, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hout : out.size < UInt256.size) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
+  have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
     simpa [evmE] using daiJoinJoinVatMoveCallFailed rd580 hout
   have hcodeSizeStele :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
@@ -790,10 +792,10 @@ theorem daiJoinJoinVatMoveCallFailedCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘE :
       (σ', g'', A', false, out) =
-        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
+        Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmE.executionEnv.fork evmE.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmE.accountMap (AccountAddress.ofUInt256
             (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
@@ -817,7 +819,7 @@ theorem daiJoinJoinVatMoveCallFailedCore
       (joinMoveEncode_eq I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem_size)
       (by simpa [evmE, evmS] using hΘE)
   have hbody :
-      ExecTransitionBody config contract evmS (joinStore I) joinTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body .reverted := by
     simpa [evmS, initState] using
       (daiJoinJoinVatMoveCallFailedReverts
         (evm := evmS)
@@ -844,7 +846,7 @@ theorem daiJoinJoinDaiBurnNoCodeCore
     (hdaiCodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd598 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
+    (rd598 : RD fork daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨598⟩
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
@@ -852,18 +854,18 @@ theorem daiJoinJoinDaiBurnNoCodeCore
       (UInt256.ofNat 8) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
+  have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
     simpa [evmE] using daiJoinJoinDaiBurnNoCode rd598 hdaiCodeSize
   have hvatCodeSizeStele :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
@@ -880,10 +882,10 @@ theorem daiJoinJoinDaiBurnNoCodeCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
+        Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmE.executionEnv.fork evmE.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmE.accountMap (AccountAddress.ofUInt256
             (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
@@ -910,7 +912,7 @@ theorem daiJoinJoinDaiBurnNoCodeCore
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩ :=
     hdaiCodeSize
   have hbody :
-      ExecTransitionBody config contract evmS (joinStore I) joinTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body .reverted := by
     simpa [evmS, initState] using
       (daiJoinJoinDaiBurnNoCodeAfterVatReverts
         (evm := evmS)
@@ -938,7 +940,7 @@ theorem daiJoinJoinDaiBurnCallFailedCore
     (hdaiCodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd687 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
+    (rd687 : RD fork daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨687⟩
       (⟨0⟩ :: ⟨196⟩ :: joinBurnSelectorPlainWord :: daiJoinDaiTargetWord σ' I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
@@ -947,29 +949,29 @@ theorem daiJoinJoinDaiBurnCallFailedCore
       (UInt256.ofNat 8) outBurn σ'' k C)
     (hΘMove :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hΘBurn :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', false, outBurn) = Ethereum.EVM.Θ I.fork σ' σ₀ burnAin
+        (σ'', g'', A', false, outBurn) = Ethereum.EVM.Θ fork σ' σ₀ burnAin
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute I.fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           burnGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinBurnCalldataMem I
             (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem)).readWithPadding
               128 68)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (houtBurn : outBurn.size < UInt256.size) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmS := by
+  have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g) evmS := by
     simpa [evmS] using daiJoinJoinDaiBurnCallFailed rd687 houtBurn
   have hvatCodeSizeStele :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
@@ -986,10 +988,10 @@ theorem daiJoinJoinDaiBurnCallFailedCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘMoveE :
       (σ', gMove'', AMove', true, out) =
-        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmS.accountMap (AccountAddress.ofUInt256
             (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
@@ -1024,10 +1026,10 @@ theorem daiJoinJoinDaiBurnCallFailedCore
     daiJoinDaiEvmAddress_eq_target σ' I
   have hΘBurnE :
       (σ'', gBurn'', ABurn', false, outBurn) =
-        Ethereum.EVM.Θ evmVatS.executionEnv.fork evmVatS.accountMap evmVatS.σ₀ burnAin
+        Ethereum.EVM.Θ fork evmVatS.accountMap evmVatS.σ₀ burnAin
           (AccountAddress.ofUInt256 (UInt256.ofNat evmVatS.executionEnv.codeOwner))
           evmVatS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute evmVatS.executionEnv.fork evmVatS.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmVatS.accountMap (AccountAddress.ofUInt256
             (daiJoinDaiTargetWord σ' I)))
           burnGas (UInt256.ofNat evmVatS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinBurnCalldataMem I
@@ -1054,7 +1056,7 @@ theorem daiJoinJoinDaiBurnCallFailedCore
       (by simpa [evmVatS, evmS, initState] using hdepthNe) htgtBurn
       (joinBurnEncode_eq I hburnMemSize) hΘBurnE
   have hcallBurnStele :
-      typedCallViaEVM config evmVatS
+      typedCallViaEVM fork config evmVatS
         (EVM.address (daiJoinDaiAddress σ' I)) "burn" 0
         [.address evmVatS.executionEnv.source, joinWadValue I]
         (false,
@@ -1064,7 +1066,7 @@ theorem daiJoinJoinDaiBurnCallFailedCore
           outBurn) true := by
     simpa [evmVatS, evmS, initState] using hcallBurnAligned
   have hbody :
-      ExecTransitionBody config contract evmS (joinStore I) joinTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body .reverted := by
     simpa [evmS, evmVatS, initState] using
       (daiJoinJoinDaiBurnCallFailedAfterVatReverts
         (evm := evmS) (evmVat := evmVatS)
@@ -1093,7 +1095,7 @@ theorem daiJoinJoinDaiBurnSuccessCore
     (hdaiCodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd687 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
+    (rd687 : RD fork daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨687⟩
       (⟨1⟩ :: ⟨196⟩ :: joinBurnSelectorPlainWord :: daiJoinDaiTargetWord σ' I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
@@ -1102,26 +1104,26 @@ theorem daiJoinJoinDaiBurnSuccessCore
       (UInt256.ofNat 8) outBurn σ'' k C)
     (hΘMove :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hΘBurn :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', true, outBurn) = Ethereum.EVM.Θ I.fork σ' σ₀ burnAin
+        (σ'', g'', A', true, outBurn) = Ethereum.EVM.Θ fork σ' σ₀ burnAin
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute I.fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           burnGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinBurnCalldataMem I
             (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem)).readWithPadding
               128 68)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   obtain ⟨_, _, rd705⟩ := daiJoinJoinDaiBurnCallSucceeded rd687
   have hmoveMemSize :
@@ -1144,9 +1146,9 @@ theorem daiJoinJoinDaiBurnSuccessCore
         UInt256.toByteArray ⟨128⟩ :=
     joinBurnCalldataMem_read64 I hmoveMemSize hmoveRead64
   have hretSplit :
-      (I.perm = true ∧ RDret daiJoinBytecode (Sat256.ofUInt256 g)
+      (I.perm = true ∧ RDret fork daiJoinBytecode (Sat256.ofUInt256 g)
         evmS σ'' ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic daiJoinBytecode (Sat256.ofUInt256 g) evmS) := by
+      (I.perm = false ∧ RDstatic fork daiJoinBytecode (Sat256.ofUInt256 g) evmS) := by
     simpa [evmS] using
       daiJoinJoinDaiBurnSuccessTailSplit
         (σ := σ) (σ₀ := σ₀)
@@ -1170,10 +1172,10 @@ theorem daiJoinJoinDaiBurnSuccessCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘMoveE :
       (σ', gMove'', AMove', true, out) =
-        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmS.accountMap (AccountAddress.ofUInt256
             (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
@@ -1208,10 +1210,10 @@ theorem daiJoinJoinDaiBurnSuccessCore
     daiJoinDaiEvmAddress_eq_target σ' I
   have hΘBurnE :
       (σ'', gBurn'', ABurn', true, outBurn) =
-        Ethereum.EVM.Θ evmVatS.executionEnv.fork evmVatS.accountMap evmVatS.σ₀ burnAin
+        Ethereum.EVM.Θ fork evmVatS.accountMap evmVatS.σ₀ burnAin
           (AccountAddress.ofUInt256 (UInt256.ofNat evmVatS.executionEnv.codeOwner))
           evmVatS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute evmVatS.executionEnv.fork evmVatS.accountMap (AccountAddress.ofUInt256
+          (toExecute fork evmVatS.accountMap (AccountAddress.ofUInt256
             (daiJoinDaiTargetWord σ' I)))
           burnGas (UInt256.ofNat evmVatS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinBurnCalldataMem I
@@ -1235,7 +1237,7 @@ theorem daiJoinJoinDaiBurnSuccessCore
       (by simpa [evmVatS, evmS, initState] using hdepthNe) htgtBurn
       (joinBurnEncode_eq I hmoveMemSize) hΘBurnE
   have hcallBurnStele :
-      typedCallViaEVM config evmVatS
+      typedCallViaEVM fork config evmVatS
         (EVM.address (daiJoinDaiAddress σ' I)) "burn" 0
         [.address evmVatS.executionEnv.source, joinWadValue I]
         (true,
@@ -1247,12 +1249,12 @@ theorem daiJoinJoinDaiBurnSuccessCore
   let evmBurnS : EVM.State :=
     { evmVatS with accountMap := σ'', substate := ABurn' }
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evmS (joinStore I) joinTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body
         (.returned
           { contract := contract,
             locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
           evmBurnS none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evmS (joinStore I)
+      (I.perm = false → ExecTransitionBody fork config contract evmS (joinStore I)
         joinTransition.body .staticViolation) := by
     simpa [evmS, evmVatS, evmBurnS, initState] using
       (daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit
@@ -1276,12 +1278,12 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiJoinSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiJoinSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some joinTransition :=
     daiJoinDispatchJoin hsel
-  have hreach := daiJoinReachJoinBody
+  have hreach := daiJoinReachJoinBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -1301,7 +1303,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
       by_cases hvatCode :
           Reasoning.Theory.extCodeSizeWord σ
             (daiJoinVatTargetWord σ I) = ⟨0⟩
-      · have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
+      · have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
           daiJoinJoinVatMoveNoCode rd490 hvatCode
         have hvatCodeStele :
@@ -1309,7 +1311,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
               (daiJoinVatTargetWord σ I) = ⟨0⟩ :=
           hvatCode
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) (joinStore I)
               joinTransition.body .reverted :=
           daiJoinJoinVatNoCodeReverts
@@ -1368,7 +1370,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
             have hge : 1024 ≤ I.depth.val := Nat.le_of_not_gt hdepthLt
             omega
           obtain ⟨_, _, rd580⟩ := daiJoinJoinVatMoveCallDepthLimit rd579 hdepthEq
-          have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
+          have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
             daiJoinJoinVatMoveCallFailed rd580 (by simp [UInt256.size])
           let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1377,7 +1379,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
             hvatCode
           have hcallStele :
-              typedCallViaEVM config evmS
+              typedCallViaEVM fork config evmS
                 (EVM.address (daiJoinVatAddress σ I)) "move" 0
                 [.address I.codeOwner,
                   .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
@@ -1385,7 +1387,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (false,
                   { evmS with
                     substate :=
-                      (Ethereum.EVM.callSubstate evmS.executionEnv.fork evmS.accountMap (EVM.address
+                      (Ethereum.EVM.callSubstate fork evmS.accountMap (EVM.address
                         (daiJoinVatAddress σ I)) evmS.substate) },
                   ByteArray.empty) true := by
             exact callNotMade_depthLimit
@@ -1402,13 +1404,13 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
               (joinMoveEncode_eq I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem_size)
               (by simpa [evmS, initState] using hdepthEq)
           have hbody :
-              ExecTransitionBody config contract evmS (joinStore I) joinTransition.body .reverted :=
+              ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body .reverted :=
             daiJoinJoinVatMoveCallFailedReverts
               (evm := evmS)
               (evmVat :=
                 { evmS with
                   substate :=
-                    (Ethereum.EVM.callSubstate evmS.executionEnv.fork evmS.accountMap (EVM.address
+                    (Ethereum.EVM.callSubstate fork evmS.accountMap (EVM.address
                       (daiJoinVatAddress σ I)) evmS.substate) })
               (I := I) (out := ByteArray.empty)
               (by simpa [evmS, initState] using hwv) hfit hvatCodeStele
@@ -1427,7 +1429,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ
               (daiJoinVatTargetWord σ I) = ⟨0⟩
-        · have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
+        · have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
             daiJoinJoinVatMoveNoCode rd490 hvatCode
           have hvatCodeStele :
@@ -1435,7 +1437,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (daiJoinVatTargetWord σ I) = ⟨0⟩ :=
             hvatCode
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) (joinStore I)
                 joinTransition.body .reverted :=
             daiJoinJoinVatNoCodeReverts
@@ -1498,7 +1500,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
               have hge : 1024 ≤ I.depth.val := Nat.le_of_not_gt hdepthLt
               omega
             obtain ⟨_, _, rd580⟩ := daiJoinJoinVatMoveCallDepthLimit rd579 hdepthEq
-            have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
+            have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
               daiJoinJoinVatMoveCallFailed rd580 (by simp [UInt256.size])
             let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1507,7 +1509,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                   (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
               hvatCode
             have hcallStele :
-                typedCallViaEVM config evmS
+                typedCallViaEVM fork config evmS
                   (EVM.address (daiJoinVatAddress σ I)) "move" 0
                   [.address I.codeOwner,
                     .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
@@ -1515,7 +1517,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                   (false,
                     { evmS with
                       substate :=
-                        (Ethereum.EVM.callSubstate evmS.executionEnv.fork evmS.accountMap
+                        (Ethereum.EVM.callSubstate fork evmS.accountMap
                           (EVM.address (daiJoinVatAddress σ I)) evmS.substate) },
                     ByteArray.empty) true := by
               exact callNotMade_depthLimit
@@ -1532,23 +1534,23 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (joinMoveEncode_eq I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem_size)
                 (by simpa [evmS, initState] using hdepthEq)
             have hbody :
-                ExecTransitionBody config contract evmS (joinStore I) joinTransition.body .reverted :=
+                ExecTransitionBody fork config contract evmS (joinStore I) joinTransition.body .reverted :=
               daiJoinJoinVatMoveCallFailedReverts
                 (evm := evmS)
                 (evmVat :=
                   { evmS with
                     substate :=
-                      (Ethereum.EVM.callSubstate evmS.executionEnv.fork evmS.accountMap (EVM.address
+                      (Ethereum.EVM.callSubstate fork evmS.accountMap (EVM.address
                         (daiJoinVatAddress σ I)) evmS.substate) })
                 (I := I) (out := ByteArray.empty)
                 (by simpa [evmS, initState] using hwv) hfit hvatCodeStele
                 (by simpa [evmS, initState] using hcallStele)
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
+      · have hrev : RDrev fork daiJoinBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
           daiJoinJoinMulReverts hwad hguard rd449
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) (joinStore I)
               joinTransition.body .reverted :=
           daiJoinJoinBodyMulReverts

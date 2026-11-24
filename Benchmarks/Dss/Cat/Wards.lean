@@ -2,6 +2,8 @@ import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cat.Common
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -74,7 +76,7 @@ theorem catReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨553⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨3207937467⟩ :=
@@ -106,17 +108,17 @@ theorem catWardsBodyCore
       config.externalABI.decodeCalldata? (wardsTransition.params.map Param.name)
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨553⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
   have hslot : wardsMappingSlotFor I = slot := by
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -155,7 +157,7 @@ theorem catWardsBodyCore
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret catBytecode (Sat256.ofUInt256 g)
+      RDret fork catBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -196,9 +198,9 @@ theorem catWardsBodyShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    catReachWardsBody (σ := σ)
+    catReachWardsBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -222,7 +224,7 @@ theorem catWardsBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩ rfl hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

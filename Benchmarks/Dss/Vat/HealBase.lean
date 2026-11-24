@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -387,7 +389,7 @@ theorem vatHealSinSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I) = sinVal)
     (hsinNew : sinNew = UInt256.sub sinVal (healRad I))
     (hsinEnough : (healRad I).toNat ≤ sinVal.toNat) :
-    ExecBlock config { contract := contract, locals := healLocals I } evm
+    ExecBlock fork config { contract := contract, locals := healLocals I } evm
       (checkedSubUintInto "sinNew" (.storage (sinRef sender)) (.var "rad"))
       (.ok { contract := contract, locals := healLocalsSinNew I sinNew } evm) := by
   have hrad :
@@ -437,7 +439,7 @@ theorem vatHealDaiSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healDaiSlot I) = daiVal)
     (hdaiNew : daiNew = UInt256.sub daiVal (healRad I))
     (hdaiEnough : (healRad I).toNat ≤ daiVal.toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsSinNew I sinNew } evm
+    ExecBlock fork config { contract := contract, locals := healLocalsSinNew I sinNew } evm
       (checkedSubUintInto "daiNew" (.storage (daiRef sender)) (.var "rad"))
       (.ok { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm) := by
   have hrad :
@@ -488,7 +490,7 @@ theorem vatHealViceSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner healViceSlot = viceVal)
     (hviceNew : viceNew = UInt256.sub viceVal (healRad I))
     (hviceEnough : (healRad I).toNat ≤ viceVal.toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm
+    ExecBlock fork config { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm
       (checkedSubUintInto "viceNew" (.storage viceRef) (.var "rad"))
       (.ok { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew } evm) := by
   have hrad :
@@ -543,7 +545,7 @@ theorem vatHealDebtSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner healDebtSlot = debtVal)
     (hdebtNew : debtNew = UInt256.sub debtVal (healRad I))
     (hdebtEnough : (healRad I).toNat ≤ debtVal.toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew }
+    ExecBlock fork config { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew }
         evm
       (checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad"))
       (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
@@ -605,7 +607,7 @@ theorem vatHealSinSubBlockRevert (evm : EVM.State) (I : ExecutionEnv)
     (hsinLoad :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I) = sinVal)
     (hsinUnderflow : sinVal.toNat < (healRad I).toNat) :
-    ExecBlock config { contract := contract, locals := healLocals I } evm
+    ExecBlock fork config { contract := contract, locals := healLocals I } evm
       (checkedSubUintInto "sinNew" (.storage (sinRef sender)) (.var "rad"))
       .reverted := by
   have hrad :
@@ -631,7 +633,7 @@ theorem vatHealDaiSubBlockRevert (evm : EVM.State) (I : ExecutionEnv)
     (hdaiLoad :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healDaiSlot I) = daiVal)
     (hdaiUnderflow : daiVal.toNat < (healRad I).toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsSinNew I sinNew } evm
+    ExecBlock fork config { contract := contract, locals := healLocalsSinNew I sinNew } evm
       (checkedSubUintInto "daiNew" (.storage (daiRef sender)) (.var "rad"))
       .reverted := by
   have hrad :
@@ -658,7 +660,7 @@ theorem vatHealViceSubBlockRevert (evm : EVM.State) (I : ExecutionEnv)
     (hviceLoad :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner healViceSlot = viceVal)
     (hviceUnderflow : viceVal.toNat < (healRad I).toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm
+    ExecBlock fork config { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm
       (checkedSubUintInto "viceNew" (.storage viceRef) (.var "rad"))
       .reverted := by
   have hrad :
@@ -685,7 +687,7 @@ theorem vatHealDebtSubBlockRevert (evm : EVM.State) (I : ExecutionEnv)
     (hdebtLoad :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner healDebtSlot = debtVal)
     (hdebtUnderflow : debtVal.toNat < (healRad I).toNat) :
-    ExecBlock config { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew }
+    ExecBlock fork config { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew }
         evm
       (checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad"))
       .reverted := by
@@ -715,7 +717,7 @@ theorem vatHealDebtSubBlockRevert (evm : EVM.State) (I : ExecutionEnv)
 theorem vatHealAssignSinStmt (evm : EVM.State) (I : ExecutionEnv)
     {sinNew : UInt256}
     (hsrc : evm.executionEnv.source = I.source) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := healLocalsSinNew I sinNew } evm
       (.assign .storage (sinRef sender) (.var "sinNew"))
       (if evm.executionEnv.perm then .ok { contract := contract, locals := healLocalsSinNew I sinNew }
@@ -740,7 +742,7 @@ theorem vatHealAssignSinOk (evm : EVM.State) (I : ExecutionEnv)
     {sinNew : UInt256}
     (hsrc : evm.executionEnv.source = I.source)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := healLocalsSinNew I sinNew } evm
       [ .assign .storage (sinRef sender) (.var "sinNew") ]
       (.ok { contract := contract, locals := healLocalsSinNew I sinNew }
@@ -752,7 +754,7 @@ theorem vatHealAssignDaiOk (evm : EVM.State) (I : ExecutionEnv)
     {sinNew daiNew : UInt256}
     (hsrc : evm.executionEnv.source = I.source)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := healLocalsDaiNew I sinNew daiNew } evm
       [ .assign .storage (daiRef sender) (.var "daiNew") ]
       (.ok { contract := contract, locals := healLocalsDaiNew I sinNew daiNew }
@@ -772,13 +774,13 @@ theorem vatHealAssignDaiOk (evm : EVM.State) (I : ExecutionEnv)
     simpa [locals, evmDai] using
       assign_heal_dai_sender evm I locals daiNew hsrc
         (by simp [locals, healLocalsDaiNew, healLocalsSinNew, healLocals])
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdaiNewEval hassignDai) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdaiNewEval hassignDai) ?_
   exact ExecBlock.nil
 
 theorem vatHealAssignViceOk (evm : EVM.State) (I : ExecutionEnv)
     {sinNew daiNew viceNew : UInt256}
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew } evm
       [ .assign .storage viceRef (.var "viceNew") ]
       (.ok { contract := contract, locals := healLocalsViceNew I sinNew daiNew viceNew }
@@ -798,13 +800,13 @@ theorem vatHealAssignViceOk (evm : EVM.State) (I : ExecutionEnv)
     simpa [locals, evmVice] using
       assign_heal_vice evm locals viceNew
         (by simp [locals, healLocalsViceNew, healLocalsDaiNew, healLocalsSinNew, healLocals])
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hviceNewEval hassignVice) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hviceNewEval hassignVice) ?_
   exact ExecBlock.nil
 
 theorem vatHealAssignDebtOk (evm : EVM.State) (I : ExecutionEnv)
     {sinNew daiNew viceNew debtNew : UInt256}
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew } evm
       [ .assign .storage debtRef (.var "debtNew") ]
       (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
@@ -824,7 +826,7 @@ theorem vatHealAssignDebtOk (evm : EVM.State) (I : ExecutionEnv)
       assign_heal_debt evm locals debtNew
         (by simp [locals, healLocalsDebtNew, healLocalsViceNew, healLocalsDaiNew,
           healLocalsSinNew, healLocals])
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdebtNewEval hassignDebt) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdebtNewEval hassignDebt) ?_
   exact ExecBlock.nil
 
 theorem vatHealSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
@@ -850,7 +852,7 @@ theorem vatHealSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
       (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat →
     (healRad I).toNat ≤
       (Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot).toNat →
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body
       (.returned { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
         (healPostState evm I sinNew daiNew viceNew debtNew) none) := by
   intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal viceNew evmVice debtVal debtNew
@@ -861,34 +863,34 @@ theorem vatHealSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
     simp [evmDai, storageStore_executionEnv, hsrcSin]
   have hsrcVice : evmVice.executionEnv.source = I.source := by
     simp [evmVice, storageStore_executionEnv, hsrcDai]
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
-  have hassignSin := vatHealAssignSinOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
+  have hassignSin := vatHealAssignSinOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
   have hdaiEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)).toNat := by
     exact hdaiEnough
-  have hdai := vatHealDaiSubBlockOk (evm := evmSin) (I := I)
+  have hdai := vatHealDaiSubBlockOk (fork := fork) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiVal := daiVal) (daiNew := daiNew) hsrcSin rfl rfl hdaiEnough'
-  have hassignDai := vatHealAssignDaiOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
+  have hassignDai := vatHealAssignDaiOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) hsrcSin
   have hviceEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat := by
     exact hviceEnough
-  have hvice := vatHealViceSubBlockOk (evm := evmDai) (I := I)
+  have hvice := vatHealViceSubBlockOk (fork := fork) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceVal := viceVal) (viceNew := viceNew)
     rfl rfl hviceEnough'
-  have hassignVice := vatHealAssignViceOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
+  have hassignVice := vatHealAssignViceOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
   have hdebtEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot).toNat := by
     exact hdebtEnough
-  have hdebt := vatHealDebtSubBlockOk (evm := evmVice) (I := I)
+  have hdebt := vatHealDebtSubBlockOk (fork := fork) (evm := evmVice) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
     (debtVal := debtVal) (debtNew := debtNew) rfl rfl hdebtEnough'
-  have hassignDebt := vatHealAssignDebtOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmVice) (I := I)
+  have hassignDebt := vatHealAssignDebtOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmVice) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew) (debtNew := debtNew)
   have h1 := execBlock_append hsin hassignSin
   have h2 := execBlock_append h1 hdai
@@ -898,14 +900,14 @@ theorem vatHealSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
   have h6 := execBlock_append h5 hdebt
   have h7 := execBlock_append h6 hassignDebt
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
           (healPostState evm I sinNew daiNew viceNew debtNew)) := by
     simpa [healBodyTail, healPostState, evmSin, evmDai, evmVice, storageStore_executionEnv,
       List.append_assoc] using h7
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body
         (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
           (healPostState evm I sinNew daiNew viceNew debtNew)) := by
@@ -940,7 +942,7 @@ theorem vatHealSourceSuccessNamed (evm : EVM.State) (I : ExecutionEnv)
         (healRad I) = debtNew) →
     (healRad I).toNat ≤
       (Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot).toNat →
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body
       (.returned { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
         (healPostState evm I sinNew daiNew viceNew debtNew) none) := by
   intro evmSin hdaiNew hdaiEnough evmDai hviceNew hviceEnough evmVice hdebtNew hdebtEnough
@@ -950,27 +952,27 @@ theorem vatHealSourceSuccessNamed (evm : EVM.State) (I : ExecutionEnv)
     simp [evmDai, storageStore_executionEnv, hsrcSin]
   have hsrcVice : evmVice.executionEnv.source = I.source := by
     simp [evmVice, storageStore_executionEnv, hsrcDai]
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I))
     (sinNew := sinNew) hsrc rfl hsinNew.symm hsinEnough
-  have hassignSin := vatHealAssignSinOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
-  have hdai := vatHealDaiSubBlockOk (evm := evmSin) (I := I)
+  have hassignSin := vatHealAssignSinOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
+  have hdai := vatHealDaiSubBlockOk (fork := fork) (evm := evmSin) (I := I)
     (sinNew := sinNew)
     (daiVal := Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I))
     (daiNew := daiNew) hsrcSin rfl hdaiNew.symm hdaiEnough
-  have hassignDai := vatHealAssignDaiOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
+  have hassignDai := vatHealAssignDaiOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) hsrcSin
-  have hvice := vatHealViceSubBlockOk (evm := evmDai) (I := I)
+  have hvice := vatHealViceSubBlockOk (fork := fork) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew)
     (viceVal := Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot)
     (viceNew := viceNew) rfl hviceNew.symm hviceEnough
-  have hassignVice := vatHealAssignViceOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
+  have hassignVice := vatHealAssignViceOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
-  have hdebt := vatHealDebtSubBlockOk (evm := evmVice) (I := I)
+  have hdebt := vatHealDebtSubBlockOk (fork := fork) (evm := evmVice) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
     (debtVal := Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot)
     (debtNew := debtNew) rfl hdebtNew.symm hdebtEnough
-  have hassignDebt := vatHealAssignDebtOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmVice) (I := I)
+  have hassignDebt := vatHealAssignDebtOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmVice) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew) (debtNew := debtNew)
   have h1 := execBlock_append hsin hassignSin
   have h2 := execBlock_append h1 hdai
@@ -980,14 +982,14 @@ theorem vatHealSourceSuccessNamed (evm : EVM.State) (I : ExecutionEnv)
   have h6 := execBlock_append h5 hdebt
   have h7 := execBlock_append h6 hassignDebt
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
           (healPostState evm I sinNew daiNew viceNew debtNew)) := by
     simpa [healBodyTail, healPostState, evmSin, evmDai, evmVice, storageStore_executionEnv,
       List.append_assoc] using h7
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body
         (.ok { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
           (healPostState evm I sinNew daiNew viceNew debtNew)) := by
@@ -1001,12 +1003,12 @@ theorem vatHealSourceSinUnderflow (evm : EVM.State) (I : ExecutionEnv)
     (hsinUnderflow :
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)).toNat <
         (healRad I).toNat) :
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body .reverted := by
   let sinVal := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)
-  have hsinRev := vatHealSinSubBlockRevert (evm := evm) (I := I)
+  have hsinRev := vatHealSinSubBlockRevert (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) hsrc rfl hsinUnderflow
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         .reverted := by
     exact execBlock_append_term (s2 :=
@@ -1018,7 +1020,7 @@ theorem vatHealSourceSinUnderflow (evm : EVM.State) (I : ExecutionEnv)
       checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad") ++
       [ .assign .storage debtRef (.var "debtNew") ]) hsinRev (by intro f e h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc] using htail
@@ -1030,19 +1032,19 @@ theorem vatHealSourceStatic (evm : EVM.State) (I : ExecutionEnv)
     (hsinEnough : (healRad I).toNat ≤
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body
       .staticViolation := by
   let sinVal := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)
   let sinNew := UInt256.sub sinVal (healRad I)
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
   have hassignSin :
-      ExecBlock config { contract := contract, locals := healLocalsSinNew I sinNew } evm
+      ExecBlock fork config { contract := contract, locals := healLocalsSinNew I sinNew } evm
         [ .assign .storage (sinRef sender) (.var "sinNew") ] .staticViolation := by
     exact ExecBlock.consStatic (execStmt_assign_static
       (vatHealAssignSinStmt evm I (sinNew := sinNew) hsrc) hperm)
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail .staticViolation := by
     simpa [List.append_assoc] using
       (execBlock_append_term (s2 :=
@@ -1054,7 +1056,7 @@ theorem vatHealSourceStatic (evm : EVM.State) (I : ExecutionEnv)
         [ .assign .storage debtRef (.var "debtNew") ])
         (execBlock_append hsin hassignSin) (by intro f e h; cases h))
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body .staticViolation := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc]
@@ -1073,22 +1075,22 @@ theorem vatHealSourceDaiUnderflow (evm : EVM.State) (I : ExecutionEnv)
     let daiVal := Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)
     (Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)).toNat <
       (healRad I).toNat →
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body .reverted := by
   intro sinVal sinNew evmSin daiVal hdaiUnderflow
   have hsrcSin : evmSin.executionEnv.source = I.source := by
     simp [evmSin, storageStore_executionEnv, hsrc]
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
-  have hassignSin := vatHealAssignSinOk (hperm := by simpa only [evmSin, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
+  have hassignSin := vatHealAssignSinOk (fork := fork) (hperm := by simpa only [evmSin, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
   have hdaiUnderflow' :
       (Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)).toNat <
         (healRad I).toNat := by
     exact hdaiUnderflow
-  have hdaiRev := vatHealDaiSubBlockRevert (evm := evmSin) (I := I)
+  have hdaiRev := vatHealDaiSubBlockRevert (fork := fork) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiVal := daiVal) hsrcSin rfl hdaiUnderflow'
   have hprefix := execBlock_append (execBlock_append hsin hassignSin) hdaiRev
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         .reverted := by
     simpa [List.append_assoc] using
@@ -1100,7 +1102,7 @@ theorem vatHealSourceDaiUnderflow (evm : EVM.State) (I : ExecutionEnv)
         [ .assign .storage debtRef (.var "debtNew") ])
         hprefix (by intro f e h; cases h))
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc] using htail
@@ -1123,34 +1125,34 @@ theorem vatHealSourceViceUnderflow (evm : EVM.State) (I : ExecutionEnv)
       (healDaiSlot I)).toNat →
     (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat <
       (healRad I).toNat →
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body .reverted := by
   intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal hdaiEnough hviceUnderflow
   have hsrcSin : evmSin.executionEnv.source = I.source := by
     simp [evmSin, storageStore_executionEnv, hsrc]
   have hsrcDai : evmDai.executionEnv.source = I.source := by
     simp [evmDai, storageStore_executionEnv, hsrcSin]
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
-  have hassignSin := vatHealAssignSinOk (hperm := by simpa only [evmSin, evmDai, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
+  have hassignSin := vatHealAssignSinOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
   have hdaiEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)).toNat := by
     exact hdaiEnough
-  have hdai := vatHealDaiSubBlockOk (evm := evmSin) (I := I)
+  have hdai := vatHealDaiSubBlockOk (fork := fork) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiVal := daiVal) (daiNew := daiNew) hsrcSin rfl rfl hdaiEnough'
-  have hassignDai := vatHealAssignDaiOk (hperm := by simpa only [evmSin, evmDai, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
+  have hassignDai := vatHealAssignDaiOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) hsrcSin
   have hviceUnderflow' :
       (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat <
         (healRad I).toNat := by
     exact hviceUnderflow
-  have hviceRev := vatHealViceSubBlockRevert (evm := evmDai) (I := I)
+  have hviceRev := vatHealViceSubBlockRevert (fork := fork) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceVal := viceVal) rfl hviceUnderflow'
   have hprefix :=
     execBlock_append (execBlock_append (execBlock_append (execBlock_append hsin hassignSin) hdai)
       hassignDai) hviceRev
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         .reverted := by
     simpa [List.append_assoc] using
@@ -1160,7 +1162,7 @@ theorem vatHealSourceViceUnderflow (evm : EVM.State) (I : ExecutionEnv)
         [ .assign .storage debtRef (.var "debtNew") ])
         hprefix (by intro f e h; cases h))
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc] using htail
@@ -1188,7 +1190,7 @@ theorem vatHealSourceDebtUnderflow (evm : EVM.State) (I : ExecutionEnv)
       (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat →
     (Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot).toNat <
       (healRad I).toNat →
-    ExecTransitionBody config contract evm (healLocals I) healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (healLocals I) healTransition.body .reverted := by
   intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal viceNew evmVice debtVal
     hdaiEnough hviceEnough hdebtUnderflow
   have hsrcSin : evmSin.executionEnv.source = I.source := by
@@ -1197,31 +1199,31 @@ theorem vatHealSourceDebtUnderflow (evm : EVM.State) (I : ExecutionEnv)
     simp [evmDai, storageStore_executionEnv, hsrcSin]
   have hsrcVice : evmVice.executionEnv.source = I.source := by
     simp [evmVice, storageStore_executionEnv, hsrcDai]
-  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+  have hsin := vatHealSinSubBlockOk (fork := fork) (evm := evm) (I := I)
     (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
-  have hassignSin := vatHealAssignSinOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
+  have hassignSin := vatHealAssignSinOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evm) (I := I) (sinNew := sinNew) hsrc
   have hdaiEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (healDaiSlot I)).toNat := by
     exact hdaiEnough
-  have hdai := vatHealDaiSubBlockOk (evm := evmSin) (I := I)
+  have hdai := vatHealDaiSubBlockOk (fork := fork) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiVal := daiVal) (daiNew := daiNew) hsrcSin rfl rfl hdaiEnough'
-  have hassignDai := vatHealAssignDaiOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
+  have hassignDai := vatHealAssignDaiOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmSin) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) hsrcSin
   have hviceEnough' :
       (healRad I).toNat ≤
         (Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner healViceSlot).toNat := by
     exact hviceEnough
-  have hvice := vatHealViceSubBlockOk (evm := evmDai) (I := I)
+  have hvice := vatHealViceSubBlockOk (fork := fork) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceVal := viceVal) (viceNew := viceNew)
     rfl rfl hviceEnough'
-  have hassignVice := vatHealAssignViceOk (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
+  have hassignVice := vatHealAssignViceOk (fork := fork) (hperm := by simpa only [evmSin, evmDai, evmVice, storageStore_executionEnv, initState] using hperm) (evm := evmDai) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
   have hdebtUnderflow' :
       (Stele.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner healDebtSlot).toNat <
         (healRad I).toNat := by
     exact hdebtUnderflow
-  have hdebtRev := vatHealDebtSubBlockRevert (evm := evmVice) (I := I)
+  have hdebtRev := vatHealDebtSubBlockRevert (fork := fork) (evm := evmVice) (I := I)
     (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew) (debtVal := debtVal)
     rfl hdebtUnderflow'
   have hprefix := execBlock_append
@@ -1232,7 +1234,7 @@ theorem vatHealSourceDebtUnderflow (evm : EVM.State) (I : ExecutionEnv)
             (execBlock_append hsin hassignSin) hdai) hassignDai) hvice) hassignVice)
     hdebtRev
   have htail :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healBodyTail
         .reverted := by
     simpa [List.append_assoc] using
@@ -1240,7 +1242,7 @@ theorem vatHealSourceDebtUnderflow (evm : EVM.State) (I : ExecutionEnv)
         [ .assign .storage debtRef (.var "debtNew") ])
         hprefix (by intro f e h; cases h))
   have hblock :
-      ExecBlock config { contract := contract, locals := healLocals I } evm
+      ExecBlock fork config { contract := contract, locals := healLocals I } evm
         healTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc]
@@ -1262,11 +1264,11 @@ theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with ⟨hadd, hdRev0, hdRev2, hdRev3⟩
   rcases hadd with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
@@ -1322,11 +1324,11 @@ theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
     (hlt : a.toNat < b.toNat)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with ⟨hsub, hdRev0, hdRev2, hdRev3⟩
   rcases hsub with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩

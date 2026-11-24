@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveRun
 import Benchmarks.UniswapV3.Pool.OracleObserveStepSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -17,7 +19,7 @@ theorem oracleObserveLoopOfRun (imms : Store) (evm : EVM.State) (time : UInt256)
       locals.get? "tickCumulatives" = some (.array ticks) →
       locals.get? "secondsPerLiquidityCumulativeX128s" = some (.array seconds) →
       ticks.length = secondsAgos.length → seconds.length = secondsAgos.length →
-      ∃ locals', ExecForLoop config {contract := contract, locals := locals, immutables := imms} evm
+      ∃ locals', ExecForLoop fork config {contract := contract, locals := locals, immutables := imms} evm
         oracleObserveCondition oracleObservePost oracleObserveLoopBody
         (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
         locals'.get? "tickCumulatives" = some (.array finalTicks) ∧
@@ -50,7 +52,7 @@ theorem oracleObserveLoopOfFailure (imms : Store) (evm : EVM.State) (time : UInt
       locals.get? "tickCumulatives" = some (.array ticks) →
       locals.get? "secondsPerLiquidityCumulativeX128s" = some (.array seconds) →
       ticks.length = secondsAgos.length → seconds.length = secondsAgos.length →
-      ExecForLoop config {contract := contract, locals := locals, immutables := imms} evm
+      ExecForLoop fork config {contract := contract, locals := locals, immutables := imms} evm
         oracleObserveCondition oracleObservePost oracleObserveLoopBody .reverted := by
   induction hfail with
   | @failure i ticks seconds hib hsingle =>

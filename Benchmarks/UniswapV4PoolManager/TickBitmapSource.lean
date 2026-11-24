@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickBitmapStorage
 import Benchmarks.UniswapV4PoolManager.WordXorSource
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -20,14 +22,14 @@ theorem tickBitmapTail {f : Frame} {evm : EVM.State} {id : UInt256} {tick spacin
     (hs : f.locals.get? "self" = some (tickBitmapRefValue id))
     (hc : f.locals.get? "compressed" = some (.int (tickBitmapCompressed tick spacing)))
     (ht : tick.natAbs ≤ 887272) :
-    ∃ f', ExecFuncBody config f evm (tickBitmapFunction.body.drop 2)
+    ∃ f', ExecFuncBody fork config f evm (tickBitmapFunction.body.drop 2)
       (if evm.executionEnv.perm = false then .staticViolation else .returned f' (tickBitmapPost evm id tick spacing) none) := by
   let f1 : Frame := {f with locals := f.locals.insert "wordPos" (.int (tickBitmapPosition tick spacing))}
   let mask := tickBitmapMask (tickBitmapCompressed tick spacing)
   let f2 : Frame := {f1 with locals := f1.locals.insert "mask" (.int (Int.ofNat mask.toNat))}
-  have hp : ExecStmt config f evm tickBitmapFunction.body[2]! (.ok f1 evm) :=
+  have hp : ExecStmt fork config f evm tickBitmapFunction.body[2]! (.ok f1 evm) :=
     ExecStmt.letDecl (tickBitmapPosition_eval ht (evalLocalValue hc))
-  have hm : ExecStmt config f1 evm tickBitmapFunction.body[3]! (.ok f2 evm) :=
+  have hm : ExecStmt fork config f1 evm tickBitmapFunction.body[3]! (.ok f2 evm) :=
     ExecStmt.letDecl (tickBitmapMask_eval (tickBitmapCompressed_int256 spacing ht)
       (evalLocalValue ((store_get_ne _ _ (by decide : ("wordPos" == "compressed") = false)).trans hc)))
   have hs2 : f2.locals.get? "self" = some (tickBitmapRefValue id) :=
@@ -45,14 +47,14 @@ theorem tickBitmapTail {f : Frame} {evm : EVM.State} {id : UInt256} {tick spacin
       (ExecBlock.consStatic (ExecStmt.assignStatic hv hw hperm))))
   · rw [if_neg hperm]
     exact .execBlockOK (ExecBlock.consNormal hp (ExecBlock.consNormal hm
-      (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) hv hw))))
+      (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) hv hw))))
 
 theorem tickBitmapBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick spacing : Int}
     (hs : f.locals.get? "self" = some (tickBitmapRefValue id))
     (ht : f.locals.get? "tick" = some (.int tick))
     (hp : f.locals.get? "tickSpacing" = some (.int spacing)) (hb : tick.natAbs ≤ 887272) :
-    ∃ f', ExecFuncBody config f evm tickBitmapFunction.body (tickBitmapResult f' evm id tick spacing) := by
-  have hpre := tickBitmapPrelude (evm := evm) ht hp
+    ∃ f', ExecFuncBody fork config f evm tickBitmapFunction.body (tickBitmapResult f' evm id tick spacing) := by
+  have hpre := tickBitmapPrelude (fork := fork) (evm := evm) ht hp
   by_cases ha : tickBitmapAligned tick spacing
   · rw [if_pos ha] at hpre
     obtain ⟨f', htail⟩ := tickBitmapTail (evm := evm)
@@ -69,7 +71,7 @@ theorem tickBitmapCall {f : Frame} {evm : EVM.State} {id : UInt256} {tick spacin
     (hs : evalExpr? config f evm es = .ok (tickBitmapRefValue id))
     (ht : evalExpr? config f evm et = .ok (.int tick))
     (hp : evalExpr? config f evm ep = .ok (.int spacing)) (hb : tick.natAbs ≤ 887272) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "TickBitmap_flipTick" [es, et, ep] ret)
+    ExecStmt fork config f evm (.internalCall "TickBitmap_flipTick" [es, et, ep] ret)
       (resumeCallResult f ret (tickBitmapResult f evm id tick spacing)) := by
   obtain ⟨f', hbody⟩ := tickBitmapBody
     (f := {f with locals := ((((∅ : Store).insert "tickSpacing" (.int spacing)).insert "tick" (.int tick)).insert

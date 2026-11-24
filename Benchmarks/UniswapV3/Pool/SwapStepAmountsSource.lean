@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepMaxSource
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcSource
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -39,7 +41,7 @@ theorem swapStepAmountsAmountGet (imms : Store) (a : SwapStepArgs) :
 
 theorem swapStepAmountsBranchSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepAmountsValid a) :
-    ExecBlock config (swapStepMaxFrame imms a) evm
+    ExecBlock fork config (swapStepMaxFrame imms a) evm
       (swapStepRecalcBranch (swapStepZeroForOne a)) (.ok (swapStepAmountsFrame imms a) evm) := by
   rw [swapStepRecalcBlock_eq]
   exact execBlock_append_ok
@@ -50,9 +52,9 @@ theorem swapStepAmountsBranchSource (imms : Store) (evm : EVM.State) (a : SwapSt
 
 theorem swapStepAmountsStmt (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (result : ExecResult)
-    (hb : ExecBlock config (swapStepMaxFrame imms a) evm
+    (hb : ExecBlock fork config (swapStepMaxFrame imms a) evm
       (swapStepRecalcBranch (swapStepZeroForOne a)) result) :
-    ExecStmt config (swapStepMaxFrame imms a) evm swapStepFunction.body[8]! result := by
+    ExecStmt fork config (swapStepMaxFrame imms a) evm swapStepFunction.body[8]! result := by
   have hg : (swapStepMaxFrame imms a).locals.get? "zeroForOne" =
       some (.bool (swapStepZeroForOne a)) := by
     simp only [swapStepMaxFrame, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
@@ -65,7 +67,7 @@ theorem swapStepAmountsStmt (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 
 theorem swapStepAmountsSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepAmountsValid a) :
-    ExecBlock config (swapStepFrame imms a) evm (swapStepFunction.body.take 9)
+    ExecBlock fork config (swapStepFrame imms a) evm (swapStepFunction.body.take 9)
       (.ok (swapStepAmountsFrame imms a) evm) :=
   execBlock_append_ok (swapStepMaxPrefixSource imms evm a ha hv.1)
     (ExecBlock.consNormal (swapStepAmountsStmt imms evm a _
@@ -73,10 +75,10 @@ theorem swapStepAmountsSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs
 
 theorem swapStepAmountsReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : ¬swapStepAmountsValid a) :
-    ExecFuncBody config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
+    ExecFuncBody fork config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
   classical
   by_cases hp : swapStepPriceValid a
-  · have hb : ExecBlock config (swapStepMaxFrame imms a) evm
+  · have hb : ExecBlock fork config (swapStepMaxFrame imms a) evm
         (swapStepRecalcBranch (swapStepZeroForOne a)) .reverted := by
       rw [swapStepRecalcBlock_eq]
       by_cases hi : swapStepRecalcValid a true

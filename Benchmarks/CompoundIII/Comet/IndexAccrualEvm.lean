@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.IndexAccrual
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,13 +18,13 @@ theorem cometIndexAccrual {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 10 ≤ 1024)
     (hi : index.toNat < 2^64) (hr : rate.toNat < 2^64) (ht : elapsed.toNat < 2^40)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩
       (rate :: elapsed :: ⟨8559⟩ :: ⟨8565⟩ :: ⟨1000000000000000000⟩ ::
         ⟨8571⟩ :: index :: ret :: R) mem aw rdata σ k C) :
     if IndexAccrualValid index rate elapsed then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (accruedIndexWord index rate elapsed :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, r1⟩ := cometCheckedMul (v := v) (by simpa using hstack)
     (lt_trans (rateTimeProduct_lt hr ht) (by decide))
     (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) h
@@ -35,7 +37,7 @@ theorem cometIndexAccrual {v : CometWithExtendedAssetListImmutables}
   have r4 := cometWithExtendedAssetList_block_8565
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-  change RD _ _ _ _ _ (indexIncrement index rate elapsed :: ⟨8571⟩ :: index :: ret :: R)
+  change RD fork _ _ _ _ _ (indexIncrement index rate elapsed :: ⟨8571⟩ :: index :: ret :: R)
     _ _ _ _ _ _ at r4
   by_cases hs : (indexIncrement index rate elapsed).toNat < 2^64
   · obtain ⟨k5, C5, r5⟩ := cometSafe64 (v := v) (by simp only [List.length_cons]; omega)

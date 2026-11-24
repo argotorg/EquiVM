@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.TupleReturn
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `slot0()`
 
@@ -45,7 +47,7 @@ def slot0ReturnWords (σ : AccountMap) (I : ExecutionEnv) : List UInt256 :=
 theorem uniswapV3PoolSlot0Returns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "slot0" = none) :
-    ExecTransitionBody config contract evm locals slot0Transition.body
+    ExecTransitionBody fork config contract evm locals slot0Transition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some (slot0ReturnValues evm.accountMap evm.executionEnv))) (immStore v) := by
   apply ExecFuncBody.execBlockRet
@@ -130,10 +132,10 @@ theorem slot0ReturnMemory (a b c d e f j : UInt256) :
 theorem uniswapV3PoolSlot0ReturnX {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {a b c d e f j aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨867⟩ (j :: f :: e :: d :: c :: b :: a :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨867⟩ (j :: f :: e :: d :: c :: b :: a :: R)
       solcFreePtrMem aw rdata acc k C)
     (hov : R.length + 12 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (wordBytes (slot0CleanWords a b c d e f j)) := by
+    RDret fork (deployedRuntime v) g s0 acc (wordBytes (slot0CleanWords a b c d e f j)) := by
   obtain ⟨aw', k', C', rdReturn⟩ := uniswapV3Pool_block_867_packed
     (immWords := wordsOf (immStore v)) hov h
   have hmem := slot0ReturnMemory a b c d e f j
@@ -166,7 +168,7 @@ theorem uniswapV3PoolSlot0X {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmuta
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 6)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ (wordBytes (slot0ReturnWords σ I)) := by
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ (wordBytes (slot0ReturnWords σ I)) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachSlot0Body (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
   have rdRoutine := uniswapV3Pool_block_859
@@ -208,7 +210,7 @@ theorem uniswapV3PoolSlot0Body {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 6) rfl hsel
   have hd : dispatchMsg contract I.calldata = some slot0Transition := by
     apply uniswapV3PoolDispatch_slot0 <;>

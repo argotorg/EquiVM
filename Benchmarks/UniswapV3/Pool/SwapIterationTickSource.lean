@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -13,7 +15,7 @@ theorem swapIterationBitmapStoresSource {frame : Frame} {evm : EVM.State}
     (d : SwapIterationData) (tick : Int) (hit : Bool)
     (hd : frame.locals.get? "step" = some d.value)
     (hc : frame.locals.get? "__c2" = some (.tuple [.int tick, .bool hit])) :
-    ExecBlock config frame evm ((swapLoopBody.drop 3).take 2)
+    ExecBlock fork config frame evm ((swapLoopBody.drop 3).take 2)
       (.ok (swapIterationBitmapStoresFrame frame d tick hit) evm) := by
   have he : evalExpr? config frame evm (.tupleGet (.var "__c2") 0) = .ok (.int tick) := by
     simp only [evalExpr?, hc, EvalResult.ofOption, bind, EvalResult.bind, tupleGetValue?]
@@ -26,8 +28,8 @@ theorem swapIterationBitmapStoresSource {frame : Frame} {evm : EVM.State}
       (.tupleGet (.var "__c2") 1) = .ok (.bool hit) := by
     simp only [evalExpr?, hg, EvalResult.ofOption, bind, EvalResult.bind, tupleGetValue?]
     rfl
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalField_frame hd rfl rfl))
-    (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hf
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalField_frame hd rfl rfl))
+    (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hf
       (assignLocalField_frame Std.HashMap.getElem?_insert_self rfl rfl)) ExecBlock.nil)
 
 def swapIterationClampTick (tick : Int) : Int :=
@@ -45,7 +47,7 @@ theorem swapIterationClampTick_bounds (tick : Int) :
 
 theorem swapIterationClampSource {frame : Frame} {evm : EVM.State} (d : SwapIterationData)
     (hd : frame.locals.get? "step" = some d.value) :
-    ExecStmt config frame evm swapLoopBody[5]!
+    ExecStmt fork config frame evm swapLoopBody[5]!
       (.ok (swapIterationClampFrame frame d) evm) := by
   have ht := evalExpr_structField (name := "tickNext")
     (evalExpr_var_get (cfg := config) (evm := evm) hd) rfl
@@ -65,7 +67,7 @@ theorem swapIterationClampSource {frame : Frame} {evm : EVM.State} (d : SwapIter
   by_cases hlo : d.tickNext < -887272
   · simp only [swapIterationClampFrame, if_pos hlo]
     apply ExecStmt.iteTrue (by simpa only [hlo, decide_true] using hl)
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by
       simp only [evalExpr?, evalUnaryOp?, EvalResult.ofOption, bind, EvalResult.bind, pure])
       (assignLocalField_frame hd rfl rfl)) ExecBlock.nil
   · simp only [swapIterationClampFrame, if_neg hlo]
@@ -74,7 +76,7 @@ theorem swapIterationClampSource {frame : Frame} {evm : EVM.State} (d : SwapIter
     by_cases hhi : 887272 < d.tickNext
     · simp only [if_pos hhi]
       apply ExecStmt.iteTrue (by simpa only [hhi, decide_true] using hu)
-      apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalField_frame hd rfl rfl))
+      apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalField_frame hd rfl rfl))
         ExecBlock.nil
       simp only [evalExpr?, evalUnaryOp?, evalBinaryOp?, castValue?, EvalResult.ofOption,
         bind, EvalResult.bind, pure]

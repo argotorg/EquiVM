@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferMessages
 import Benchmarks.Morpho.MorphoBlue.ReturnBoolDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -23,9 +25,9 @@ theorem morphoTransferBoolPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     {k C : Nat} {R : List UInt256} (isFrom : Bool)
     (hb : out.size < 2 ^ 64) (hn : out.size ≠ 0)
     (hlen : memLoad data mem = UInt256.ofNat out.size) (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
       (data :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
       ((data + UInt256.ofNat 32) :: ((data + UInt256.ofNat out.size) + UInt256.ofNat 32) ::
         safeTransferAfterDecodePC isFrom :: R) mem aw' rdata σ k' C' := by
   have hsize : out.size < UInt256.size := by change _ < 2 ^ 256; omega
@@ -35,7 +37,7 @@ theorem morphoTransferBoolPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     exact hn he
   have hcond : UInt256.isZero (UInt256.isZero (memLoad data mem)) ≠ UInt256.ofNat 0 := by
     rw [hlen, isZero_eq_zero_of_ne hnw]; decide
-  have hprep : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (safeTransferDecodePC isFrom)
+  have hprep : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (safeTransferDecodePC isFrom)
       (UInt256.ofNat out.size :: data :: UInt256.isZero (UInt256.ofNat out.size) :: R)
       mem aw' rdata σ k' C' := by
     cases isFrom
@@ -65,9 +67,9 @@ theorem morphoTransferBoolRouteRevert {v : MorphoImmutables} {ee : ExecutionEnv}
     (hlen : memLoad data mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad (data + UInt256.ofNat 32) mem = calldataWord out 0)
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
       (data :: R) mem aw rdata σ k C) :
-    ABI.decodeReturnValue? abiBool out = none ∧ RDrev (deployedRuntime v) g s0 := by
+    ABI.decodeReturnValue? abiBool out = none ∧ RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a, k, C, rd⟩ := morphoTransferBoolPrepare isFrom hb hn hlen hstack h
   exact morphoReturnBoolDecodeRevert (by omega) hv (returnData_span _ _) hword (by omega) rd
 
@@ -78,9 +80,9 @@ theorem morphoTransferBoolRouteOk {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     (hlen : memLoad data mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad (data + UInt256.ofNat 32) mem = calldataWord out 0)
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferBoolPC isFrom)
       (data :: R) mem aw rdata σ k C) :
-    ∃ a b aw' k' C', RD (deployedRuntime v) ee g s0 (safeTransferResultPC isFrom)
+    ∃ a b aw' k' C', RD fork (deployedRuntime v) ee g s0 (safeTransferResultPC isFrom)
       (a :: b :: safeTransferBoolStatus out :: R) mem aw' rdata σ k' C' := by
   by_cases hn : out.size = 0
   · have hcond : UInt256.isZero (UInt256.isZero (memLoad data mem)) = UInt256.ofNat 0 := by

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.NextPriceCalcSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -38,16 +40,16 @@ theorem nextPriceBody {f : Frame} {evm : EVM.State} {price liquidity amount : UI
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (ha : f.locals.get? (nextPriceAmountName input) = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "zeroForOne" = some (.bool zeroForOne)) :
-    ∃ f', ExecFuncBody config f evm (nextPriceFunction input).body
+    ∃ f', ExecFuncBody fork config f evm (nextPriceFunction input).body
       (if nextPriceFits price liquidity amount input zeroForOne then
         .returned f' evm (some [.int (Int.ofNat (nextPriceWord price liquidity amount input zeroForOne).toNat)])
        else .reverted) := by
   rw [nextPrice_body_eq]
   have hg := nextPriceGuardSource (f := f) (evm := evm) hs hl
   by_cases hv : nextPriceValid price liquidity
-  · have hreq : ExecStmt config f evm (.require nextPriceGuardExpr) (.ok f evm) :=
+  · have hreq : ExecStmt fork config f evm (.require nextPriceGuardExpr) (.ok f evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hv] using hg)
-    have hbranch : ExecStmt config f evm
+    have hbranch : ExecStmt fork config f evm
         (.ite (.var "zeroForOne") (nextPriceReturnStmts (nextPriceAmountName input) input input)
           (nextPriceReturnStmts (nextPriceAmountName input) (!input) input))
         (if nextPriceCalcFits price liquidity amount (if zeroForOne then input else !input) input then
@@ -78,7 +80,7 @@ theorem nextPriceCall {f : Frame} {evm : EVM.State} {price liquidity amount : UI
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.bool zeroForOne)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (nextPriceName input) [es, el, ea, eb] ret)
+    ExecStmt fork config f evm (.internalCall (nextPriceName input) [es, el, ea, eb] ret)
       (if nextPriceFits price liquidity amount input zeroForOne then
         .ok (wordLocal f ret (nextPriceWord price liquidity amount input zeroForOne)) evm else .reverted) := by
   let fc : Frame := {f with locals := (((((∅ : Store).insert "zeroForOne" (.bool zeroForOne)).insert

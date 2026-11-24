@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleTransformSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -65,7 +67,7 @@ theorem evalOracleLteCondition (imms : Store) (evm : EVM.State) (time a b : UInt
 
 theorem oracleLteReturns (imms : Store) (evm : EVM.State) (time a b : UInt256)
     (ha : a.toNat < 2 ^ 32) (hb : b.toNat < 2 ^ 32) :
-    ∃ frame, ExecFuncBody config (oracleLteFrame imms time a b) evm oracleLteFunction.body
+    ∃ frame, ExecFuncBody fork config (oracleLteFrame imms time a b) evm oracleLteFunction.body
       (.returned frame evm (some [.bool (oracleLte time a b)])) := by
   by_cases h : a.toNat ≤ time.toNat ∧ b.toNat ≤ time.toNat
   · refine ⟨oracleLteFrame imms time a b, ExecFuncBody.execBlockRet ?_⟩
@@ -102,7 +104,7 @@ theorem oracleLteCall (locals imms : Store) (evm : EVM.State) (args : List Expr)
     (hargs : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [.int (Int.ofNat time.toNat), .int (Int.ofNat a.toNat), .int (Int.ofNat b.toNat)])
     (ha : a.toNat < 2 ^ 32) (hb : b.toNat < 2 ^ 32) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "Oracle_lte" args name)
       (.ok
         { contract := contract

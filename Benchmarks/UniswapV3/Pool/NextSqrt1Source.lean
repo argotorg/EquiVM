@@ -1,15 +1,17 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt1OutputSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
 
 theorem nextSqrt1Returns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hfit : a.Fits) (hv : nextSqrt1Valid a) :
-    ExecFuncBody config (nextSqrtFrame imms a) evm (nextSqrtFunction true).body
+    ExecFuncBody fork config (nextSqrtFrame imms a) evm (nextSqrtFunction true).body
       (.returned (nextSqrt1OutputFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt1Result a).toNat)])) := by
-  have hb : ExecBlock config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add)
+  have hb : ExecBlock fork config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add)
       (.returned (nextSqrt1OutputFrame imms a) evm
         (some [.int (Int.ofNat (nextSqrt1Result a).toNat)])) := by
     rw [← List.take_append_drop 3 (nextSqrt1Branch a.add)]
@@ -24,8 +26,8 @@ theorem nextSqrt1Returns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt1Reverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt1Valid a) :
-    ExecFuncBody config (nextSqrtFrame imms a) evm (nextSqrtFunction true).body .reverted := by
-  have hb : ExecBlock config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add) .reverted := by
+    ExecFuncBody fork config (nextSqrtFrame imms a) evm (nextSqrtFunction true).body .reverted := by
+  have hb : ExecBlock fork config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add) .reverted := by
     rw [← List.take_append_drop 3 (nextSqrt1Branch a.add)]
     by_cases hq : nextSqrt1QuotientValid a
     · exact execBlock_append_ok (nextSqrt1QuotientSource imms evm a hq)

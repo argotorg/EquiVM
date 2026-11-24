@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Common
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -12,16 +14,16 @@ theorem execWhile_invariant {cfg : Config} {contract : ContractDecl} {imms : Sto
     (hend : ∀ locals evm, Inv bound locals evm → Post locals evm)
     (hstep : ∀ i locals evm, i < bound → Inv i locals evm →
       (∃ locals' evm',
-        ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm body
+        ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm body
           (.ok {contract := contract, locals := locals', immutables := imms} evm') ∧ Inv (i + 1) locals' evm') ∨
-      (ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm body .reverted ∧ Rev) ∨
-      (ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm body .staticViolation ∧ Static)) :
+      (ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm body .reverted ∧ Rev) ∨
+      (ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm body .staticViolation ∧ Static)) :
     ∀ n i locals evm, i + n = bound → Inv i locals evm →
       (∃ locals' evm',
-        ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body)
+        ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body)
           (.ok {contract := contract, locals := locals', immutables := imms} evm') ∧ Post locals' evm') ∨
-      (ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body) .reverted ∧ Rev) ∨
-      (ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body) .staticViolation ∧ Static) := by
+      (ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body) .reverted ∧ Rev) ∨
+      (ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.while cond body) .staticViolation ∧ Static) := by
   intro n
   induction n with
   | zero =>

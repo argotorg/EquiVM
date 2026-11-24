@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickLowerNetTrace
 import Benchmarks.UniswapV4PoolManager.LiquidityAddTrace
 import Benchmarks.UniswapV4PoolManager.MappingScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,19 +23,19 @@ theorem tickLowerExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hmem : 160 ≤ mem.size)
     (ht : int24Canonical tick) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: EVM.wordOfInt delta :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
     if liquidityAddFits (tickGrossWord packed) delta then
       if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-        RDstatic (deployedRuntime v) g s0 else
+        RDstatic fork (deployedRuntime v) g s0 else
       if signedFits ⟨128, by decide⟩ (tickNetAfter packed delta false) then ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨7038⟩ (tickLowerStoreInput id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
+        RD fork (deployedRuntime v) I g s0 ⟨7038⟩ (tickLowerStoreInput id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
           (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) (M aw (UInt256.ofNat 128) ⟨32⟩) rdata
           (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   obtain ⟨k1, C1, rd1⟩ := tickLowerStartExactTrace v (by omega) hI hm ht hd h
   generalize hp : tickFieldWord evm id (EVM.signed tick) .liquidityPacked = packed at rd1 ⊢
@@ -74,19 +76,19 @@ theorem tickLowerTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hmem : 160 ≤ mem.size)
     (ht : int24Canonical tick) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: EVM.wordOfInt delta :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
     if liquidityAddFits (tickGrossWord packed) delta then
       if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-        RDstatic (deployedRuntime v) g s0 else
+        RDstatic fork (deployedRuntime v) g s0 else
       if signedFits ⟨128, by decide⟩ (tickNetAfter packed delta false) then ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨7038⟩ (tickLowerStoreInput id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
+        RD fork (deployedRuntime v) I g s0 ⟨7038⟩ (tickLowerStoreInput id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
           (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) aw' rdata
           (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hr := tickLowerExactTrace v hstack hI hm hmem ht hd h
   dsimp only at hr ⊢
   split_ifs at hr ⊢

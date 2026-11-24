@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueMathRoutines
 import Benchmarks.Morpho.MorphoBlue.SharesDownRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -29,11 +31,11 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {id rate interest ret : UInt256} {R : List UInt256}
 
 theorem morphoAccrueFeeReachMul (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee id 5] ++
         accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([interest, marketFieldWord σ ee id 5, UInt256.ofNat 13759, wad, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 13774,
         UInt256.ofNat 32, UInt256.ofNat 13793, interest, solcAddrMask] ++ accrueMathTail id rate ret R)
@@ -44,11 +46,11 @@ theorem morphoAccrueFeeReachMul (hstack : R.length + 40 ≤ 1024)
 
 theorem morphoAccrueFeeReachSub (hstack : R.length + 40 ≤ 1024)
     (hfit : interest.toNat * (marketFieldWord σ ee id 5).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee id 5] ++
         accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
       ([marketFieldWord σ ee id 0, accrueFeeAmount σ ee id interest, UInt256.ofNat 13774,
         accrueFeeAmount σ ee id interest, UInt256.ofNat 13793, interest, solcAddrMask] ++
         accrueMathTail id rate ret R)
@@ -77,11 +79,11 @@ theorem morphoAccrueFeeReachSub (hstack : R.length + 40 ≤ 1024)
 theorem morphoAccrueFeeReachShares (hstack : R.length + 40 ≤ 1024)
     (hfit : interest.toNat * (marketFieldWord σ ee id 5).toNat < UInt256.size)
     (hsub : (accrueFeeAmount σ ee id interest).toNat ≤ (marketFieldWord σ ee id 0).toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee id 5] ++
         accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15336)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15336)
       ([accrueFeeAmount σ ee id interest, accrueNetSupply σ ee id interest, marketFieldWord σ ee id 1,
         UInt256.ofNat 13793, interest, solcAddrMask] ++ accrueMathTail id rate ret R)
       (twoWordHashMem id (UInt256.ofNat 3) (twoWordHashMem id (UInt256.ofNat 3) mem)) aw' rdata σ k' C' := by
@@ -99,7 +101,7 @@ theorem morphoAccrueFeeReachShares (hstack : R.length + 40 ≤ 1024)
       twoWordHashMem_solcMappingSlot_any _ _ _
     simpa only [marketFieldSlot, Nat.reduceDiv, show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl,
       u256_add_zero] using hh
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([accrueFeeAmount σ ee id interest, accrueNetSupply σ ee id interest,
       UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm) σ ee)
         (UInt256.ofNat 128), UInt256.ofNat 13793, interest, solcAddrMask] ++ accrueMathTail id rate ret R)
@@ -108,11 +110,11 @@ theorem morphoAccrueFeeReachShares (hstack : R.length + 40 ≤ 1024)
   exact ⟨aw3, k3, C3, rd3⟩
 
 theorem morphoAccrueFeeMathOk (hstack : R.length + 40 ≤ 1024) (hfit : AccrueFeeFits σ ee id interest)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee id 5] ++
         accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([accrueFeeShares σ ee id interest, interest, solcAddrMask] ++ accrueMathTail id rate ret R)
       (twoWordHashMem id (UInt256.ofNat 3) (twoWordHashMem id (UInt256.ofNat 3) mem)) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueFeeReachShares (v := v) hstack hfit.1 hfit.2.1 h
@@ -122,10 +124,10 @@ theorem morphoAccrueFeeMathOk (hstack : R.length + 40 ≤ 1024) (hfit : AccrueFe
   exact ⟨aw1, k2, C2, rd2⟩
 
 theorem morphoAccrueFeeMathReverts (hstack : R.length + 40 ≤ 1024) (hbad : ¬ AccrueFeeFits σ ee id interest)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13738)
       ([wad, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 0, marketFieldWord σ ee id 5] ++
-        accrueMathTail id rate ret R) mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+        accrueMathTail id rate ret R) mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hm : interest.toNat * (marketFieldWord σ ee id 5).toNat < UInt256.size
   · by_cases hs : (accrueFeeAmount σ ee id interest).toNat ≤ (marketFieldWord σ ee id 0).toNat
     · obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueFeeReachShares (v := v) hstack hm hs h

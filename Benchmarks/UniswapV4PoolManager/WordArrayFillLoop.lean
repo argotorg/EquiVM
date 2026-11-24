@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordArrayABI
 import Benchmarks.UniswapV4PoolManager.LocalArray
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -13,13 +15,13 @@ theorem wordArrayFillLoop {cfg : Config} {CDecl : ContractDecl} {evm : EVM.State
         .ok (.bool (decide (i < n))))
     (resultGet : ∀ locals res i, Inv res i locals → locals.get? "result" = some (.array res))
     (bodyStep : ∀ locals res i, Inv res i locals → i < n → res.length = n →
-      ∃ locals', ExecBlock cfg {contract := CDecl, locals := locals, immutables := imms} evm body
+      ∃ locals', ExecBlock fork cfg {contract := CDecl, locals := locals, immutables := imms} evm body
         (.ok {contract := CDecl, locals := locals', immutables := imms} evm) ∧
         Inv (res.set i (wordBytes32Value (values i))) (i+1) locals')
     (remaining : Nat) :
     ∀ locals res i, Inv res i locals → i + remaining = n → res.length = n →
       (∀ j, j < i → res[j]? = some (wordBytes32Value (values j))) →
-      ∃ locals', ExecStmt cfg {contract := CDecl, locals := locals, immutables := imms}
+      ∃ locals', ExecStmt fork cfg {contract := CDecl, locals := locals, immutables := imms}
         evm (.while cond body) (.ok {contract := CDecl, locals := locals', immutables := imms} evm) ∧
         locals'.get? "result" = some (.array (wordArrayValues values 0 n)) := by
   induction remaining with

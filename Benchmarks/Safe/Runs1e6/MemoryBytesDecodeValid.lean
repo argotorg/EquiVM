@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.MemoryBytesDecoded
 import Benchmarks.Safe.Runs1e6.CalldataDecodeArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -10,14 +12,14 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11753⟩
+    (h : RD fork safeBytecode I g s0 ⟨11753⟩
       (UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R)
       solcFreePtrMem aw rdata σ k C)
     (hword : calldataWord I.calldata off = UInt256.ofNat len)
     (hin : off + 32 + len ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (hn : len ≤ 2 ^ 64 - 192) (hov : R.length + 11 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (⟨128⟩ :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (⟨128⟩ :: R)
       (memoryBytesDecoded (I.calldata.extract (off + 32) (off + 32 + len)))
       aw' rdata σ k' C' := by
   have hsize : UInt256.size = 2 ^ 256 := rfl
@@ -32,7 +34,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
     decide) (by jump_dest) h
   have hmax : UInt256.ofNat 18446744073709551615 = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have hmaxNat : (UInt256.ofNat (2 ^ 64 - 1)).toNat = 2 ^ 64 - 1 := by decide +kernel
-  have h₁' : RD safeBytecode I g s0 ⟨11768⟩
+  have h₁' : RD fork safeBytecode I g s0 ⟨11768⟩
       (⟨0⟩ :: UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R)
       solcFreePtrMem _ rdata σ _ _ := h₁
   have h₂ := safeRuntime_block_11768_taken (by simp; omega) (by
@@ -41,7 +43,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
     rw [ho, hword, hmax, ugt_zero (by rw [hlen, hmaxNat]; omega)]
     decide) (by jump_dest) h₁'
   simp only [safeRuntime_block_11768_taken_stack, ho] at h₂
-  change RD safeBytecode I g s0 _ (calldataWord I.calldata off :: _) _ _ _ _ _ _ at h₂
+  change RD fork safeBytecode I g s0 _ (calldataWord I.calldata off :: _) _ _ _ _ _ _ at h₂
   rw [hword] at h₂
   have he := memoryBytesEnd_initial (by omega : len < 2 ^ 64)
   have hf : memLoad (UInt256.ofNat 64) solcFreePtrMem = UInt256.ofNat 128 :=
@@ -60,7 +62,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
       ugt_zero (by rw [heNat, hmaxNat]; have := memoryBytesInitialEnd_bound hn; omega)]
     decide) (by jump_dest) h₂
   simp only [safeRuntime_block_11794_taken_stack, memoryBytesEnd_compiled] at h₃
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (memoryBytesEnd solcFreePtrMem (UInt256.ofNat len) ::
       memLoad (UInt256.ofNat 64) solcFreePtrMem :: UInt256.ofNat len :: _) _ _ _ _ _ _ at h₃
   rw [he, hf] at h₃
@@ -71,7 +73,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
   have h₄ := safeRuntime_block_11902_taken (by simp; omega) (by
     rw [hcopyEnd, ult_zero (by rw [hstop, ulit_toNat' _ (by omega)]; exact hin)]
     decide) (by jump_dest) h₃
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (UInt256.ofNat 128 :: UInt256.ofNat len :: ⟨0⟩ :: UInt256.ofNat off ::
       UInt256.ofNat I.calldata.size :: ret :: R) (memoryBytesInitialHeader len) _ _ _ _ _ at h₄
   have h₅ := safeRuntime_block_11925 (by simp; omega) hret h₄
@@ -80,7 +82,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
     omega
   simp only [safeRuntime_block_11925_stack, safeRuntime_block_11925_memory,
     hadd off 32 (by omega), ulit_toNat' (off + 32) (by omega), hlen, hz] at h₅
-  change RD safeBytecode I g s0 ret (⟨128⟩ :: R)
+  change RD fork safeBytecode I g s0 ret (⟨128⟩ :: R)
     (writeWord (I.calldata.write (off + 32) (memoryBytesInitialHeader len) 160 len)
       (160 + len) ⟨0⟩) _ _ _ _ _ at h₅
   rw [memoryBytesDecoded_copy hin] at h₅

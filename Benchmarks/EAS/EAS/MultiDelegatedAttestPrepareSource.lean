@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestFieldsSource
 import Benchmarks.EAS.EAS.DelegatedAttestationBatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -8,11 +10,11 @@ set_option maxHeartbeats 500000 in
 theorem multiDelegatedAttestFieldsReadySource {L imms : Store} {evm : EVM.State} {cd : ByteArray} {root : UInt256}
     (hr : L.get? "multiDelegatedRequest"=some (delegatedAttestationTuple cd root)) :
     (DelegatedAttestationBatchReady cd root →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields
         (.ok {contract := contract,locals := multiDelegatedAttestFieldLocals L (delegatedAttestationDataList cd root) (delegatedAttestationSigList cd root),immutables := imms} evm)) ∧
     (¬DelegatedAttestationBatchReady cd root →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields .reverted) := by
-  have hsrc := multiDelegatedAttestFieldsSource (imms := imms) (evm := evm)
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields .reverted) := by
+  have hsrc := multiDelegatedAttestFieldsSource (fork := fork) (imms := imms) (evm := evm)
     (data := delegatedAttestationDataList cd root) (sigs := delegatedAttestationSigList cd root)
     (delegatedAttestationArrayReferenceValid cd root 32 ∧ referencedArrayHeadValid cd (delegatedBatchArray cd root 32) 32)
     (delegatedAttestationArrayReferenceValid cd root 64 ∧ referencedArrayHeadValid cd (delegatedBatchArray cd root 64) 96) hr

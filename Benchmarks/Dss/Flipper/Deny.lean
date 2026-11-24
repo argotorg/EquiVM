@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -27,7 +29,7 @@ theorem flipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 5)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨757⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0x9c52a7f1⟩ :=
@@ -67,10 +69,10 @@ theorem flipperDenyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (flipperUsrStore I))
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨757⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := flipperUsrKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := flipperCallerWardsSlot I
@@ -94,9 +96,9 @@ theorem flipperDenyBodyCoreOk
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (flipperUsrSlotFor I) ⟨0⟩
     have hbodySplit :
-        (I.perm = true → ExecTransitionBody config contract evm0 locals denyTransition.body
+        (I.perm = true → ExecTransitionBody fork config contract evm0 locals denyTransition.body
           (.returned { contract := contract, locals := locals } evm1 none)) ∧
-        (I.perm = false → ExecTransitionBody config contract
+        (I.perm = false → ExecTransitionBody fork config contract
           evm0 locals denyTransition.body .staticViolation) := by
       have hguard := flipperAuthGuardEval_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -125,7 +127,7 @@ theorem flipperDenyBodyCoreOk
           (hstore := hstore)
       constructor
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlock (hperm := hperm)
+        have hblock := nonpayableRequireAssignStorageBlock (fork := fork) (hperm := hperm)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0) (evm' := evm1)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -135,7 +137,7 @@ theorem flipperDenyBodyCoreOk
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1, locals,
           flipperUsrStore] using ExecFuncBody.execBlockOK hblock
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlockStatic
+        have hblock := nonpayableRequireAssignStorageBlockStatic (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0) (rest := [])
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -175,7 +177,7 @@ theorem flipperDenyBodyCoreOk
     · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
-        RDret flipperBytecode (Sat256.ofUInt256 g)
+        RDret fork flipperBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -188,11 +190,11 @@ theorem flipperDenyBodyCoreOk
     exact hret.reEquivExecutionGen hcode hdispatch hdecode (hbodySplit.1 hperm)
       haccounts henc
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals denyTransition.body .reverted := by
       have hguard := flipperAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         (locals := locals) (by simp [locals, flipperUsrStore]) hauthEvm
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -221,10 +223,10 @@ theorem flipperDenyBodyCoreDecodeFailed_short
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨757⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -246,12 +248,12 @@ theorem flipperDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 5) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     flipperDispatchDeny hsel
-  have hreach := flipperReachDenyBody
+  have hreach := flipperReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

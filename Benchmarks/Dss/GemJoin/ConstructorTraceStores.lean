@@ -1,5 +1,7 @@
 import Benchmarks.Dss.GemJoin.ConstructorTraceWards
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor storage-write traces
 -/
@@ -15,12 +17,12 @@ theorem gemJoinCtorLiveStoreReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd85 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨85⟩
         [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨90⟩
       [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
@@ -34,12 +36,12 @@ theorem gemJoinCtorVatSloadReach
     {σ σLive σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (rd90 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨90⟩
         [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σLive k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨92⟩
       [solcSlotWord σLive I ⟨1⟩, ⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩,
         EVM.word vat.val, ⟨64⟩]
@@ -59,13 +61,13 @@ theorem gemJoinCtorVatMaskLowReach
     {σ σLive σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (rd92 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨92⟩
         [solcSlotWord σLive I ⟨1⟩, ⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σLive k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨103⟩
       [UInt256.land (EVM.word vat.val) solcAddrMask, solcAddrMask,
         solcSlotWord σLive I ⟨1⟩, ⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩,
@@ -86,14 +88,14 @@ theorem gemJoinCtorVatMaskHighReach
     {σ σLive σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (rd103 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨103⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, solcAddrMask,
           solcSlotWord σLive I ⟨1⟩, ⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σLive k C) :
-      ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+      ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨116⟩
         [UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σLive I ⟨1⟩))
           (UInt256.land (EVM.word vat.val) solcAddrMask),
@@ -117,12 +119,12 @@ theorem gemJoinCtorVatStoreReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd90 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨90⟩
         [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σLive k C) :
-      ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+      ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨119⟩
         [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
@@ -143,13 +145,13 @@ theorem gemJoinCtorIlkStoreReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd119 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨119⟩
         [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨124⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
         EVM.word vat.val, ⟨64⟩]
@@ -166,13 +168,13 @@ theorem gemJoinCtorGemStoreReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd124 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨124⟩
         [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σIlk k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨141⟩
       [gemJoinCtorGemStored σIlk I gem, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
         EVM.word vat.val, ⟨64⟩]

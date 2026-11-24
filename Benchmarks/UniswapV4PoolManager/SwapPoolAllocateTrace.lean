@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SwapPoolMemory
 import Benchmarks.UniswapV4PoolManager.PoolKeyView
 import Benchmarks.UniswapV4PoolManager.MemoryAccessCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -17,10 +19,10 @@ theorem swapPoolAllocateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {σ :
     (hspacing : int24Canonical key.tickSpacing) (hlimit : p.priceLimit.toNat < 2^160)
     (hpf : paramsPtr.toNat+96 < UInt256.size) (hf : free.toNat+160 ≤ solcMaxU64)
     (hfree : memLoad (UInt256.ofNat 64) mem = free) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨1614⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1614⟩
       ([rawFee, before, amount, src, len, poolSlot id, paramsPtr+UInt256.ofNat 64,
         keyPtr, id, keyPtr+UInt256.ofNat 128, paramsPtr, junk]++R) mem aw rdata σ k C) :
-    ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨1669⟩
+    ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨1669⟩
       ([amount, key.tickSpacing, UInt256.fromBool p.zeroForOne, p.priceLimit, rawFee,
         poolSlot id, src, len, before, free, keyPtr, id, keyPtr+UInt256.ofNat 128, paramsPtr, junk]++R)
       (writeWord mem 64 (free+UInt256.ofNat 160)) aw' rdata σ k' C' := by

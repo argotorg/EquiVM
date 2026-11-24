@@ -1,6 +1,8 @@
 import Benchmarks.Auction.InitializerTail
 import Benchmarks.Auction.OwnershipRoutine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -19,13 +21,13 @@ def initializerOwnerMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
     (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) (solcSourceWord I))
 
 theorem pausableInitializerLeafSplit {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4993⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4993⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
         (initializerPauseMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   refine staticOr_bind (initializerPrefixReadySplit 4 h hr (by evm_ov)) ?_
   rintro ⟨_, _, rd5076⟩
   have rd5080 := evm_run rd5076 with [jumpdest, push1 ⟨51⟩, dup1]
@@ -39,25 +41,25 @@ theorem pausableInitializerLeafSplit {I g s0 ret R mem aw rdata σ k C}
       rd5086.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd5087⟩ := rd5086.sstore hperm hstoreDec (by evm_ov)
-  change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨51⟩
+  change RD fork _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨51⟩
     (UInt256.land (UInt256.lnot ⟨255⟩) (solcSlotWord σ I ⟨51⟩))) _ _ at rd5087
   rw [u256_land_comm (UInt256.lnot ⟨255⟩)] at rd5087
   exact initializerTail 2 rd5087
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)
 
 theorem pausableInitializerLeaf {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4993⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4993⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (initializerPauseMap σ I) k' C' :=
   permSplit_true hperm (pausableInitializerLeafSplit h hr hret hov)
 
 theorem reentrancyInitializerLeaf {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨5105⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5105⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (initializerStatusMap σ I) k' C' := by
   obtain ⟨_, _, rd5188⟩ := initializerPrefixReady 5 h hr hperm (by evm_ov)
   have rd5193 := evm_run rd5188 with [jumpdest, push1 ⟨1⟩, push1 ⟨101⟩]
@@ -66,11 +68,11 @@ theorem reentrancyInitializerLeaf {I g s0 ret R mem aw rdata σ k C}
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)
 
 theorem ownableInitializerLeaf {I g s0 ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨5212⟩ (ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨5212⟩ (ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3) rdata
       (initializerOwnerMap σ I) k' C' := by
   obtain ⟨_, _, rd5295⟩ := initializerPrefixReady 6 h hr hperm (by evm_ov)
   have rd3574 := evm_run rd5295 with [
@@ -80,13 +82,13 @@ theorem ownableInitializerLeaf {I g s0 ret R rdata σ k C}
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)
 
 theorem pausableInitializerSplit {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3778⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3778⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
         (initializerPauseMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   refine staticOr_bind (initializerPrefixReadySplit 1 h hr (by evm_ov)) ?_
   rintro ⟨_, _, rd3861⟩
   have rd4892 := evm_run rd3861 with [
@@ -101,18 +103,18 @@ theorem pausableInitializerSplit {I g s0 ret R mem aw rdata σ k C}
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)
 
 theorem pausableInitializer {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3778⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3778⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (initializerPauseMap σ I) k' C' :=
   permSplit_true hperm (pausableInitializerSplit h hr hret hov)
 
 theorem reentrancyInitializer {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3896⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3896⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (initializerStatusMap σ I) k' C' := by
   obtain ⟨_, _, rd3979⟩ := initializerPrefixReady 2 h hr hperm (by evm_ov)
   have rd5105 := evm_run rd3979 with [
@@ -122,11 +124,11 @@ theorem reentrancyInitializer {I g s0 ret R mem aw rdata σ k C}
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)
 
 theorem ownableInitializer {I g s0 ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3987⟩ (ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3987⟩ (ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3) rdata
       (initializerOwnerMap σ I) k' C' := by
   obtain ⟨_, _, rd4070⟩ := initializerPrefixReady 3 h hr hperm (by evm_ov)
   have rd4892 := evm_run rd4070 with [

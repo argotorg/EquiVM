@@ -5,6 +5,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_036
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -14,7 +16,7 @@ set_option maxRecDepth 100000
 
 theorem safeSetupOwnersIteration (evm : EVM.State) {p locals i current ptr}
     {I g s0 σ k C aw mem rdata} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8234⟩
+    (h : RD fork safeBytecode I g s0 ⟨8234⟩
       (UInt256.ofNat i :: UInt256.ofNat p.owners.length :: current :: p.threshold ::
         UInt256.ofNat ptr :: ret :: R) mem aw rdata σ k C)
     (hl : SetupOwnersLocals p locals i current) (hi : i < p.owners.length)
@@ -23,14 +25,14 @@ theorem safeSetupOwnersIteration (evm : EVM.State) {p locals i current ptr}
     (hb : ptr + 32 + 32 * p.owners.length < UInt256.size)
     (hc : current.toNat < EVM.addressModulus) (ho : p.owners[i].toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecBlock config { contract := contract, locals := locals } evm setupOwnersLoopBody
+    (RDrev fork safeBytecode g s0 ∧
+      ExecBlock fork config { contract := contract, locals := locals } evm setupOwnersLoopBody
         .reverted) ∨
     ∃ mem' aw' k' C',
-      ExecBlock config { contract := contract, locals := locals } evm setupOwnersLoopBody
+      ExecBlock fork config { contract := contract, locals := locals } evm setupOwnersLoopBody
         (.ok { contract := contract, locals := setupOwnersNextLocals locals p.owners[i] i }
           (writeOwnerLink evm current p.owners[i])) ∧
-      RD safeBytecode I g s0 ⟨8225⟩
+      RD fork safeBytecode I g s0 ⟨8225⟩
         (UInt256.ofNat (i + 1) :: UInt256.ofNat p.owners.length :: p.owners[i] :: p.threshold ::
           UInt256.ofNat ptr :: ret :: R) mem' aw' rdata
         (writeOwnerLink evm current p.owners[i]).accountMap k' C' ∧
@@ -89,7 +91,7 @@ theorem safeSetupOwnersIteration (evm : EVM.State) {p locals i current ptr}
         safeRuntime_block_8325_fallthrough_stack] at h₆
       rw [hcheck] at h₆
       simp only [howner] at h₆
-      change RD safeBytecode I g s0 ⟨8381⟩ _ (twoWordHashMem p.owners[i] ⟨2⟩ mem)
+      change RD fork safeBytecode I g s0 ⟨8381⟩ _ (twoWordHashMem p.owners[i] ⟨2⟩ mem)
         aw₆ rdata σ k₆ C₆ at h₆
       by_cases he0 : ownerLinkAt σ I p.owners[i] = ⟨0⟩
       · have h₇ := safeRuntime_block_8381_taken (by simp; omega)
@@ -117,7 +119,7 @@ theorem safeSetupOwnersIteration (evm : EVM.State) {p locals i current ptr}
             (safeCanAddOwnerSourceExisting evm p.owners[i] ho
               (by simpa only [hee, hacc] using hv)
               (by simpa only [ownerLink_eq_at, hee, hacc] using he0))⟩
-  · have hbad : ∃ aw' k' C', RD safeBytecode I g s0 ⟨8303⟩
+  · have hbad : ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8303⟩
         (⟨1⟩ :: p.owners[i] :: UInt256.ofNat i :: UInt256.ofNat p.owners.length :: current ::
           p.threshold :: UInt256.ofNat ptr :: ret :: R) mem aw' rdata σ k' C' := by
       by_cases hz : p.owners[i] = ⟨0⟩

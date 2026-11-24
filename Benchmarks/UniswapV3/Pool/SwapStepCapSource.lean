@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepFinishModel
 import Benchmarks.UniswapV3.Pool.SwapStepAmountsGet
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -32,7 +34,7 @@ theorem evalSwapStepCapTest (imms : Store) (evm : EVM.State) (a : SwapStepArgs) 
       Bool.true_and, Bool.false_and]
 
 theorem swapStepCapSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
-    ExecStmt config (swapStepAmountsFrame imms a) evm swapStepFunction.body[9]!
+    ExecStmt fork config (swapStepAmountsFrame imms a) evm swapStepFunction.body[9]!
       (.ok (swapStepCapFrame imms a) evm) := by
   have he := evalSwapStepCapTest imms evm a
   cases hc : swapStepCap a
@@ -41,7 +43,7 @@ theorem swapStepCapSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
   · simp only [swapStepCapFrame, swapStepOutput, hc, if_true]
     exact ExecStmt.iteTrue (by simpa only [hc] using he)
       (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSwapStepAbs _ evm a (swapStepAmountsExtraGet imms a).1)
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSwapStepAbs _ evm a (swapStepAmountsExtraGet imms a).1)
           (assignLocalVarBase_frame (swapStepAmountsAmountGet imms a).2)) ExecBlock.nil)
 
 theorem swapStepCapGet_other (imms : Store) (a : SwapStepArgs) (name : Ident)
@@ -95,7 +97,7 @@ theorem swapStepCapAmountsGet (imms : Store) (a : SwapStepArgs) :
 
 theorem swapStepCapPrefixSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepAmountsValid a) :
-    ExecBlock config (swapStepFrame imms a) evm (swapStepFunction.body.take 10)
+    ExecBlock fork config (swapStepFrame imms a) evm (swapStepFunction.body.take 10)
       (.ok (swapStepCapFrame imms a) evm) :=
   execBlock_append_ok (swapStepAmountsSource imms evm a ha hv)
     (ExecBlock.consNormal (swapStepCapSource imms evm a) ExecBlock.nil)

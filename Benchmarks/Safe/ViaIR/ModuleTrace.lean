@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.PostModuleTrace
 import Benchmarks.Safe.ViaIR.PreModuleReject
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -14,26 +16,26 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 theorem safeModuleTrace (evm : EVM.State) (payload : ByteArray)
     {I g s0 σ k C aw rdata} {target value operation : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6345⟩
+    (h : RD fork safeBytecode I g s0 ⟨6345⟩
       (operation :: ⟨128⟩ :: value :: target :: ⟨6377⟩ :: ⟨6369⟩ :: ⟨32⟩ :: R)
       (memoryBytesDecoded payload) aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : payload.size ≤ 2 ^ 64 - 192)
     (ho : operation.toNat < 2) (hov : R.length + 38 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecTransitionBody config contract evm
+    (RDrev fork safeBytecode g s0 ∧
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommoduleTransition.body .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧
-      ExecTransitionBody config contract evm
+    (RDstatic fork safeBytecode g s0 ∧
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommoduleTransition.body .staticViolation) ∨
     ∃ frame evm' σ' z,
-      ExecTransitionBody config contract evm
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommoduleTransition.body (.returned frame evm' (some [.bool z])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RDret safeBytecode g s0 σ' z.toUInt256.toByteArray := by
+      RDret fork safeBytecode g s0 σ' z.toUInt256.toByteArray := by
   have h₁ := safeRuntime_block_6345 (by simp; omega) (by jump_dest) h
   rcases safeModulePreDecodedTrace evm payload h₁ hee hacc hworld hn ho
     (by simp; omega) (by jump_dest) with
@@ -73,12 +75,12 @@ theorem safeModuleTrace (evm : EVM.State) (payload : ByteArray)
   · exact Or.inr (Or.inl ⟨hr, .execBlockStatic (safeModulePrefix hv hn ho
       (.consNormal (safeModulePreCall hpre) (.consNormal (safeModuleExecuteCall hexe)
         (.consStatic (safeModulePostCall hs)))))⟩)
-  have hr : RDret safeBytecode g s0 σ₃ z.toUInt256.toByteArray := by
+  have hr : RDret fork safeBytecode g s0 σ₃ z.toUInt256.toByteArray := by
     have hbool : UInt256.isZero (UInt256.isZero z.toUInt256) = z.toUInt256 := by
       cases z <;> rfl
     have hret := safeRuntime_block_6377 (by omega) h₆
     rw [hbool] at hret
-    change RDret safeBytecode g s0 σ₃
+    change RDret fork safeBytecode g s0 σ₃
       ((writeWord mem₃ (memLoad ⟨64⟩ mem₃).toNat z.toUInt256).readWithPadding
         (memLoad ⟨64⟩ mem₃).toNat 32) at hret
     simpa only [writeWord_sparse_read_back] using hret

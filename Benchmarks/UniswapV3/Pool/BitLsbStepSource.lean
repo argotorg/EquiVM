@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitLsbModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -32,7 +34,7 @@ theorem bitLsbStepSource {frame : Frame} {evm : EVM.State}
     (hr : frame.locals.get? "r" = some (.int (Int.ofNat state.1)))
     (hx : frame.locals.get? "x" = some (.int (Int.ofNat state.2.toNat)))
     (hb : state.1 < 256) (hle : bits ≤ state.1) :
-    ∃ out, ExecStmt config frame evm (bitLsbStepStmt bits shift) (.ok out evm) ∧
+    ∃ out, ExecStmt fork config frame evm (bitLsbStepStmt bits shift) (.ok out evm) ∧
       out.locals.get? "r" = some (.int (Int.ofNat (bitLsbStep state bits).1)) ∧
       out.locals.get? "x" = some (.int (Int.ofNat
         (if shift then (bitLsbStep state bits).2 else state.2).toNat)) := by
@@ -41,7 +43,7 @@ theorem bitLsbStepSource {frame : Frame} {evm : EVM.State}
   · let out : Frame := {frame with
       locals := frame.locals.insert "r" (.int (Int.ofNat (state.1 - bits)))}
     refine ⟨out, ExecStmt.iteTrue (by simpa only [h, decide_true] using hg) ?_, ?_, ?_⟩
-    · refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    · refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (value := .int (Int.ofNat (state.1 - bits))) ?_ (assignLocalVarBase_frame hr)) ExecBlock.nil
       have er := evalExpr_var_get (cfg := config) (evm := evm) hr
       simp only [evalExpr?, er, evalBinaryOp?, castValue?, bind, EvalResult.bind, pure]
@@ -63,7 +65,7 @@ theorem bitLsbStepSource {frame : Frame} {evm : EVM.State}
         locals := frame.locals.insert "x"
           (.int (Int.ofNat (UInt256.shiftRight state.2 (UInt256.ofNat bits)).toNat))}
       refine ⟨out, ExecStmt.iteFalse (by simpa only [h, decide_false] using hg) ?_, ?_, ?_⟩
-      · exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+      · exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (evalExpr_word_shr bits (by omega) (evalExpr_var_get hx))
           (assignLocalVarBase_frame hx)) ExecBlock.nil
       · simpa only [out, bitLsbStep, if_neg h, Std.HashMap.get?_eq_getElem?,
@@ -77,7 +79,7 @@ theorem bitLsbFoldSource {frame : Frame} {evm : EVM.State}
     (hr : frame.locals.get? "r" = some (.int (Int.ofNat state.1)))
     (hx : frame.locals.get? "x" = some (.int (Int.ofNat state.2.toNat)))
     (hb : state.1 < 256) (hle : bits.sum ≤ state.1) :
-    ∃ out, ExecBlock config frame evm (bits.map (fun b ↦ bitLsbStepStmt b true)) (.ok out evm) ∧
+    ∃ out, ExecBlock fork config frame evm (bits.map (fun b ↦ bitLsbStepStmt b true)) (.ok out evm) ∧
       out.locals.get? "r" = some (.int (Int.ofNat (bits.foldl bitLsbStep state).1)) ∧
       out.locals.get? "x" = some (.int (Int.ofNat (bits.foldl bitLsbStep state).2.toNat)) := by
   induction bits generalizing frame state with

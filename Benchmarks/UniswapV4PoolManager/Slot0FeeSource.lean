@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordOperationsSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -32,19 +34,19 @@ theorem slot0GetLPFee_lookup : lookupCallable? contract "Slot0Library_lpFee" =
 
 theorem slot0GetProtocolBody {f : Frame} {evm : State} {packed : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed)) :
-    ExecFuncBody config f evm slot0GetProtocolFunction.body
+    ExecFuncBody fork config f evm slot0GetProtocolFunction.body
       (.returned f evm (some [.int (Int.ofNat (slot0FeeField packed 184).toNat)])) :=
   .execBlockRet (ABlock.start.returns (slot0FeeField_eval 184 (by decide) (evalLocalValue hp)))
 
 theorem slot0GetLPFeeBody {f : Frame} {evm : State} {packed : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed)) :
-    ExecFuncBody config f evm slot0GetLPFeeFunction.body
+    ExecFuncBody fork config f evm slot0GetLPFeeFunction.body
       (.returned f evm (some [.int (Int.ofNat (slot0FeeField packed 208).toNat)])) :=
   .execBlockRet (ABlock.start.returns (slot0FeeField_eval 208 (by decide) (evalLocalValue hp)))
 
 theorem slot0GetProtocolCall {f : Frame} {evm : State} {e : Expr} {packed : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (wordBytes32Value packed)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_protocolFee" [e] ret)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_protocolFee" [e] ret)
       (.ok (valueLocal f ret (.int (Int.ofNat (slot0FeeField packed 184).toNat))) evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed])
     (value := some [.int (Int.ofNat (slot0FeeField packed 184).toNat)]) (evalExprs?_singleton he)
@@ -53,7 +55,7 @@ theorem slot0GetProtocolCall {f : Frame} {evm : State} {e : Expr} {packed : UInt
 
 theorem slot0GetLPFeeCall {f : Frame} {evm : State} {e : Expr} {packed : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (wordBytes32Value packed)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_lpFee" [e] ret)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_lpFee" [e] ret)
       (.ok (valueLocal f ret (.int (Int.ofNat (slot0FeeField packed 208).toNat))) evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed])
     (value := some [.int (Int.ofNat (slot0FeeField packed 208).toNat)]) (evalExprs?_singleton he)

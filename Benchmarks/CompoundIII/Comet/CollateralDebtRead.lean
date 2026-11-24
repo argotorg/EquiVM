@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CollateralCheckRead
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometCollateralDebtRead {v : CometWithExtendedAssetListImmutables}
     {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (borrow : Bool) (account : AccountAddress) (hstack : R.length + 14 ≤ 1024)
     (hp : signed104 (collateralBasicWord evm account) < 0) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
       (UInt256.signextend (UInt256.ofNat 12) (collateralBasicWord evm account) ::
         EVM.word account.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨10688⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨10688⟩
       (UInt256.signextend (UInt256.ofNat 12) (collateralBasicWord evm account) ::
         ⟨10259⟩ :: collateralLoopInitPc borrow :: userBasicFieldWord
           (collateralBasicWord evm account) 3 :: userBasicFieldWord
@@ -27,7 +29,7 @@ theorem cometCollateralDebtRead {v : CometWithExtendedAssetListImmutables}
       (UInt256.signextend (UInt256.ofNat 12) basic)) (UInt256.ofNat 0)) = UInt256.ofNat 0 := by
     rw [signextend104_idem]
     exact isZero_eq_zero_of_ne (signed104_slt_neg hp)
-  have hstart : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2428⟩
+  have hstart : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2428⟩
       (⟨5⟩ :: EVM.word account.val :: ⟨10214⟩ :: collateralAssetsPc borrow ::
         UInt256.signextend (UInt256.ofNat 12) basic :: EVM.word account.val :: ⟨0⟩ :: ret :: R)
       mem aw rdata σ k' C' := by
@@ -53,7 +55,7 @@ theorem cometCollateralDebtRead {v : CometWithExtendedAssetListImmutables}
     (by cases borrow <;>
       rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v] <;> jump_dest) r2
   dsimp only [cometWithExtendedAssetList_block_10214_stack] at r3
-  change RD _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535)
+  change RD fork _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535)
     (UInt256.shiftRight (solcSlotWord σ ee (userBasicSlot account)) (UInt256.ofNat 232)) :: _)
     _ _ _ _ _ _ at r3
   rw [← hs.storageRead] at r3
@@ -61,10 +63,10 @@ theorem cometCollateralDebtRead {v : CometWithExtendedAssetListImmutables}
       (UInt256.shiftRight basic (UInt256.ofNat 232)) = userBasicFieldWord basic 2 := by
     rw [u256_land_comm]
     exact (userBasicFieldWords basic).2.2.1.symm
-  change RD _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535)
+  change RD fork _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535)
     (UInt256.shiftRight basic (UInt256.ofNat 232)) :: _) _ _ _ _ _ _ at r3
   rw [hassets] at r3
-  have hreservedStart : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2428⟩
+  have hreservedStart : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2428⟩
       (⟨5⟩ :: EVM.word account.val :: ⟨10246⟩ :: ⟨10253⟩ :: ⟨10259⟩ ::
         collateralLoopInitPc borrow :: UInt256.signextend (UInt256.ofNat 12) basic ::
         userBasicFieldWord basic 2 :: EVM.word account.val :: ⟨0⟩ :: ret :: R)
@@ -84,13 +86,13 @@ theorem cometCollateralDebtRead {v : CometWithExtendedAssetListImmutables}
     (immWords := wordsOf (immStore v)) (by change R.length + 7 + 3 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5
   dsimp only [cometWithExtendedAssetList_block_10246_stack] at r6
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.shiftRight (solcSlotWord σ ee (userBasicSlot account)) (UInt256.ofNat 248) :: _)
     _ _ _ _ _ _ at r6
   rw [← hs.storageRead] at r6
   have hreserved : UInt256.shiftRight basic (UInt256.ofNat 248) = userBasicFieldWord basic 3 :=
     (userBasicFieldWords basic).2.2.2.symm
-  change RD _ _ _ _ _ (UInt256.shiftRight basic (UInt256.ofNat 248) :: _) _ _ _ _ _ _ at r6
+  change RD fork _ _ _ _ _ (UInt256.shiftRight basic (UInt256.ofNat 248) :: _) _ _ _ _ _ _ at r6
   rw [hreserved] at r6
   have r7 := cometWithExtendedAssetList_block_10253 (immWords := wordsOf (immStore v))
     (by change R.length + 4 + 5 ≤ 1024; omega)

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.TotalsCollateralAllocation
 import Benchmarks.CompoundIII.Comet.MappingScratch
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_064
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -35,7 +37,7 @@ theorem cometSupplyCollateralRead {v : CometWithExtendedAssetListImmutables}
     (asset : AccountAddress) (hstack : R.length + 16 ≤ 1024)
     (hm : AssetMemory mem ptr free out) (hb : free.toNat + 64 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13861⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13861⟩
       (ptr :: EVM.word asset.val :: ⟨2^128-1⟩ :: amount :: sender :: dst :: ret :: R)
       mem aw out σ k C) :
     ∃ aw' k' C',
@@ -43,7 +45,7 @@ theorem cometSupplyCollateralRead {v : CometWithExtendedAssetListImmutables}
         (withdrawCollateralTotal evm asset) (supplyCollateralReserved evm asset) ∧
       WordStructMemory (supplyCollateralReadMemory mem free evm asset) ptr 8
         (fun i ↦ calldataWord out (32 * i)) ∧
-      RD (deployedRuntime v) ee g s0 ⟨13881⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13881⟩
         (free :: EVM.word asset.val :: ptr :: ⟨2^128-1⟩ :: amount :: sender :: dst :: ret :: R)
         (supplyCollateralReadMemory mem free evm asset) aw' out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_13861

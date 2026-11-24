@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeGenericContinuationSource
 import Benchmarks.Dss.Clipper.TakePostDogRemoveSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -70,7 +72,7 @@ theorem clipperTakeGenericDogZeroNoCode
     (hlotZero : lot = ⟨0⟩)
     (hcode : (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -96,7 +98,7 @@ theorem clipperTakeGenericDogZeroNoCode
     simpa [clipperTakeGenericMoveRet, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hlot
   have hcond := clipperEvalTakeGenericEqZeroTrue (v := v) (evm := evm) hlot'
-  have hadd : ExecStmt config
+  have hadd : ExecStmt fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
@@ -114,7 +116,7 @@ theorem clipperTakeGenericDogZeroNoCode
     simp [evalExpr?, EvalResult.bind, bind,
       clipperEvalTakeGenericDogTarget hdogAmt, evalBinaryOp?, EVM.Word.ofNat,
       hcode]
-  have hchecked := clipperTakeCheckedCallNoCodeOfEval
+  have hchecked := clipperTakeCheckedCallNoCodeOfEval (fork := fork)
     (retVar := "_digsRet") (name := "digs")
     (args := [ilkExpr, .var "digsAmt"]) hguard
   apply ExecBlock.consRevert
@@ -132,10 +134,10 @@ theorem clipperTakeGenericDogZeroFailure
     (hlotZero : lot = ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address dog) "digs" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address dog) "digs" 0
       [v.ilk, .int (Int.ofNat (UInt256.add tab owe).toNat)]
       (false, evm', out) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -161,7 +163,7 @@ theorem clipperTakeGenericDogZeroFailure
     simpa [clipperTakeGenericMoveRet, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hlot
   have hcond := clipperEvalTakeGenericEqZeroTrue (v := v) (evm := evm) hlot'
-  have hadd : ExecStmt config
+  have hadd : ExecStmt fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
@@ -199,10 +201,10 @@ theorem clipperTakeGenericDogZeroSuccess
     (hlotZero : lot = ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address dog) "digs" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address dog) "digs" 0
       [v.ilk, .int (Int.ofNat (UInt256.add tab owe).toNat)]
       (true, evm', out) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -229,7 +231,7 @@ theorem clipperTakeGenericDogZeroSuccess
     simpa [clipperTakeGenericMoveRet, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hlot
   have hcond := clipperEvalTakeGenericEqZeroTrue (v := v) (evm := evm) hlot'
-  have hadd : ExecStmt config
+  have hadd : ExecStmt fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
@@ -273,19 +275,19 @@ theorem clipperTakeGenericPostDogLotZeroReverts
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State} {I : ExecutionEnv}
     (hlot : locals.get? "lot" = some (.int 0))
     (hid : locals.get? "id" = some (clipperTakeIdValue I))
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evm removeFunction.body .reverted) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts) .reverted := by
-  have hremoveStmt : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hremoveStmt : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.internalCall "_remove" [.var "id"] "_removeRet") .reverted :=
     internalCallFunctionRevert
       (clipperEvalTakeGenericRemoveArgs (v := v) (evm := evm) hid)
       (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove
   have hcond := clipperEvalTakeGenericEqZeroTrue
     (v := v) (evm := evm) hlot
-  have hite : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hite : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -303,17 +305,17 @@ theorem clipperTakeGenericPostDogLotZeroOk
     (hlot : locals.get? "lot" = some (.int 0))
     (hid : locals.get? "id" = some (clipperTakeIdValue I))
     (hlocked : locals.get? "locked" = none)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evm removeFunction.body (.returned callee evmRemove none))
     (hperm : evmRemove.executionEnv.perm = true) :
     let resultLocals := locals.insert "_removeRet" .unit
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts)
       (.ok (Frame.mk contract resultLocals (immStore v))
         (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
   intro resultLocals
-  have hremoveStmt : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hremoveStmt : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.internalCall "_remove" [.var "id"] "_removeRet")
       (.ok (Frame.mk contract resultLocals (immStore v)) evmRemove) := by
     simpa [resultLocals, resumeAfterInternalCall] using
@@ -322,7 +324,7 @@ theorem clipperTakeGenericPostDogLotZeroOk
         (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove)
   have hcond := clipperEvalTakeGenericEqZeroTrue
     (v := v) (evm := evm) hlot
-  have hite : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hite : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -336,7 +338,7 @@ theorem clipperTakeGenericPostDogLotZeroOk
   have hlocked' : resultLocals.get? "locked" = none := by
     simpa [resultLocals, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hlocked
-  have hunlock : ExecStmt config (Frame.mk contract resultLocals (immStore v)) evmRemove
+  have hunlock : ExecStmt fork config (Frame.mk contract resultLocals (immStore v)) evmRemove
       (.assign .storage lockedRef (.intLit 0))
       (.ok (Frame.mk contract resultLocals (immStore v))
         (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
@@ -374,18 +376,18 @@ theorem clipperTakeGenericPostDogTabZeroNoCode
     (htabZero : tab = ⟨0⟩) (hlotNe : lot ≠ ⟨0⟩)
     (hcode : (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts) .reverted := by
   subst tab
   have hlotCond := clipperEvalTakeGenericLotEqZeroFalse
     (v := v) (evm := evm) hlot hlotNe
   have htabCond := clipperEvalTakeGenericEqZeroTrue
     (v := v) (evm := evm) (by simpa using htab)
-  have hchecked := clipperTakeCheckedCallNoCodeOfEval
+  have hchecked := clipperTakeCheckedCallNoCodeOfEval (fork := fork)
     (retVar := "_fluxUsrRet") (name := "flux")
     (args := [ilkExpr, thisAddr, .var "usr", .var "lot"])
     (clipperEvalTakeVatCodeGuard_false v evm locals hcode)
-  have htabIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -393,7 +395,7 @@ theorem clipperTakeGenericPostDogTabZeroNoCode
         [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ])
       .reverted := ExecStmt.iteTrue htabCond (execBlockAppendReverted hchecked)
-  have hlotIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hlotIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -414,10 +416,10 @@ theorem clipperTakeGenericPostDogTabZeroFailure
     (htabZero : tab = ⟨0⟩) (hlotNe : lot ≠ ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address v.vat) "flux" 0
       [v.ilk, .address evm.executionEnv.codeOwner, .address usr,
         .int (Int.ofNat lot.toNat)] (false, evm', out) true) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts) .reverted := by
   subst tab
   have hlotCond := clipperEvalTakeGenericLotEqZeroFalse
@@ -429,7 +431,7 @@ theorem clipperTakeGenericPostDogTabZeroFailure
     (clipperEvalTakeVatCodeGuard_true v evm locals hcode)
     (clipperEvalVat v evm locals)
     (clipperEvalTakeGenericVatFluxUsrArgs (v := v) husr hlot) hcall
-  have htabIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -437,7 +439,7 @@ theorem clipperTakeGenericPostDogTabZeroFailure
         [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ])
       .reverted := ExecStmt.iteTrue htabCond (execBlockAppendReverted hchecked)
-  have hlotIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hlotIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -460,13 +462,13 @@ theorem clipperTakeGenericPostDogTabZeroRemoveReverts
     (htabZero : tab = ⟨0⟩) (hlotNe : lot ≠ ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address v.vat) "flux" 0
       [v.ilk, .address evm.executionEnv.codeOwner, .address usr,
         .int (Int.ofNat lot.toNat)] (true, evmFlux, out) true)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmFlux removeFunction.body .reverted) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts) .reverted := by
   subst tab
   let fluxLocals := locals.insert "_fluxUsrRet" .unit
@@ -483,12 +485,12 @@ theorem clipperTakeGenericPostDogTabZeroRemoveReverts
   have hid' : fluxLocals.get? "id" = some (clipperTakeIdValue I) := by
     simpa [fluxLocals, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hid
-  have hremoveStmt : ExecStmt config (Frame.mk contract fluxLocals (immStore v)) evmFlux
+  have hremoveStmt : ExecStmt fork config (Frame.mk contract fluxLocals (immStore v)) evmFlux
       (.internalCall "_remove" [.var "id"] "_removeRet2") .reverted :=
     internalCallFunctionRevert
       (clipperEvalTakeGenericRemoveArgs (v := v) (evm := evmFlux) hid')
       (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove
-  have htabIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -498,7 +500,7 @@ theorem clipperTakeGenericPostDogTabZeroRemoveReverts
       .reverted := ExecStmt.iteTrue htabCond
         (execBlockAppendOk (by simpa [fluxLocals] using hflux)
           (ExecBlock.consRevert hremoveStmt))
-  have hlotIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hlotIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -522,16 +524,16 @@ theorem clipperTakeGenericPostDogTabZeroRemoveOk
     (htabZero : tab = ⟨0⟩) (hlotNe : lot ≠ ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address v.vat) "flux" 0
       [v.ilk, .address evm.executionEnv.codeOwner, .address usr,
         .int (Int.ofNat lot.toNat)] (true, evmFlux, out) true)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmFlux removeFunction.body (.returned callee evmRemove none))
     (hperm : evmRemove.executionEnv.perm = true) :
     let resultLocals := (locals.insert "_fluxUsrRet" .unit).insert
       "_removeRet2" .unit
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (clipperTakePostDogStmts)
       (.ok (Frame.mk contract resultLocals (immStore v))
         (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
@@ -551,14 +553,14 @@ theorem clipperTakeGenericPostDogTabZeroRemoveOk
   have hid' : fluxLocals.get? "id" = some (clipperTakeIdValue I) := by
     simpa [fluxLocals, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hid
-  have hremoveStmt : ExecStmt config (Frame.mk contract fluxLocals (immStore v)) evmFlux
+  have hremoveStmt : ExecStmt fork config (Frame.mk contract fluxLocals (immStore v)) evmFlux
       (.internalCall "_remove" [.var "id"] "_removeRet2")
       (.ok (Frame.mk contract resultLocals (immStore v)) evmRemove) := by
     simpa [fluxLocals, resultLocals, resumeAfterInternalCall] using
       (internalCallFunctionReturn
         (clipperEvalTakeGenericRemoveArgs (v := v) (evm := evmFlux) hid')
         (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove)
-  have htabIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -569,7 +571,7 @@ theorem clipperTakeGenericPostDogTabZeroRemoveOk
     ExecStmt.iteTrue htabCond
       (execBlockAppendOk (by simpa [fluxLocals] using hflux)
         (ExecBlock.consNormal hremoveStmt ExecBlock.nil))
-  have hlotIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hlotIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -583,7 +585,7 @@ theorem clipperTakeGenericPostDogTabZeroRemoveOk
   have hlocked' : resultLocals.get? "locked" = none := by
     simpa [resultLocals, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hlocked
-  have hunlock : ExecStmt config (Frame.mk contract resultLocals (immStore v)) evmRemove
+  have hunlock : ExecStmt fork config (Frame.mk contract resultLocals (immStore v)) evmRemove
       (.assign .storage lockedRef (.intLit 0))
       (.ok (Frame.mk contract resultLocals (immStore v))
         (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by

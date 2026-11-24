@@ -4,6 +4,8 @@ import Benchmarks.Dss.Clipper.TakeCallbackEquiv
 import Benchmarks.Dss.Clipper.TakeDynamicRemove
 import Benchmarks.Dss.Clipper.TakeDynamicPostDog
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -30,7 +32,7 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
     {callbackFrame : Frame} {price tab lot : UInt256}
     (htab : tab = clipperTakeSalesTabEVMWord evmPrice I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPrice I)
-    (hrev : RDrev code (Sat256.ofUInt256 g)
+    (hrev : RDrev fork code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hmul : price.toNat *
@@ -40,7 +42,7 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
     (hvatCode :
       0 < (UInt256.ofNat
         ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcallVat : typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+    (hcallVat : typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
       [v.ilk, .address evmPrice.executionEnv.codeOwner,
         .address (AccountAddress.ofNat
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -58,7 +60,7 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmPrice I)
         (clipperTakeSalesTabEVMWord evmPrice I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmPrice I) slice'
-      ExecStmt config
+      ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsDogLoaded evmLock evmPrice evmVat I price slice owe0 owe0
             slice' tabNew lotNew) (immStore v))
         evmVat
@@ -71,7 +73,7 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
         (.ok callbackFrame evmCb))
-    (htail : ExecBlock config callbackFrame evmCb
+    (htail : ExecBlock fork config callbackFrame evmCb
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
           [sender, .storage vowRef, .var "owe"] "_moveRet" ++
         clipperTakeAfterMoveStmts) .reverted)
@@ -79,13 +81,13 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Stele.EVM.storageStore evm0
         evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPrice))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I (immStore v) := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLock := Stele.EVM.storageStore evm0
@@ -110,13 +112,13 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
     clipperTakeOweGtTabSourceDivLeLot_of_post_words
       (I := I) (evmPrice := evmPrice) (price := price)
       (tab := tab) (lot := lot) htab hlot hmul hgt
-  have hafter : ExecBlock config
+  have hafter : ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v))
       evmPrice (clipperTakeAfterSliceStmts) .reverted := by
     exact clipperTakeOweGtTabCallbackTailSource v evmLock evmPrice
       evmVat evmCb I price slice hsrcMul hsrcGt hsliceLot hvatCode hcallVat
       (by simpa [evm0, evmLock, slice] using hcallback) htail
-  have hbody := clipperTakeSourceRevertsOfAfterSlice (hperm := by assumption)
+  have hbody := clipperTakeSourceRevertsOfAfterSlice (fork := fork) (hperm := by assumption)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) (evmPrice := evmPrice)
     v price hwv hlockedStele hstoppedSteleLt husrStele hmax hstatus

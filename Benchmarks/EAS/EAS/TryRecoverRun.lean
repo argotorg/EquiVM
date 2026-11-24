@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.TryRecoverEVM
 import Benchmarks.EAS.EAS.TryRecoverCallSource
 import Benchmarks.EAS.EAS.HeapCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -25,9 +27,9 @@ theorem tryRecoverRun {L imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm 
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hv : sigV.toNat < 2^8) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
     ∃ (a : AccountAddress) (error : Nat), error < 4 ∧ (error = 0 → a ≠ 0) ∧
-      HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
+      HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
         evm tryRecoverFunction.body (.tuple [.address a,.int (Int.ofNat error)])
         ret (UInt256.ofNat error::UInt256.ofNat a.val::R) mem heap.toNat := by
   by_cases hi : ecdsaHalfOrder < s.toNat
@@ -59,9 +61,9 @@ theorem tryRecoverCallRun {L imms : Store} {args : List Expr} {retVar : Ident}
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hv : sigV.toNat < 2^8) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
     ∃ (a : AccountAddress) (error : Nat), error < 4 ∧ (error = 0 → a ≠ 0) ∧
-      HeapCallRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
+      HeapCallRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
         evm "ECDSA_tryRecover" args retVar (.tuple [.address a,.int (Int.ofNat error)])
         ret (UInt256.ofNat error::UInt256.ofNat a.val::R) mem heap.toNat := by
   obtain ⟨a,error,herr,hzero,h⟩ := tryRecoverRun (L := tryRecoverArgs hash sigV r s heap.toNat) (imms := imms) v

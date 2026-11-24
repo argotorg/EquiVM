@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.Decoders
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -18,10 +20,10 @@ def memoryBytesEnd (mem : ByteArray) (n : UInt256) : UInt256 :=
 set_option maxRecDepth 2000 in
 theorem safeDecodeMemoryBytesOrRevert {I g s0 σ k C aw mem rdata}
     {off stop ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7262⟩ (off :: stop :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7262⟩ (off :: stop :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
-      ∃ ptr mem' aw' k' C', RD safeBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C' := by
+    RDrev fork safeBytecode g s0 ∨
+      ∃ ptr mem' aw' k' C', RD fork safeBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C' := by
   by_cases hlen : UInt256.isZero (UInt256.slt (off + UInt256.ofNat 31) stop) = UInt256.ofNat 0
   swap
   · left

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,9 +14,9 @@ theorem poolModifyAmountGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw junk lower upper : UInt256} {delta : Int}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6036⟩ (junk :: lower :: upper :: EVM.wordOfInt delta :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6036⟩ (junk :: lower :: upper :: EVM.wordOfInt delta :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6296⟩ else ⟨6046⟩)
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6296⟩ else ⟨6046⟩)
       (lower :: upper :: EVM.wordOfInt delta :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt delta) = EVM.wordOfInt delta :=
     signextend128_wordOfInt hd.1 hd.2
@@ -34,9 +36,9 @@ theorem poolModifyPriceExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨6296⟩ (lower :: upper :: delta :: oldDelta :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6296⟩ (lower :: upper :: delta :: oldDelta :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0
+    ∃ k' C', RD fork (deployedRuntime v) I g s0
       (if poolCurrentTick evm id < EVM.signed lower then ⟨6344⟩ else ⟨6398⟩)
       (slot0TickWord (poolSlot0Word evm id) :: poolSqrtPriceWord evm id :: lower :: upper :: delta :: R)
       mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata evm.accountMap k' C' := by
@@ -68,9 +70,9 @@ theorem poolModifyPriceTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨6296⟩ (lower :: upper :: delta :: oldDelta :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6296⟩ (lower :: upper :: delta :: oldDelta :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0
       (if poolCurrentTick evm id < EVM.signed lower then ⟨6344⟩ else ⟨6398⟩)
       (slot0TickWord (poolSlot0Word evm id) :: poolSqrtPriceWord evm id :: lower :: upper :: delta :: R)
       mem aw' rdata evm.accountMap k' C' := by
@@ -81,9 +83,9 @@ theorem poolModifyUpperRegionTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw tick sqrtPrice lower upper : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨6398⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6398⟩
       (tick :: sqrtPrice :: lower :: upper :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0
+    ∃ k' C', RD fork (deployedRuntime v) I g s0
       (if EVM.signed tick < EVM.signed upper then ⟨6410⟩ else ⟨6569⟩)
       (upper :: lower :: sqrtPrice :: R) mem aw rdata σ k' C' := by
   by_cases ht : EVM.signed tick < EVM.signed upper

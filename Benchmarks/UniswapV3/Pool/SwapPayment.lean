@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapTransfer
 import Benchmarks.UniswapV3.Pool.SwapCallback
 import Benchmarks.UniswapV3.Pool.SwapRepayment
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -18,13 +20,13 @@ theorem swapPaymentBody_decompose (zeroForOne : Bool) :
 
 theorem swapPaymentSource {frame : Frame} {evm : EVM.State} {result : ExecResult}
     (zeroForOne : Bool) (hz : frame.locals.get? "zeroForOne" = some (.bool zeroForOne))
-    (hex : ExecBlock config frame evm (swapPaymentBody zeroForOne) result) :
-    ExecStmt config frame evm swapTransition.body[18]! result := by
+    (hex : ExecBlock fork config frame evm (swapPaymentBody zeroForOne) result) :
+    ExecStmt fork config frame evm swapTransition.body[18]! result := by
   cases zeroForOne
   · exact ExecStmt.iteFalse (evalExpr_var_get hz) hex
   · exact ExecStmt.iteTrue (evalExpr_var_get hz) hex
 
-structure SwapPaymentExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
+structure SwapPaymentExit (fork : Ethereum.Fork) (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
     (s0 : EVM.State) (zeroForOne : Bool) (stack : List UInt256)
     (frame : Frame) (evm : EVM.State) (initMem : ByteArray) (initFree : UInt256) where
   frame' : Frame
@@ -36,13 +38,13 @@ structure SwapPaymentExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g :
   free : UInt256
   k : Nat
   cost : Nat
-  source : ExecStmt config frame evm swapTransition.body[18]! (.ok frame' evm')
+  source : ExecStmt fork config frame evm swapTransition.body[18]! (.ok frame' evm')
   source_state : SourceState s0 ee accounts evm'
   contract_eq : frame'.contract = frame.contract
   immutables_eq : frame'.immutables = frame.immutables
   locals_get : ∀ name, name ∉ swapPaymentWrites zeroForOne →
     frame'.locals.get? name = frame.locals.get? name
-  rd : RD (deployedRuntime v) ee g s0 ⟨5137⟩ stack mem aw rdata accounts k cost
+  rd : RD fork (deployedRuntime v) ee g s0 ⟨5137⟩ stack mem aw rdata accounts k cost
   heap : HeapMemory mem aw free
   memory_prefix : MemoryPrefix initMem mem initFree.toNat
   mem_lower : 128 ≤ mem.size
@@ -55,7 +57,7 @@ theorem swapPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free p exactWord cache snap start len ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (amount0 amount1 : Int) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4526⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4526⟩
       ([EVM.wordOfInt amount1, EVM.wordOfInt amount0] ++
         swapLoopWords a p exactWord cache snap start len ret R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -72,9 +74,9 @@ theorem swapPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hc : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hb : free.toNat + 2 ^ 140 + 1024 ≤ 2 ^ 200) (hov : R.length + 33 ≤ 1024) :
-    (ExecStmt config frame evm swapTransition.body[18]! .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    Nonempty (SwapPaymentExit v ee g s0 a.zeroForOne
+    (ExecStmt fork config frame evm swapTransition.body[18]! .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    Nonempty (SwapPaymentExit fork v ee g s0 a.zeroForOne
       (swapPaymentWords a p exactWord cache snap start len ret amount0 amount1 R)
       frame evm mem free) := by
   obtain ⟨k0, C0, r0⟩ := swapPaymentGuardX (v := v) a amount0 amount1 rd (by omega)

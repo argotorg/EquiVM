@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.ReturnCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `idToMarketParams(bytes32)`
 
@@ -33,7 +35,7 @@ def idToMarketParamsArgs (cd : ByteArray) : Store :=
 theorem morphoIdToMarketParamsBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm (idToMarketParamsArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (idToMarketParamsArgs evm.executionEnv.calldata)
       idToMarketParamsTransition.body
       (.returned
         { contract := contract,
@@ -94,7 +96,7 @@ theorem morphoIdToMarketParamsXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hsel : selIs I (morphoSelBytes 18))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (returnWordBytes ((marketParamsReturnEntries σ I (calldataWord I.calldata 4)).map
         (fun e => e.2.2))) := by
   obtain ⟨k, C, rd⟩ := morphoReachIdToMarketParamsBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -121,7 +123,7 @@ theorem morphoIdToMarketParamsXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoIm
         (UInt256.ofNat 0).toNat 32) (UInt256.ofNat 32).toNat 32 = mem := rfl
   rw [hmemdef, hload, hslot] at ret
   let words := (marketParamsReturnEntries σ I (calldataWord I.calldata 4)).map (fun e => e.2.2)
-  have hwrite : RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+  have hwrite : RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       ((writeCascade mem (returnWordWrites 128 words)).readWithPadding 128 (32 * words.length)) := by
     simpa only [words, marketParamsReturnEntries, marketParamsWord, marketParamsFieldSlot,
       List.map_cons, List.map_nil, returnWordWrites, writeCascade, Reasoning.Theory.writeWord,
@@ -137,7 +139,7 @@ theorem morphoIdToMarketParamsXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 18))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 18) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachIdToMarketParamsBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -164,7 +166,7 @@ theorem morphoIdToMarketParamsXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoIm
 theorem morphoIdToMarketParamsBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 18) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some idToMarketParamsTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

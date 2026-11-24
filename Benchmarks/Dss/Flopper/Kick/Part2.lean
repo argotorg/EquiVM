@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Kick.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -7,7 +9,7 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Flopper
 theorem RD.flopperKickReturnWordFromMem7 {σ I} {g : Sat256} {s0 : State}
     {sel id : UInt256} {mem memout rdata : ByteArray} {k C : ℕ}
-    (h : RD flopperBytecode I g s0 ⟨644⟩ [id, sel] mem (UInt256.ofNat 7) rdata
+    (h : RD fork flopperBytecode I g s0 ⟨644⟩ [id, sel] mem (UInt256.ofNat 7) rdata
       σ k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -21,7 +23,7 @@ theorem RD.flopperKickReturnWordFromMem7 {σ I} {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray id) :
-    RDret flopperBytecode g s0 σ (UInt256.toByteArray id) := by
+    RDret fork flopperBytecode g s0 σ (UInt256.toByteArray id) := by
   exact evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -56,13 +58,13 @@ theorem flopperKickX_toEndStoreStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (h : RD flopperBytecode I g s0 ⟨3643⟩
+    (h : RD fork flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g s0 ⟨3737⟩
+    ∃ k' C', RD fork flopperBytecode I g s0 ⟨3737⟩
       [kickRuntimeAddWord I.codeOwner σ I, id, kickBidWord I, kickLotWord I,
         kickGalMaskedWord I, ⟨644⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' := by
@@ -117,10 +119,10 @@ theorem flopperKickX_addOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat)
-    (h : RD flopperBytecode I g s0 ⟨3643⟩
+    (h : RD fork flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g s0 := by
+    RDrev fork flopperBytecode g s0 := by
   obtain ⟨_, _, rd4740⟩ := flopperKickX_toCheckedAddStart hperm h
   let tau := kickRuntimeTauWord I.codeOwner σ I
   let timestamp := UInt256.ofNat I.header.timestamp
@@ -167,14 +169,14 @@ theorem flopperKickX_toEventStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (h : RD flopperBytecode I g s0 ⟨3643⟩
+    (h : RD fork flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let memEndStore := twoWordHashMem id ⟨1⟩ memStore
     let σSuccess := kickRuntimeSuccessAccountMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g s0 ⟨3796⟩
+    ∃ k' C', RD fork flopperBytecode I g s0 ⟨3796⟩
       [⟨64⟩, ⟨32⟩, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σSuccess k' C' := by
   intro id memStore memEndStore σSuccess
@@ -237,7 +239,7 @@ theorem flopperKickX_toEventStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   rw [hpackedSlot] at rd3759pre
   have rd3760 := rd3759pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k3761, C3761, rd3761raw⟩ := rd3760.sload (by native_decide) (by evm_ov)
-  have rd3761 : RD flopperBytecode I g s0 ⟨3761⟩
+  have rd3761 : RD fork flopperBytecode I g s0 ⟨3761⟩
       [oldPacked, packedSlot, ⟨32⟩, ⟨64⟩, addWord, id, kickBidWord I, kickLotWord I,
         kickGalMaskedWord I, ⟨644⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σGuy k3761 C3761 := by
@@ -290,7 +292,7 @@ theorem flopperKickX_toEventStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       Sub.sub, HSub.hSub, Mul.mul, HMul.hMul]
       using tickRuntimeEndStoredRawWord_eq_setUint48Offset26Word oldPacked addWord
   rw [hstoredRaw] at rd3796raw
-  have rd3796 : RD flopperBytecode I g s0 ⟨3796⟩
+  have rd3796 : RD fork flopperBytecode I g s0 ⟨3796⟩
       [⟨64⟩, ⟨32⟩, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σSuccess k3796 C3796 := by
     simpa [σSuccess, kickRuntimeSuccessAccountMap, kickRuntimeEndStoredWord,
@@ -305,10 +307,10 @@ theorem flopperKickX_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (h : RD flopperBytecode I g s0 ⟨3643⟩
+    (h : RD fork flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0 (kickRuntimeSuccessAccountMap I.codeOwner σ I)
+    RDret fork flopperBytecode g s0 (kickRuntimeSuccessAccountMap I.codeOwner σ I)
       (UInt256.toByteArray (kickRuntimeIdWord σ I)) := by
   let id := kickRuntimeIdWord σ I
   let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
@@ -616,11 +618,11 @@ theorem flopperKickBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (kickTransition.params.map Param.name)
         (transitionSignature kickTransition).paramTypes I.calldata = some (kickLocals I))
-    (rd3401 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd3401 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3401⟩
       [kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele :
       Stele.EVM.storageLoad evmStele evmStele.executionEnv.codeOwner (relyAuthStorageSlot I) ≠
@@ -631,7 +633,7 @@ theorem flopperKickBodyCoreUnauthorized
         State.lookupAccount] using hbad
     exact hauth hbad'
   have hbody :
-      ExecTransitionBody config contract evmStele (kickLocals I) kickTransition.body
+      ExecTransitionBody fork config contract evmStele (kickLocals I) kickTransition.body
         .reverted := by
     exact flopperKickBodyReverts_unauthorized evmStele I
       (by simpa [evmStele, initState] using hwv)
@@ -650,11 +652,11 @@ theorem flopperKickBodyCoreNotLive
     (hdecode :
       config.externalABI.decodeCalldata? (kickTransition.params.map Param.name)
         (transitionSignature kickTransition).paramTypes I.calldata = some (kickLocals I))
-    (rd3494 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd3494 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3494⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele :
       Stele.EVM.storageLoad evmStele evmStele.executionEnv.codeOwner (relyAuthStorageSlot I) =
@@ -666,7 +668,7 @@ theorem flopperKickBodyCoreNotLive
     apply hlive
     simpa [kickLiveWord, evmStele, initState] using hbad
   have hbody :
-      ExecTransitionBody config contract evmStele (kickLocals I) kickTransition.body
+      ExecTransitionBody fork config contract evmStele (kickLocals I) kickTransition.body
         .reverted := by
     exact flopperKickBodyReverts_notLive evmStele I
       (by simpa [evmStele, initState] using hwv)
@@ -686,11 +688,11 @@ theorem flopperKickBodyCoreKicksOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (kickTransition.params.map Param.name)
         (transitionSignature kickTransition).paramTypes I.calldata = some (kickLocals I))
-    (rd3568 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd3568 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3568⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele :
       Stele.EVM.storageLoad evmStele evmStele.executionEnv.codeOwner (relyAuthStorageSlot I) =
@@ -702,7 +704,7 @@ theorem flopperKickBodyCoreKicksOverflow
   have hkicksGeStele : UInt256.size - 1 ≤ (kickKicksWord evmStele).toNat := by
     simpa [kickKicksWord, evmStele, initState] using hkicksGe
   have hbody :
-      ExecTransitionBody config contract evmStele (kickLocals I) kickTransition.body
+      ExecTransitionBody fork config contract evmStele (kickLocals I) kickTransition.body
         .reverted := by
     exact flopperKickBodyReverts_kicksOverflow evmStele I
       (by simpa [evmStele, initState] using hwv)
@@ -727,11 +729,11 @@ theorem flopperKickBodyCoreAddOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (kickTransition.params.map Param.name)
         (transitionSignature kickTransition).paramTypes I.calldata = some (kickLocals I))
-    (rd3643 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd3643 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele :
       Stele.EVM.storageLoad evmStele evmStele.executionEnv.codeOwner (relyAuthStorageSlot I) =
@@ -753,7 +755,7 @@ theorem flopperKickBodyCoreAddOverflow
     simpa [evmStele, kickNow48Word, kickTimestampWord, initState, htau]
       using haddOverflow
   have hbody :
-      ExecTransitionBody config contract evmStele (kickLocals I) kickTransition.body
+      ExecTransitionBody fork config contract evmStele (kickLocals I) kickTransition.body
         .reverted := by
     exact flopperKickBodyReverts_addOverflow (hperm := hperm) evmStele I
       (by simpa [evmStele, initState] using hwv)
@@ -779,11 +781,11 @@ theorem flopperKickBodyCoreSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (kickTransition.params.map Param.name)
         (transitionSignature kickTransition).paramTypes I.calldata = some (kickLocals I))
-    (rd3643 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd3643 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hid := kickRuntimeIdWord_source_eq
     (σ := σ) (σ₀ := σ₀) (A := A)
@@ -806,7 +808,7 @@ theorem flopperKickBodyCoreSuccess
           (kickTauWord (kickAfterGuyState evmStele I)).toNat < 2 ^ 48 := by
     simpa [evmStele, kickNow48Word, kickTimestampWord, initState, htau] using haddFit
   have hbody :
-      ExecTransitionBody config contract evmStele (kickLocals I) kickTransition.body
+      ExecTransitionBody fork config contract evmStele (kickLocals I) kickTransition.body
         (.returned { contract := contract, locals := kickEndLocals evmStele I }
           (kickPostState evmStele I)
           (some [.int (Int.ofNat (kickIdWord evmStele).toNat)])) := by
@@ -835,10 +837,10 @@ theorem flopperKickBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some kickTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨716⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flopperKickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flopperDecode_kick_none_short hsz4 hshort)
@@ -849,12 +851,12 @@ theorem flopperKickBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 8) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
     flopperDispatchKick hsel
-  have hreach := flopperReachKickBody
+  have hreach := flopperReachKickBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
@@ -874,7 +876,7 @@ theorem flopperKickBody {σ σ₀ A I} {g : UInt256}
           swap
           · have hp : I.perm = false := by simpa using hperm
             have hstatic := permSplit_false hp (flopperKickX_toCheckedAddStartSplit rd3643)
-            have hsource := (flopperKickBodyReturns_successSplit
+            have hsource := (flopperKickBodyReturns_successSplit (fork := fork)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv rfl
               (by simpa [relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
                 State.lookupAccount] using hauth)

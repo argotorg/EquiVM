@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.HashTypedSource
 import Benchmarks.EAS.EAS.DomainCall
 import Benchmarks.EAS.EAS.TypedDataCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,8 +16,8 @@ theorem hashTypedRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.
     (hstack : R.length+10 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15646⟩ (structHash::ret::R) mem aw rdata σ k C) :
-    HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15646⟩ (structHash::ret::R) mem aw rdata σ k C) :
+    HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm hashTypedFunction.body (wordBytes32Value (typedDataWord (domainWord v ee.codeOwner) structHash))
       ret (typedDataWord (domainWord v ee.codeOwner) structHash::R) mem heap.toNat := by
   have r1 := easBlocks.eas_block_15646 (immWords := wordsOf (immStore v))
@@ -26,7 +28,7 @@ theorem hashTypedRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.
   rw [hashTyped_body]
   rcases hdomain with ⟨evm1,σ1,mem1,out1,aw1,k1,C1,heap1,hs1,hge1,hbound1,hprefix1,hfree1,hcall1,r2⟩ | ⟨hcall1,hrev⟩
   · let L1 := heapResultLocals L "__c0$allocation" "__c0" "$EAS.freeMemory" (wordBytes32Value (domainWord v ee.codeOwner)) heap1
-    have hp : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm hashTypedPrefix
+    have hp : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm hashTypedPrefix
         (.ok {contract := contract,locals := L1,immutables := immStore v} evm1) :=
       heapResultBlock_ok hcall1 hf (by decide) (by decide) (by decide)
     have hf1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap1)) := heapResultLocals_heap _ _ _ _ _ _
@@ -44,13 +46,13 @@ theorem hashTypedRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.
     simp only [hn1] at htyped
     rcases htyped with ⟨evm2,σ2,mem2,out2,aw2,k2,C2,heap2,hs2,hge2,hbound2,hprefix2,hfree2,hcall2,r3⟩ | ⟨hcall2,hrev⟩
     · have hsrc := hashTypedTailSource hf1 hcall2
-      have hrun : HeapReturnRun config (deployedRuntime v) ee g s0
+      have hrun : HeapReturnRun fork config (deployedRuntime v) ee g s0
           {contract := contract,locals := L1,immutables := immStore v} evm1 hashTypedTail
           (wordBytes32Value (typedDataWord (domainWord v ee.codeOwner) structHash)) ret
           (typedDataWord (domainWord v ee.codeOwner) structHash::R) mem1 heap1 :=
         Or.inl ⟨_,evm2,σ2,mem2,out2,aw2,k2,C2,heap2,hs2,hge2,hbound2,hprefix2,hfree2,hsrc,r3⟩
       exact hrun.prepend hp hprefix1 hge1
-    · have hsrc : ExecFuncBody config {contract := contract,locals := L1,immutables := immStore v}
+    · have hsrc : ExecFuncBody fork config {contract := contract,locals := L1,immutables := immStore v}
           evm1 hashTypedTail .reverted := ExecFuncBody.execBlockRevert (ExecBlock.consRevert hcall2)
       exact Or.inr ⟨execFuncBody_append hp hsrc,hrev⟩
   · exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert hcall1),hrev⟩
@@ -64,8 +66,8 @@ theorem hashTypedCallRun {L : Store} {args : List Expr} {retVar : Ident}
     (hstack : R.length+10 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15646⟩ (structHash::ret::R) mem aw rdata σ k C) :
-    HeapCallRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15646⟩ (structHash::ret::R) mem aw rdata σ k C) :
+    HeapCallRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm "_hashTypedDataV4" args retVar (wordBytes32Value (typedDataWord (domainWord v ee.codeOwner) structHash))
       ret (typedDataWord (domainWord v ee.codeOwner) structHash::R) mem heap.toNat := by
   exact (hashTypedRun (L := hashTypedArgs structHash heap.toNat) v

@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.StringReturnSymbol
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `symbol()` dynamic-string getter — LONG case ABI return encoder (slot 1, `len ≥ 32`)
 
@@ -397,7 +399,7 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
       (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty σ k C := by
   have hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
@@ -410,7 +412,7 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
       (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 := by
     rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by rw [hfpN]; omega)]
-  obtain ⟨_, _, h187⟩ := weth9SymNameLongReach187 (σ := σ)
+  obtain ⟨_, _, h187⟩ := weth9SymNameLongReach187 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   have h221 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
@@ -464,10 +466,10 @@ theorem weth9SymNameLong2Continue {σ σ₀ A I} {g : Sat256} (j : Nat)
     (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
     (hjlt : j < weth9SymLongWC σ I + 1)
-    (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+    (h : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * j)))
       (weth9SymLong2Mem σ I j) (UInt256.ofNat (8 + weth9SymLongWC σ I + j)) ByteArray.empty σ k C) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * (j + 1))))
       (weth9SymLong2Mem σ I (j + 1)) (UInt256.ofNat (8 + weth9SymLongWC σ I + (j + 1)))
       ByteArray.empty σ k C := by
@@ -527,10 +529,10 @@ set_option maxHeartbeats 8000000 in
 theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
     (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
-    (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+    (h : ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
       (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty σ k C) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * (weth9SymLongWC σ I + 1))))
       (weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1))
       (UInt256.ofNat (8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1))) ByteArray.empty σ k C := by
@@ -541,10 +543,10 @@ theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
     rw [weth9SymLongWC]; omega
   -- exit rule
   have hexit : ∀ a : ℕ, a + 0 = weth9SymLongWC σ I + 1 → ∀ k C,
-      RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+      RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
         (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k C →
-      ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
+      ∃ k' C', RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
         (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k' C' := by
     intro a hInv k C hrd
@@ -559,18 +561,18 @@ theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, rd⟩
   -- body rule
   have hbody : ∀ (v a : ℕ), a + (v + 1) = weth9SymLongWC σ I + 1 → ∀ k C,
-      RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+      RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
         (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k C →
       ∃ a' k' C', a' + v = weth9SymLongWC σ I + 1 ∧
-        RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+        RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
           (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a')))
           (weth9SymLong2Mem σ I a') (UInt256.ofNat (8 + weth9SymLongWC σ I + a')) ByteArray.empty σ k' C' := by
     intro v a hInv k C hrd
     obtain ⟨k', C', rd'⟩ := weth9SymNameLong2Continue a hpos hfit (by omega) ⟨k, C, hrd⟩
     exact ⟨a + 1, k', C', by omega, rd'⟩
   obtain ⟨k0, C0, h0⟩ := h
-  have h0' : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
+  have h0' : RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * 0)))
       (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I + 0)) ByteArray.empty σ k0 C0 := by
     simpa using h0
@@ -739,7 +741,7 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ (weth9SymLongStringAbi σ I) := by
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ (weth9SymLongStringAbi σ I) := by
   have hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
     have := weth9SymLongLen_ge32 hge31; omega
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
@@ -751,9 +753,9 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
     rw [uadd_toNat, hfpN, show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
   have hawnorm : 8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1) = 9 + 2 * weth9SymLongWC σ I := by omega
-  obtain ⟨_, _, h245⟩ := weth9SymNameLong2CopyLoop (σ := σ)
+  obtain ⟨_, _, h245⟩ := weth9SymNameLong2CopyLoop (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hpos hfit
-    (weth9SymNameLong2ReachLoopHead (σ := σ) (σ₀ := σ₀) (A := A)
+    (weth9SymNameLong2ReachLoopHead (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31 hfit)
   rw [weth9SymLong2LoopStack] at h245
   -- common prefix: pops, tail-offset arithmetic, tail-mask decision.

@@ -3,17 +3,19 @@ import Benchmarks.UniswapV4PoolManager.TickLowerTrace
 import Benchmarks.UniswapV4PoolManager.TickLowerStoreTrace
 import Benchmarks.UniswapV4PoolManager.FunctionTraceMono
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def tickLowerReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def tickLowerReturnTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id lower upper x0 x1 x2 ptr x4 x5 : UInt256)
     (delta : Int) (R : List UInt256) : State → Option (List Value) → Prop
   | post, some [.bool flipped, .int gross] =>
     post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ unsignedFits ⟨128, by decide⟩ gross ∧
-    ∃ aw k C, RD (deployedRuntime v) I g s0 ⟨17774⟩
+    ∃ aw k C, RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord (tickFieldWord post id (EVM.signed upper) .liquidityPacked) :: EVM.wordOfInt delta :: ⟨7100⟩ ::
         tickUpperLiquidityTail id upper (tickFieldWord post id (EVM.signed upper) .liquidityPacked)
           x0 x1 x2 ptr x4 x5 delta (lower :: R))
@@ -25,12 +27,12 @@ def tickLowerReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat
 def tickLowerUpdateActiveWords (aw ptr : UInt256) : UInt256 :=
   M (M (M (M (M (M aw (UInt256.ofNat 128) ⟨32⟩) (ptr+UInt256.ofNat 32) ⟨32⟩) ptr ⟨32⟩) ⟨0⟩ ⟨32⟩) (UInt256.ofNat 32) ⟨32⟩) ⟨0⟩ (UInt256.ofNat 64)
 
-def tickLowerReturnTraceAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def tickLowerReturnTraceAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id lower upper x0 x1 x2 ptr x4 x5 : UInt256)
     (delta : Int) (R : List UInt256) (aw : UInt256) : State → Option (List Value) → Prop
   | post, some [.bool flipped, .int gross] =>
     post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ unsignedFits ⟨128, by decide⟩ gross ∧
-    ∃ k C, RD (deployedRuntime v) I g s0 ⟨17774⟩
+    ∃ k C, RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord (tickFieldWord post id (EVM.signed upper) .liquidityPacked) :: EVM.wordOfInt delta :: ⟨7100⟩ ::
         tickUpperLiquidityTail id upper (tickFieldWord post id (EVM.signed upper) .liquidityPacked)
           x0 x1 x2 ptr x4 x5 delta (lower :: R))
@@ -45,11 +47,11 @@ theorem poolUpdateTickLowerExactResultTrace {I : ExecutionEnv} {g : Sat256} {s0 
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hmem : 160 ≤ mem.size)
     (hl : int24Canonical lower) (hu : int24Canonical upper) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (tickLowerReturnTraceAtAW v I g s0 evm.σ₀ mem rdata id lower upper x0 x1 x2 ptr x4 x5 delta R (tickLowerUpdateActiveWords aw ptr))
+    functionResultTrace fork (deployedRuntime v) g s0
+      (tickLowerReturnTraceAtAW fork v I g s0 evm.σ₀ mem rdata id lower upper x0 x1 x2 ptr x4 x5 delta R (tickLowerUpdateActiveWords aw ptr))
       (poolUpdateTickResult f evm id (EVM.signed lower) delta false) := by
   have hr := tickLowerExactTrace v hstack hI hm hmem hl hd h
   simp only [poolUpdateTickResult, poolUpdateTickFinishResult, poolUpdateTickTailResult,
@@ -90,11 +92,11 @@ theorem poolUpdateTickLowerResultTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hmem : 160 ≤ mem.size)
     (hl : int24Canonical lower) (hu : int24Canonical upper) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (tickLowerReturnTrace v I g s0 evm.σ₀ mem rdata id lower upper x0 x1 x2 ptr x4 x5 delta R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (tickLowerReturnTrace fork v I g s0 evm.σ₀ mem rdata id lower upper x0 x1 x2 ptr x4 x5 delta R)
       (poolUpdateTickResult f evm id (EVM.signed lower) delta false) := by
   have hr := poolUpdateTickLowerExactResultTrace f v hstack hI hm hmem hl hu hd h
   apply functionResultTrace_mono hr

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TwoAddressGetter
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,12 +21,12 @@ theorem cometDecodeTwoAddresses {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 9 ≤ 1024) (hsz : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨2388⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2388⟩
       (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C) :
     if TwoAddressCalldataValid ee then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hlo : 68 ≤ ee.calldata.size
   · by_cases hhi : ee.calldata.size < 2 ^ 255 + 4
     · have rd1 := cometWithExtendedAssetList_block_2388_fallthrough

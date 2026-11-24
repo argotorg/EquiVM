@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.DelegatedRevocationMemory
 import Benchmarks.EAS.EAS.DelegatedRevokeRecordMemory
 import Benchmarks.EAS.EAS.MemoryArrayIndex
 import Benchmarks.EAS.EAS.FixedAllocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,17 +23,17 @@ theorem easMultiDelegatedRevokeVerifyPrepare {ee : ExecutionEnv} {g : Sat256} {s
     (hstack : R.length+24 ≤ 1024) (hv : DelegatedRevocationBatchMemoryView mem row data sig r heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hf : memLoad (UInt256.ofNat 64) mem = heap)
     (hj : j < r.data.length) (hjs : j < r.signatures.length)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1552⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1552⟩
       (multiDelegatedRevokeVerifyStack j base n available last row data R) mem aw rdata σ k C) :
     if heap.toNat+128 ≤ 2^64-1 then
       ∃ (mem' : ByteArray) (dp sp aw' : UInt256) (k' C' : Nat),
         MemoryPrefix mem mem' heap.toNat ∧
         DelegatedRevokeMemoryView mem' heap dp sp (r.request j hj hjs) (heap.toNat+128) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (heap.toNat+128) ∧
-        RD (deployedRuntime v) ee g s0 ⟨13806⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨13806⟩
           ([heap,UInt256.ofNat 1652,UInt256.ofNat j,UInt256.ofNat 1,base,n,available,
             row+UInt256.ofNat 96,row+UInt256.ofNat 64,data,last,row]++R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   simp only [multiDelegatedRevokeVerifyStack,List.cons_append,List.nil_append] at rd
   have hdspan := hv.data.span
   have hsspan := hv.signatures.span
@@ -67,7 +69,7 @@ theorem easMultiDelegatedRevokeVerifyPrepare {ee : ExecutionEnv} {g : Sat256} {s
     obtain ⟨a7,k7,C7,r7⟩ := easFixedAllocate_ok (heap := heap) v .bytes128 (by simp only [List.length_cons]; omega)
       (by change allocateNext heap.toNat 128 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 128; rw [hn]; exact ⟨hg,by omega⟩)
       (by rw [easPatchedValidJumps v]; jump_dest) r6
-    change RD _ _ _ _ _ _ (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 128))) _ _ _ _ _ at r7
+    change RD fork _ _ _ _ _ _ (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 128))) _ _ _ _ _ at r7
     rw [hn] at r7
     obtain ⟨a8,k8,C8,r8⟩ := easBlocks.eas_block_1630_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r7

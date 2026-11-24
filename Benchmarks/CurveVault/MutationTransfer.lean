@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.HookCalls
 import Benchmarks.CurveVault.TokenCallSource
 import Benchmarks.CurveVault.TokenForward
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -34,15 +36,15 @@ theorem vaultMutationTransfer (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256}
     (hma : vaultHookAmount flow I mem = amount)
     (hcanon : receiver.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hstack : R.length + 9 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.hookEntry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.hookEntry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultMutationTransferBody flow argName)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultMutationTransferBody flow argName)
         (.ok {contract := contract, locals := vaultMutationCallLocals locals} evm') ∧
       SourceState s0 I σ' evm' ∧ 736 ≤ mem'.size ∧
       WordMemoryRange (vaultHookCachedMemory flow I σ mem) mem' 352 flow.callOffset ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat flow.tokenNext) R mem' aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultMutationTransferBody flow argName)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 (UInt256.ofNat flow.tokenNext) R mem' aw' out σ' k' C') ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultMutationTransferBody flow argName)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have heval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ha
   rcases vaultHookCall flow (retVar := "__ignored_transfer") hs hsize hc heval hmc hma (by omega) h with
     ⟨evm1, σ1, out1, aw1, k1, C1, hhook, hs1, rdSetup⟩ | ⟨hhook, hrev⟩

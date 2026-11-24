@@ -3,6 +3,8 @@ import Reasoning.SteleBody
 import Stele.SolidityLayout
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Constructor — reusable constructor-equivalence proof skeletons
 
@@ -53,7 +55,7 @@ theorem emptyCtorDeployment_eq_initcode
 theorem emptyCtorBodyReturns
     {cfg : Config} {contract : ContractDecl} (evm : EVM.State) (locals : Store)
     (hbody : contract.ctor.body = []) :
-    ExecTransitionBody cfg contract evm locals contract.ctor.body
+    ExecTransitionBody fork cfg contract evm locals contract.ctor.body
       (.returned { contract := contract, locals := locals } evm none) := by
   rw [hbody]
   exact ExecFuncBody.execBlockOK ExecBlock.nil
@@ -72,7 +74,7 @@ theorem emptySteleCtorExec
     (hbody : contract.ctor.body = [])
     (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode)
     (himm : contract.immutables = [] := by rfl) :
-    steleCtorExec cfg contract args σ σ₀ g A I
+    steleCtorExec fork cfg contract args σ σ₀ g A I
       (.returned
         { contract := contract
           locals := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) }
@@ -96,20 +98,20 @@ theorem emptyConstructorCorrect_of_RDret
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hrun : ∀ {σ : Ethereum.AccountMap}
+    (hrun : ∀ {fork : Ethereum.Fork} {σ : Ethereum.AccountMap}
         {σ₀ : Ethereum.AccountMap}
         {A : Ethereum.Substate}
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
+      RDret fork initcode g (initState σ σ₀ g A I) σ runtimeCode)
     (himm : contract.immutables = [] := by rfl) :
     typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode hself hparams hdeploy
   rw [hdeployed] at hcode
-  have hrd := hrun (σ := σ) (σ₀ := σ₀)
+  have hrd := hrun (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode
   rcases hrd.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
   · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
@@ -125,13 +127,13 @@ theorem emptyContractCorrect_of_RDret
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hrun : ∀ {σ : Ethereum.AccountMap}
+    (hrun : ∀ {fork : Ethereum.Fork} {σ : Ethereum.AccountMap}
         {σ₀ : Ethereum.AccountMap}
         {A : Ethereum.Substate}
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
+      RDret fork initcode g (initState σ σ₀ g A I) σ runtimeCode)
     (hruntime : runtimeRefinement cfg runtimeCode contract)
     (himm : contract.immutables = [] := by rfl) :
     contractRefinement cfg initcode contract :=
@@ -142,11 +144,11 @@ theorem emptyContractCorrect_of_RDret
 theorem steleEmptyParamsCtorExec_of_body {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {res : ExecResult}
     (hparams : decl.ctor.params = [])
-    (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ∅ decl.ctor.body res)
     (himm : decl.immutables = [] := by rfl) :
-    steleCtorExec cfg decl [] σ σ₀ g A I res := by
-  have hbody' : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    steleCtorExec fork cfg decl [] σ σ₀ g A I res := by
+  have hbody' : ExecTransitionBody fork cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ∅ decl.ctor.body res (initialImmutables decl) := by
     rw [initialImmutables_noImmutables himm]; exact hbody
   refine steleCtorExec.intro rfl ?_ ?_ hbody'
@@ -162,14 +164,14 @@ open Reasoning.Theory
 theorem RDret.constructorRefinementEmptyParams {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {code runtime : ByteArray}
     {acc : AccountMap} {final : EVM.State} {frame : Frame}
-    (rd : RDret code (Sat256.ofUInt256 g)
+    (rd : RDret fork code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc runtime)
     (hcode : I.code = code) (hparams : decl.ctor.params = [])
-    (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ∅ decl.ctor.body (.returned frame final none))
     (ha : acc = final.accountMap)
     (himm : decl.immutables = [] := by rfl) :
-    typedConstructorRefinementFor cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
+    typedConstructorRefinementFor fork cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
   rcases rd with hoog | ⟨s, hX, hacc⟩
   · exact typedConstructorRefinementFor.outOfGas
       (by simpa using Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
@@ -181,13 +183,13 @@ theorem RDret.constructorRefinementEmptyParams {cfg : Config} {decl : ContractDe
 
 theorem RDrev.constructorRefinementEmptyParams {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {code runtime : ByteArray}
-    (rd : RDrev code (Sat256.ofUInt256 g)
+    (rd : RDrev fork code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hcode : I.code = code) (hparams : decl.ctor.params = [])
-    (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ∅ decl.ctor.body .reverted)
     (himm : decl.immutables = [] := by rfl) :
-    typedConstructorRefinementFor cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
+    typedConstructorRefinementFor fork cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
   rcases rd.xiResult hcode with hoog | ⟨g', o, hxi⟩
   · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
   · exact typedConstructorRefinementFor.execution (by simpa using hxi)

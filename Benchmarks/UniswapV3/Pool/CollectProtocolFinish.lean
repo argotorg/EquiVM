@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.CollectProtocolPaymentTrace
 import Benchmarks.UniswapV3.Pool.HeapTupleReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem collectProtocolFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p amount0 amount1 x2 x3 recipient : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9325⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9325⟩
       (amount1 :: amount0 :: x2 :: x3 :: recipient :: ⟨690⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hfit0 : amount0.toNat < 2 ^ 128) (hfit1 : amount1.toNat < 2 ^ 128)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 64 ≤ 2 ^ 200) (hov : R.length + 13 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
       (amount0.toByteArray ++ amount1.toByteArray) := by
   obtain ⟨_, _, rdEvent⟩ := uniswapV3Pool_block_9325 (immWords := wordsOf (immStore v)) hov hperm rd
   have hca : UInt256.land amount0 (UInt256.ofNat (2 ^ 128 - 1)) = amount0 := by

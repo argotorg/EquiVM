@@ -3,6 +3,8 @@ import Reasoning.Reach
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cat.BiteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -104,14 +106,14 @@ theorem catBiteMilkErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : S
     {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem ⟨10⟩ rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem ⟨10⟩ rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hmem : mem.size = 320)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨320⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,

@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flopper.AuctionCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -912,7 +914,7 @@ theorem evalExpr_tick_end_var (evm : EVM.State) (I : ExecutionEnv) :
 theorem flopperTickBodyReverts_endNotExpired (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendGe : (tickTimestampWord evm).toNat ≤ (tickEndWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -923,7 +925,7 @@ theorem flopperTickBodyReverts_ticNonzero (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -937,7 +939,7 @@ theorem flopperTickBodyReverts_mulOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I = ⟨0⟩)
     (hoverflow : UInt256.size ≤ (tickPadWord evm).toNat * (tickLotWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable, checkedMulUintInto] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -957,19 +959,19 @@ theorem flopperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
       2 ^ 48 ≤
         (tickNow48Word evm).toNat + (tickTauWord (tickAfterLotStore evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body .reverted := by
   let evmLot := tickAfterLotStore evm I
   have hlotAssign :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evm
         [.assign .storage (bidsF (.var "id") "lot")
           (.binary .div (.var "lotBase") (.intLit ONE))]
         (.ok { contract := contract, locals := tickLotBaseLocals evm I } evmLot) := by
     exact ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr hperm) (evalExpr_tick_lotPost evm I)
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalExpr_tick_lotPost evm I)
         (by simpa [evmLot] using assign_tickLotStorage evm evm I))
       ExecBlock.nil
   have hendChecked :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
         (checkedAdd48Into "end_" now48 (.storage tauRef)) .reverted := by
     simpa [checkedAdd48Into, evmLot] using
       (ExecBlock.consNormal
@@ -978,12 +980,12 @@ theorem flopperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
           (ExecStmt.requireFalse
             (evalExpr_tick_end_guard_false_wrapped evm I haddOverflow)))
   have hendTail :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
         (checkedAdd48Into "end_" now48 (.storage tauRef) ++
           [.assign .storage (bidsF (.var "id") "end") (.var "end_")]) .reverted :=
    execBlock_append_term hendChecked (by intro f e h; cases h)
   have htail :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evm
         ([.assign .storage (bidsF (.var "id") "lot")
             (.binary .div (.var "lotBase") (.intLit ONE))] ++
           (checkedAdd48Into "end_" now48 (.storage tauRef) ++
@@ -1011,16 +1013,16 @@ theorem flopperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
     (hmulFit : (tickPadWord evm).toNat * (tickLotWord evm I).toNat < UInt256.size) :
     (evm.executionEnv.perm = true → ((tickNow48Word evm).toNat + (tickTauWord (tickAfterLotStore evm I)).toNat <
         2 ^ 48) →
-      ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body
       (.returned { contract := contract, locals := tickEndLocals evm I }
         (tickPostState evm I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (tickLocals I)
+        ExecTransitionBody fork config contract evm (tickLocals I)
           tickTransition.body .staticViolation) := by
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+      (hwrite : ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evm
         (tickTransition.body.drop 5) result) :
-      ExecBlock config { contract := contract, locals := tickLocals I } evm
+      ExecBlock fork config { contract := contract, locals := tickLocals I } evm
         tickTransition.body result := by
     simpa [tickTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
       using
@@ -1038,16 +1040,16 @@ theorem flopperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
   · intro hperm haddFit
     let evmLot := tickAfterLotStore evm I
     have hlotAssign :
-        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evm
           [.assign .storage (bidsF (.var "id") "lot")
             (.binary .div (.var "lotBase") (.intLit ONE))]
           (.ok { contract := contract, locals := tickLotBaseLocals evm I } evmLot) := by
       exact ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm) (evalExpr_tick_lotPost evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalExpr_tick_lotPost evm I)
           (by simpa [evmLot] using assign_tickLotStorage evm evm I))
         ExecBlock.nil
     have hendLet :
-        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
+        ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
           (checkedAdd48Into "end_" now48 (.storage tauRef) ++
             [.assign .storage (bidsF (.var "id") "end") (.var "end_")])
           (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) := by
@@ -1057,11 +1059,11 @@ theorem flopperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
           ExecBlock.consNormal
             (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
           ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr (by simpa only [tickAfterLotStore_executionEnv] using hperm)) (evalExpr_tick_end_var evm I)
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [tickAfterLotStore_executionEnv] using hperm)) (evalExpr_tick_end_var evm I)
               (assign_tickEndStorage_value evm I haddFit))
             ExecBlock.nil)
     have htail :
-        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := tickLotBaseLocals evm I } evm
           ([.assign .storage (bidsF (.var "id") "lot")
               (.binary .div (.var "lotBase") (.intLit ONE))] ++
             (checkedAdd48Into "end_" now48 (.storage tauRef) ++
@@ -1083,7 +1085,7 @@ theorem flopperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
       (tickNow48Word evm).toNat + (tickTauWord (tickAfterLotStore evm I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
+    ExecTransitionBody fork config contract evm (tickLocals I) tickTransition.body
       (.returned { contract := contract, locals := tickEndLocals evm I }
         (tickPostState evm I) none) :=
   (flopperTickBodyReturns_successSplit evm I hwv hendLt htic hmulFit).1 hperm haddFit
@@ -1109,7 +1111,7 @@ theorem flopperReachTickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 14)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨849⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0xfc7b6aee⟩ := by
@@ -1145,10 +1147,10 @@ theorem flopperReachTickBody {σ σ₀ A I} {g : Sat256}
 
 theorem flopperTickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨849⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4292⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -1170,10 +1172,10 @@ theorem flopperTickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperTickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨849⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1191,12 +1193,12 @@ theorem flopperTickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperTickX_toEndLtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd4292 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4292⟩
+    (rd4292 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4329⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4329⟩
       [UInt256.lt (uint48Offset26Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), id, ⟨334⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1250,7 +1252,7 @@ theorem flopperTickX_toEndLtGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd4310pre
   obtain ⟨k4311, C4311, rd4311raw⟩ := rd4310pre.sload (by native_decide) (by evm_ov)
-  have rd4311 : RD flopperBytecode I g
+  have rd4311 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4311⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k4311 C4311 := by
@@ -1279,11 +1281,11 @@ theorem flopperTickX_endNotExpired {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hendGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
         (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   let id := tickIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   obtain ⟨_, _, rd4292'⟩ := rd4292
@@ -1328,14 +1330,14 @@ theorem flopperTickX_toTicZeroGuard
     (hendLt :
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tickIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4435⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4435⟩
       [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1400,7 +1402,7 @@ theorem flopperTickX_toTicZeroGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd4418pre
   obtain ⟨k4419, C4419, rd4419raw⟩ := rd4418pre.sload (by native_decide) (by evm_ov)
-  have rd4419 : RD flopperBytecode I g
+  have rd4419 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4419⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k4419 C4419 := by
@@ -1496,12 +1498,12 @@ theorem solcErrorStringRevertTailFullWord {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcErrorStringRevertTailFullWordWf code pc len word)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd68, hdDup3, hdAdd,
@@ -1562,11 +1564,11 @@ theorem flopperTickX_ticNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I ≠ ⟨0⟩)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   let id := tickIdWord I
   let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memEnd

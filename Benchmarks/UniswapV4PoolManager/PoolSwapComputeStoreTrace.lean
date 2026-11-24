@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepWords
 import Benchmarks.UniswapV4PoolManager.SignedComparison
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -26,11 +28,11 @@ theorem poolSwapComputeStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hn : w.next.toNat < 2^160)
     (hs : memLoad params (poolSwapComputeStoreMemory mem step state w) = specified)
-    (h : RD (deployedRuntime v) I g s0 ⟨19714⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19714⟩
       ([w.fee, step, ⟨160⟩, w.amountOut, w.amountIn, w.next, solcAddrMask,
         remaining, x1, params, x3, x4, fee, protocol, amountToProtocol, dir, step, pool, state] ++ R)
       mem aw rdata σ k C) :
-    ∃ C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+    ∃ C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
       (if 0 < EVM.signed specified then ⟨19740⟩ else ⟨20320⟩)
       ([remaining, x1, params, x3, x4, fee, protocol, amountToProtocol, dir, step, pool, state] ++ R)
       (poolSwapComputeStoreMemory mem step state w) (poolSwapComputeStoreAW aw step state params)

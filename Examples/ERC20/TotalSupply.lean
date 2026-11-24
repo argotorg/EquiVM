@@ -1,6 +1,8 @@
 import Examples.ERC20.Common
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -20,7 +22,7 @@ theorem totalSupplyWord_eq_storageLoad_init {σ σ₀ A I} {g : Sat256} :
 theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "totalSupply" = none) :
-    ExecTransitionBody erc20Config erc20Contract evm locals totalSupplyTransition.body
+    ExecTransitionBody fork erc20Config erc20Contract evm locals totalSupplyTransition.body
       (.returned { contract := erc20Contract, locals := locals } evm
         (some [(.int (Int.ofNat (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -35,9 +37,9 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- The EVM `totalSupply()` wrapper loads slot 2 and returns it as a single ABI word. -/
 theorem erc20X_totalSupply {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨148⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨148⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc20Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork erc20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (totalSupplyWord σ I)) := by
   obtain ⟨k, C, rd148⟩ := hreach
   have rd610 := evm_run rd148 with [
@@ -107,16 +109,16 @@ theorem erc20TotalSupplyBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel
   have hdec := erc20Decode_totalSupply (I := I) hsz
   have hbody :
-      ExecTransitionBody erc20Config erc20Contract
+      ExecTransitionBody fork erc20Config erc20Contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

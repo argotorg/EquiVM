@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.Dispatch
 import Benchmarks.EAS.Attester.Decode
 import Benchmarks.EAS.Attester.AttestMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -17,7 +19,7 @@ theorem attesterAttestReachDecode {words : String → UInt256} {σ σ₀ A I} {g
     (hcode : I.code = immutableLayout.runtime attesterBytecode words)
     (hvalue : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hsel : (attesterAttestSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2662⟩ [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨157⟩, ⟨162⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   have hsz := calldata_size_ge_of_selIs I attesterAttestSelBytes rfl hsel
@@ -34,12 +36,12 @@ theorem attesterAttestReachDecode {words : String → UInt256} {σ σ₀ A I} {g
 
 theorem attesterAttestReachBody {words : String → UInt256} {σ σ₀ A I} {g : Sat256}
     {k C : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2662⟩ [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨157⟩, ⟨162⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C)
     (hlen : 68 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k' C', RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    ∃ k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨1884⟩ [calldataWord I.calldata 36, calldataWord I.calldata 4, ⟨162⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd157⟩ := attesterDecodeTwoWords h (by simp)
@@ -49,9 +51,9 @@ theorem attesterAttestReachBody {words : String → UInt256} {σ σ₀ A I} {g :
   exact ⟨_, _, rd1884⟩
 
 theorem attestReachCall {words : String → UInt256} {I g s0 σ k C sel schema input}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1884⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1884⟩
       [input, schema, ⟨162⟩, sel] solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C) :
-    ∃ gasArg aw k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2127⟩
+    ∃ gasArg aw k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2127⟩
       [gasArg, UInt256.land solcAddrMask (words "_eas"), ⟨0⟩, ⟨448⟩, ⟨356⟩, ⟨448⟩, ⟨32⟩,
         ⟨804⟩, ⟨4050855399⟩, UInt256.land solcAddrMask (words "_eas"),
         ⟨0⟩, input, schema, ⟨162⟩, sel]

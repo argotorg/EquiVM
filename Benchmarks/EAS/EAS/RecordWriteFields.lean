@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordOtherAccounts
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,9 +20,9 @@ theorem easRecordWriteFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src dataPtr slot word t1 t2 t3 t4 : UInt256} {a : AttestationRecord} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+22 ≤ 1024) (hperm : ee.perm = true)
     (hv : AttestationMemoryView mem src dataPtr a) (hlen : a.data.size < 2^64)
-    (rd : RD (deployedRuntime v) ee g s0 (recordFieldsPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordFieldsPC site)
       (recordFieldsStack site slot word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordBytesPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordBytesPC site)
       (recordBytesStack site slot word src dataPtr (UInt256.ofNat a.data.size) t1 t2 t3 t4 R) mem aw' rdata
       (writeScalarAccounts ((attestationScalarWrites slot a).drop 5) σ ee) k' C' := by
   have hf := hv.fields
@@ -46,7 +48,7 @@ theorem easRecordWriteFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     obtain ⟨aw1,k1,C1,hr1⟩ := easBlocks.eas_block_8775_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) hperm rd
     simp only [u256_add_comm (UInt256.ofNat 160) src,href,hrl,hal,hbool] at hr1
-    change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8952)
+    change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8952)
       (recordFieldsStack (.single s1 s2 s3 s4 s5 s6 s7 s8) slot word src t1 t2 t3 t4 R)
       mem aw1 rdata (recordOtherSingleAccounts σ ee slot a) k1 C1 at hr1
     rw [← recordOtherAccounts_single,recordOtherAccounts_fields] at hr1

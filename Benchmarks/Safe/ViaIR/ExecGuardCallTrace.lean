@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ExecGuardSource
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.RawValueCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,7 +14,7 @@ set_option maxRecDepth 2000 in
 theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src sigPtr locals} {guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5454⟩
+    (h : RD fork safeBytecode I g s0 ⟨5454⟩
       (execGuardSaved p src (UInt256.ofNat sigPtr) guard hash (⟨0⟩ :: R))
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -28,15 +30,15 @@ theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
     (hb : ptr + 452 + ABI.paddedSize p.tx.payload.size + ABI.paddedSize p.signatures.size <
       UInt256.size)
     (ho : p.tx.operation.toNat < 2) (hov : R.length + 48 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecStmt config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecStmt fork config { contract := contract, locals := locals }
       evm execGuardCheck .reverted) ∨
     ∃ evm' words aw' out k' C',
-      ExecStmt config { contract := contract, locals := locals } evm execGuardCheck
+      ExecStmt fork config { contract := contract, locals := locals } evm execGuardCheck
         (.ok { contract := contract
                locals := locals.insert "_guardChecked" (collapseReturns []) } evm') ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
       words.length = (p.signatures.size + 31) / 32 ∧
-      RD safeBytecode I g s0 ⟨4584⟩
+      RD fork safeBytecode I g s0 ⟨4584⟩
         (execGuardSaved p src ⟨0⟩ guard hash (⟨0⟩ :: R))
         (writeWord
           (execGuardCallMemory I.calldata mem ptr src p (UInt256.ofNat I.source.val) words)
@@ -66,7 +68,7 @@ theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
       (by simp [execGuardSaved]; omega) (Or.inr rfl)
   rw [callOutputMem_zero] at h₃
   let count := 420 + ABI.paddedSize p.tx.payload.size + ABI.paddedSize p.signatures.size
-  have htyped : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+  have htyped : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkTransaction" 0 (execGuardArguments p evm.executionEnv.source)
       (called, evm', out) := by
     refine ⟨(execGuardCallMemory I.calldata mem ptr src p

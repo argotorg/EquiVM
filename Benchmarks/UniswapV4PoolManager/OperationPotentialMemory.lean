@@ -20,7 +20,7 @@ theorem memoryFootprint_write_copy (src mem : ByteArray) (srcOff dest len : Nat)
     omega
 
 theorem step_mstore_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.MSTORE, arg) s = .ok s') :
+    (h : step fork gasCost (.MSTORE, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3 := by
   rw [step.eq_1] at h
   simp only [binaryMachineStateOp, Id.run] at h
@@ -36,7 +36,7 @@ theorem step_mstore_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s
   · contradiction
 
 theorem step_mstore8_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.MSTORE8, arg) s = .ok s') :
+    (h : step fork gasCost (.MSTORE8, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3 := by
   rw [step.eq_1] at h
   simp only [binaryMachineStateOp, Id.run] at h
@@ -71,7 +71,7 @@ theorem ternaryCopyOp_potential {f : State → UInt256 → UInt256 → UInt256 �
   · contradiction
 
 theorem step_calldatacopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.CALLDATACOPY, arg) s = .ok s') :
+    (h : step fork gasCost (.CALLDATACOPY, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3+3*((s.machineState.stack[2]!.toNat+31)/32) := by
   rw [step.eq_1] at h
   simpa only [operationPotential] using ternaryCopyOp_potential (by
@@ -79,7 +79,7 @@ theorem step_calldatacopy_potential {gasCost : Nat} {arg : Option (UInt256 × Na
     exact memoryFootprint_write_copy _ _ _ _ _) h
 
 theorem step_codecopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.CODECOPY, arg) s = .ok s') :
+    (h : step fork gasCost (.CODECOPY, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3+3*((s.machineState.stack[2]!.toNat+31)/32) := by
   rw [step.eq_1] at h
   simpa only [operationPotential] using ternaryCopyOp_potential (by
@@ -87,7 +87,7 @@ theorem step_codecopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} 
     exact memoryFootprint_write_copy _ _ _ _ _) h
 
 theorem step_returndatacopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.RETURNDATACOPY, arg) s = .ok s') :
+    (h : step fork gasCost (.RETURNDATACOPY, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3+3*((s.machineState.stack[2]!.toNat+31)/32) := by
   rw [step.eq_1] at h
   dsimp only at h
@@ -104,7 +104,7 @@ theorem step_returndatacopy_potential {gasCost : Nat} {arg : Option (UInt256 × 
   · contradiction
 
 theorem step_mcopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.MCOPY, arg) s = .ok s') :
+    (h : step fork gasCost (.MCOPY, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+3+3*((s.machineState.stack[2]!.toNat+31)/32) := by
   rw [step.eq_1] at h
   simp only [ternaryMachineStateOp, Id.run] at h
@@ -121,7 +121,7 @@ theorem step_mcopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s 
   · contradiction
 
 theorem step_extcodecopy_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.EXTCODECOPY, arg) s = .ok s') :
+    (h : step fork gasCost (.EXTCODECOPY, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+6 := by
   rw [step.eq_1] at h
   simp only [quaternaryCopyOp, Id.run] at h

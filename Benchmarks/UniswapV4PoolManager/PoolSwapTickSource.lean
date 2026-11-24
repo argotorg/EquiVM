@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapBoundaryTickSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapRepriceSource
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -46,7 +48,7 @@ theorem poolSwapTickSource {f : Frame} {evm : State} {id : UInt256}
     (hr : f.locals.get? "result" = some (poolSwapResultValue r))
     (hself : f.locals.get? "self" = some (poolRefValue id))
     (hz : f.locals.get? "zeroForOne" = some (.bool zeroForOne)) :
-    ExecStmt config f evm poolSwapLoopBody[18]! (poolSwapTickResult f evm id s r zeroForOne) := by
+    ExecStmt fork config f evm poolSwapLoopBody[18]! (poolSwapTickResult f evm id s r zeroForOne) := by
   have he := evalEqWords (evalStructField (cfg := config) (evm := evm) (field := "sqrtPriceX96") (evalLocalValue hr) rfl)
     (evalStructField (field := "sqrtPriceNextX96") (evalLocalValue hs) rfl)
   rw [poolSwapLoop_tick]
@@ -58,7 +60,7 @@ theorem poolSwapTickSource {f : Frame} {evm : State} {id : UInt256}
       evalStructField (evalLocalValue hs) rfl
     by_cases hinit : s.initialized = true
     · rw [if_pos hinit]
-      have hcross := poolSwapCrossSource (evm := evm) hf hs hr hself hz
+      have hcross := poolSwapCrossSource (fork := fork) (evm := evm) hf hs hr hself hz
       unfold poolSwapCrossResult at hcross
       by_cases hp : evm.executionEnv.perm = false
       · rw [if_pos hp] at hcross ⊢
@@ -70,7 +72,7 @@ theorem poolSwapTickSource {f : Frame} {evm : State} {id : UInt256}
             (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hs
           have hz' := (poolSwapCrossFrame_get f evm id s r zeroForOne "zeroForOne"
             (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hz
-          have htail := poolSwapBoundaryTickSource
+          have htail := poolSwapBoundaryTickSource (fork := fork)
             (evm := poolSwapCrossPost evm id s zeroForOne)
             (r := {r with liquidity := poolSwapCrossLiquidity evm id s zeroForOne r.liquidity})
             hs' (poolSwapCrossFrame_result f evm id s r zeroForOne) hz'

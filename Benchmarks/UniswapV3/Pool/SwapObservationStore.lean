@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapObservationMemory
 import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem swapObservationStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q p exactWord cache free tickRaw secondsRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData) (tick : Int) (seconds : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3741⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3741⟩
       ([secondsRaw, tickRaw, q, p, exactWord, cache] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
     (hs : SwapStateMemory mem p s) (hd : SwapIterationMemory mem q d)
@@ -23,7 +25,7 @@ theorem swapObservationStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hov : R.length + 9 ≤ 1024) :
     let m := swapObservationStoreMem mem cache tick seconds
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache] ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache] ++ R)
         m aw' rdata σ k' C' ∧ HeapMemory m aw' free ∧
       SwapCacheMemory m cache (swapObservationCache c tick seconds) ∧ SwapStateMemory m p s ∧
       SwapIterationMemory m q d ∧ MemoryPrefix mem m cache.toNat ∧ aw.toNat ≤ aw'.toNat := by

@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.WadSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -21,7 +23,7 @@ theorem evalMinWord {cfg : Config} {frame : Frame} {evm : EVM.State} {ex ey : Ex
   · simp only [evalExpr?, hlt, decide_eq_false h, bind, EvalResult.bind, hy, minWord, if_neg h]
 
 theorem morphoMinBody (x y : UInt256) (evm : EVM.State) (imms : Store) :
-    ExecFuncBody config (mathBinaryFrame x y imms) evm minFunction.body
+    ExecFuncBody fork config (mathBinaryFrame x y imms) evm minFunction.body
       (.returned (mathBinaryFrame x y imms) evm (some [.int (Int.ofNat (minWord x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -33,7 +35,7 @@ theorem morphoMinCall (x y : UInt256) (evm : EVM.State) (locals imms : Store)
       .ok (.int (Int.ofNat x.toNat)))
     (hy : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ey =
       .ok (.int (Int.ofNat y.toNat))) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "UtilsLib_min" [ex, ey] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (minWord x y).toNat)),
               immutables := imms } evm) :=

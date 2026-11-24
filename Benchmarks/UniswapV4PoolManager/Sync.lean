@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SyncSource
 import Benchmarks.UniswapV4PoolManager.SyncStoreTrace
 import Benchmarks.UniswapV4PoolManager.CurrencyBalanceTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `sync(address)`
 
@@ -25,15 +27,15 @@ theorem poolManagerSyncBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutab
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 19)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 19) rfl hsel
   have hd : dispatchMsg contract I.calldata = some syncTransition := by
     apply poolManagerDispatch_sync <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSyncBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSyncBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2662⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -66,7 +68,7 @@ theorem poolManagerSyncBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutab
             have rdStore := poolManagerBlocks.poolManager_block_2717_fallthrough (by simp)
               (hclean.trans hwzero) rdLoad
             have htrace := syncZeroStoreTrace (evm := evm) v (by simp) hI rdStore
-            have hbody := syncZeroBody (evm := evm) (imms := immStore v) hwv hhi
+            have hbody := syncZeroBody (fork := fork) (evm := evm) (imms := immStore v) hwv hhi
               (show args.get? "currency" = some (.address (AccountAddress.ofNat 0)) from by
                 rw [← hz]; exact store_get_self _ _ _)
             rw [syncZeroResult, hI] at hbody
@@ -81,13 +83,13 @@ theorem poolManagerSyncBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutab
             have rdCall := poolManagerBlocks.poolManager_block_2717_taken (by simp)
               (by change UInt256.land (calldataWord I.calldata 4) solcAddrMask ≠ ⟨0⟩; rw [hclean]; exact hnword)
               (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rdLoad
-            change RD _ _ _ _ ⟨2785⟩
+            change RD fork _ _ _ _ ⟨2785⟩
               (calldataWord I.calldata 4 :: UInt256.land (calldataWord I.calldata 4) solcAddrMask :: [solcSelectorWord I])
               _ _ _ _ _ _ at rdCall
             rw [hclean] at rdCall
             have rdBalance := poolManagerBlocks.poolManager_block_2785 (by simp)
               (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rdCall
-            change RD _ _ _ _ ⟨14994⟩
+            change RD fork _ _ _ _ ⟨14994⟩
               (calldataWord I.calldata 4 :: ⟨2794⟩ :: calldataWord I.calldata 4 :: [solcSelectorWord I])
               entryMemory _ _ _ _ _ at rdBalance
             rw [← hword] at rdBalance

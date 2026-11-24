@@ -2,6 +2,8 @@ import Benchmarks.Safe.Main.SignatureP256BoundsSource
 import Benchmarks.Safe.Main.P256Source
 import Benchmarks.Safe.Main.Hashes
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -43,7 +45,7 @@ theorem signatureP256PiecesSource {p : SignatureInput} {f : Frame} {evm : EVM.St
     {off : UInt256} (hc : SignatureCore p f)
     (hoff : f.locals["p256Offset"]? = some (uint256Value off))
     (hb : off.toNat + 128 ≤ p.signatures.size) :
-    ExecBlock config f evm ((signatureP256Body.drop 5).take 4)
+    ExecBlock fork config f evm ((signatureP256Body.drop 5).take 4)
       (.ok (signatureP256WordsFrame f (signatureP256Input p off)) evm) := by
   let q := signatureP256Input p off
   have hc₁ := hc.set "p256r" (wordBytes32Value q.r) (by decide)
@@ -88,7 +90,7 @@ theorem evalSignatureP256Signer {f : Frame} {evm : EVM.State} {p : P256Input}
     evalNatAsAddress (evalWordBytesAsUint256 (evalKeccakWord hpacked))
 
 theorem signatureP256SignerSource (f : Frame) (evm : EVM.State) (p : P256Input) :
-    ExecStmt config (signatureP256WordsFrame f p) evm signatureP256Body[9]!
+    ExecStmt fork config (signatureP256WordsFrame f p) evm signatureP256Body[9]!
       (.ok (signatureP256SignerFrame f p) evm) :=
   .letDecl (evalSignatureP256Signer (by
     simp [signatureP256WordsFrame, signatureP256XFrame, signatureSet,

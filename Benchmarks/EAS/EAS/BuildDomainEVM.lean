@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BuildDomain
 import Benchmarks.EAS.EAS.WordSequence
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -91,8 +93,8 @@ theorem easBuildDomain_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlo : 96 ≤ heap.toNat)
     (hguard : allocateNext heap.toNat 192 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 192)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14063⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14063⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (builtDomainWord v._TYPE_HASH v._HASHED_NAME v._HASHED_VERSION ee.codeOwner :: R)
       (buildDomainMemory mem heap.toNat v._TYPE_HASH v._HASHED_NAME v._HASHED_VERSION ee.codeOwner)
       aw' rdata σ k' C' := by
@@ -117,7 +119,7 @@ theorem easBuildDomain_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       wordsOf_immStore__HASHED_NAME, wordsOf_immStore__HASHED_VERSION, wordOfInt_ofNat_toNat,
       hoff 32 (by decide), hoff 64 (by decide), hoff 96 (by decide), hoff 128 (by decide), hoff 160 (by decide),
       buildDomainMemory, writeWordSequence, Reasoning.Theory.writeWord, Nat.add_assoc, Nat.reduceAdd]
-  change RD _ _ _ _ ⟨14209⟩ (heap :: (heap + UInt256.ofNat 32) :: ret :: R)
+  change RD fork _ _ _ _ ⟨14209⟩ (heap :: (heap + UInt256.ofNat 32) :: ret :: R)
     (Reasoning.Theory.writeWord _ 64 (UInt256.ofNat (allocateNext heap.toNat 192))) _ _ _ _ _ at rd2
   rw [hm] at rd2
   obtain ⟨aw3, k3, C3, rd3⟩ := easBlocks.eas_block_14209_packed (immWords := wordsOf (immStore v))
@@ -131,8 +133,8 @@ theorem easBuildDomain_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 7 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hguard : ¬ (allocateNext heap.toNat 192 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 192))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14063⟩ R mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14063⟩ R mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_14063_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_14063_stack, hfree] at rd1

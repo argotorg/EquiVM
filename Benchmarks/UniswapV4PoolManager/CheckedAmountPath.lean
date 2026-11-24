@@ -1,14 +1,16 @@
 import Benchmarks.UniswapV4PoolManager.CheckedAmountSource
 import Benchmarks.UniswapV4PoolManager.WordLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
 theorem checkedAmountPath {f : Frame} {evm : EVM.State} {stmt : Stmt} {w : UInt256}
     {fits : Prop} [Decidable fits] (hf : f.contract = contract)
-    (hcall : ExecStmt config f evm stmt (if fits then .ok (wordLocal f "amount" w) evm else .reverted))
+    (hcall : ExecStmt fork config f evm stmt (if fits then .ok (wordLocal f "amount" w) evm else .reverted))
     (negate : Bool) :
-    ∃ f', ExecBlock config f evm (stmt :: checkedAmountReturnBlock negate)
+    ∃ f', ExecBlock fork config f evm (stmt :: checkedAmountReturnBlock negate)
       (if fits ∧ w.toNat < 2^255 then
         .returned f' evm (some [.int (EVM.signed (checkedAmountReturnWord w negate))]) else .reverted) := by
   by_cases hfit : fits

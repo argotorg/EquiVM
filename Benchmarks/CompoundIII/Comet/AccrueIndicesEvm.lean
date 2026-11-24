@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AccrueRewardsEvm
 import Benchmarks.CompoundIII.Comet.AccruedIndicesEvm
 import Benchmarks.CompoundIII.Comet.AccrueStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,11 +16,11 @@ theorem cometAccrueIndicesWrite {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {supply borrow ret : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7962⟩ (borrow :: supply :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7962⟩ (borrow :: supply :: ret :: R)
       mem aw rdata σ k C) :
     ∃ σ' k' C', SourceState s0 ee σ'
       (storeTotalsIndex (storeTotalsIndex evm true borrow) false supply) ∧
-      RD (deployedRuntime v) ee g s0 ret (⟨0⟩ :: R) mem aw rdata σ' k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ret (⟨0⟩ :: R) mem aw rdata σ' k' C' := by
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_7962
     (immWords := wordsOf (immStore v)) hstack hperm hvalid h
   have hlo (old : UInt256) :
@@ -38,9 +40,9 @@ theorem cometAccrueThen {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed time ret : UInt256} {R : List UInt256}
     (hstack : R.length + 37 ≤ 1024) (ht : elapsed.toNat < 2^40) (hs : SourceState s0 ee σ evm)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7946⟩ (time :: elapsed :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7946⟩ (time :: elapsed :: ret :: R)
       mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ret R
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ret R
       (accrueThenOutcome v evm elapsed time) := by
   have r1 := cometWithExtendedAssetList_block_7946 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)

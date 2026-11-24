@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Calldata
 import Benchmarks.Safe.ViaIR.Storage
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -18,7 +20,7 @@ def approvedHashesArgs (owner key : UInt256) : Store :=
 theorem safeApprovedHashesSource (evm : EVM.State) (owner key : UInt256)
     (hcanon : owner.toNat < EVM.addressModulus)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (approvedHashesArgs owner key)
+    ExecTransitionBody fork config contract evm (approvedHashesArgs owner key)
       approvedhashesTransition.body
       (.returned { contract := contract, locals := approvedHashesArgs owner key } evm
         (some [.int (Int.ofNat (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -52,10 +54,10 @@ theorem safeApprovedHashesMemory (owner key : UInt256) :
 
 set_option maxRecDepth 100000 in
 theorem safeApprovedHashesTrace {I g s0 σ k C} {owner : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4327⟩ (owner :: solcAddrMask :: ⟨0⟩ :: ⟨64⟩ :: ⟨32⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨4327⟩ (owner :: solcAddrMask :: ⟨0⟩ :: ⟨64⟩ :: ⟨32⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 6 ≤ 1024) (hcanon : owner.toNat < EVM.addressModulus) :
-    RDret safeBytecode g s0 σ
+    RDret fork safeBytecode g s0 σ
       (solcSlotWordAt (mapSlot (calldataWord I.calldata 36) (mapSlot owner ⟨8⟩)) σ I).toByteArray
       := by
   let key := calldataWord I.calldata 36
@@ -70,11 +72,11 @@ theorem safeApprovedHashesTrace {I g s0 σ k C} {owner : UInt256} {R : List UInt
     safeApprovedHashesMemory owner key
   have hret := safeRuntime_block_4327 hov h
   rw [solcAddrMask_clean hcanon] at hret
-  change RDret safeBytecode g s0 σ
+  change RDret fork safeBytecode g s0 σ
     (((solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ mem) σ I).toByteArray.write 0 mem
       (memLoad ⟨64⟩ mem).toNat 32).readWithPadding (memLoad ⟨64⟩ mem).toNat 32) at hret
   rw [hptr, hslot] at hret
-  change RDret safeBytecode g s0 σ
+  change RDret fork safeBytecode g s0 σ
     ((solcScratchReturnMem mem (solcSlotWordAt (mapSlot key (mapSlot owner ⟨8⟩)) σ I)).readWithPadding
       128 32) at hret
   rw [solcScratchReturnMem_read128 _ hmem] at hret
@@ -85,10 +87,10 @@ theorem safeApprovedhashesBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvedhashesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x7d 0x83 0x29 0x74 ⟨0x7d832974⟩
     hdispatch approvedhashesSelectorBytes (by decide)
-  obtain ⟨k, C, h4287⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h4287⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x7d832974⟩ 12 ⟨4287⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -105,7 +107,7 @@ theorem safeApprovedhashesBodyCore
             (by simp [safeRuntime_block_4306_stack]) hcanon (by jump_dest)
           simp only [safeRuntime_block_4306_stack, safeAddressMask] at h4327
           have hret := safeApprovedHashesTrace h4327 (by simp) hcanon
-          have hbody := safeApprovedHashesSource (initState σ σ₀ (.ofUInt256 g) A I)
+          have hbody := safeApprovedHashesSource (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hvalue
           refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
           exact reEquivSelectorExecution hdispatch (decodeAddressBytes32 hlen hbig hcanon)
@@ -143,7 +145,7 @@ theorem safeApprovedhashesRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvedhashesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeApprovedhashesBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

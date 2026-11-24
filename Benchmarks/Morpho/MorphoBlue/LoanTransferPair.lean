@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.ReturnBlockRefines
 import Benchmarks.Morpho.MorphoBlue.SupplySourceStart
 import Benchmarks.Morpho.MorphoBlue.SafeTransferPair
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -38,11 +40,11 @@ theorem morphoLoanTransferPair {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (hm : MorphoHeap mem ptr 0) (hsize : 128 ≤ mem.size) (hptr : 128 ≤ ptr.toNat)
     (hget : locals.get? "__memory" = some (.int (Int.ofNat ptr.toNat)))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
       [UInt256.ofNat (AccountAddress.ofNat p.loanToken.toNat).val, UInt256.ofNat ee.source.val,
        UInt256.ofNat ee.codeOwner.val, assets, UInt256.ofNat 4208, UInt256.ofNat 32,
        shares, assets, UInt256.ofNat 64] mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (loanTransferPairBody retVar) [abiUInt256, abiUInt256] := by
   have he := supplyTransfer_args hl imms evm ptr hget
@@ -63,13 +65,13 @@ theorem morphoLoanTransferPairAt {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
     (hpc : pc = UInt256.ofNat 4186 ∨ pc = UInt256.ofNat 10845)
-    (h : RD (deployedRuntime v) ee g s0 pc
+    (h : RD fork (deployedRuntime v) ee g s0 pc
       [x0, x1, x2, UInt256.ofNat 128, UInt256.ofNat 32, shares, assets, solcAddrMask]
       mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (loanTransferPairBody retVar) [abiUInt256, abiUInt256] := by
-  have hr : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
+  have hr : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
       [UInt256.land (memLoad (UInt256.ofNat 128) mem) solcAddrMask, UInt256.ofNat ee.source.val,
        UInt256.ofNat ee.codeOwner.val, assets, UInt256.ofNat 4208, UInt256.ofNat 32,
        shares, assets, UInt256.ofNat 64] mem aw' out σ k' C' := by

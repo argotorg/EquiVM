@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SourceReverts
 import Benchmarks.UniswapV3.Pool.OracleLteSource
 import Benchmarks.UniswapV3.Pool.OracleObservationStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -52,7 +54,7 @@ def oracleSearchReadyFrame (imms : Store) (time target index cardinality : UInt2
       (.int (Int.ofNat (oracleSearchRight index cardinality).toNat))).insert "i" (.int 0) }
 
 theorem oracleObservationZeroPrefix (locals imms : Store) (evm : EVM.State) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (oracleSearchFunction.body.take 2)
       (.ok
         { contract := contract
@@ -68,7 +70,7 @@ theorem oracleObservationZeroPrefix (locals imms : Store) (evm : EVM.State) :
 
 theorem oracleSearchZeroPrefix (imms : Store) (evm : EVM.State)
     (time target index cardinality : UInt256) :
-    ExecBlock config (oracleSearchFrame imms time target index cardinality) evm
+    ExecBlock fork config (oracleSearchFrame imms time target index cardinality) evm
       (oracleSearchFunction.body.take 2)
       (.ok (oracleSearchZeroFrame imms time target index cardinality) evm) :=
   oracleObservationZeroPrefix (oracleSearchLocals time target index cardinality) imms evm
@@ -96,7 +98,7 @@ theorem evalOracleSearchLeft {frame : Frame} {evm : EVM.State} (index cardinalit
 
 theorem oracleSearchPrefix (imms : Store) (evm : EVM.State)
     (time target index cardinality : UInt256) (hn : cardinality.toNat ≠ 0) :
-    ExecBlock config (oracleSearchFrame imms time target index cardinality) evm
+    ExecBlock fork config (oracleSearchFrame imms time target index cardinality) evm
       (oracleSearchFunction.body.take 5)
       (.ok (oracleSearchReadyFrame imms time target index cardinality) evm) := by
   let f0 := oracleSearchZeroFrame imms time target index cardinality
@@ -117,7 +119,7 @@ theorem oracleSearchPrefix (imms : Store) (evm : EVM.State)
     · exact evalExpr_var_get (by simp [f1])
     · exact evalExpr_var_get (by
         simp [f1, f0, oracleSearchZeroFrame, oracleSearchLocals, Std.HashMap.getElem_insert])
-  have htail : ExecBlock config f0 evm (oracleSearchFunction.body.drop 2 |>.take 3)
+  have htail : ExecBlock fork config f0 evm (oracleSearchFunction.body.drop 2 |>.take 3)
       (.ok (oracleSearchReadyFrame imms time target index cardinality) evm) := by
     refine ExecBlock.consNormal (stele' := f1) (evm' := evm) (ExecStmt.letDecl hl) ?_
     refine ExecBlock.consNormal (stele' := f2) (evm' := evm) (ExecStmt.letDecl hr) ?_
@@ -126,7 +128,7 @@ theorem oracleSearchPrefix (imms : Store) (evm : EVM.State)
 
 theorem oracleSearchRevertsZero (imms : Store) (evm : EVM.State)
     (time target index : UInt256) :
-    ExecFuncBody config (oracleSearchFrame imms time target index ⟨0⟩) evm
+    ExecFuncBody fork config (oracleSearchFrame imms time target index ⟨0⟩) evm
       oracleSearchFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 oracleSearchFunction.body]

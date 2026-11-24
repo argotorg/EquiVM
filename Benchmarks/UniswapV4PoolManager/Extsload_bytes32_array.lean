@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Dispatch
 import Benchmarks.UniswapV4PoolManager.ExtsloadArraySource
 import Benchmarks.UniswapV4PoolManager.ExtsloadArrayReturn
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `extsload(bytes32[])`
 
@@ -17,15 +19,15 @@ set_option maxRecDepth 5000
 theorem poolManagerExtsload_bytes32_arrayBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 8) rfl hsel
   have hd : dispatchMsg contract I.calldata = some extsload_bytes32_arrayTransition := by
     apply poolManagerDispatch_extsload_bytes32_array <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachExtsload_bytes32_arrayBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachExtsload_bytes32_arrayBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2431⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -60,7 +62,7 @@ theorem poolManagerExtsload_bytes32_arrayBody {σ σ₀ A I} {g : UInt256} (v : 
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (_hWF : Syntax.poolManagerWF σ I) (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerExtsload_bytes32_arrayBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

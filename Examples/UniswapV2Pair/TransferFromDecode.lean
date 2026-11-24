@@ -5,6 +5,8 @@ import Examples.UniswapV2Pair.TransferFromMaskedFinite
 import Examples.UniswapV2Pair.TransferFromSuccess
 import Examples.UniswapV2Pair.TransferFromReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -16,10 +18,10 @@ namespace UniswapV2Pair
 theorem uniswapTransferFromX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.addressAddressUint256ExternalShort
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩)
     hreach uniswap_address_address_uint256_external_entry_wf hsz4 hsize hshort
@@ -35,10 +37,10 @@ theorem uniswapTransferFromBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_transferFrom_none_short (I := I) hsz4 hshort
   exact (uniswapTransferFromX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -52,7 +54,7 @@ theorem uniswapTransferFromBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -64,7 +66,7 @@ theorem uniswapTransferFromBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
     · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
@@ -232,7 +234,7 @@ theorem uniswapTransferFromBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapTransferFromBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
@@ -248,7 +250,7 @@ theorem uniswapTransferFromBodyAnyPerm
       · exact uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom
     have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
-    have hreach := uniswapReachTransferFromBody (σ := σ) (σ₀ := σ₀) (A := A)
+    have hreach := uniswapReachTransferFromBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
     have hwvS : (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.weiValue = ⟨0⟩ := by
       simp only [initState]; exact hwv

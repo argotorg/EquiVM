@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -71,7 +73,7 @@ theorem clipperDecode_ilk {I : ExecutionEnv}
 theorem clipperIlkBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals ilkTransition.body
+    ExecTransitionBody fork config contract evm locals ilkTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.fixedBytes ⟨31, by decide⟩ bs)])) (immStore v) := by
   simpa [ilkTransition] using
@@ -86,7 +88,7 @@ theorem clipperReachIlkBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 12)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1349⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨1349⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
@@ -315,7 +317,7 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 12) (by native_decide) hsel
@@ -324,7 +326,7 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
     simpa [ABI.bytesToWord, fromByteArrayBigEndian, byteArray_toList_eq] using
       toBytesBE_bytesToWord_of_length hlen
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ ilkTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -334,7 +336,7 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
       clipperIlkBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ hilk
         (by simp only [initState]; exact hwv)
-  have hreach := clipperReachIlkBody
+  have hreach := clipperReachIlkBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hroutine : (D_J code 0).contains (⟨6798⟩ : UInt256) = true := by

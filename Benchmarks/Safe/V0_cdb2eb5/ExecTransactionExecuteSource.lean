@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.ExecTransactionContext
 import Benchmarks.Safe.V0_cdb2eb5.ExecuteCallerSource
 import Benchmarks.Safe.V0_cdb2eb5.SignatureSwitchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -65,9 +67,9 @@ theorem safeExecExecuteCall (p : ExecTransactionInput) (evm : EVM.State) {locals
     {txGas : UInt256} {result : ExecResult} (hl : ExecTransactionLocals p locals)
     (hg : evalExpr? config { contract := contract, locals := locals } evm execCallGasExpr =
       .ok (uint256Value txGas))
-    (hb : ExecFuncBody config (executeFrame p.tx.target p.tx.value p.tx.payload p.tx.operation
+    (hb : ExecFuncBody fork config (executeFrame p.tx.target p.tx.value p.tx.payload p.tx.operation
       txGas) evm executeFunction.body result) :
-    ExecStmt config { contract := contract, locals := locals } evm execExecuteCall
+    ExecStmt fork config { contract := contract, locals := locals } evm execExecuteCall
       (internalCallResult { contract := contract, locals := locals } "success" result) :=
   safeInternalExecute rfl rfl (evalLocalValue hl.tx.target) (evalLocalValue hl.tx.value)
     (evalLocalValue hl.tx.data) (evalLocalValue hl.tx.operation) hg hb
@@ -76,7 +78,7 @@ theorem safeExecExecuteArgsRevert (p : ExecTransactionInput) (evm : EVM.State) {
     (hl : ExecTransactionLocals p locals)
     (hg : evalExpr? config { contract := contract, locals := locals } evm execCallGasExpr =
       .revert) :
-    ExecStmt config { contract := contract, locals := locals } evm execExecuteCall .reverted :=
+    ExecStmt fork config { contract := contract, locals := locals } evm execExecuteCall .reverted :=
     by
   apply ExecStmt.internalCallArgsRevert
   simp only [evalExprs?, hg, evalExpr?, Std.HashMap.get?_eq_getElem?, hl.tx.target, hl.tx.value,

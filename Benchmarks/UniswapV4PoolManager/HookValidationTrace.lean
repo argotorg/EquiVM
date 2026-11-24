@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.HookPairTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,8 +17,8 @@ theorem hookBaseValidTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
     (hh : hook.toNat < 2^160) (hf : fee.toNat < 2^24)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14838⟩ (hook :: fee :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret ((hookBaseValid hook fee).toUInt256 :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14838⟩ (hook :: fee :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret ((hookBaseValid hook fee).toUInt256 :: R) mem aw rdata σ k' C' := by
   have hhclean : UInt256.land hook (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = hook :=
     solcAddrMask_clean hh
   have hfclean : UInt256.land (UInt256.ofNat 16777215) fee = fee :=
@@ -52,8 +54,8 @@ theorem hookValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
     (hh : hook.toNat < 2^160) (hf : fee.toNat < 2^24)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14775⟩ (hook :: fee :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret ((hookAddressValid hook fee).toUInt256 :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14775⟩ (hook :: fee :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret ((hookAddressValid hook fee).toUInt256 :: R) mem aw rdata σ k' C' := by
   have ht0 := hookPair0Trace v hstack hret h
   unfold hookAddressValid
   cases h0 : hookPairInvalid hook (UInt256.ofNat 128) (UInt256.ofNat 8) with

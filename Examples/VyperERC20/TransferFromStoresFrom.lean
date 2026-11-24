@@ -1,5 +1,7 @@
 import Examples.VyperERC20.TransferFromStoresBeforeFromStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +15,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I} {g : Sat256}
     (hltDebit : (transferFromFromBalanceWord
       (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
       [transferFromSelectorWord]
       (transferFromAllowanceScratchMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
@@ -21,11 +23,11 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
         (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   let evm0 := initState σ σ₀ g A I
   let evm1 := transferFromAfterAllowanceState evm0 I
   have hreach493 :
-      ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
+      ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
         [transferFromSelectorWord]
         (transferFromAllowanceScratchMem
           (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
@@ -38,7 +40,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hreach493
   have hreach497 :
-      ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨497⟩
+      ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨497⟩
         [transferFromFromWord I, ⟨0⟩, transferFromSelectorWord]
         (transferFromAllowanceScratchMemI σ I)
         (UInt256.ofNat 5) ByteArray.empty
@@ -52,7 +54,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     ⟨k499, C499, rd499⟩
   have hreach500 :
-      ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨500⟩
+      ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨500⟩
         [⟨0⟩, transferFromSelectorWord]
         (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I))
         (UInt256.ofNat 5) ByteArray.empty
@@ -62,7 +64,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hreach500
   have hreach502 :
-      ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨502⟩
+      ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨502⟩
         [transferFromSelectorWord]
         (wordAt0Mem ⟨0⟩
           (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I)))

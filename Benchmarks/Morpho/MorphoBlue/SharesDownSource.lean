@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.MathSource
 import Benchmarks.Morpho.MorphoBlue.SharesMathCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -41,7 +43,7 @@ theorem evalOne (frame : Frame) (evm : EVM.State) :
 
 theorem morphoSharesDownBodyOk (a t s : UInt256) (evm : EVM.State) (imms : Store)
     (hfit : SharesDownFits a t s) :
-    ExecFuncBody config (sharesDownFrame a t s imms) evm toSharesDownFunction.body
+    ExecFuncBody fork config (sharesDownFrame a t s imms) evm toSharesDownFunction.body
       (.returned (sharesDownResultFrame a t s imms) evm
         (some [.int (Int.ofNat (sharesDownWord a t s).toNat)])) := by
   obtain ⟨hs, ht, hp⟩ := hfit
@@ -57,7 +59,7 @@ theorem morphoSharesDownBodyOk (a t s : UInt256) (evm : EVM.State) (imms : Store
 
 theorem morphoSharesDownBodyReverts (a t s : UInt256) (evm : EVM.State) (imms : Store)
     (hbad : ¬ SharesDownFits a t s) :
-    ExecFuncBody config (sharesDownFrame a t s imms) evm toSharesDownFunction.body .reverted := by
+    ExecFuncBody fork config (sharesDownFrame a t s imms) evm toSharesDownFunction.body .reverted := by
   have ha := sharesDown_eval_assets a t s imms evm
   have hs := sharesDown_eval_totalShares a t s imms evm
   have ht := sharesDown_eval_totalAssets a t s imms evm
@@ -85,7 +87,7 @@ theorem morphoSharesDownCallOk (a t s : UInt256) (evm : EVM.State) (locals imms 
       .ok (.int (Int.ofNat t.toNat)))
     (hs : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm es =
       .ok (.int (Int.ofNat s.toNat))) (hfit : SharesDownFits a t s) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "SharesMathLib_toSharesDown" [ea, et, es] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (sharesDownWord a t s).toNat)), immutables := imms } evm) := by
   exact internalCallFunctionReturn (callee := toSharesDownFunction)
@@ -102,7 +104,7 @@ theorem morphoSharesDownCallReverts (a t s : UInt256) (evm : EVM.State) (locals 
       .ok (.int (Int.ofNat t.toNat)))
     (hs : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm es =
       .ok (.int (Int.ofNat s.toNat))) (hbad : ¬ SharesDownFits a t s) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "SharesMathLib_toSharesDown" [ea, et, es] retVar) .reverted := by
   exact internalCallFunctionRevert (callee := toSharesDownFunction)
     (argVals := [.int (Int.ofNat a.toNat), .int (Int.ofNat t.toNat), .int (Int.ofNat s.toNat)])

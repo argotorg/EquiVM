@@ -1,18 +1,20 @@
 import Benchmarks.Auction.SettleEntry
 import Benchmarks.Auction.CreateInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem settleCreateEnterSplit {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ⟨2623⟩
+      ∃ k' C', RD fork auctionBytecode I g s0 ⟨2623⟩
         (⟨2682⟩ :: UInt256.isZero (pausedWord (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) I) :: R)
         mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have rd2612 := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
   have hstoreDec : decode auctionBytecode ⟨2612⟩ = some (.SSTORE, none) := by native_decide
   by_cases hperm : I.perm = true
@@ -28,34 +30,34 @@ theorem settleCreateEnterSplit {I g s0 R mem aw rdata σ k C}
   exact ⟨_, _, rd2623⟩
 
 theorem settleCreateEnter {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2623⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨2623⟩
       (⟨2682⟩ :: UInt256.isZero (pausedWord (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) I) :: R)
       mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' :=
   permSplit_true hperm (settleCreateEnterSplit h hov)
 
 theorem settleCreateUnpaused {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2623⟩ (⟨2682⟩ :: UInt256.isZero (pausedWord σ I) :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2623⟩ (⟨2682⟩ :: UInt256.isZero (pausedWord σ I) :: R)
       mem aw rdata σ k C)
     (hp : pausedWord σ I = ⟨0⟩) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4086⟩ (⟨2690⟩ :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4086⟩ (⟨2690⟩ :: R)
       mem aw rdata σ k' C' := by
   exact ⟨_, _, evm_run h with [jumpiT (by rw [hp]; decide) (by jump_dest), jumpdest,
     push2 ⟨2690⟩, push2 ⟨4086⟩, jump (by jump_dest)]⟩
 
 theorem settleCreatePaused {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2623⟩ (⟨2682⟩ :: UInt256.isZero (pausedWord σ I) :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2623⟩ (⟨2682⟩ :: UInt256.isZero (pausedWord σ I) :: R)
       mem aw rdata σ k C)
     (hp : pausedWord σ I ≠ ⟨0⟩) (hov : R.length + 6 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   have rd2624 := evm_run h with [jumpiNT (isZero_eq_zero_of_ne hp)]
   exact pausableError 0 rd2624 hov
 
 theorem settleCreateNext {I g s0 R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨2690⟩ R mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2690⟩ R mem aw rdata acc k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3000⟩ (⟨2471⟩ :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3000⟩ (⟨2471⟩ :: R) mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpdest, push2 ⟨2471⟩, push2 ⟨3000⟩, jump (by jump_dest)]⟩
 
 end Auction

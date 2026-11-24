@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationEncode
 import Benchmarks.EAS.EAS.AttestationABI
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,9 +12,9 @@ theorem getAttestationReturnEVM {evm : EVM.State} {g : Sat256} {s0 : State}
     {k C : Nat} {word heap : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+17 ≤ 1024) (hlo : 96 ≤ heap.toNat)
     (hv : copyStoredValid evm word heap.toNat)
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨2628⟩ (heap::⟨398⟩::R)
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨2628⟩ (heap::⟨398⟩::R)
       (copyStoredOutputMemory evm word heap base) aw rdata evm.accountMap k C) :
-    RDret (deployedRuntime v) g s0 evm.accountMap (attestationReturnBytes evm word) := by
+    RDret fork (deployedRuntime v) g s0 evm.accountMap (attestationReturnBytes evm word) := by
   let mem := copyStoredOutputMemory evm word heap base
   let len := (attestationPayload evm word).size
   let n := copyStoredNext heap.toNat (attestationPayload evm word)
@@ -51,7 +53,7 @@ theorem getAttestationReturnEVM {evm : EVM.State} {g : Sat256} {s0 : State}
     omega
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_2628_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
-  change RD (deployedRuntime v) evm.executionEnv g s0 (UInt256.ofNat 4502)
+  change RD fork (deployedRuntime v) evm.executionEnv g s0 (UInt256.ofNat 4502)
     (easBlocks.eas_block_2628_stack (mem := mem) (x0 := heap) (x1 := ⟨398⟩) (R := R))
     (easBlocks.eas_block_2628_memory (mem := mem)) aw1 rdata evm.accountMap k1 C1 at rd1
   simp only [easBlocks.eas_block_2628_stack, easBlocks.eas_block_2628_memory, hm, hfn, ← writeWord_as_write] at rd1
@@ -63,7 +65,7 @@ theorem getAttestationReturnEVM {evm : EVM.State} {g : Sat256} {s0 : State}
   have hlenRet : (UInt256.sub (UInt256.ofNat (dst.toNat+352+32*((len+31)/32))) fp).toNat = 384+32*((len+31)/32) := by
     rw [usub_ofNat_word_toNat (by rw [hfn, hdn]; omega) (by omega), hfn, hdn]
     omega
-  change RDret (deployedRuntime v) g s0 evm.accountMap
+  change RDret fork (deployedRuntime v) g s0 evm.accountMap
     ((attestationEncodedMemory m heap dst dataPtr).readWithPadding fp.toNat
       (UInt256.sub (UInt256.ofNat (dst.toNat+352+32*((len+31)/32))) fp).toNat) at hr
   rw [hfn, hlenRet] at hr

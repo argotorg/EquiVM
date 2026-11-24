@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Storage
 import Benchmarks.Safe.V0_cdb2eb5.Routines
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -15,10 +17,10 @@ theorem safeGetthresholdBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getthresholdTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xe7 0x52 0x35 0xb8 ⟨0xe75235b8⟩
     hdispatch getthresholdSelectorBytes (by decide)
-  obtain ⟨k, C, h1501⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1501⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xe75235b8⟩ 2 ⟨1501⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -26,7 +28,7 @@ theorem safeGetthresholdBodyCore
       (by rw [hvalue]; decide) (by jump_dest) h1501
     obtain ⟨_, _, h974⟩ := safeRuntime_block_1512 (by simp) (by jump_dest) h1512
     have hret := safeReturnWord h974 (by simp)
-    have hbody : ExecTransitionBody config contract
+    have hbody : ExecTransitionBody fork config contract
         (initState σ σ₀ (.ofUInt256 g) A I) ∅ getthresholdTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (.ofUInt256 g) A I)
@@ -54,7 +56,7 @@ theorem safeGetthresholdRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getthresholdTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeGetthresholdBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V0_cdb2eb5

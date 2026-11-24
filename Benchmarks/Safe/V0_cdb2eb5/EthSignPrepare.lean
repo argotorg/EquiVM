@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.EthSignMemory
 import Benchmarks.Safe.V0_cdb2eb5.CheckedSubtract
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -58,11 +60,11 @@ theorem safeEthSignMemory {mem : ByteArray} {ptr : Nat} {hash : UInt256}
 
 theorem safeEthSignPrepare {I g s0 σ k C aw mem rdata ptr}
     {i s r v current last required src hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2311⟩
+    (h : RD fork safeBytecode I g s0 ⟨2311⟩
       (i :: s :: r :: v :: current :: last :: required :: src :: hash :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 96 ≤ mem.size) (hp : 96 ≤ ptr)
     (hb : ptr + 92 < UInt256.size) (hv : 4 ≤ v.toNat) (hov : R.length + 17 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨2399⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨2399⟩
       (UInt256.sub v ⟨4⟩ :: ethSignWord hash :: ⟨1⟩ :: i :: s :: r :: v :: current :: last ::
         required :: src :: hash :: R) (ethSignMemory mem ptr hash) aw' rdata σ k' C' := by
   have hpay := ethSignPayloadAddresses (mem := mem) (hash := hash) hb

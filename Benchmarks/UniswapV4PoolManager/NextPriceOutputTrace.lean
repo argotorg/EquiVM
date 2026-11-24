@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NextPriceOutputCoreTrace
 import Benchmarks.UniswapV4PoolManager.NextPriceGuardWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,15 +14,15 @@ theorem nextPriceOutputTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+33 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨20727⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20727⟩
       ([j0, price, j1, j2, if zeroForOne then ⟨1⟩ else ⟨0⟩, liquidity, amount,
         x0, x1, x2, x3, x4, x5, x6, x7, x8] ++ R) mem aw rdata σ k C) :
     if nextPriceFits price liquidity amount false zeroForOne then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20872⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20872⟩
         ([nextPriceWord price liquidity amount false zeroForOne, liquidity, price, ⟨160⟩, amount, x8,
           if zeroForOne then ⟨1⟩ else ⟨0⟩, solcAddrMask, amount,
           x0, x1, x2, x3, x4, x5, x6, x7, x8] ++ R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hd : (if zeroForOne then false else !false) = !zeroForOne := by cases zeroForOne <;> rfl
   by_cases hv : nextPriceValid price liquidity
   · simp only [nextPriceFits, nextPriceWord, hv, true_and, hd]

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepFeeTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,14 +13,14 @@ theorem swapStepTargetFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw available target price j dir amount fee liquidity : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+23 ≤ 1024) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨19643⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19643⟩
       ([available, target, swapStepFeeComplement fee, price, j, dir, amount, fee, liquidity] ++ R)
       mem aw rdata σ k C) :
     (swapStepTargetFeeFits amount fee → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19697⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19697⟩
         ([dir, target, liquidity, price, j, ⟨160⟩, swapStepTargetFeeWord amount fee,
           amount, target, solcAddrMask] ++ R) mem aw rdata σ k' C') ∧
-    (¬swapStepTargetFeeFits amount fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepTargetFeeFits amount fee → RDrev fork (deployedRuntime v) g s0) := by
   have hclean := u256LandMaskCleanOfToNat fee (UInt256.ofNat 16777215) rfl hf
   by_cases heq : fee = fullMathPPM
   · have hg : UInt256.eq (⟨0⟩ : UInt256)

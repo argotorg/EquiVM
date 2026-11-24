@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferInModel
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -27,8 +29,8 @@ theorem transferInReturn_eval (imms : Store) (asset sender : AccountAddress)
 
 theorem transferInAfter_source {asset sender : AccountAddress} {amount pre : UInt256}
     {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : TransferInAfter asset sender amount pre evm result) (imms : Store) :
-    QuoteSourceResult (transferInBeforeFrame imms asset sender amount pre) evm
+    (ht : TransferInAfter fork asset sender amount pre evm result) (imms : Store) :
+    QuoteSourceResult fork (transferInBeforeFrame imms asset sender amount pre) evm
       transferInAfterBlock result := by
   have ha : evalExpr? config (transferInBeforeFrame imms asset sender amount pre) evm
       (.var "asset") = .ok (.address asset) := by
@@ -83,8 +85,8 @@ theorem transferInAfter_source {asset sender : AccountAddress} {amount pre : UIn
 
 theorem transferIn_source {asset sender : AccountAddress} {amount : UInt256}
     {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : TransferInTrace asset sender amount evm result) (imms : Store) :
-    QuoteSourceResult (transferInEntry imms asset sender amount) evm
+    (ht : TransferInTrace fork asset sender amount evm result) (imms : Store) :
+    QuoteSourceResult fork (transferInEntry imms asset sender amount) evm
       transferInCallable.body result := by
   have ha : evalExpr? config (transferInEntry imms asset sender amount) evm
       (.var "asset") = .ok (.address asset) := by
@@ -104,12 +106,12 @@ theorem transferIn_source {asset sender : AccountAddress} {amount : UInt256}
 
 theorem transferIn_call {asset sender : AccountAddress} {amount : UInt256}
     {evm : EVM.State} {result : Option (EVM.State × UInt256)}
-    (ht : TransferInTrace asset sender amount evm result) (frame : Frame)
+    (ht : TransferInTrace fork asset sender amount evm result) (frame : Frame)
     (assetExpr fromExpr amountExpr : Expr) (ret : Ident) (hf : frame.contract = contract)
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (hs : evalExpr? config frame evm fromExpr = .ok (.address sender))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int (Int.ofNat amount.toNat))) :
-    ExecStmt config frame evm (.internalCall "doTransferIn" [assetExpr, fromExpr, amountExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "doTransferIn" [assetExpr, fromExpr, amountExpr] ret)
       (wordCallResult frame ret result) := by
   have he : evalExprs? config frame evm [assetExpr, fromExpr, amountExpr] =
       .ok [.address asset, .address sender, .int (Int.ofNat amount.toNat)] := by

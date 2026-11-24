@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,14 +19,14 @@ theorem cometQuoteResult {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {price amount discounted ptr free ret : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hm : AssetMemory mem ptr free out) (hv : AssetValid out)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12057⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12057⟩
       (price :: amount :: ⟨18155⟩ :: ⟨96⟩ ::
         UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
         ptr :: ⟨18165⟩ :: discounted :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k C) :
     (QuoteResultValid v out amount price discounted ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         (quoteResultWord v out amount price discounted :: R) mem aw' rdata σ k' C') ∨
-    (¬ QuoteResultValid v out amount price discounted ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ QuoteResultValid v out amount price discounted ∧ RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_12057 (immWords := wordsOf (immStore v))
     (by change R.length + 10 + 1 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

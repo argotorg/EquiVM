@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralTail
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,13 +13,13 @@ set_option maxRecDepth 1000
 theorem morphoSupplyCollateralBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 3) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some supplyCollateralTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k0, C0, rd0⟩ := morphoReachSupplyCollateralBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd1 := morphoBlocks.morpho_block_9975_taken (immWords := wordsOf (immStore v))
@@ -51,7 +53,7 @@ theorem morphoSupplyCollateralBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmut
       ⟨hbad, hr⟩ | ⟨hg, a3, k3, C3, rd3⟩
     · exact reEquivSelectorRevert hcode hr hd hdec
         (morphoSupplyCollateralSourceReject p assets account data hc ha evm (immStore v) hcv hbound hbad)
-    · have pref := morphoSupplyCollateralSourceGuards p assets account data hc ha evm (immStore v) hcv hbound hg
+    · have pref := morphoSupplyCollateralSourceGuards (fork := fork) p assets account data hc ha evm (immStore v) hcv hbound hg
       have hl := supplyCollateralFrame_locals p assets account data I.calldata (immStore v)
       have hf := morphoSupplyCollateralUpdateRefine p data _ (immStore v) (by decide) ha hl SourceState.init rd3
       cases hf with

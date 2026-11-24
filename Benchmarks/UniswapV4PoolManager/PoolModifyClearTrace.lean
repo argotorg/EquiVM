@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyFeesTrace
 import Benchmarks.UniswapV4PoolManager.TickClearCorrect
 import Benchmarks.UniswapV4PoolManager.ConditionalMappingMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -25,10 +27,10 @@ theorem poolModifyClearLowerExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (v : PoolManagerImmutables) (hstack : R.length+23 ≤ 1024) (hI : evm.executionEnv = I)
     (hl : int24Canonical p.lower) (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
-    (h : RD (deployedRuntime v) I g s0 ⟨6620⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6620⟩
       (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨6629⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨6629⟩
         (poolModifyClearMiddleStack fees ptr x0 x1 x2 x4 x5 x9 p R)
         (poolModifyClearMemory mem id p.lower fl) (poolModifyClearActiveWords aw ptr false fl) rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyClearResult f evm id (EVM.signed p.lower) false fl) := by
@@ -58,10 +60,10 @@ theorem poolModifyClearLowerTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (v : PoolManagerImmutables) (hstack : R.length+23 ≤ 1024) (hI : evm.executionEnv = I)
     (hl : int24Canonical p.lower) (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
-    (h : RD (deployedRuntime v) I g s0 ⟨6620⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6620⟩
       (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨6629⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨6629⟩
         (poolModifyClearMiddleStack fees ptr x0 x1 x2 x4 x5 x9 p R)
         (poolModifyClearMemory mem id p.lower fl) aw' rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyClearResult f evm id (EVM.signed p.lower) false fl) := by
@@ -76,10 +78,10 @@ theorem poolModifyClearUpperExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hu : int24Canonical p.upper) (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 ⟨6629⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6629⟩
       (poolModifyClearMiddleStack fees ptr x0 x1 x2 x4 x5 x9 p R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨6636⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨6636⟩
         (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R).tail
         (poolModifyClearMemory mem id p.upper fu) (poolModifyClearActiveWords aw ptr true fu) rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyClearResult f evm id (EVM.signed p.upper) true fu) := by
@@ -112,10 +114,10 @@ theorem poolModifyClearUpperTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hI : evm.executionEnv = I)
     (hu : int24Canonical p.upper) (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 ⟨6629⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6629⟩
       (poolModifyClearMiddleStack fees ptr x0 x1 x2 x4 x5 x9 p R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨6636⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨6636⟩
         (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R).tail
         (poolModifyClearMemory mem id p.upper fu) aw' rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyClearResult f evm id (EVM.signed p.upper) true fu) := by

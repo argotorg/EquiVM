@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeCallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -41,7 +43,7 @@ theorem RD.clipperTakeClipperCallNoCode {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4664 : RD code ee g s0 ⟨4664⟩
+    (rd4664 : RD fork code ee g s0 ⟨4664⟩
       (UInt256.land solcAddrMask who :: UInt256.land solcAddrMask who :: ⟨0⟩ ::
         ⟨128⟩ :: UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) :: ⟨128⟩ ::
         ⟨0⟩ :: (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ::
@@ -52,7 +54,7 @@ theorem RD.clipperTakeClipperCallNoCode {code : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (UInt256.land solcAddrMask who) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4664⟩) (okPc := ⟨4676⟩)
     rd4664 hcodeSize
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -69,11 +71,11 @@ theorem RD.clipperTakeClipperCallCodeOkGas {code : ByteArray}
     {σ : AccountMap}
     {target : UInt256} {R : List UInt256}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4664 : RD code ee g s0 ⟨4664⟩ (target :: target :: R)
+    (rd4664 : RD fork code ee g s0 ⟨4664⟩ (target :: target :: R)
       mem aw out σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ gasWord k' C', RD code ee g s0 ⟨4679⟩
+    ∃ gasWord k' C', RD fork code ee g s0 ⟨4679⟩
       (gasWord :: target :: R) mem aw out σ k' C' := by
   obtain ⟨gasWord, k', C', rd4679⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4664⟩) (okPc := ⟨4676⟩)
@@ -93,7 +95,7 @@ theorem RD.clipperTakeClipperCallStep {code : ByteArray}
     {σ : AccountMap}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4679 : RD code ee g s0 ⟨4679⟩
+    (rd4679 : RD fork code ee g s0 ⟨4679⟩
       (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hdepth : ee.depth.val < 1024) (hov : R.length + 1 ≤ 1024) :
@@ -101,14 +103,14 @@ theorem RD.clipperTakeClipperCallStep {code : ByteArray}
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+          Ethereum.EVM.Θ fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 target)
-            (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+            (toExecute fork σ (AccountAddress.ofUInt256 target))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1)
             ee.header ee.blobVersionedHashes ee.blocks ee.perm) ∧
-      RD code ee g s0 ⟨4680⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code ee g s0 ⟨4680⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat
@@ -127,7 +129,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
     {R : List UInt256} {baseMem rdata : ByteArray} {aw : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4664 : RD code I g (initState σStart σ₀ g A I) ⟨4664⟩
+    (rd4664 : RD fork code I g (initState σStart σ₀ g A I) ⟨4664⟩
       (UInt256.land solcAddrMask who :: UInt256.land solcAddrMask who :: ⟨0⟩ ::
         ⟨128⟩ :: UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) :: ⟨128⟩ ::
         ⟨0⟩ :: (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ::
@@ -153,7 +155,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_cb : AccountMap)
       (zCb : Bool) (outCb : ByteArray) (A_cb : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4680⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4680⟩
         ((if zCb then ⟨1⟩ else ⟨0⟩) ::
           (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ::
           clipperTakeCallbackSelectorSeed :: UInt256.land solcAddrMask who :: dog :: slice ::
@@ -168,7 +170,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
               (UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat)).toNat)
             128 0))
         outCb σ_cb k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address
@@ -242,9 +244,9 @@ theorem RD.clipperTakeClipperCallFailure {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd4680 : RD code ee g s0 ⟨4680⟩ (⟨0⟩ :: R) mem aw out acc k C)
+    (rd4680 : RD fork code ee g s0 ⟨4680⟩ (⟨0⟩ :: R) mem aw out acc k C)
     (houtSize : out.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4680⟩) (okPc := ⟨4696⟩)
     rd4680 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -262,9 +264,9 @@ theorem RD.clipperTakeClipperCallSuccessGuard {code : ByteArray}
     {acc : AccountMap}
     {status : UInt256} {R : List UInt256}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4680 : RD code ee g s0 ⟨4680⟩ (status :: R) mem aw out acc k C)
+    (rd4680 : RD fork code ee g s0 ⟨4680⟩ (status :: R) mem aw out acc k C)
     (hstatus : status ≠ ⟨0⟩) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4698⟩ R mem aw out acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ⟨4698⟩ R mem aw out acc k' C' := by
   obtain ⟨k', C', rd4698⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨4680⟩) (okPc := ⟨4696⟩) rd4680 hstatus
       (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -283,12 +285,12 @@ theorem RD.clipperTakeClipperCallSuccess {code : ByteArray}
     {endPtr selector target dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart
       who max amt id : UInt256}
     {R : List UInt256} {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4680 : RD code ee g s0 ⟨4680⟩
+    (rd4680 : RD fork code ee g s0 ⟨4680⟩
       (⟨1⟩ :: endPtr :: selector :: target :: dog :: slice :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw out acc k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4701⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw out acc k' C' := by

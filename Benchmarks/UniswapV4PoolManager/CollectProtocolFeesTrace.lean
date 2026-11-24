@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolFeeSource
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,11 +21,11 @@ theorem collectSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f :
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (ha0 : f.locals.get? "amountCollected" = some initial) (hb : f.locals.get? "protocolFeesAccrued" = none)
     (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨3255⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3255⟩
       (accountWord currency :: amount :: accountWord currency :: accountWord recipient :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm (collectProtocolFeesTransition.body.drop 7) result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
+    ∃ result, ExecFuncBody fork config f evm (collectProtocolFeesTransition.body.drop 7) result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
   let selected := if amount = ⟨0⟩ then protocolFeesWord evm currency else amount
   have hcond := evalNatEqLiteral (cfg := config) (evm := evm) (k := 0) (evalLocalValue ha)
   change evalExpr? config f evm (.binary .eq (.var "amount") (.intLit 0)) =
@@ -40,14 +42,14 @@ theorem collectSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f :
       change evalExpr? config f evm (.var "amount") = _
       simpa only [selected, if_neg hz] using evalLocalValue (cfg := config) (evm := evm) ha
   obtain ⟨mem', aw', k', C', hm', hf', rdDebit⟩ : ∃ mem' aw' k' C', mem'.size = 96 ∧
-      memLoad ⟨64⟩ mem' = ⟨160⟩ ∧ RD (deployedRuntime v) I g s0 ⟨3283⟩
+      memLoad ⟨64⟩ mem' = ⟨160⟩ ∧ RD fork (deployedRuntime v) I g s0 ⟨3283⟩
         (accountWord currency :: accountWord currency :: accountWord recipient :: selected :: ⟨1954⟩ :: selected :: ⟨32⟩ :: R)
         mem' aw' rdata evm.accountMap k' C' := by
     by_cases hz : amount = ⟨0⟩
     · have rd1 := poolManagerBlocks.poolManager_block_3255_fallthrough (by omega) hz h
       obtain ⟨aw2, k2, C2, rd2⟩ := poolManagerBlocks.poolManager_block_3267_packed (by omega) rd1
       let nextMem := twoWordHashMem (accountWord currency) ⟨1⟩ mem
-      change RD _ _ _ _ ⟨3283⟩ (accountWord currency :: accountWord currency :: accountWord recipient ::
+      change RD fork _ _ _ _ ⟨3283⟩ (accountWord currency :: accountWord currency :: accountWord recipient ::
         solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) evm.accountMap I :: ⟨1954⟩ ::
         solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) evm.accountMap I :: ⟨32⟩ :: R)
         nextMem aw2 rdata evm.accountMap k2 C2 at rd2
@@ -71,17 +73,17 @@ theorem collectSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f :
     (store_get_ne _ _ (by decide : ("amountCollected" == "protocolFeesAccrued") = false)).trans hb
   obtain ⟨result, hbody, hr⟩ := collectDebitTrace (f := f1) v hstack hI hσ0 hf hc1 ht1
     (store_get_self _ _ _) hb1 hm' hf' rdDebit
-  exact ⟨result, execFuncBody_prepend (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) heval (assignLocalValue ha0))) hbody, hr⟩
+  exact ⟨result, execFuncBody_prepend (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) heval (assignLocalValue ha0))) hbody, hr⟩
 
 theorem collectCurrencyCheckTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw amount : UInt256} {currency recipient : AccountAddress}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024)
     (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨3219⟩ (amount :: accountWord currency :: accountWord recipient :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3219⟩ (amount :: accountWord currency :: accountWord recipient :: R)
       mem aw rdata evm.accountMap k C) :
-    (¬(currency = AccountAddress.ofNat 0 ∨ syncedCurrency evm ≠ currency) ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬(currency = AccountAddress.ofNat 0 ∨ syncedCurrency evm ≠ currency) ∧ RDrev fork (deployedRuntime v) g s0) ∨
     ((currency = AccountAddress.ofNat 0 ∨ syncedCurrency evm ≠ currency) ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨3255⟩
+      RD fork (deployedRuntime v) I g s0 ⟨3255⟩
         (accountWord currency :: amount :: accountWord currency :: accountWord recipient :: R)
         mem aw rdata evm.accountMap k' C') := by
   have hclean := solcAddrMask_clean (accountWord_canonical currency)
@@ -91,7 +93,7 @@ theorem collectCurrencyCheckTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       (by change UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) = ⟨0⟩
           rw [hclean, hw]; decide) h
     simp only [poolManagerBlocks.poolManager_block_3219_fallthrough_stack] at rd1
-    change RD _ _ _ _ ⟨3250⟩ (UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) ::
+    change RD fork _ _ _ _ ⟨3250⟩ (UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) ::
       UInt256.land (accountWord currency) solcAddrMask :: amount :: accountWord currency :: accountWord recipient :: R)
       _ _ _ _ _ _ at rd1
     rw [hclean] at rd1
@@ -103,13 +105,13 @@ theorem collectCurrencyCheckTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       (by change UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) ≠ ⟨0⟩
           rw [hclean, isZero_eq_zero_of_ne hw]; decide)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ ⟨3359⟩ (UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) ::
+    change RD fork _ _ _ _ ⟨3359⟩ (UInt256.isZero (UInt256.isZero (UInt256.land (accountWord currency) solcAddrMask)) ::
       UInt256.land (accountWord currency) solcAddrMask :: amount :: accountWord currency :: accountWord recipient :: R)
       _ _ _ _ _ _ at rd1
     rw [hclean] at rd1
     have rd2 := poolManagerBlocks.poolManager_block_3359 (by simp; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-    change RD _ _ _ _ ⟨3250⟩
+    change RD fork _ _ _ _ ⟨3250⟩
       (UInt256.eq (UInt256.land (codeOwnerTransientWord I evm.accountMap currencySlot) solcAddrMask) (accountWord currency) ::
         accountWord currency :: amount :: accountWord currency :: accountWord recipient :: R) _ _ _ _ _ _ at rd2
     rw [← transientWord_accountMap hI currencySlot, ← syncedCurrency_word] at rd2
@@ -137,11 +139,11 @@ theorem collectCurrencyTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (ha0 : f.locals.get? "amountCollected" = some initial) (hb : f.locals.get? "protocolFeesAccrued" = none)
     (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨3219⟩ (amount :: accountWord currency :: accountWord recipient :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3219⟩ (amount :: accountWord currency :: accountWord recipient :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm (collectProtocolFeesTransition.body.drop 5) result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
-  have hg := collectCurrencyGuard (evm := evm) hf hc
+    ∃ result, ExecFuncBody fork config f evm (collectProtocolFeesTransition.body.drop 5) result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
+  have hg := collectCurrencyGuard (fork := fork) (evm := evm) hf hc
   rcases collectCurrencyCheckTrace v hstack hI h with ⟨hbad, hr⟩ | ⟨hgood, k', C', rdSelect⟩
   · rw [if_neg hbad] at hg
     exact ⟨.reverted, .execBlockRevert (execBlock_reverted_append (s2 := collectProtocolFeesTransition.body.drop 7) hg), hr⟩
@@ -164,12 +166,12 @@ theorem collectBodyTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : F
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
     (hb : f.locals.get? "protocolFeesAccrued" = none) (hctrl : f.locals.get? "protocolFeeController" = none)
     (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨3184⟩ (accountWord currency :: accountWord recipient :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3184⟩ (accountWord currency :: accountWord recipient :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm (collectProtocolFeesTransition.body.drop 3) result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
+    ∃ result, ExecFuncBody fork config f evm (collectProtocolFeesTransition.body.drop 3) result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
   let f1 : Frame := {f with locals := f.locals.insert "amountCollected" (.int 0)}
-  have hinit : ExecStmt config f evm collectProtocolFeesTransition.body[3]! (.ok f1 evm) :=
+  have hinit : ExecStmt fork config f evm collectProtocolFeesTransition.body[3]! (.ok f1 evm) :=
     ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])
   have hguard := protocolControllerGuard (f := f1) (evm := evm) hf
     ((store_get_ne _ _ (by decide : ("amountCollected" == "protocolFeeController") = false)).trans hctrl)

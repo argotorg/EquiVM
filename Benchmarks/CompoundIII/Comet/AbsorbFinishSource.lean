@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbSettlementSource
 import Benchmarks.CompoundIII.Comet.PrincipalValueSource
 import Benchmarks.CompoundIII.Comet.UpdateBaseSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -27,8 +29,8 @@ theorem absorbFinish_source (frame : Frame) (v : CometWithExtendedAssetListImmut
     (hS : frame.locals.get? "totalSupplyBase" = none)
     (hB : frame.locals.get? "totalBorrowBase" = none)
     (hI : frame.locals.get? "baseSupplyIndex" = none) (hnext : next.toNat < 2^255) :
-    internalBlockResult config frame evm absorbFinishBlock result := by
-  have hprincipal := principalValue_call frame evm next (.var "newBalance") "newPrincipal" hc
+    internalBlockResult fork config frame evm absorbFinishBlock result := by
+  have hprincipal := principalValue_call (fork := fork) frame evm next (.var "newBalance") "newPrincipal" hc
     (by simp only [evalExpr?, hn, EvalResult.ofOption])
   let principal := absorbPrincipalFrame frame evm next
   let updated := absorbUpdatedFrame frame evm next
@@ -36,7 +38,7 @@ theorem absorbFinish_source (frame : Frame) (v : CometWithExtendedAssetListImmut
       updated.locals.get? key = frame.locals.get? key := by
     simp only [updated, absorbUpdatedFrame, absorbPrincipalFrame, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert, beq_iff_eq, if_neg hc11, if_neg hnp]
-  have hupdate (hf : PrincipalValueFits evm next) := updateBase_call v principal evm account basic
+  have hupdate (hf : PrincipalValueFits evm next) := updateBase_call (fork := fork) v principal evm account basic
     (principalValueWord evm next) (.var "account") (.var "accountUser") (.var "newPrincipal")
     "__c11" hc hi
     (by simp only [evalExpr?, principal, absorbPrincipalFrame, Std.HashMap.get?_eq_getElem?,
@@ -53,7 +55,7 @@ theorem absorbFinish_source (frame : Frame) (v : CometWithExtendedAssetListImmut
       (hf : PrincipalValueFits evm next)
       (ht' : AbsorbSettlementTrace v evm' account basic.principal
         (principalValueWord evm next) old next price result') :=
-    absorbSettlement_source (hperm := hpermAfter) updated v evm' absorber account basic.principal
+    absorbSettlement_source (fork := fork) (hperm := hpermAfter) updated v evm' absorber account basic.principal
       (principalValueWord evm next) old next price ht' hc hi
       ((hget _ (by decide) (by decide)).trans ha) ((hget _ (by decide) (by decide)).trans hb)
       ((hget _ (by decide) (by decide)).trans ho) ((hget _ (by decide) (by decide)).trans hn)
@@ -64,7 +66,7 @@ theorem absorbFinish_source (frame : Frame) (v : CometWithExtendedAssetListImmut
       ((hget _ (by decide) (by decide)).trans hU) ((hget _ (by decide) (by decide)).trans hS)
       ((hget _ (by decide) (by decide)).trans hB) ((hget _ (by decide) (by decide)).trans hI)
       hnext (principalValueWord_nonneg_lt hf ((signedWord_nonneg_iff next).2 hnext))
-  change internalBlockResult config frame evm
+  change internalBlockResult fork config frame evm
     (.internalCall "principalValue" [.var "newBalance"] "newPrincipal" ::
       .internalCall "updateBasePrincipal" [.var "account", .var "accountUser", .var "newPrincipal"]
         "__c11" :: absorbSettlementBlock) result
@@ -74,11 +76,11 @@ theorem absorbFinish_source (frame : Frame) (v : CometWithExtendedAssetListImmut
     exact ExecBlock.consRevert hprincipal
   | updateReverted hf hu =>
     rw [if_pos hf] at hprincipal
-    exact (show internalBlockResult config principal evm _ .reverted from
+    exact (show internalBlockResult fork config principal evm _ .reverted from
       ExecBlock.consRevert (internalStmtResult.cast (hupdate hf) hu)).prepend hprincipal
   | updateStatic hf hu =>
     rw [if_pos hf] at hprincipal
-    exact (show internalBlockResult config principal evm _ .staticViolation from
+    exact (show internalBlockResult fork config principal evm _ .staticViolation from
       ExecBlock.consStatic (internalStmtResult.cast (hupdate hf) hu)).prepend hprincipal
   | settled hf hu ht' =>
     rw [if_pos hf] at hprincipal

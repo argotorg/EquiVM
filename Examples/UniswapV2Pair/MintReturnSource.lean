@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.MintLiquidityUpdateSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -101,7 +103,7 @@ theorem uniswapMintAfterUpdateFeeOffReturn
     (hliq : locals.get? "liquidity" = some (uniswapUint256Value liquidity))
     (hunlockedBase : locals.get? "unlocked" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
@@ -115,7 +117,7 @@ theorem uniswapMintAfterUpdateFeeOffReturn
         .ok (.bool false) :=
     evalExpr_mint_feeOn_false (stele := { contract := contract, locals := locals }) evm hfeeOn
   have hiteStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
@@ -123,16 +125,16 @@ theorem uniswapMintAfterUpdateFeeOffReturn
         (.ok { contract := contract, locals := locals } evm) :=
     ExecStmt.iteFalse hfee ExecBlock.nil
   have hite :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
                 (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ]
         (.ok { contract := contract, locals := locals } evm) :=
     ExecBlock.consNormal hiteStmt ExecBlock.nil
-  have hlock := uniswapLockExitSuffix (hperm := by assumption) evm locals hunlockedBase
+  have hlock := uniswapLockExitSuffix (fork := fork) (hperm := by assumption) evm locals hunlockedBase
   have hret :
-      ExecBlock config { contract := contract, locals := locals } (uniswapLockExitedState evm)
+      ExecBlock fork config { contract := contract, locals := locals } (uniswapLockExitedState evm)
         [ .return [.var "liquidity"] ]
         (.returned { contract := contract, locals := locals } (uniswapLockExitedState evm)
           (some [uniswapUint256Value liquidity])) :=
@@ -156,7 +158,7 @@ theorem uniswapMintAfterUpdateFeeOnReturn
       mintFeeReserveProductNat (uniswapReserve0Word evm) (uniswapReserve1Word evm) <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
@@ -171,7 +173,7 @@ theorem uniswapMintAfterUpdateFeeOnReturn
         .ok (.bool true) :=
     evalExpr_mint_feeOn_true (stele := { contract := contract, locals := locals }) evm hfeeOn
   have hassignStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.assign .storage kLastRef
           (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))))
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
@@ -180,13 +182,13 @@ theorem uniswapMintAfterUpdateFeeOnReturn
       (evalExpr_mint_kLastReserveProduct_of_storage evm hreserve0Base hreserve1Base hfit)
       (mintAssignKLastProduct evm hkLastBase)
   have htrueBranch :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .assign .storage kLastRef
             (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecBlock.consNormal hassignStmt ExecBlock.nil
   have hiteStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
@@ -194,17 +196,17 @@ theorem uniswapMintAfterUpdateFeeOnReturn
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecStmt.iteTrue hfee htrueBranch
   have hite :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
                 (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ]
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecBlock.consNormal hiteStmt ExecBlock.nil
-  have hlock := uniswapLockExitSuffix (hperm := by simpa [mintKLastUpdatedState] using hperm)
+  have hlock := uniswapLockExitSuffix (fork := fork) (hperm := by simpa [mintKLastUpdatedState] using hperm)
     (mintKLastUpdatedState evm) locals hunlockedBase
   have hret :
-      ExecBlock config { contract := contract, locals := locals }
+      ExecBlock fork config { contract := contract, locals := locals }
         (uniswapLockExitedState (mintKLastUpdatedState evm))
         [ .return [.var "liquidity"] ]
         (.returned { contract := contract, locals := locals }
@@ -242,7 +244,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
     let afterMint :=
       resumeAfterInternalCall { contract := contract, locals := locals } "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
         updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -260,7 +262,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
         (some [uniswapUint256Value liquidity])) := by
   intro afterMint afterUpdate
   have hprefix :=
-    uniswapMintLiquidityMintUpdateElapsedZeroPrefix (hperm := by assumption) (locals := locals) evm recipient
+    uniswapMintLiquidityMintUpdateElapsedZeroPrefix (fork := fork) (hperm := by assumption) (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
       hbound0 hbound1 helapsed
@@ -280,7 +282,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
       "unlocked" = none
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterUpdate
+      ExecBlock fork config afterUpdate
         (syncUpdatePackedReserveState (mintFunctionPostState evm recipient liquidity)
           balance0 balance1)
         ([ .ite (.var "feeOn")
@@ -334,7 +336,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
     let afterMint :=
       resumeAfterInternalCall { contract := contract, locals := locals } "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
         updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -353,7 +355,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
         (some [uniswapUint256Value liquidity])) := by
   intro afterMint afterUpdate
   have hprefix :=
-    uniswapMintLiquidityMintUpdateElapsedZeroPrefix (hperm := by assumption) (locals := locals) evm recipient
+    uniswapMintLiquidityMintUpdateElapsedZeroPrefix (fork := fork) (hperm := by assumption) (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
       hbound0 hbound1 helapsed
@@ -388,7 +390,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
       "unlocked" = none
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterUpdate
+      ExecBlock fork config afterUpdate
         (syncUpdatePackedReserveState (mintFunctionPostState evm recipient liquidity)
           balance0 balance1)
         ([ .ite (.var "feeOn")
@@ -437,7 +439,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
     let afterMint :=
       resumeAfterInternalCall { contract := contract, locals := locals } "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
         updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -456,7 +458,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
         (some [uniswapUint256Value liquidity])) := by
   intro afterMint afterUpdate
   have hprefix :=
-    uniswapMintLiquidityMintUpdateCumulativePrefix (hperm := by assumption) (locals := locals) evm recipient
+    uniswapMintLiquidityMintUpdateCumulativePrefix (fork := fork) (hperm := by assumption) (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
       hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
@@ -476,7 +478,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
       "unlocked" = none
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterUpdate
+      ExecBlock fork config afterUpdate
         (syncUpdateCumulativePackedReserveStateWith
           (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1)
         ([ .ite (.var "feeOn")
@@ -536,7 +538,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
     let afterMint :=
       resumeAfterInternalCall { contract := contract, locals := locals } "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
         updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -556,7 +558,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
         (some [uniswapUint256Value liquidity])) := by
   intro afterMint afterUpdate
   have hprefix :=
-    uniswapMintLiquidityMintUpdateCumulativePrefix (hperm := by assumption) (locals := locals) evm recipient
+    uniswapMintLiquidityMintUpdateCumulativePrefix (fork := fork) (hperm := by assumption) (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
       hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
@@ -591,7 +593,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
       "unlocked" = none
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterUpdate
+      ExecBlock fork config afterUpdate
         (syncUpdateCumulativePackedReserveStateWith
           (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1)
         ([ .ite (.var "feeOn")
@@ -660,7 +662,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
         "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([mintLiquidityBranchStmt] ++
         [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -679,11 +681,11 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
         (some [uniswapUint256Value liquidity])) := by
   intro liquidity0 liquidity1 afterBranch afterMint afterUpdate
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := locals) evm amount0 amount1
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := locals) evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0
       hreserve1 hfit0 hfit1 hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
+      ExecBlock fork config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
         (.ok afterBranch evm) := by
     exact ExecBlock.consNormal
       (by simpa [liquidity0, liquidity1, afterBranch] using hbranchStmt)
@@ -776,7 +778,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterBranch evm
+      ExecBlock fork config afterBranch evm
         ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
           updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -849,7 +851,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
         "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([mintLiquidityBranchStmt] ++
         [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -869,11 +871,11 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
         (some [uniswapUint256Value liquidity])) := by
   intro liquidity0 liquidity1 afterBranch afterMint afterUpdate
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := locals) evm amount0 amount1
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := locals) evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0
       hreserve1 hfit0 hfit1 hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
+      ExecBlock fork config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
         (.ok afterBranch evm) := by
     exact ExecBlock.consNormal
       (by simpa [liquidity0, liquidity1, afterBranch] using hbranchStmt)
@@ -966,7 +968,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterBranch evm
+      ExecBlock fork config afterBranch evm
         ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
           updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -1046,7 +1048,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
         "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([mintLiquidityBranchStmt] ++
         [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -1066,11 +1068,11 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
         (some [uniswapUint256Value liquidity])) := by
   intro liquidity0 liquidity1 afterBranch afterMint afterUpdate
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := locals) evm amount0 amount1
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := locals) evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0
       hreserve1 hfit0 hfit1 hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
+      ExecBlock fork config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
         (.ok afterBranch evm) := by
     exact ExecBlock.consNormal
       (by simpa [liquidity0, liquidity1, afterBranch] using hbranchStmt)
@@ -1171,7 +1173,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterBranch evm
+      ExecBlock fork config afterBranch evm
         ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
           updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -1258,7 +1260,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
         "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([mintLiquidityBranchStmt] ++
         [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -1279,11 +1281,11 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
         (some [uniswapUint256Value liquidity])) := by
   intro liquidity0 liquidity1 afterBranch afterMint afterUpdate
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := locals) evm amount0 amount1
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := locals) evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0
       hreserve1 hfit0 hfit1 hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
+      ExecBlock fork config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
         (.ok afterBranch evm) := by
     exact ExecBlock.consNormal
       (by simpa [liquidity0, liquidity1, afterBranch] using hbranchStmt)
@@ -1384,7 +1386,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
     rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), hunlockedBase]
   have htail :
-      ExecBlock config afterBranch evm
+      ExecBlock fork config afterBranch evm
         ([ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
           updateReservesStmtsWith (.var "balance0") (.var "balance1")

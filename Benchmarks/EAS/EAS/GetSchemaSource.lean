@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ResolverOneSource
 import Benchmarks.EAS.EAS.StaticCallBridge
 import Benchmarks.EAS.EAS.BytesAllocation
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -66,13 +68,13 @@ def getSchemaPrefixLocals (locals : Store) (v : EASImmutables) (uid : UInt256) (
 theorem getSchemaPrefixSource {cfg : Config} {locals : Store} {evm evm' : EVM.State}
     {uid : UInt256} {success : Bool} {out : ByteArray} (v : EASImmutables)
     (hu : locals.get? "uid" = some (wordBytes32Value uid))
-    (hc : callViaEVM evm v._schemaRegistry 0 (getSchemaPayload uid) (success,evm',out) false) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := immStore v} evm getSchemaPrefix
+    (hc : callViaEVM fork evm v._schemaRegistry 0 (getSchemaPayload uid) (success,evm',out) false) :
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := immStore v} evm getSchemaPrefix
       (.ok {contract := contract, locals := getSchemaPrefixLocals locals v uid success out, immutables := immStore v} evm') := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (evalImmutable__schemaRegistry _ _ _ _ v))
   apply ExecBlock.consNormal (ExecStmt.letDecl (getSchemaPayload_eval (by
     simpa only [store_get_ne _ _ (by decide : ("registry" == "uid") = false)] using hu)))
-  apply ExecBlock.consNormal (lowLevelCallSource_perm (hperm := Or.inl rfl) ?_ (by simp only [evalExpr?, pure]) ?_ hc) ExecBlock.nil
+  apply ExecBlock.consNormal (lowLevelCallSource_perm (fork := fork) (hperm := Or.inl rfl) ?_ (by simp only [evalExpr?, pure]) ?_ hc) ExecBlock.nil
   · simp only [evalExpr?, store_get_ne _ _ (by decide : ("payload" == "registry") = false), store_get_self, EvalResult.ofOption]
   · simp only [evalExpr?, store_get_self, EvalResult.ofOption]
 

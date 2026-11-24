@@ -6,6 +6,8 @@ import Benchmarks.Dss.Clipper.GetStatusReverts
 import Benchmarks.Dss.Clipper.Sales
 import Benchmarks.Dss.Clipper.Take
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -633,7 +635,7 @@ theorem clipperEvalTakeNoChostCond_false_right (v : ClipperImmutables)
 
 theorem clipperTakeAssignOweToTab (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice owe0 owe : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe) (immStore v))
       evmRead (.assign .localVar (varRef "owe") (.var "tab"))
       (.ok
@@ -710,7 +712,7 @@ theorem clipperEvalTakeOweDivPriceAtOweTab (v : ClipperImmutables)
 theorem clipperTakeAssignSliceFromOweTab (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice owe0 : UInt256)
     (hprice : price ≠ ⟨0⟩) :
-    ExecStmt config
+    ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsOweTab evmLoc evmRead I false price slice owe0
           (UInt256.mul slice price)) (immStore v))
       evmRead (.assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")))
@@ -887,7 +889,7 @@ theorem clipperTakeLetTabNew (v : ClipperImmutables)
     (price slice owe0 owe slice' : UInt256) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
       (clipperTakeSalesTabEVMWord evmRead I)
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsOweTabSlice evmLoc evmRead I false price slice owe0 owe slice') (immStore v))
       evmRead
       (.letDecl "tabNew" (some uint256) (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
@@ -988,7 +990,7 @@ theorem clipperTakeLetLotNew (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew : UInt256)
     (hsliceLot : slice'.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsTabNew evmLoc evmRead I false price slice owe0 owe slice'
           tabNew) (immStore v))
       evmRead
@@ -1021,7 +1023,7 @@ theorem clipperTakeLetLotNew (v : ClipperImmutables)
 theorem clipperTakeAssignTabFromTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsLotNew evmLoc evmRead I false price slice owe0 owe slice' tabNew
           lotNew) (immStore v))
       evmRead (.assign .localVar (varRef "tab") (.var "tabNew"))
@@ -1057,7 +1059,7 @@ theorem clipperTakeAssignTabFromTabNew (v : ClipperImmutables)
 theorem clipperTakeAssignLotFromLotNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsTabAssigned evmLoc evmRead I false price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmRead (.assign .localVar (varRef "lot") (.var "lotNew"))
@@ -1376,7 +1378,7 @@ theorem clipperEvalTakeStatusArgs (v : ClipperImmutables)
 theorem clipperTakeStatusCallRevertsAgeForPrice (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hlt : (clipperTimestampWord evm).toNat < (clipperTakeSalesTicEVMWord evm I).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1405,7 +1407,7 @@ theorem clipperTakeStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
@@ -1417,7 +1419,7 @@ theorem clipperTakeStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
     (htail :
       (clipperStatusTailWord evmPrice).toNat <
         (UInt256.sub (clipperTimestampWord evmPrice) (clipperTakeSalesTicEVMWord evm I)).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       (.ok { contract := contract, locals := clipperTakeLocalsSt evm I true price, immutables := immStore v }
@@ -1456,7 +1458,7 @@ theorem clipperTakeStatusCallReturnsRdivBranch (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
@@ -1480,7 +1482,7 @@ theorem clipperTakeStatusCallReturnsRdivBranch (v : ClipperImmutables)
             (UInt256.sub (clipperTimestampWord evmPrice) (clipperTakeSalesTicEVMWord evm I))
             (UInt256.div (UInt256.mul price clipperRayWord) (clipperTakeSalesTopEVMWord evm I)), immutables := immStore v }
         evmPrice (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       (.ok { contract := contract, locals := clipperTakeLocalsSt evm I done price, immutables := immStore v }
@@ -1522,7 +1524,7 @@ theorem clipperTakeStatusCallRevertsPriceNoCode (v : ClipperImmutables)
     (hnoCode :
       (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat = 0) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1552,13 +1554,13 @@ theorem clipperTakeStatusCallRevertsPriceCallFailure (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
             (UInt256.sub (clipperTimestampWord evm) (clipperTakeSalesTicEVMWord evm I)).toNat)]
         (false, evmPrice, out) false) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1588,14 +1590,14 @@ theorem clipperTakeStatusCallRevertsPriceDecode (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
             (UInt256.sub (clipperTimestampWord evm) (clipperTakeSalesTicEVMWord evm I)).toNat)]
         (true, evmPrice, out) false)
     (hdec : config.externalABI.decode? "price" out = none) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1626,7 +1628,7 @@ theorem clipperTakeStatusCallRevertsAgeForDone (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
@@ -1636,7 +1638,7 @@ theorem clipperTakeStatusCallRevertsAgeForDone (v : ClipperImmutables)
       some [.int (Int.ofNat price.toNat)])
     (hltDone : (clipperTimestampWord evmPrice).toNat <
       (clipperTakeSalesTicEVMWord evm I).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1667,7 +1669,7 @@ theorem clipperTakeStatusCallRevertsRdivMul (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
@@ -1681,7 +1683,7 @@ theorem clipperTakeStatusCallRevertsRdivMul (v : ClipperImmutables)
       (UInt256.sub (clipperTimestampWord evmPrice) (clipperTakeSalesTicEVMWord evm I)).toNat ≤
         (clipperStatusTailWord evmPrice).toNat)
     (hover : UInt256.size ≤ price.toNat * clipperRayWord.toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=
@@ -1712,7 +1714,7 @@ theorem clipperTakeStatusCallRevertsRdivDivZero (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperTakeSalesTopEVMWord evm I).toNat),
           .int (Int.ofNat
@@ -1727,7 +1729,7 @@ theorem clipperTakeStatusCallRevertsRdivDivZero (v : ClipperImmutables)
         (clipperStatusTailWord evmPrice).toNat)
     (hmul : price.toNat * clipperRayWord.toNat < UInt256.size)
     (htop : clipperTakeSalesTopEVMWord evm I = ⟨0⟩) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperTakeLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       .reverted :=

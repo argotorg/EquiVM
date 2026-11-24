@@ -4,6 +4,8 @@ import Benchmarks.Safe.Main.Routines
 import Benchmarks.Safe.Main.Blocks.Runtime_012
 import Benchmarks.Safe.Main.Blocks.Runtime_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -35,10 +37,10 @@ theorem safeDomainStack (I : ExecutionEnv) (R : List UInt256) :
 
 set_option maxRecDepth 100000 in
 theorem safeDomainTrace {I g s0 σ k C} {R : List UInt256} {cv : UInt256}
-    (h : RD safeBytecode I g s0 ⟨1563⟩ (cv :: R) solcFreePtrMem
+    (h : RD fork safeBytecode I g s0 ⟨1563⟩ (cv :: R) solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret safeBytecode g s0 σ (domainWord I).toByteArray := by
+    RDret fork safeBytecode g s0 σ (domainWord I).toByteArray := by
   have h974 := safeRuntime_block_1563 hov (by jump_dest) h
   rw [safeDomainMemory, safeDomainStack] at h974
   apply safeReturnWordFromMem h974 (by omega)
@@ -55,17 +57,17 @@ theorem safeDomainseparatorBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some domainseparatorTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xf6 0x98 0xda 0x25 ⟨0xf698da25⟩
     hdispatch domainseparatorSelectorBytes (by decide)
-  obtain ⟨k, C, h1552⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1552⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xf698da25⟩ 0 ⟨1552⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   · have h1563 := safeRuntime_block_1552_taken (by simp)
       (by rw [hvalue]; decide) (by jump_dest) h1552
     have hret := safeDomainTrace h1563 (by simp)
-    have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
+    have hbody := nonpayableReturnExprBodyReturns (fork := fork) (cfg := config) (contract := contract)
       (imms := ∅) (locals := (∅ : Store)) (evm := initState σ σ₀ (.ofUInt256 g) A I)
       hvalue (evalDomainSeparator _ _)
     refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -82,7 +84,7 @@ theorem safeDomainseparatorRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some domainseparatorTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeDomainseparatorBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.Main

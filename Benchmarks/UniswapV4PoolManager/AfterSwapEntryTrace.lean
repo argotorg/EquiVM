@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_045
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,13 +12,13 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def afterSwapEntryResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def afterSwapEntryResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem rdata : ByteArray) (σ : AccountMap) (hook : AccountAddress)
     (keyPtr paramsPtr delta src len before ret : UInt256) (R : List UInt256) : Prop :=
   if I.source = hook then ∃ aw k C, Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 ret (⟨0⟩ :: delta :: R) mem aw rdata σ k C
+    RD fork (deployedRuntime v) I g s0 ret (⟨0⟩ :: delta :: R) mem aw rdata σ k C
   else ∃ aw k C, Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 (if afterSwapActive hook then ⟨15936⟩ else ⟨15800⟩)
+    RD fork (deployedRuntime v) I g s0 (if afterSwapActive hook then ⟨15936⟩ else ⟨15800⟩)
       (paramsPtr :: len :: src :: keyPtr :: accountWord hook :: EVM.wordOfInt (balanceDeltaAmount1 before) ::
         EVM.wordOfInt (balanceDeltaAmount0 before) :: delta :: ret :: paramsPtr :: R) mem aw rdata σ k C
 
@@ -25,9 +27,9 @@ theorem afterSwapEntryTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024) (hpaid : Cₘ aw ≤ C+84)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15745⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15745⟩
       (accountWord hook :: keyPtr :: paramsPtr :: delta :: src :: len :: before :: ret :: R) mem aw rdata σ k C) :
-    afterSwapEntryResult v I g s0 mem rdata σ hook keyPtr paramsPtr delta src len before ret R := by
+    afterSwapEntryResult fork v I g s0 mem rdata σ hook keyPtr paramsPtr delta src len before ret R := by
   have hclean : UInt256.land (accountWord hook) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) =
       accountWord hook := solcAddrMask_clean (accountWord_canonical hook)
   have heq : I.source = hook ↔ accountWord I.source = accountWord hook := by

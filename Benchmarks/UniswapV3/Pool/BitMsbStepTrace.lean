@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ObserveEncodeArithmetic
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_056
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -23,10 +25,10 @@ theorem bitMsbStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (state : Nat × UInt256)
     (i : Fin 7)
-    (rd : RD (deployedRuntime v) ee g s0 (bitMsbPC i.val)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bitMsbPC i.val)
       (UInt256.ofNat state.1 :: state.2 :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (bitMsbPC (i.val + 1))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (bitMsbPC (i.val + 1))
       (UInt256.ofNat (tickLogMsbStep state (2 ^ (7 - i.val))).1 ::
         (tickLogMsbStep state (2 ^ (7 - i.val))).2 :: R) mem aw rdata σ k' C' := by
   have hb : 2 ^ (7 - i.val) < 256 := by

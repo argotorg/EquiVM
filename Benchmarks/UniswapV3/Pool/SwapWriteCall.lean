@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapWriteLoad
 import Benchmarks.UniswapV3.Pool.SourceCallFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -15,7 +17,7 @@ theorem swapWriteCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache snap exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4021⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4021⟩
       ([p, exactWord, cache, snap] ++ R) mem aw rdata σ k C)
     (hf : frame = {contract := contract, locals := frame.locals, immutables := immStore v})
     (hcget : frame.locals.get? "cache" = some c.value)
@@ -31,15 +33,15 @@ theorem swapWriteCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hov : R.length + 33 ≤ 1024) :
     let a := swapWriteArgs c initial
     let m := oracleWriteMemory mem free a evm
-    (ExecStmt config frame evm swapWriteBody[0]! .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecStmt config frame evm swapWriteBody[0]! .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config frame evm swapWriteBody[0]!
+    (ExecStmt fork config frame evm swapWriteBody[0]! .reverted ∧
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm swapWriteBody[0]! .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm swapWriteBody[0]!
         (.ok (swapWriteCallFrame frame a evm) (oracleWriteState a evm)) ∧
       oracleWriteValid a evm ∧ ∃ σ' aw' k' C',
         SourceState s0 ee σ' (oracleWriteState a evm) ∧
-        RD (deployedRuntime v) ee g s0 ⟨4077⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨4077⟩
           ([oracleWriteResultCardinality a evm, oracleWriteResultIndex a evm,
             ⟨0⟩, ⟨0⟩, p, exactWord, cache, snap] ++ R) m aw' rdata σ' k' C' ∧
         HeapMemory m aw' (oracleWriteFree free a evm) ∧

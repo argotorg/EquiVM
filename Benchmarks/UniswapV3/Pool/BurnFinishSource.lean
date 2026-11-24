@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BurnOwedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -16,7 +18,7 @@ def burnFinalState (key : UInt256) (a0 a1 : Int) (evm : EVM.State) : EVM.State :
 theorem burnOwedChoiceSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (burnAmountsFrame v a key a0 a1) evm burnTransition.body[12]!
+    ExecStmt fork config (burnAmountsFrame v a key a0 a1) evm burnTransition.body[12]!
       (.ok (burnFinalFrame v a key a0 a1 evm) (burnFinalState key a0 a1 evm)) := by
   cases hh : burnHasAmounts a0 a1
   · simp only [burnFinalFrame, burnFinalState, hh, Bool.false_eq_true, if_false]
@@ -24,7 +26,7 @@ theorem burnOwedChoiceSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
       ExecBlock.nil
   · simp only [burnFinalFrame, burnFinalState, hh, if_true]
     exact ExecStmt.iteTrue (by simpa only [hh] using evalBurnHasAmounts v a key a0 a1 evm)
-      (burnOwedSource (hperm := hperm) v a key a0 a1 evm)
+      (burnOwedSource (fork := fork) (hperm := hperm) v a key a0 a1 evm)
 
 theorem burnFinalFrame_eq (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State) :
@@ -37,7 +39,7 @@ theorem burnFinalFrame_eq (v : UniswapV3PoolImmutables) (a : BurnArgs)
 theorem burnFinishSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (burnFinalFrame v a key a0 a1 evm) (burnFinalState key a0 a1 evm)
+    ExecBlock fork config (burnFinalFrame v a key a0 a1 evm) (burnFinalState key a0 a1 evm)
       (burnTransition.body.drop 13)
       (.returned (burnFinalFrame v a key a0 a1 evm)
         (storeSlot0Unlocked (burnFinalState key a0 a1 evm) true)
@@ -63,13 +65,13 @@ theorem burnFinishSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
       simpa only [burnFinalState, hh, Bool.false_eq_true, if_false, if_true,
         burnOwedState, storePositionOwed_executionEnv] using hperm
   rw [burnFinalFrame_eq]
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := hpFinal) (vals :=
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := hpFinal) (vals :=
     [.address (burnFinalState key a0 a1 evm).executionEnv.source, .int a.lower, .int a.upper,
       .int (Int.ofNat a.amount.toNat), .int (Int.ofNat (burnAmount a0).toNat),
       .int (Int.ofNat (burnAmount a1).toNat)]) ?_) ?_
   · simp only [evalExprs?, evalExpr?, hl, hu, ha, h0, h1, EvalResult.ofOption,
       envValue, bind, EvalResult.bind, pure]
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpFinal) (by simp only [evalExpr?, pure])
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpFinal) (by simp only [evalExpr?, pure])
     (assignSlot0Unlocked _ _ _ true hs)) ?_
   apply ExecBlock.consReturn (ExecStmt.return ?_)
   simp only [evalExprs?, evalExpr?, h0, h1, EvalResult.ofOption, bind, EvalResult.bind, pure]

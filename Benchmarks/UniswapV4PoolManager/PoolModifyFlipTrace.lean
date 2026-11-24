@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickBitmapCorrect
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 import Benchmarks.UniswapV4PoolManager.ConditionalMappingMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,11 +14,11 @@ def poolModifyFlipMemory (mem : ByteArray) (id tick spacing : UInt256) (flipped 
   conditionalHashMemory mem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
     (poolSlot id+⟨5⟩) flipped
 
-def poolModifyFlipNormal (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyFlipNormal (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 x9 params : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (upper flipped : Bool) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ aw k C,
-    RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
+    RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       (poolModifyFlipMemory mem id (if upper then p.upper else p.lower) p.spacing flipped)
       aw rdata post.accountMap k C
@@ -25,11 +27,11 @@ def poolModifyFlipActiveWords (aw params ptr : UInt256) (upper flipped : Bool) :
   let entryAW := poolModifyFlipEnterActiveWords aw params ptr upper flipped
   if flipped then tickBitmapActiveWords entryAW else entryAW
 
-def poolModifyFlipNormalAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyFlipNormalAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 x9 params : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (upper flipped : Bool) (aw : UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ k C,
-    RD (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
+    RD fork (deployedRuntime v) I g s0 (poolModifyFlipNext upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       (poolModifyFlipMemory mem id (if upper then p.upper else p.lower) p.spacing flipped)
       aw rdata post.accountMap k C
@@ -43,11 +45,11 @@ theorem poolModifyFlipExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hs : memLoad (params+UInt256.ofNat 128) mem = p.spacing)
     (hf : memLoad (if upper then ptr+UInt256.ofNat 64 else ptr) mem = UInt256.fromBool flipped)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyFlipNormalAtAW v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R upper flipped (poolModifyFlipActiveWords aw params ptr upper flipped))
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyFlipNormalAtAW fork v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R upper flipped (poolModifyFlipActiveWords aw params ptr upper flipped))
       (fun _ _ => False)
       (poolModifyFlipResult f evm id (EVM.signed (if upper then p.upper else p.lower))
         (EVM.signed p.spacing) upper flipped) := by
@@ -78,11 +80,11 @@ theorem poolModifyFlipTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hs : memLoad (params+UInt256.ofNat 128) mem = p.spacing)
     (hf : memLoad (if upper then ptr+UInt256.ofNat 64 else ptr) mem = UInt256.fromBool flipped)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyFlipStart upper)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyFlipNormal v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R upper flipped)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyFlipNormal fork v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R upper flipped)
       (fun _ _ => False)
       (poolModifyFlipResult f evm id (EVM.signed (if upper then p.upper else p.lower))
         (EVM.signed p.spacing) upper flipped) := by

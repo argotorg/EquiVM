@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.SignaturePiece
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_014
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -51,12 +53,12 @@ theorem signaturePieceReads {mem bytes : ByteArray} {src i : Nat}
 
 theorem safeSignatureSplit {I g s0 σ k C aw mem rdata src i} {bytes : ByteArray}
     {oldS oldR oldV current last required : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2103⟩
+    (h : RD fork safeBytecode I g s0 ⟨2103⟩
       (UInt256.ofNat i :: oldS :: oldR :: oldV :: current :: last :: required ::
         UInt256.ofNat src :: R) mem aw rdata σ k C)
     (hm : BytesMemory mem src bytes) (hin : 65 * i + 65 ≤ bytes.size)
     (hb : src + 64 + bytes.size < UInt256.size) (hov : R.length + 13 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0
+    ∃ aw' k' C', RD fork safeBytecode I g s0
       (if signatureV bytes i = ⟨0⟩ then ⟨2144⟩ else ⟨2200⟩)
       (UInt256.ofNat i :: signatureS bytes i :: signatureR bytes i :: signatureV bytes i ::
         current :: last :: required :: UInt256.ofNat src :: R) mem aw' rdata σ k' C' := by

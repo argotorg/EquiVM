@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdateTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,20 +16,20 @@ theorem positionUpdateInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
       [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE a.key), .int a.delta,
         .int (Int.ofNat a.growth0.toNat), .int (Int.ofNat a.growth1.toNat)])
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21559⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21559⟩
       (a.growth1 :: a.growth0 :: EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R)
       mem aw rdata σ k C)
     (hd : -(2 ^ 127 : Int) ≤ a.delta ∧ a.delta < 2 ^ 127)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 160 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 25 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "Position_update" args retVar) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Position_update" args retVar) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "Position_update" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "Position_update" args retVar) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Position_update" args retVar) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "Position_update" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none) (positionUpdateFinalState a evm)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (positionUpdateFinalState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret R
+      RD fork (deployedRuntime v) ee g s0 ret R
         (wordArrayAllocMem mem p (positionSnapshotWords a.key σ ee)) aw' rdata σ' k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (positionSnapshotWords a.key σ ee)) aw' (p + ⟨160⟩)) := by
   have hc : {caller with locals := positionUpdateLocals a} = positionUpdateFrame (immStore v) a := by

@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.CreditInternal
 import Benchmarks.CurveVault.MutationEntry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,16 +20,16 @@ theorem vaultCreditEntry (isDeposit : Bool) {σ σ₀ A I} {g : UInt256} {t : Tr
       (transitionSignature t).paramTypes I.calldata = some decoded)
     (hbody : t.body = stmts ++ vaultCreditEntryBody isDeposit)
     (hretTy : t.returnType = [.elem (.int (.uint ⟨256, by decide⟩))])
-    (hprefix : ExecBlock config {contract := contract, locals := decoded}
+    (hprefix : ExecBlock fork config {contract := contract, locals := decoded}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stmts
       (.ok {contract := contract, locals := locals} (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
     (ha : locals.get? (if isDeposit then "_assets" else "_shares") = some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
     (hr : locals.get? "_receiver" = some (.address (AccountAddress.ofNat receiver.toNat)))
     (hsize : 608 ≤ mem.size) (hmr : memLoad (UInt256.ofNat 576) mem = receiver)
     (hcanon : receiver.toNat < EVM.addressModulus) (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (h : RD fork vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (UInt256.ofNat (if isDeposit then 2159 else 3162)) R mem aw rdata σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hentryPc : (vaultCreditFlow isDeposit).lockEntry = (if isDeposit then 2159 else 3162) := by
     cases isDeposit <;> rfl
   have hbodyPc : (vaultCreditFlow isDeposit).bodyEntry = (if isDeposit then 2169 else 3172) := by

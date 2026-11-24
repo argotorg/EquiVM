@@ -1,5 +1,7 @@
 import Benchmarks.Auction.SettleStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -42,11 +44,11 @@ theorem statusStoreSourceSplit {evm locals e word}
     (hl : locals.get? "_status" = none)
     (he : evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm e =
       .ok (.int (Int.ofNat (UInt256.toNat word)))) :
-    (evm.executionEnv.perm = true → ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    (evm.executionEnv.perm = true → ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage statusRef e)
       (.ok { contract := auctionContract, locals := locals } (statusState evm word))) ∧
       (evm.executionEnv.perm = false →
-        ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+        ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
         (.assign .storage statusRef e) .staticViolation) := by
   have hassign := scalarWrite evm _ locals "_status" (.elem (.int uint256Int))
     (auctionUint256Loc ⟨101⟩) _ hl (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
@@ -58,7 +60,7 @@ theorem statusStoreSource {evm locals e word}
     (he : evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm e =
       .ok (.int (Int.ofNat (UInt256.toNat word))))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage statusRef e)
       (.ok { contract := auctionContract, locals := locals } (statusState evm word)) :=
   (statusStoreSourceSplit hl he).1 hperm

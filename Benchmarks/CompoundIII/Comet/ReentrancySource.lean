@@ -1,12 +1,14 @@
 import Benchmarks.CompoundIII.Comet.ReentrancyStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem reentrancyWrite_source (frame : Frame) (evm : EVM.State) (enter : Bool)
     (hc : frame.contract = contract) (hl : frame.locals.get? "__reentrancyGuard" = none) :
-    internalBlockResult config frame evm [reentrancyWriteStmt enter]
+    internalBlockResult fork config frame evm [reentrancyWriteStmt enter]
       (reentrancyWriteOutcome evm enter) := by
   have he : evalExpr? config frame evm (.intLit (if enter then 1 else 0)) =
       .ok (.int (reentrancyValue enter).toNat) := by
@@ -17,10 +19,10 @@ theorem reentrancyWrite_source (frame : Frame) (evm : EVM.State) (enter : Bool)
   · simp only [reentrancyWriteOutcome, hp, Bool.false_eq_true, if_false, internalBlockResult]
     exact ExecBlock.consStatic (ExecStmt.assignStatic he hw hp)
   · simp only [reentrancyWriteOutcome, hp, if_true, internalBlockResult]
-    exact ⟨frame, ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he hw) .nil⟩
+    exact ⟨frame, ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he hw) .nil⟩
 
 theorem reentrancy_source (imms : Store) (evm : EVM.State) (enter : Bool) :
-    internalSourceResult config { contract := contract, locals := ∅, immutables := imms }
+    internalSourceResult fork config { contract := contract, locals := ∅, immutables := imms }
       evm (reentrancyCallable enter).body (reentrancyOutcome evm enter) := by
   apply internalBlockResult.toSource
   cases enter
@@ -53,7 +55,7 @@ theorem reentrancy_source (imms : Store) (evm : EVM.State) (enter : Bool) :
 
 theorem reentrancy_call (frame : Frame) (evm : EVM.State) (enter : Bool) (ret : Ident)
     (hc : frame.contract = contract) :
-    ExecStmt config frame evm (.internalCall (reentrancyName enter) [] ret)
+    ExecStmt fork config frame evm (.internalCall (reentrancyName enter) [] ret)
       (internalStmtResult frame ret (reentrancyOutcome evm enter)) := by
   apply internalVoidCall (callee := reentrancyCallable enter) (locals := ∅) (argVals := [])
     rfl (by rw [hc]; exact reentrancyCallable_lookup enter) rfl

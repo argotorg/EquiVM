@@ -1,6 +1,8 @@
 import Examples.VyperERC20.Allowance
 import Examples.ERC20.Approve
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -154,7 +156,7 @@ theorem erc20Decode_approve_none_noncanon {I : ExecutionEnv}
 
 theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody vyperERC20Config erc20Contract evm (approveStore I) ERC20.approveTransition.body
+    ExecTransitionBody fork vyperERC20Config erc20Contract evm (approveStore I) ERC20.approveTransition.body
       (.returned { contract := erc20Contract, locals := approveStore I }
         (approvePostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
@@ -170,7 +172,7 @@ theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 /-- Static mode: the body halts at the allowance write. -/
 theorem erc20ApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody vyperERC20Config erc20Contract evm (approveStore I)
+    ExecTransitionBody fork vyperERC20Config erc20Contract evm (approveStore I)
       ERC20.approveTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
@@ -435,12 +437,12 @@ theorem erc20X_approveFromEntry {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
-    (I.perm = true ∧ RDret vyperERC20Bytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork vyperERC20Bytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveValueWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)))
-    ∨ (I.perm = false ∧ RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd206⟩ := hreach
   have hslot := approveOuterKeccakSlot I hcanonSpender
   have hsizeGuard := calldataSizeGuard68 (n := I.calldata.size) hsz68 hsize
@@ -535,9 +537,9 @@ theorem erc20ApproveX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd206⟩ := hreach
   have hsizeGuard := calldataSizeGuardShort (n := I.calldata.size) (m := 68)
     hsize (by norm_num [UInt256.size]) hshort
@@ -557,9 +559,9 @@ theorem erc20ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd206⟩ := hreach
   have hsizeGuard := calldataSizeGuard68 (n := I.calldata.size) hsz68 hsize
   have hcanonSpenderGuard : UInt256.shiftRight (approveSpenderWord I) ⟨160⟩ ≠ ⟨0⟩ := by
@@ -605,12 +607,12 @@ theorem approveSelectorWord_of_calldata {I : ExecutionEnv}
 theorem erc20X_approveReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
   have hsz := erc20ApproveSelector_size hsel
   have hword := approveSelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -641,11 +643,11 @@ theorem erc20ApproveBodyCore
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor vyperERC20Config erc20Contract
+    runtimeRefinementFor fork vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_approve (cd := I.calldata) hsel
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -660,7 +662,7 @@ theorem erc20ApproveBodyCore
               some (approveStore I) := by
         simpa [vyperERC20Config] using hdec0
       by_cases hperm : I.perm = true
-      · have hbody := erc20ApproveBodyReturns evm I
+      · have hbody := erc20ApproveBodyReturns (fork := fork) evm I
           (by simp only [evm, initState]; exact hwv) hperm
         exact (permSplit_true hperm (erc20X_approveFromEntry (g := Sat256.ofUInt256 g)
             hwv hsz68 hsize hcanonSpender hreach))
@@ -698,10 +700,10 @@ theorem erc20ApproveRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor vyperERC20Config erc20Contract
+    runtimeRefinementFor fork vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20ApproveBodyCore hcode hwv hsize hsel
-    (erc20X_approveReach (σ := σ)
+    (erc20X_approveReach (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
 
 end VyperERC20

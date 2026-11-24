@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepInputSource
 import Benchmarks.UniswapV4PoolManager.SwapStepOutputSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -19,7 +21,7 @@ def swapStepReturnStmt : Stmt :=
   .return [.var "sqrtPriceNextX96", .var "amountIn", .var "amountOut", .var "feeAmount"]
 
 theorem swapStepReturnSource {f : Frame} {evm : EVM.State} {w : SwapStepWords} (h : SwapStepFrameResult f w) :
-    ExecBlock config f evm [swapStepReturnStmt] (.returned f evm (some (swapStepReturnValues w))) := by
+    ExecBlock fork config f evm [swapStepReturnStmt] (.returned f evm (some (swapStepReturnValues w))) := by
   apply ExecBlock.consReturn
   apply ExecStmt.return
   change evalExprs? config f evm [.var "sqrtPriceNextX96", .var "amountIn", .var "amountOut", .var "feeAmount"] = _

@@ -1,6 +1,8 @@
 import Examples.OpenZeppelinBench.Ownable2Step.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -158,7 +160,7 @@ theorem ownable2StepTransferOwnershipBodyReturns (evm : EVM.State) (I : Executio
         ownable2StepSourceWord evm.executionEnv)
     (hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferOwnershipStore I)
+    ExecTransitionBody fork config contract evm (transferOwnershipStore I)
       transferOwnershipTransition.body
       (.returned { contract := contract, locals := transferOwnershipStore I }
         (transferOwnershipAfterPendingState evm I) none) := by
@@ -181,7 +183,7 @@ theorem ownable2StepTransferOwnershipBodyStatic (evm : EVM.State) (I : Execution
         ownable2StepSourceWord evm.executionEnv)
     (hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (transferOwnershipStore I)
+    ExecTransitionBody fork config contract evm (transferOwnershipStore I)
       transferOwnershipTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -196,7 +198,7 @@ theorem ownable2StepTransferOwnershipBodyReverts_owner (evm : EVM.State) (I : Ex
     (howner :
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) solcAddrMask ≠
         ownable2StepSourceWord evm.executionEnv) :
-    ExecTransitionBody config contract evm (transferOwnershipStore I)
+    ExecTransitionBody fork config contract evm (transferOwnershipStore I)
       transferOwnershipTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -268,14 +270,14 @@ set_option maxHeartbeats 500000 in
 theorem ownable2StepDecodeAddressOk530 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ownable2StepBenchBytecode ee g s0 ⟨530⟩
+    (h : RD fork ownable2StepBenchBytecode ee g s0 ⟨530⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hret : (D_J ownable2StepBenchBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD ownable2StepBenchBytecode ee g s0 ret (calldataWord ee.calldata 4 :: R)
+    ∃ k' C', RD fork ownable2StepBenchBytecode ee g s0 ret (calldataWord ee.calldata 4 :: R)
       mem aw rdata acc k' C' := by
   have hclean : UInt256.eq (calldataWord ee.calldata 4)
       (UInt256.land (calldataWord ee.calldata 4) solcAddrMask) = ⟨1⟩ :=
@@ -297,12 +299,12 @@ theorem ownable2StepDecodeAddressLenRevert530 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD ownable2StepBenchBytecode ee g s0 ⟨530⟩
+    (h : RD fork ownable2StepBenchBytecode ee g s0 ⟨530⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩)
     (hov : R.length + 10 ≤ 1024) :
-    RDrev ownable2StepBenchBytecode g s0 :=
+    RDrev fork ownable2StepBenchBytecode g s0 :=
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨546⟩,
     jumpiNT (by rw [hsltval]; decide),
@@ -316,14 +318,14 @@ theorem ownable2StepDecodeAddressNoncanonRevert530 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD ownable2StepBenchBytecode ee g s0 ⟨530⟩
+    (h : RD fork ownable2StepBenchBytecode ee g s0 ⟨530⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩)
     (hnc : UInt256.eq (calldataWord ee.calldata 4)
         (UInt256.land (calldataWord ee.calldata 4) solcAddrMask) = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    RDrev ownable2StepBenchBytecode g s0 :=
+    RDrev fork ownable2StepBenchBytecode g s0 :=
   have hnc' : UInt256.eq
         (uInt256OfByteArray (ee.calldata.readBytes (⟨4⟩ : UInt256).toNat 32))
         (UInt256.land
@@ -339,10 +341,10 @@ theorem ownable2StepDecodeAddressNoncanonRevert530 {g : Sat256} {s0 : State}
 
 theorem ownable2StepTransferOwnershipX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [sel] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    ∃ k C, RD ownable2StepBenchBytecode I g (initState σ σ₀ g A I) ⟨530⟩
+    ∃ k C, RD fork ownable2StepBenchBytecode I g (initState σ σ₀ g A I) ⟨530⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨178⟩, ⟨97⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd164⟩ := hreach
@@ -355,10 +357,10 @@ theorem ownable2StepTransferOwnershipX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [sel] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    ∃ k C, RD ownable2StepBenchBytecode I g (initState σ σ₀ g A I) ⟨178⟩
+    ∃ k C, RD fork ownable2StepBenchBytecode I g (initState σ σ₀ g A I) ⟨178⟩
       [transferOwnershipNewOwnerWord I, ⟨97⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
@@ -375,10 +377,10 @@ theorem ownable2StepTransferOwnershipX_decodeRevert_short {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [sel] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
@@ -391,10 +393,10 @@ theorem ownable2StepTransferOwnershipX_decodeRevert_short {σ σ₀ A I}
 theorem ownable2StepTransferOwnershipX_decodeRevert_huge {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [sel] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
@@ -410,10 +412,10 @@ theorem ownable2StepTransferOwnershipX_decodeRevert_noncanon {σ σ₀ A I}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (transferOwnershipNewOwnerWord I)
         (UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [sel] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
@@ -431,12 +433,12 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
     (hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus)
     (howner :
       UInt256.land (transferOwnershipOwnerWord σ I) solcAddrMask = ownable2StepSourceWord I)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    (I.perm = true ∧ RDret ownable2StepBenchBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork ownable2StepBenchBytecode g (initState σ σ₀ g A I)
       (transferOwnershipAfterPendingMap σ I) ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic ownable2StepBenchBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork ownable2StepBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd178⟩ := ownable2StepTransferOwnershipX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := ownable2StepSelWord I) hsz36 hsize hszhi hcanon hreach
@@ -449,7 +451,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by evm_ov)
   have rd287 := evm_run rd283 with [jumpdest, push1 ⟨1⟩, dup1]
   obtain ⟨_, _, rd288₀⟩ := rd287.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd288⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd288⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨288⟩
       [transferOwnershipPendingOwnerWord σ I, ⟨1⟩, transferOwnershipNewOwnerWord I, ⟨97⟩,
         ownable2StepSelWord I]
@@ -479,7 +481,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
     exact Or.inr ⟨hpf, rd314.sstoreStatic hpf (by decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
   obtain ⟨_, _, rd315₀⟩ := rd314.sstore hp (by decide) (by evm_ov)
-  obtain ⟨_, _, rd315⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd315⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨315⟩
       [UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask,
         transferOwnershipNewOwnerWord I, ⟨97⟩, ownable2StepSelWord I]
@@ -489,7 +491,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
   let σp := transferOwnershipAfterPendingMap σ I
   have rd319 := evm_run rd315 with [push2 ⟨331⟩, push0]
   obtain ⟨_, _, rd320₀⟩ := rd319.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd320⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd320⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨320⟩
       [transferOwnershipOwnerWordAfterPending σ I, ⟨331⟩,
         UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask,
@@ -527,10 +529,10 @@ theorem ownable2StepX_transferOwnership_revert_owner {σ σ₀ A I} {g : Sat256}
     (hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus)
     (howner :
       UInt256.land (transferOwnershipOwnerWord σ I) solcAddrMask ≠ ownable2StepSourceWord I)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨164⟩ [ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd178⟩ := ownable2StepTransferOwnershipX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := ownable2StepSelWord I) hsz36 hsize hszhi hcanon hreach
@@ -547,11 +549,11 @@ theorem ownable2StepTransferOwnershipBody {σ σ₀ A I}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨164⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz4 := ownable2StepTransferOwnershipSelector_size hsel
   have hd := ownable2StepDispatch_transferOwnership (cd := I.calldata) hsel
@@ -570,7 +572,7 @@ theorem ownable2StepTransferOwnershipBody {σ σ₀ A I}
               transferOwnershipOwnerWord, ownable2StepSourceWord] using howner
           have hdec := ownable2StepDecode_transferOwnership_ok (I := I) hsz36 hbig hcanon
           by_cases hperm : I.perm = true
-          · have hbody := ownable2StepTransferOwnershipBodyReturns (hperm := hperm) evmS I
+          · have hbody := ownable2StepTransferOwnershipBodyReturns (fork := fork) (hperm := hperm) evmS I
               (by simp only [evmS, initState]; exact hwv) hownerStele hcanon
             exact (permSplit_true hperm (ownable2StepX_transferOwnership_success
                 (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon howner hreach))
@@ -582,7 +584,7 @@ theorem ownable2StepTransferOwnershipBody {σ σ₀ A I}
                     Stele.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
           · have hpf : I.perm = false := by simpa using hperm
-            have hbody := ownable2StepTransferOwnershipBodyStatic evmS I
+            have hbody := ownable2StepTransferOwnershipBodyStatic (fork := fork) evmS I
               (by simp only [evmS, initState]; exact hwv) hownerStele hcanon
               (by simp only [evmS, initState]; exact hpf)
             exact (permSplit_false hpf (ownable2StepX_transferOwnership_success
@@ -597,7 +599,7 @@ theorem ownable2StepTransferOwnershipBody {σ σ₀ A I}
             simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
               transferOwnershipOwnerWord, ownable2StepSourceWord] using h
           have hdec := ownable2StepDecode_transferOwnership_ok (I := I) hsz36 hbig hcanon
-          have hbody := ownable2StepTransferOwnershipBodyReverts_owner evmS I
+          have hbody := ownable2StepTransferOwnershipBodyReverts_owner (fork := fork) evmS I
             (by simp only [evmS, initState]; exact hwv) hownerStele
           exact (ownable2StepX_transferOwnership_revert_owner (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hcanon howner hreach)

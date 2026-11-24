@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralHealthRefine
 import Benchmarks.Morpho.MorphoBlue.HealthMessage
 import Benchmarks.Morpho.MorphoBlue.HeapWordWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,13 +13,13 @@ set_option maxRecDepth 1000
 theorem morphoWithdrawCollateralHealthCheck {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw ptr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (z : Bool) (hstack : R.length + 24 ≤ 1024) (hm : MorphoHeap mem ptr 320) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
       ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: UInt256.ofNat 5701 :: R) mem aw out σ k C) :
     if z then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5701) R
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5701) R
         (morphoHealthMem mem) aw' out σ k' C' ∧ MorphoHeap (morphoHealthMem mem) (ptr + UInt256.ofNat 64) 32 ∧
         HeapAdvance mem ptr (morphoHealthMem mem) (ptr + UInt256.ofNat 64) 64
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd0 := morphoBlocks.morpho_block_5693 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   obtain ⟨a1, k1, C1, rd1⟩ := morphoHealthMessage (v := v)

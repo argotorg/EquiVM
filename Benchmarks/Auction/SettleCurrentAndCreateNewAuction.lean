@@ -1,6 +1,8 @@
 import Benchmarks.Auction.SettleCreateRoutine
 import Benchmarks.Auction.Events
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -10,8 +12,8 @@ namespace Auction
 theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 18))
-    (hreach : EntryReached 18 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 18 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 18 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 18) (entryBytes_size 18) hsel
@@ -33,7 +35,7 @@ theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) hsrc))
     rcases hnormal with
       ⟨evm', σ', locals', mem', aw', out, _, _, hsrc, hs', rd413⟩ | ⟨hsrc, hr⟩
-    · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+    · have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
           settleAndCreateTransition.body
           (.returned { contract := auctionContract, locals := locals' } evm' none) :=
         ExecFuncBody.execBlockOK (ExecBlock.consNormal
@@ -41,7 +43,7 @@ theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
       exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
         hcode hd hdec hbody hs'.accounts
         (.fallthrough rfl rfl (by native_decide))
-    · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+    · have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
           settleAndCreateTransition.body .reverted :=
         ExecFuncBody.execBlockRevert (ExecBlock.consNormal
           (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) hsrc)

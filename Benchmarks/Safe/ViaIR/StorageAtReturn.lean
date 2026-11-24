@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.WordBufferCopy
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_029
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,12 +15,12 @@ set_option maxRecDepth 2000
 
 set_option maxHeartbeats 800000 in
 theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words offset} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6173⟩
+    (h : RD fork safeBytecode I g s0 ⟨6173⟩
       (UInt256.ofNat n :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024)
     (hm : AddressArrayMemory mem n words (UInt256.ofNat (32 * n)))
     (hn : n ≤ 2 ^ 64 - 1) :
-    RDret safeBytecode g s0 σ (wordBufferReturnBytes words) := by
+    RDret fork safeBytecode g s0 σ (wordBufferReturnBytes words) := by
   let fp := 160 + 32 * n
   have hfp : (addressArrayFreePtr n).toNat = fp :=
     ulit_toNat' _ (by change 160 + 32 * n < 2 ^ 256; omega)
@@ -38,7 +40,7 @@ theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words offset} {R 
     exact hm.count
   obtain ⟨aw₂, k₂, C₂, h₂⟩ := safeRuntime_block_7374_packed (by simp; omega) h₁
   simp only [safeRuntime_block_7374_stack, safeRuntime_block_7374_memory] at h₂
-  change RD safeBytecode I g s0 ⟨7384⟩
+  change RD fork safeBytecode I g s0 ⟨7384⟩
     (⟨0⟩ :: ⟨128⟩ :: UInt256.ofNat (fp + 32) :: UInt256.ofNat 585 ::
       memLoad ⟨128⟩ (writeWord mem fp (UInt256.ofNat 32)) ::
       addressArrayFreePtr n :: addressArrayFreePtr n :: UInt256.ofNat n ::
@@ -66,7 +68,7 @@ theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words offset} {R 
   obtain ⟨aw₆, k₆, C₆, h₆⟩ := safeRuntime_block_7392_packed (by simp; omega)
     (by jump_dest) h₅
   simp only [safeRuntime_block_7392_stack, safeRuntime_block_7392_memory, he] at h₆
-  change RD safeBytecode I g s0 ⟨585⟩ _
+  change RD fork safeBytecode I g s0 ⟨585⟩ _
     ((⟨0⟩ : UInt256).toByteArray.write 0 encoded encoded.size 32) aw₆ rdata σ k₆ C₆ at h₆
   rw [writeWordAtEnd encoded (⟨0⟩ : UInt256) rfl] at h₆
   have hround : UInt256.land (UInt256.ofNat (32 * n) + UInt256.ofNat 31)
@@ -83,7 +85,7 @@ theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words offset} {R 
     all_goals change _ < 2 ^ 256; dsimp [fp]; omega
   rw [hendword] at h₆
   have hret := safeRuntime_block_585 (by simp; omega) h₆
-  change RDret safeBytecode g s0 σ ((encoded ++ (⟨0⟩ : UInt256).toByteArray).readWithPadding
+  change RDret fork safeBytecode g s0 σ ((encoded ++ (⟨0⟩ : UInt256).toByteArray).readWithPadding
     (addressArrayFreePtr n).toNat
     (UInt256.sub (UInt256.ofNat (fp + 64 + 32 * n)) (addressArrayFreePtr n)).toNat) at hret
   have hend : (UInt256.ofNat (fp + 64 + 32 * n)).toNat = fp + 64 + 32 * n :=

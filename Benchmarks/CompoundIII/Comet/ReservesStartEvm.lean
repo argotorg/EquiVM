@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CurrentIndicesEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,15 +14,15 @@ theorem cometReservesStart {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 35 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     let time := timestampWord ee
     if CurrentIndicesValid v w0 w1 time then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9871⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9871⟩
         (currentIndex v w0 w1 time true :: currentIndex v w0 w1 time false ::
           w1 :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
@@ -35,7 +37,7 @@ theorem cometReservesStart {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k2, C2, r2⟩ := cometWithExtendedAssetList_block_9836
       (immWords := wordsOf (immStore v)) (by change R.length + 2 + 8 ≤ 1024; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-    change RD _ _ _ _ _ (time :: UInt256.land (UInt256.shiftRight w1 ⟨208⟩) ⟨1099511627775⟩ ::
+    change RD fork _ _ _ _ _ (time :: UInt256.land (UInt256.shiftRight w1 ⟨208⟩) ⟨1099511627775⟩ ::
       ⟨7926⟩ :: ⟨9866⟩ :: ⟨9871⟩ :: w1 :: ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r2
     rw [← lastAccrualWord_eq] at r2
     by_cases hle : (lastAccrualWord w1).toNat ≤ time.toNat
@@ -46,7 +48,7 @@ theorem cometReservesStart {v : CometWithExtendedAssetListImmutables}
       have r4 := cometWithExtendedAssetList_block_7926
         (immWords := wordsOf (immStore v)) (by change R.length + 4 + 3 ≤ 1024; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-      change RD _ _ _ _ _ (UInt256.land (UInt256.ofNat 1099511627775)
+      change RD fork _ _ _ _ _ (UInt256.land (UInt256.ofNat 1099511627775)
         (currentElapsed time w1) :: ⟨9871⟩ :: w1 :: ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r4
       rw [mask40Clean _ hdt] at r4
       have r5 := cometWithExtendedAssetList_block_9866

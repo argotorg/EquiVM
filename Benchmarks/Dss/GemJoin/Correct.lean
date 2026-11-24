@@ -11,6 +11,8 @@ import Benchmarks.Dss.GemJoin.Rely
 import Benchmarks.Dss.GemJoin.Vat
 import Benchmarks.Dss.GemJoin.Wards
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin benchmark correctness
 
@@ -24,8 +26,8 @@ namespace Benchmarks.Dss.GemJoin
 
 theorem gemJoinCorrect :
     runtimeRefinement config gemJoinBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (gemJoinSelBytes 0)
     · exact gemJoinCageBodyCoreAnyPerm hcode hsize hwv hcage

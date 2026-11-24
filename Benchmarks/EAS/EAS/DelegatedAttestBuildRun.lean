@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.DelegatedAttestBuildMemory
 import Benchmarks.EAS.EAS.CalldataAddress6240
 import Benchmarks.EAS.EAS.CopyRequestCall
 import Benchmarks.EAS.EAS.RuntimeBlocks_012
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,12 +18,12 @@ theorem easDelegatedAttestBuild {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+25 ≤ 1024) (hsize : ee.calldata.size<2^255+4)
     (hlo : 96≤heap.toNat) (hh : heap.toNat≤2^64-1) (hmem : 96≤mem.size)
     (hfree : memLoad (UInt256.ofNat 64) mem=heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6240⟩ (delegatedAttestBuildStack schema src sigOffset addrHead ret j R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6240⟩ (delegatedAttestBuildStack schema src sigOffset addrHead ret j R) mem aw rdata σ k C) :
     let sigSrc := UInt256.mul j (UInt256.ofNat 96)+sigOffset
     (delegatedAttestBuildValid ee.calldata src sigSrc addrHead heap →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨13494⟩ (heap::ret::j::⟨1⟩::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨13494⟩ (heap::ret::j::⟨1⟩::R)
         (delegatedAttestBuildMemory mem ee.calldata schema src sigSrc addrHead heap) aw' rdata σ k' C') ∧
-    (¬delegatedAttestBuildValid ee.calldata src sigSrc addrHead heap → RDrev (deployedRuntime v) g s0) := by
+    (¬delegatedAttestBuildValid ee.calldata src sigSrc addrHead heap → RDrev fork (deployedRuntime v) g s0) := by
   let sigSrc := UInt256.mul j (UInt256.ofNat 96)+sigOffset
   simp only [delegatedAttestBuildStack,List.cons_append,List.nil_append] at rd
   have haddr := easCalldataAddress6240 v (by simp only [List.length_cons];omega)
@@ -37,12 +39,12 @@ theorem easDelegatedAttestBuild {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     · obtain ⟨a3,k3,C3,r3⟩ := easFixedAllocate_ok v .bytes128 (by simp only [List.length_cons];omega)
         (by change allocateNext heap.toNat 128≤2^64-1 ∧ heap.toNat≤allocateNext heap.toNat 128;rw [hn128];exact ⟨hg,by omega⟩)
         (by rw [easPatchedValidJumps v];jump_dest) r2
-      change RD _ _ _ _ _ _ (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 128))) _ _ _ _ _ at r3
+      change RD fork _ _ _ _ _ _ (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 128))) _ _ _ _ _ at r3
       rw [hn128] at r3
       obtain ⟨a4,k4,C4,r4⟩ := easBlocks.eas_block_2983_packed (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons];omega) (by rw [easPatchedValidJumpsRuntime v];jump_dest) r3
       simp only [easBlocks.eas_block_2983_stack,easBlocks.eas_block_2983_memory,← writeWord_as_write] at r4
-      change RD (deployedRuntime v) ee g s0 ⟨5344⟩
+      change RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
         (src::UInt256.ofNat ee.calldata.size::UInt256.ofNat 2992::sigOffset::UInt256.ofNat 3009::
           calldataWord ee.calldata addrHead.toNat::solcAddrMask::heap::ret::j::⟨1⟩::R)
         (delegatedAttestBuildSchema mem heap schema) a4 rdata σ k4 C4 at r4
@@ -64,7 +66,7 @@ theorem easDelegatedAttestBuild {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (by simp only [List.length_cons];omega) (by rw [easPatchedValidJumpsRuntime v];jump_dest) r5
         simp only [easBlocks.eas_block_2992_stack,easBlocks.eas_block_2992_memory,← writeWord_as_write,
           uadd_word_ofNat_toNat heap 32 (by change _<2^256;omega)] at r6
-        change RD (deployedRuntime v) ee g s0 ⟨6273⟩
+        change RD fork (deployedRuntime v) ee g s0 ⟨6273⟩
           (sigSrc::UInt256.ofNat ee.calldata.size::UInt256.ofNat 3009::calldataWord ee.calldata addrHead.toNat::
             solcAddrMask::heap::ret::j::⟨1⟩::R)
           (delegatedAttestBuildLinked mem ee.calldata schema src heap) a6 rdata σ k6 C6 at r6
@@ -96,7 +98,7 @@ theorem easDelegatedAttestBuild {ee : ExecutionEnv} {g : Sat256} {s0 : State}
               uadd_word_ofNat_toNat heap 64 (by omega),uadd_word_ofNat_toNat heap 96 (by omega)]
             rfl
           refine ⟨fun _ => ⟨a8,k8,C8,?_⟩,fun h => (h ⟨ha,hg,hd,by simpa only [hdp] using hv,hs.1,hs.2⟩).elim⟩
-          change RD _ _ _ _ _ _ (easBlocks.eas_block_3009_memory
+          change RD fork _ _ _ _ _ _ (easBlocks.eas_block_3009_memory
             (mem := delegatedAttestBuildSignature mem ee.calldata schema src sigSrc heap)
             (x0 := UInt256.ofNat next) (x1 := calldataWord ee.calldata addrHead.toNat) (x2 := solcAddrMask) (x3 := heap)) _ _ _ _ _ at r8
           simpa only [easBlocks.eas_block_3009_stack,hmem8] using r8

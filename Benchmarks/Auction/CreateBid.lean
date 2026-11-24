@@ -2,6 +2,8 @@ import Benchmarks.Auction.BidRoutine
 import Benchmarks.Auction.Decoders
 import Benchmarks.Auction.Events
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -9,8 +11,8 @@ namespace Auction
 theorem createBidBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 6))
-    (hreach : EntryReached 6 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 6 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   have hd := dispatchEntry 6 hsel
   have hsz := calldata_size_ge_of_selIs I (entryBytes 6) (entryBytes_size 6) hsel
   obtain ⟨_, _, rd500⟩ := hreach

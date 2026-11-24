@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.LocalArray
 import Benchmarks.EAS.Attester.AttestSource
 import Benchmarks.EAS.Attester.AttestCellABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -45,7 +47,7 @@ theorem attestInnerRun {C : ContractDecl} {imms : Store} {evm : State}
     (hd : locals.get? "data" = some (.array data)) (hlen : data.length = inputs.length)
     (hfilled : ∀ k < j, data[k]? = (attestArrayValues values 0 inputs.length)[k]?)
     (hinputs : ∀ k < inputs.length, inputs[k]? = some (.int (Int.ofNat (values k).toNat))) :
-    ∃ result, ExecForLoop config ⟨C, locals, imms⟩ evm attestInnerCond attestInnerPost
+    ∃ result, ExecForLoop fork config ⟨C, locals, imms⟩ evm attestInnerCond attestInnerPost
         attestInnerBody
       (.ok ⟨C, result, imms⟩ evm) ∧
       result.get? "data" = some (.array (attestArrayValues values 0 inputs.length)) ∧
@@ -83,17 +85,17 @@ theorem attestInnerRun {C : ContractDecl} {imms : Store} {evm : State}
           (evm := evm) hu hi (hinputs j hju) (by rfl)
         simp only [evalExpr?, evalExprs?, evalExprList?, hv, bind, EvalResult.bind, pure,
           encodeInput, EvalResult.ofOption]
-      have hbody : ExecBlock config ⟨C, locals, imms⟩ evm attestInnerBody
+      have hbody : ExecBlock fork config ⟨C, locals, imms⟩ evm attestInnerBody
           (.ok ⟨C, afterData, imms⟩ evm) := by
         refine ExecBlock.consNormal (ExecStmt.letDecl hencode) ?_
         refine ExecBlock.consNormal
-          (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalAttestCellExpr (input := values j) ?_) ?_) ExecBlock.nil
+          (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalAttestCellExpr (input := values j) ?_) ?_) ExecBlock.nil
         · simp [encoded, Std.HashMap.getElem?_insert]
         · apply assignLocalArrayIndex (by simpa [encoded, Std.HashMap.getElem?_insert] using hd)
             (by simpa [encoded, Std.HashMap.getElem?_insert] using hi) hjd
       have hiData : afterData.get? "j" = some (.int (Int.ofNat j)) := by
         simpa [afterData, encoded, Std.HashMap.getElem?_insert] using hi
-      have hpost : ExecBlock config ⟨C, afterData, imms⟩ evm attestInnerPost
+      have hpost : ExecBlock fork config ⟨C, afterData, imms⟩ evm attestInnerPost
           (.ok ⟨C, afterStep, imms⟩ evm) := execLocalIncrement hiData (by omega)
       have hfilled' : ∀ k < j + 1,
           (data.set j value)[k]? = (attestArrayValues values 0 inputs.length)[k]? := by
@@ -125,7 +127,7 @@ theorem attestInnerFor {C : ContractDecl} {imms : Store} {evm : State}
     (hu : locals.get? "inputs" = some (.array inputs))
     (hd : locals.get? "data" = some (.array data)) (hlen : data.length = inputs.length)
     (hinputs : ∀ k < inputs.length, inputs[k]? = some (.int (Int.ofNat (values k).toNat))) :
-    ∃ result, ExecStmt config ⟨C, locals, imms⟩ evm
+    ∃ result, ExecStmt fork config ⟨C, locals, imms⟩ evm
       (.for [.letDecl "j" (some uint256) (.intLit 0)] attestInnerCond attestInnerPost
           attestInnerBody)
       (.ok ⟨C, result, imms⟩ evm) ∧

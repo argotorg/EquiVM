@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.WordCallResult
 import Benchmarks.Safe.V1_0227664.Bytes4ReturnDecoder
 import Benchmarks.Safe.V1_0227664.PreModuleCallEncoding
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -89,9 +91,9 @@ theorem evalContractSignatureResult (evm : EVM.State) (owner : EVM.Address) (has
 
 theorem safeContractSignatureSource {evm evm' : EVM.State} {owner : EVM.Address}
     {hash : UInt256} {signature out : ByteArray} {z : Bool} (hb : out.size < 2 ^ 255)
-    (hc : callViaEVM evm (EVM.address owner) 0 (contractSignatureCallBytes hash signature)
+    (hc : callViaEVM fork evm (EVM.address owner) 0 (contractSignatureCallBytes hash signature)
       (z, evm', out) false) :
-    ExecFuncBody config (contractSignatureFrame owner hash signature) evm
+    ExecFuncBody fork config (contractSignatureFrame owner hash signature) evm
       validateContractSignatureFunction.body
       (if contractSignatureDecoded z out then
         .returned (contractSignatureFinalFrame owner hash signature z out) evm'
@@ -107,7 +109,7 @@ theorem safeContractSignatureSource {evm evm' : EVM.State} {owner : EVM.Address}
       .ok [wordBytes32Value hash, .bytes signature] := by
     simp [evalExprs?, evalExpr?, contractSignatureFrame, contractSignatureArgs,
       Std.HashMap.getElem_insert, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  have hcall : typedCallViaEVM config evm (EVM.address owner) "isValidSignature" 0
+  have hcall : typedCallViaEVM fork config evm (EVM.address owner) "isValidSignature" 0
       [wordBytes32Value hash, .bytes signature] (z, evm', out) false := by
     exact ⟨_, contractSignatureCallEncoding _ _, hc⟩
   cases z with

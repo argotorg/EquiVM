@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapCallbackTrace
 import Benchmarks.UniswapV3.Pool.SwapCallbackSource
 import Benchmarks.UniswapV3.Pool.CallbackCallLayout
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,7 +17,7 @@ theorem swapCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {amount0 amount1 : Int} {target : AccountAddress}
     {mem rdata data : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
       (len :: x1 :: (p + ⟨132⟩) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 ::
         selector :: EVM.word target.val :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true) (hm : HeapMemory mem aw p)
@@ -30,12 +32,12 @@ theorem swapCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       swapCallbackCalldata (EVM.wordOfInt amount0) (EVM.wordOfInt amount1) data)
     (hl : len.toNat ≤ 2 ^ 32) (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config frame evm (swapCallbackStmts zeroForOne) .reverted) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config frame evm (swapCallbackStmts zeroForOne) .reverted) ∨
     ∃ evm' σ' out aw' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config frame evm (swapCallbackStmts zeroForOne)
+      ExecBlock fork config frame evm (swapCallbackStmts zeroForOne)
         (.ok {frame with locals := frame.locals.insert (swapCallbackName zeroForOne) .unit} evm') ∧
-      RD (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
+      RD fork (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
         (⟨0⟩ :: ((p + ⟨132⟩) + UInt256.ofNat (paddedSize len.toNat)) ::
           selector :: EVM.word target.val :: R) mem aw' out σ' k' C' ∧
       HeapMemory mem aw' p := by
@@ -64,7 +66,7 @@ theorem swapCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
               (⟨4737⟩ : UInt256), (UInt8.ofNat 241), .CALL, none,
               immutableLayout_inBounds, immutableTemplate_size64))
         (by rw [hsize]; exact hcd) hsmall (by change R.length + 3 + 1 ≤ 1024; omega)
-    change callViaEVM evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
+    change callViaEVM fork evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
       (swapCallbackCalldata (EVM.wordOfInt amount0) (EVM.wordOfInt amount1) data)
         (ok, evm', out) at hcall
     rw [show AccountAddress.ofUInt256 (EVM.word target.val) = target from

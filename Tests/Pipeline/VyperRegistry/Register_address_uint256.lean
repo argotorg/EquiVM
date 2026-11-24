@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperRegistry.Register_address
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `register(address,uint256)`
 
@@ -44,7 +46,7 @@ theorem rauDecode_noncanon {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
 theorem registryRegister_address_uint256Body {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 3) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachRegister_address_uint256Body (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some register_address_uint256Transition :=

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordProcessLocals
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,25 +19,25 @@ theorem recordProcessRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : 
     (hdend : dataPtr.toNat+32+32*((r.data.size+31)/32) ≤ heap.toNat)
     (hat : recordCreateAttester site mem = UInt256.ofNat attester.val)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
       (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw rdata σ k C) :
     let a := newAttestation r schema (easTimeWord ee) attester
     (∃ L' evm' σ' mem' dummy aw' k' C' heap' word,
       ee.perm = true ∧ heap.toNat+320 ≤ heap' ∧ heap' ≤ 2^64-1 ∧ RecordProcessKeep L L' ∧
       L'.get? "attestation" = some {a with uid := word}.value ∧
       L'.get? "uid" = some (wordBytes32Value word) ∧ L'.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap')) ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
       SourceState s0 ee σ' evm' ∧ MemoryPrefix mem mem' heap.toNat ∧
       MemoryPrefix (recordPadding mem heap.toNat) mem' heap.toNat ∧
       AttestationMemoryView mem' heap dataPtr {a with uid := word} ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat heap' ∧
-      RD (deployedRuntime v) ee g s0 (refUIDReadyPC site)
+      RD fork (deployedRuntime v) ee g s0 (refUIDReadyPC site)
         (refUIDReadyStack site dummy word heap schema idx t3 t4 R) mem' aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordProcessBody .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   dsimp only
   let a := newAttestation r schema (easTimeWord ee) attester
   let next := allocateNext heap.toNat 320

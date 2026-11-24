@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.Signed104SubEvm
 import Benchmarks.CompoundIII.Comet.Negate104PackedEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,12 +19,12 @@ theorem cometRepayAmounts {v : CometWithExtendedAssetListImmutables}
     {aw old next ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13148⟩ (old :: next :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13148⟩ (old :: next :: ret :: R)
       mem aw rdata σ k C) :
-    (RepayAmountsFits old next ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RepayAmountsFits old next ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (supplyAmount old next :: repayAmount old next :: R)
       mem aw rdata σ k' C') ∨
-    (¬ RepayAmountsFits old next ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ RepayAmountsFits old next ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hmask (w : UInt256) (hw : w.toNat < 2^104) :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
         (UInt256.ofNat 1)) w = w := by
@@ -58,7 +60,7 @@ theorem cometRepayAmounts {v : CometWithExtendedAssetListImmutables}
       · rw [principalDecrease_word hle] at r4
         have r5 := cometWithExtendedAssetList_block_13184
           (immWords := wordsOf (immStore v)) (by omega) hret r4
-        change RD _ _ _ _ _ (UInt256.ofNat 0 :: UInt256.land _
+        change RD fork _ _ _ _ _ (UInt256.ofNat 0 :: UInt256.land _
           (principalDecrease next old) :: R) _ _ _ _ _ _ at r5
         rw [hmask _ (principalDecrease_lt next old)] at r5
         refine Or.inl ⟨by simpa only [RepayAmountsFits, if_neg hi, if_pos hn] using hf,
@@ -86,7 +88,7 @@ theorem cometRepayAmounts {v : CometWithExtendedAssetListImmutables}
         · rw [principalDecrease_word hle] at r5
           have r6 := cometWithExtendedAssetList_block_13216
             (immWords := wordsOf (immStore v)) (by omega) hret r5
-          change RD _ _ _ _ _ (UInt256.land _ (principalDecrease next old) ::
+          change RD fork _ _ _ _ _ (UInt256.land _ (principalDecrease next old) ::
             UInt256.ofNat 0 :: R) _ _ _ _ _ _ at r6
           rw [hmask _ (principalDecrease_lt next old)] at r6
           refine Or.inl ⟨by simpa only [RepayAmountsFits, if_neg hi, if_neg hn, if_pos ho]
@@ -109,7 +111,7 @@ theorem cometRepayAmounts {v : CometWithExtendedAssetListImmutables}
           ⟨hf, k5, C5, r5⟩ | ⟨hf, hr⟩
         · have r6 := cometWithExtendedAssetList_block_13243
             (immWords := wordsOf (immStore v)) (by omega) hret r5
-          change RD _ _ _ _ _ (UInt256.land next _ ::
+          change RD fork _ _ _ _ _ (UInt256.land next _ ::
             UInt256.land _ (negativePrincipal old) :: R) _ _ _ _ _ _ at r6
           rw [u256_land_comm next _, hmask _ (lt_trans (negativePrincipal_lt hf) (by decide)),
             mask104_positivePrincipal (by omega : 0 ≤ signed104 next)] at r6

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitLsbSource
 import Benchmarks.UniswapV3.Pool.BitLsbFoldTrace
 import Benchmarks.UniswapV3.Pool.BitLsbEndsTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,10 +13,10 @@ set_option maxRecDepth 10000
 theorem bitLsbX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (x : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17768⟩ (x :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17768⟩ (x :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    (¬0 < x.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-      (0 < x.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (¬0 < x.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (0 < x.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.ofNat (bitLsbCount x) :: R) mem aw rdata σ k' C') := by
   by_cases hx : 0 < x.toNat
   · have r0 := uniswapV3Pool_block_17768_taken (immWords := wordsOf (immStore v))
@@ -24,7 +26,7 @@ theorem bitLsbX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have hb := bitLsbStep_bounds (255, x) 128
     obtain ⟨k2, C2, r2⟩ := bitLsbFoldX (v := v) (bitLsbStep (255, x) 128) 0 6 (by decide)
       (by omega) (by change 126 ≤ (bitLsbStep (255, x) 128).1; omega) r1 (by evm_ov)
-    have rp : RD (deployedRuntime v) ee g s0 ⟨17984⟩
+    have rp : RD fork (deployedRuntime v) ee g s0 ⟨17984⟩
         (UInt256.ofNat (bitLsbPrefix x).1 :: (bitLsbPrefix x).2 :: ret :: R)
           mem aw rdata σ k2 C2 := by
       simpa only [bitLsbRun_prefix] using r2

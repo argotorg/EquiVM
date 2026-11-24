@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -108,20 +110,20 @@ theorem vatHopeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (hopeStore I) hopeTransition.body
+    ExecTransitionBody fork config contract evm (hopeStore I) hopeTransition.body
       (.returned { contract := contract, locals := hopeStore I } (hopePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [hopeTransition, nonpayable] using
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (hopeAssign evm I hsrc)) <|
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (hopeAssign evm I hsrc)) <|
         ExecBlock.nil
 
 theorem vatHopeBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (hopeStore I) hopeTransition.body
+    ExecTransitionBody fork config contract evm (hopeStore I) hopeTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [hopeTransition, nonpayable] using
@@ -147,7 +149,7 @@ theorem vatReachHopeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 15)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨1207⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0xa3b22fc4⟩ :=
@@ -204,10 +206,10 @@ theorem hopeInnerMem_size (I : ExecutionEnv) :
 set_option maxHeartbeats 1000000 in
 theorem vatHopeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1207⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨5540⟩
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5540⟩
         [hopeUsrMaskedWord I, ⟨524⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
@@ -228,10 +230,10 @@ theorem vatHopeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem vatHopeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1207⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -249,14 +251,14 @@ theorem vatHopeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem vatHopeX_storeOkSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD vatBytecode I g s0 ⟨5540⟩
+    (h : RD fork vatBytecode I g s0 ⟨5540⟩
       [hopeUsrMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret vatBytecode g s0
+    RDret fork vatBytecode g s0
       (sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨1⟩)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic vatBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork vatBytecode g s0) := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((hopeInnerMem I).readWithPadding 0 64))) =
@@ -344,10 +346,10 @@ theorem vatHopeX_storeOkSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem vatHopeX_storeOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
-    (h : RD vatBytecode I g s0 ⟨5540⟩
+    (h : RD fork vatBytecode I g s0 ⟨5540⟩
       [hopeUsrMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret vatBytecode g s0
+    RDret fork vatBytecode g s0
       (sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨1⟩)
       ByteArray.empty :=
   permSplit_true hperm (vatHopeX_storeOkSplit h)
@@ -361,13 +363,13 @@ theorem vatHopeBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (hopeTransition.params.map Param.name)
         (transitionSignature hopeTransition).paramTypes I.calldata = some (hopeStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1207⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmStele (hopeStore I)
+      ExecTransitionBody fork config contract evmStele (hopeStore I)
         hopeTransition.body
         (.returned { contract := contract, locals := hopeStore I }
           (hopePostState evmStele I) none) := by
@@ -394,13 +396,13 @@ theorem vatHopeBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (hopeTransition.params.map Param.name)
         (transitionSignature hopeTransition).paramTypes I.calldata = some (hopeStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1207⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmStele (hopeStore I)
+      ExecTransitionBody fork config contract evmStele (hopeStore I)
         hopeTransition.body .staticViolation := by
     simpa [evmStele] using
       vatHopeBodyStatic evmStele I
@@ -417,20 +419,20 @@ theorem vatHopeBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some hopeTransition)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1207⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (vatHopeX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (vatDecode_hope_none_short hsz4 hshort)
 
-theorem vatHopeBodyCore : VatBodyTheorem 15 := by
+theorem vatHopeBodyCore : VatBodyTheorem fork 15 := by
   intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 15) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some hopeTransition :=
     vatDispatchHope hsel
-  have hreach := vatReachHopeBody (σ := σ)
+  have hreach := vatReachHopeBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -440,7 +442,7 @@ theorem vatHopeBodyCore : VatBodyTheorem 15 := by
       hdispatch hreach
 
 /-- `hope` with any call permission; a static call halts at the `can` `SSTORE`. -/
-theorem vatHopeBodyCoreAnyPerm : VatBodyTheoremAnyPerm 15 := by
+theorem vatHopeBodyCoreAnyPerm : VatBodyTheoremAnyPerm fork 15 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   by_cases hperm : I.perm = true
   · exact vatHopeBodyCore hcode hsize hperm hwv hsel
@@ -449,7 +451,7 @@ theorem vatHopeBodyCoreAnyPerm : VatBodyTheoremAnyPerm 15 := by
     calldata_size_ge_of_selIs I (vatSelBytes 15) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some hopeTransition :=
     vatDispatchHope hsel
-  have hreach := vatReachHopeBody (σ := σ)
+  have hreach := vatReachHopeBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

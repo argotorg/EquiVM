@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Common
+
+variable {fork : Ethereum.Fork}
 open Stele
 namespace Benchmarks.EAS.EAS
 
@@ -7,8 +9,8 @@ theorem execRequires {cfg : Config} {frame : Frame} {evm : EVM.State}
     (checks : List (Expr × Bool))
     (he : ∀ p ∈ checks, evalExpr? cfg frame evm p.1 = .ok (.bool p.2)) :
     if checks.all (·.2) then
-      ExecBlock cfg frame evm (checks.map fun p => Stmt.require p.1) (.ok frame evm)
-    else ExecBlock cfg frame evm (checks.map fun p => Stmt.require p.1) .reverted := by
+      ExecBlock fork cfg frame evm (checks.map fun p => Stmt.require p.1) (.ok frame evm)
+    else ExecBlock fork cfg frame evm (checks.map fun p => Stmt.require p.1) .reverted := by
   induction checks with
   | nil => exact ExecBlock.nil
   | cons p rest ih =>

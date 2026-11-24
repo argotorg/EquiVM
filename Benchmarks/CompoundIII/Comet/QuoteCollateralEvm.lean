@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.AbiRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,22 +14,22 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def QuoteCollateralResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def QuoteCollateralResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 68 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, QuoteTrace v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+    ∃ result, QuoteTrace fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (calldataWord I.calldata 36) s0 result ∧ match result with
-      | none => RDrev (deployedRuntime v) g s0
-      | some (evm', value) => RDret (deployedRuntime v) g s0 evm'.accountMap value.toByteArray
-  else RDrev (deployedRuntime v) g s0
+      | none => RDrev fork (deployedRuntime v) g s0
+      | some (evm', value) => RDret fork (deployedRuntime v) g s0 evm'.accountMap value.toByteArray
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem quoteCollateralX {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 32)) :
-    QuoteCollateralResult v I g (initState σ σ₀ g A I) := by
+    QuoteCollateralResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachQuoteCollateralBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1096 (immWords := wordsOf (immStore v))
@@ -50,7 +52,7 @@ theorem quoteCollateralX {σ σ₀ A I} {g : Sat256}
           have rd6 := cometWithExtendedAssetList_block_4134
             (immWords := wordsOf (immStore v)) (by change 5 ≤ 1024; decide)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd5
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 36,
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 36,
             UInt256.ofNat 1504, UInt256.ofNat 32] _ _ _ _ _ _ at rd6
           rw [← addressWord_eq_ofNat_address hc] at rd6
           obtain ⟨result, hsearch, hr⟩ := cometQuoteInternal (v := v)

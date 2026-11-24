@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SignedWordZero
 import Benchmarks.UniswapV3.Pool.CreationBlocks_001
 import Benchmarks.UniswapV3.Pool.CreationBlocks_002
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open uniswapV3PoolCreationBlocks
 namespace Benchmarks.UniswapV3.Pool
@@ -11,16 +13,16 @@ set_option maxRecDepth 1000
 theorem tickSpacingCreationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret word : UInt256} {mem rdata tail : ByteArray}
     {R : List UInt256} (spacing : Int)
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨271⟩
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨271⟩
       (word :: ret :: R) mem aw rdata σ k C)
     (hclean : normalizeInt (.sint ⟨24, by decide⟩) (Int.ofNat word.toNat) = spacing)
     (hlo : -(2 ^ 23 : Int) ≤ spacing) (hhi : spacing < 2 ^ 23)
     (hret : (D_J uniswapV3PoolCreationBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
-    (RDinvalid (uniswapV3PoolCreationBytecode ++ tail) g s0 ∧
+    (RDinvalid fork (uniswapV3PoolCreationBytecode ++ tail) g s0 ∧
       (spacing = 0 ∨ spacingCount spacing = 0)) ∨
     (spacing ≠ 0 ∧ spacingCount spacing ≠ 0 ∧ ∃ k' C',
-      RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ret
+      RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ret
         (EVM.wordOfInt (spacingLiquidity spacing) :: R) mem aw rdata σ k' C') := by
   have hz : UInt256.signextend (UInt256.ofNat 2) word = ⟨0⟩ ↔ spacing = 0 := by
     rw [spacingWord_clean word spacing hclean]
@@ -35,7 +37,7 @@ theorem tickSpacingCreationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have rmax := uniswapV3PoolCreation_block_293_taken (by evm_ov) hn (by native_decide) rmin
   simp only [uniswapV3PoolCreation_block_293_taken_stack] at rmax
   have rdelta := uniswapV3PoolCreation_block_317_taken (by evm_ov) hn (by native_decide) rmax
-  change RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨341⟩
+  change RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨341⟩
     (spacingDeltaRaw word ::
       UInt256.signextend (UInt256.ofNat 2) word :: ⟨0⟩ ::
       spacingMaxRaw word :: spacingMinRaw word ::
@@ -52,7 +54,7 @@ theorem tickSpacingCreationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by native_decide) rdelta
   simp only [uniswapV3PoolCreation_block_341_taken_stack] at rdiv
   have rout := uniswapV3PoolCreation_block_371 (by evm_ov) hret rdiv
-  change RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ret
+  change RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ret
     (spacingLiquidityRaw word :: R) mem aw rdata σ _ _ at rout
   rw [spacingLiquidityRaw_eq word spacing hclean hlo hhi] at rout
   exact Or.inr ⟨hspacing, hcount, _, _, rout⟩

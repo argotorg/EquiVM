@@ -2,22 +2,24 @@ import Benchmarks.CompoundIII.Comet.AbsorbCollateralMathModel
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralEvent
 import Benchmarks.CompoundIII.Comet.PriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive AbsorbCollateralPriceTrace (assetOut : ByteArray) (delta seized : UInt256) :
+inductive AbsorbCollateralPriceTrace (fork : Ethereum.Fork) (assetOut : ByteArray) (delta seized : UInt256) :
     State → Option (State × UInt256) → Prop where
   | priceFailed {evm evm' z out}
-      (hc : callViaEVM evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
+      (hc : callViaEVM fork evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
         pricePayload (z, evm', out) false)
       (hh : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
-      AbsorbCollateralPriceTrace assetOut delta seized evm none
+      AbsorbCollateralPriceTrace fork assetOut delta seized evm none
   | result {evm evm' out}
-      (hc : callViaEVM evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
+      (hc : callViaEVM fork evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
         pricePayload (true, evm', out) false)
       (hh : out.size < 2^255) (hv : PriceValid out) :
-      AbsorbCollateralPriceTrace assetOut delta seized evm
+      AbsorbCollateralPriceTrace fork assetOut delta seized evm
         (if AbsorbCollateralMathValid delta seized (calldataWord out 32) assetOut then
           some (evm', calldataWord out 32) else none)
 

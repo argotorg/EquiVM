@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.Common
 import Benchmarks.Safe.ViaIR.Blocks.Creation
 import Reasoning.Constructor
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.CreationBlocks
 
@@ -9,7 +11,7 @@ namespace Benchmarks.Safe.ViaIR
 
 theorem safeConstructorSource (evm : EVM.State) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ contract.ctor.body
+    ExecTransitionBody fork config contract evm ∅ contract.ctor.body
       (.returned { contract := contract, locals := ∅ }
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ ⟨1⟩) none) := by
   apply ExecFuncBody.execBlockOK
@@ -28,7 +30,7 @@ theorem safeConstructorSource (evm : EVM.State) (hv : evm.executionEnv.weiValue 
 
 theorem safeConstructorSourceRevert (evm : EVM.State)
     (hv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ contract.ctor.body .reverted :=
+    ExecTransitionBody fork config contract evm ∅ contract.ctor.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (evalCallvalueEq_false hv)))
 
 theorem safeCreationRuntime :
@@ -38,16 +40,16 @@ theorem safeCreationRuntime :
 set_option maxRecDepth 100000 in
 theorem safeConstructorTrace {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = safeCreationBytecode) (hv : I.weiValue = ⟨0⟩) (hp : I.perm = true) :
-    RDret safeCreationBytecode g (initState σ σ₀ g A I)
+    RDret fork safeCreationBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨1⟩) safeBytecode := by
-  have h₀ : RD (safeCreationBytecode ++ ByteArray.empty) I g (initState σ σ₀ g A I)
+  have h₀ : RD fork (safeCreationBytecode ++ ByteArray.empty) I g (initState σ σ₀ g A I)
       ⟨0⟩ [] ByteArray.empty ⟨0⟩ ByteArray.empty σ 0 0 := by
     simpa only [ByteArray.append_empty] using RD.initState (σ := σ) (σ₀ := σ₀)
       (g := g) (A := A) hcode
   have h₁ := safeCreation_block_0_fallthrough (by simp) hv h₀
   have h₂ := safeCreation_block_10 (by simp) hp h₁
   simp only [ByteArray.append_empty] at h₂
-  change RDret safeCreationBytecode g (initState σ σ₀ g A I)
+  change RDret fork safeCreationBytecode g (initState σ σ₀ g A I)
     (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨1⟩)
     ((safeCreationBytecode.write 31 solcFreePtrMem 128 11003).readWithPadding 128 11003) at h₂
   rw [safeCreationRuntime] at h₂
@@ -56,8 +58,8 @@ theorem safeConstructorTrace {σ σ₀ A I} {g : Sat256}
 set_option maxRecDepth 100000 in
 theorem safeConstructorTraceRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = safeCreationBytecode) (hv : I.weiValue ≠ ⟨0⟩) :
-    RDrev safeCreationBytecode g (initState σ σ₀ g A I) := by
-  have h₀ : RD (safeCreationBytecode ++ ByteArray.empty) I g (initState σ σ₀ g A I)
+    RDrev fork safeCreationBytecode g (initState σ σ₀ g A I) := by
+  have h₀ : RD fork (safeCreationBytecode ++ ByteArray.empty) I g (initState σ σ₀ g A I)
       ⟨0⟩ [] ByteArray.empty ⟨0⟩ ByteArray.empty σ 0 0 := by
     simpa only [ByteArray.append_empty] using RD.initState (σ := σ) (σ₀ := σ₀)
       (g := g) (A := A) hcode

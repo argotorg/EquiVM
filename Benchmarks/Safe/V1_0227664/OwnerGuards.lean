@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.OwnerValidation
 import Benchmarks.Safe.V1_0227664.OwnerStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -37,7 +39,7 @@ theorem safeCanAddOwnerEmpty (evm : EVM.State) (key : UInt256)
 theorem safeCanAddOwnerSource (evm : EVM.State) (key : UInt256)
     (hc : key.toNat < EVM.addressModulus) (hv : validOwner evm.accountMap evm.executionEnv key)
     (he : ownerLink evm key = ⟨0⟩) :
-    ExecFuncBody config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body
+    ExecFuncBody fork config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body
       (.returned (canAddOwnerFrame key) evm none) :=
   .execBlockOK (.consNormal (.requireTrue (by
       simpa only [hv, decide_true] using
@@ -48,7 +50,7 @@ theorem safeCanAddOwnerSource (evm : EVM.State) (key : UInt256)
 
 theorem safeCanAddOwnerSourceInvalid (evm : EVM.State) (key : UInt256)
     (hc : key.toNat < EVM.addressModulus) (hv : ¬validOwner evm.accountMap evm.executionEnv key) :
-    ExecFuncBody config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body .reverted :=
+    ExecFuncBody fork config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (by
     simpa only [hv, decide_false] using
       safeEvalValidOwner evm _ _ key hc (safeEvalCanAddOwner evm key))))
@@ -56,7 +58,7 @@ theorem safeCanAddOwnerSourceInvalid (evm : EVM.State) (key : UInt256)
 theorem safeCanAddOwnerSourceExisting (evm : EVM.State) (key : UInt256)
     (hc : key.toNat < EVM.addressModulus) (hv : validOwner evm.accountMap evm.executionEnv key)
     (he : ownerLink evm key ≠ ⟨0⟩) :
-    ExecFuncBody config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body .reverted :=
+    ExecFuncBody fork config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (by
       simpa only [hv, decide_true] using
         safeEvalValidOwner evm _ _ key hc (safeEvalCanAddOwner evm key)))
@@ -88,7 +90,7 @@ theorem safeCanRemoveOwnerLinked (evm : EVM.State) (prev key : UInt256)
 theorem safeCanRemoveOwnerSource (evm : EVM.State) (prev key : UInt256)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner evm.accountMap evm.executionEnv key) (hl : ownerLink evm prev = key) :
-    ExecFuncBody config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
+    ExecFuncBody fork config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
       (.returned (canRemoveOwnerFrame prev key) evm none) :=
   .execBlockOK (.consNormal (.requireTrue (by
       simpa only [hv, decide_true] using
@@ -99,7 +101,7 @@ theorem safeCanRemoveOwnerSource (evm : EVM.State) (prev key : UInt256)
 
 theorem safeCanRemoveOwnerSourceInvalid (evm : EVM.State) (prev key : UInt256)
     (hc : key.toNat < EVM.addressModulus) (hv : ¬validOwner evm.accountMap evm.executionEnv key) :
-    ExecFuncBody config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
+    ExecFuncBody fork config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
       .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (by
     simpa only [hv, decide_false] using
@@ -108,7 +110,7 @@ theorem safeCanRemoveOwnerSourceInvalid (evm : EVM.State) (prev key : UInt256)
 theorem safeCanRemoveOwnerSourceUnlinked (evm : EVM.State) (prev key : UInt256)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner evm.accountMap evm.executionEnv key) (hl : ownerLink evm prev ≠ key) :
-    ExecFuncBody config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
+    ExecFuncBody fork config (canRemoveOwnerFrame prev key) evm requireCanRemoveOwnerFunction.body
       .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (by
       simpa only [hv, decide_true] using

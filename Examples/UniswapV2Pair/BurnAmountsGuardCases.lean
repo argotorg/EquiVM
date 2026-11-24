@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.BurnAmountsGuardRuntime
 import Examples.UniswapV2Pair.BurnAfterFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -29,7 +31,7 @@ theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
-    (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
+    (rd4533 : RD fork uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
@@ -40,16 +42,16 @@ theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config { contract := contract, locals := locals } evm
-        [burnAmountsRequireStmt, burnInternalBurnStmt] .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config { contract := contract, locals := locals } evm
+        [burnAmountsRequireStmt, burnInternalBurnStmt] .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [burnAmountsRequireStmt, burnInternalBurnStmt]
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_burnResult" none)
           (burnFunctionPostState evm I.codeOwner liquidity)) ∧
       (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) =
         (burnFunctionPostState evm I.codeOwner liquidity).accountMap ∧
-      RD uniswapV2PairBytecode I g s0 ⟨4617⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨4617⟩
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
         mem' feeToStaticcallActiveWords rdata
@@ -61,7 +63,7 @@ theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
     ⟨hnot, hrev⟩ | ⟨hpos, _, _, rd8302⟩
   · exact Or.inl ⟨ExecBlock.consRevert
       (ExecStmt.requireFalse (by simpa only [hnot, decide_false] using hreq)), hrev⟩
-  · have hreqTrue : ExecStmt config { contract := contract, locals := locals } evm
+  · have hreqTrue : ExecStmt fork config { contract := contract, locals := locals } evm
         burnAmountsRequireStmt (.ok { contract := contract, locals := locals } evm) :=
       ExecStmt.requireTrue (by simpa only [hpos, decide_true] using hreq)
     have hargs : evalExprs? config { contract := contract, locals := locals } evm
@@ -91,7 +93,7 @@ theorem uniswapBurnAmountsGuardAndBurnCases
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
-    (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
+    (rd4533 : RD fork uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
@@ -102,16 +104,16 @@ theorem uniswapBurnAmountsGuardAndBurnCases
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config { contract := contract, locals := locals } evm
-        [burnAmountsRequireStmt, burnInternalBurnStmt] .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config { contract := contract, locals := locals } evm
+        [burnAmountsRequireStmt, burnInternalBurnStmt] .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [burnAmountsRequireStmt, burnInternalBurnStmt]
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_burnResult" none)
           (burnFunctionPostState evm I.codeOwner liquidity)) ∧
       (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) =
         (burnFunctionPostState evm I.codeOwner liquidity).accountMap ∧
-      RD uniswapV2PairBytecode I g s0 ⟨4617⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨4617⟩
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
         mem' feeToStaticcallActiveWords rdata

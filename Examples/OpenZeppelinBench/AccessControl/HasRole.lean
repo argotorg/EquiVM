@@ -2,6 +2,8 @@ import Reasoning.Memory
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -184,7 +186,7 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :
-    ExecTransitionBody config contract evm (hasRoleStore I) hasRoleTransition.body
+    ExecTransitionBody fork config contract evm (hasRoleStore I) hasRoleTransition.body
       (.returned { contract := contract, locals := hasRoleStore I } evm
         (some [(wordToElem .bool
           (UInt256.land
@@ -360,10 +362,10 @@ theorem hasRoleOuterKeccakSlot (I : ExecutionEnv)
     (roleDataSlot (hasRoleRoleKey I))
 
 theorem accessControlHasRoleX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨268⟩, ⟨145⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
@@ -375,10 +377,10 @@ theorem accessControlHasRoleX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [hasRoleAccountWord I, hasRoleRoleWord I, ⟨145⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -410,10 +412,10 @@ theorem accessControlX_hasRole {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (hasRoleReturnWord σ I)) := by
   obtain ⟨_, _, rd451⟩ := accessControlHasRoleX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -492,10 +494,10 @@ theorem accessControlX_hasRole {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem accessControlHasRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
   obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
@@ -508,10 +510,10 @@ theorem accessControlHasRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt25
 theorem accessControlHasRoleX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
   obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
@@ -527,10 +529,10 @@ theorem accessControlHasRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (hasRoleAccountWord I)
       (UInt256.land (hasRoleAccountWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨254⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
@@ -556,11 +558,11 @@ theorem accessControlHasRoleBody {σ σ₀ A I}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
@@ -569,7 +571,7 @@ theorem accessControlHasRoleBody {σ σ₀ A I}
     · by_cases hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus
       · have hdec := accessControlDecode_hasRole_ok (I := I) hsz68 hbig hcanonAccount
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (hasRoleStore I)
               hasRoleTransition.body

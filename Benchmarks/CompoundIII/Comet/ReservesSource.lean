@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ReservesMath
 import Benchmarks.CompoundIII.Comet.TokenBalanceCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -30,9 +32,9 @@ theorem reservesCallable_lookup :
 theorem reservesTail_result (v : CometWithExtendedAssetListImmutables)
     (w0 w1 time : UInt256) (evm evm' : EVM.State) (z : Bool) (out : ByteArray)
     (hv : CurrentIndicesValid v w0 w1 time)
-    (hc : callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hhi : out.size < 2^255) :
-    ExecBlock config (reservesReadyFrame v w0 w1 time) evm reservesTailBlock
+    ExecBlock fork config (reservesReadyFrame v w0 w1 time) evm reservesTailBlock
       (if ReservesReplyValid v w0 w1 time z out then
         .returned (reservesFinalFrame v w0 w1 time (calldataWord out 0)) evm'
           (some [.int (reservesValue v w0 w1 time (calldataWord out 0))]) else .reverted) := by
@@ -54,9 +56,9 @@ theorem reserves_body_early_revert (v : CometWithExtendedAssetListImmutables) (e
     (hv : ¬ CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
       evm reservesCallable.body .reverted := by
-  have hs := reservesStart_result v evm
+  have hs := reservesStart_result (fork := fork) v evm
   dsimp only at hs
   rw [if_neg hv] at hs
   exact ExecFuncBody.execBlockRevert (execBlockAppendReverted hs)
@@ -66,18 +68,18 @@ theorem reserves_body_result (v : CometWithExtendedAssetListImmutables)
     (hv : CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv))
-    (hc : callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hhi : out.size < 2^255) :
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
       evm reservesCallable.body
       (if ReservesReplyValid v w0 w1 time z out then
         .returned (reservesFinalFrame v w0 w1 time (calldataWord out 0)) evm'
           (some [.int (reservesValue v w0 w1 time (calldataWord out 0))]) else .reverted) := by
   dsimp only
-  have hs := reservesStart_result v evm
+  have hs := reservesStart_result (fork := fork) v evm
   dsimp only at hs
   rw [if_pos hv] at hs
   have hb := execBlockAppendOk hs (reservesTail_result v _ _ _ evm evm' z out hv hc hhi)
@@ -93,7 +95,7 @@ theorem reserves_call_early_revert (v : CometWithExtendedAssetListImmutables)
     (hv : ¬ CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
-    ExecStmt config frame evm (.internalCall "getReserves_body" [] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "getReserves_body" [] ret) .reverted := by
   exact ExecStmt.internalCallRevert (callee := reservesCallable) (locals := ∅)
     (cfg := config) (stele := frame) (evm := evm) (args := []) (argVals := []) rfl
     (by rw [hf]; exact reservesCallable_lookup) rfl
@@ -105,12 +107,12 @@ theorem reserves_call_result (v : CometWithExtendedAssetListImmutables)
     (hv : CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv))
-    (hc : callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hhi : out.size < 2^255) :
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecStmt config frame evm (.internalCall "getReserves_body" [] ret)
+    ExecStmt fork config frame evm (.internalCall "getReserves_body" [] ret)
       (if ReservesReplyValid v w0 w1 time z out then
         .ok { frame with locals :=
           frame.locals.insert ret (.int (reservesValue v w0 w1 time (calldataWord out 0))) }

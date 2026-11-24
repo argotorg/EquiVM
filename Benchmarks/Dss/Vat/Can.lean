@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -76,7 +78,7 @@ theorem vatReachCanBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 2)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨711⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0x4538c4eb⟩ :=
@@ -113,15 +115,15 @@ theorem vatCanBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (canTransition.params.map Param.name)
         (transitionSignature canTransition).paramTypes I.calldata = some (canStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let slot := solcMappingSlot (solcMappingSlot ⟨1⟩ (canSrcMaskedWord I)) (canUsrMaskedWord I)
   have hslot : canStorageSlot I = slot := by
     simp [slot, canStorageSlot_eq]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
         canTransition.body
         (.returned { contract := contract, locals := canStore I }
@@ -166,7 +168,7 @@ theorem vatCanBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret vatBytecode (Sat256.ofUInt256 g)
+      RDret fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -206,10 +208,10 @@ theorem vatCanBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some canTransition)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := vatDecode_can_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -227,13 +229,13 @@ theorem vatCanBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatCanBodyCore : VatBodyTheoremAnyPerm 2 := by
+theorem vatCanBodyCore : VatBodyTheoremAnyPerm fork 2 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some canTransition :=
     vatDispatchCan hsel
-  have hreach := vatReachCanBody (σ := σ)
+  have hreach := vatReachCanBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size

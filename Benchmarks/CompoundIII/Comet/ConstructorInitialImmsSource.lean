@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -30,11 +32,11 @@ def constructorSourceInitialImms (c : ConstructorConfig) (w feed : UInt256) : Fr
 
 theorem constructorSourceInitialImms_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State} (hw : w.toNat ≤ 18)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 9)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 9)
       (.ok (constructorSourcePriceFeed c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 16)
       (.ok (constructorSourceInitialImms c w feed) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 9 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 9 ++
     [.setImmutable "governor" (.field (.var "config") "governor"),
       .setImmutable "pauseGuardian" (.field (.var "config") "pauseGuardian"),
       .setImmutable "baseToken" (.field (.var "config") "baseToken"),

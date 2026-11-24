@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RecordEncoding
 import Benchmarks.EAS.EAS.ResolverCallSource
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -60,7 +62,7 @@ theorem resolverOnePrefix_exec {cfg : Config} {locals imms : Store} {evm : EVM.S
     (ha : locals.get? "attestation" = some a.value)
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hv : locals.get? "revocation" = some (.bool revocation)) (hsize : a.data.size < UInt256.size) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverOnePrefix
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverOnePrefix
       (.ok {contract := contract, locals := resolverOnePrefixLocals locals a heap revocation, immutables := imms} evm) := by
   apply ExecBlock.consNormal (encodeAttestationCall (a := a) (heap := heap)
     (by simp only [evalExprs?, evalExpr?, ha, hh, EvalResult.ofOption, EvalResult.bind, bind, pure]) hsize)
@@ -108,13 +110,13 @@ theorem resolverOnePreamble_exec {cfg : Config} {locals imms : Store} {evm evm' 
     (hr : locals.get? "resolver" = some (.address resolver))
     (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hsize : a.data.size < UInt256.size)
-    (hc : callViaEVM evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
+    (hc : callViaEVM fork evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
     (hperm : EVM.wordOfInt (Int.ofNat value.toNat) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolverOnePreamble
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolverOnePreamble
       (.ok {contract := contract, locals := resolverOnePostLocals locals a heap revocation success out, immutables := imms} evm') := by
   apply execBlock_append (resolverOnePrefix_exec ha hh hv hsize)
   have hf := resolverOnePrefixLocals_facts locals a heap revocation
-  exact ExecBlock.consNormal (lowLevelCallSource (hperm := hperm)
+  exact ExecBlock.consNormal (lowLevelCallSource (fork := fork) (hperm := hperm)
     (by simp only [evalExpr?, hf.1, hr, EvalResult.ofOption])
     (by simp only [evalExpr?, hf.2.1, hvalue, EvalResult.ofOption])
     (by simp only [evalExpr?, hf.2.2.2, EvalResult.ofOption]) hc) ExecBlock.nil
@@ -132,14 +134,14 @@ theorem resolverOneSource {locals imms : Store} {evm evm' : EVM.State}
     (hr : locals.get? "resolver" = some (.address resolver))
     (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hsize : a.data.size < UInt256.size)
-    (hc : callViaEVM evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
+    (hc : callViaEVM fork evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
     (hout : out.size < 2^255)
     (hperm : EVM.wordOfInt (Int.ofNat value.toNat) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
     if resolverCallValid heap success out then
-      ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm resolverOneFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm resolverOneFunction.body
         (.returned {contract := contract, locals := resolverOneFinalLocals locals a heap revocation success out, immutables := imms}
           evm' (some [.bool (decide (calldataWord out 0 ≠ ⟨0⟩)), .int (Int.ofNat (allocateNext heap (min out.size 32)))]))
-    else ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm resolverOneFunction.body .reverted := by
+    else ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm resolverOneFunction.body .reverted := by
   have hp := resolverOnePreamble_exec (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (imms := imms) ha hh hv hr hvalue hsize hc
   have hbody : resolverOneFunction.body = resolverOnePreamble ++ (.require (.var "ok") :: resolverResultTail) := by
     rw [resolverOne_body, resolverOnePreamble, List.append_assoc]
@@ -153,7 +155,7 @@ theorem resolverOneSource {locals imms : Store} {evm evm' : EVM.State}
   have hok : (resolverOnePostLocals locals a heap revocation success out).get? "ok" = some (.bool success) := by
     simp only [resolverOnePostLocals, store_get_ne _ _ (by decide : ("result" == "ok") = false), store_get_self]
   have hor : (resolverOnePostLocals locals a heap revocation success out).get? "result" = some (.bytes out) := store_get_self _ _ _
-  have hs := resolverCallResultSource (imms := imms) (evm := evm') hok hor hho hout
+  have hs := resolverCallResultSource (fork := fork) (imms := imms) (evm := evm') hok hor hho hout
   by_cases hvalid : resolverCallValid heap success out
   · rw [if_pos hvalid, hbody]
     rw [if_pos hvalid] at hs
@@ -190,15 +192,15 @@ theorem resolverOneCall {locals imms : Store} {evm evm' : EVM.State}
     (he : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [.address resolver, a.value, .bool revocation, .int (Int.ofNat value.toNat), .int (Int.ofNat heap)])
     (hsize : a.data.size < UInt256.size)
-    (hc : callViaEVM evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
+    (hc : callViaEVM fork evm resolver (Int.ofNat value.toNat) (resolverOnePayload a revocation) (success, evm', out))
     (hout : out.size < 2^255)
     (hperm : EVM.wordOfInt (Int.ofNat value.toNat) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
     if resolverCallValid heap success out then
-      ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
         (.internalCall "_resolverOne" args retVar)
         (.ok {contract := contract, locals := locals.insert retVar (.tuple [
           .bool (decide (calldataWord out 0 ≠ ⟨0⟩)), .int (Int.ofNat (allocateNext heap (min out.size 32)))]), immutables := imms} evm')
-    else ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    else ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_resolverOne" args retVar) .reverted := by
   have hf := resolverOneArgs_facts resolver a revocation value heap
   have hs := resolverOneSource (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (imms := imms) hf.1 hf.2.1 hf.2.2.1 hf.2.2.2.1 hf.2.2.2.2 hsize hc hout

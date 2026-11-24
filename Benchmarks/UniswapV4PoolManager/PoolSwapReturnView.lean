@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapBodyReturn
 import Benchmarks.UniswapV4PoolManager.PoolSwapReturnMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -10,10 +12,10 @@ theorem poolSwapBodyReturn_view {v : PoolManagerImmutables} {I : ExecutionEnv} {
     {p : PoolSwapParamsWords} {R : List UInt256} {C : Nat} {values : Option (List Value)}
     (hI : evm.executionEnv = I) (hσ0 : evm.σ₀ = s0.σ₀)
     (hl : 96 ≤ state.toNat) (hf : state.toNat+352 < UInt256.size)
-    (h : poolSwapBodyReturn v I g s0 evm mem rdata id state params ret p R C post values) :
+    (h : poolSwapBodyReturn fork v I g s0 evm mem rdata id state params ret p R C post values) :
     ∃ r delta amount out free aw k' C', post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧
       values = some (poolSwapReturnValues delta (poolSwapInitialFee evm id p) amount r) ∧ C ≤ C' ∧ Cₘ aw ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret
+      RD fork (deployedRuntime v) I g s0 ret
         ([state, poolSwapInitialFee evm id p, amount, delta]++R) out aw rdata post.accountMap k' C' ∧
       PoolSwapReturnMemory mem out state free r ∧ r.price.toNat < 2^160 ∧ int24Canonical r.tick ∧
       r.liquidity.toNat < 2^128 := by

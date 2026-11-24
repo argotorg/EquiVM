@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.SchemaResult
 import Benchmarks.EAS.EAS.GetSchemaBody
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,7 +16,7 @@ theorem getSchemaCallRun {locals : Store} {args : List Expr} {retVar : Ident}
     (hstack : R.length+20 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hlo : 96 ≤ ptr.toNat) (hptr : ptr.toNat ≤ 2^64-1) (hin : ptr.toNat ≤ mem.size)
     (hcd : mem.readWithPadding ptr.toNat 36 = getSchemaPayload uid)
-    (rd : RD (deployedRuntime v) ee g s0 (schemaCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (schemaCallPC site)
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::ptr::⟨36⟩::ptr::⟨0⟩::schemaCallSaved site ptr R)
       mem aw rdata σ k C) :
     (∃ (a : SchemaRecord) (record : UInt256) (heap : Nat) (evm' : EVM.State) (σ' : AccountMap)
@@ -22,13 +24,13 @@ theorem getSchemaCallRun {locals : Store} {args : List Expr} {retVar : Ident}
       SourceState s0 ee σ' evm' ∧ ptr.toNat ≤ heap ∧ heap ≤ 2^64-1 ∧ ptr.toNat ≤ record.toNat ∧ record.toNat+128 ≤ heap ∧
       MemoryPrefix mem mem' ptr.toNat ∧ SchemaMemoryView mem' record a ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat heap ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (.internalCall "_getSchema" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract, locals := locals, immutables := immStore v}
           retVar (some [a.value,.int (Int.ofNat heap)])) evm') ∧
-      RD (deployedRuntime v) ee g s0 (schemaDonePC site) (schemaDoneStack v site record R) mem' aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
-      (.internalCall "_getSchema" args retVar) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 (schemaDonePC site) (schemaDoneStack v site record R) mem' aw' out σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
+      (.internalCall "_getSchema" args retVar) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨evm',σ',success,out,aw1,k1,C1,hcall,hs',hout,rd1⟩ := schemaStaticcall v site
     (by cases site <;> simp only [schemaCallSaved,List.length_cons] <;> omega) hs hcd rd
   have hr := schemaCallResult v site success hstack hlo hptr hin hout rd1

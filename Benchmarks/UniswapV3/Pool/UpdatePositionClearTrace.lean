@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionClearModel
 import Benchmarks.UniswapV3.Pool.UpdatePositionClearEntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -17,17 +19,17 @@ theorem updatePositionClearX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
     (hs : SourceState s0 ee σ (updatePositionClearBefore v a evm upper))
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionClearEntryPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionClearEntryPC upper)
       (updatePositionPositionWords v a evm ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 18 ≤ 1024) :
-    (ExecStmt config (updatePositionClearInputFrame v a evm upper)
+    (ExecStmt fork config (updatePositionClearInputFrame v a evm upper)
       (updatePositionClearBefore v a evm upper) (updatePositionClearStmt upper) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config (updatePositionClearInputFrame v a evm upper)
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (updatePositionClearInputFrame v a evm upper)
       (updatePositionClearBefore v a evm upper) (updatePositionClearStmt upper)
       (.ok (updatePositionClearDoneFrame v a evm upper) (updatePositionClearAfter v a evm upper)) ∧
       ∃ σ' k' C', SourceState s0 ee σ' (updatePositionClearAfter v a evm upper) ∧
-      RD (deployedRuntime v) ee g s0 (updatePositionClearReturnPC upper)
+      RD fork (deployedRuntime v) ee g s0 (updatePositionClearReturnPC upper)
         (updatePositionPositionWords v a evm ++ R) (updatePositionClearMemory mem v a evm upper)
         aw rdata σ' k' C' ∧ HeapMemory (updatePositionClearMemory mem v a evm upper) aw p) := by
   obtain ⟨k1, C1, r1⟩ := updatePositionClearGuardX (v := v) a evm upper rd (by omega)

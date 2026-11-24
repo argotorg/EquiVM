@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeArraysControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,17 +13,17 @@ theorem easRevokeArrays {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlen : site.length < UInt256.size) (hl : memLoad site.data mem = UInt256.ofNat site.length)
     (hheap : memLoad (UInt256.ofNat 64) mem = site.records) (hcd : ee.calldata.size < UInt256.size)
     (hv : site.values = UInt256.ofNat (allocateNext site.records.toNat (32+352*site.length)))
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.arraysPC (revokeArraysStack site R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.arraysPC (revokeArraysStack site R) mem aw rdata σ k C) :
     let middle := allocateNext site.records.toNat (32+352*site.length)
     let next := allocateNext middle (32+32*site.length)
     if site.length ≤ 2^64-1 then
       if middle ≤ 2^64-1 ∧ site.records.toNat ≤ middle then
         if next ≤ 2^64-1 ∧ middle ≤ next then
-          ∃ aw' k' C', RD (deployedRuntime v) ee g s0 site.kind.loopPC
+          ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
             (revokeLoopStack site ee ⟨0⟩ R) (attestArraysMemory mem ee.calldata site.records site.length) aw' rdata σ k' C'
-        else RDrev (deployedRuntime v) g s0
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+        else RDrev fork (deployedRuntime v) g s0
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   obtain ⟨a1,k1,C1,r1⟩ := easRevokeRecordsStart v site (by omega) hl rd
   have hrecords := easDefaultArrayAllocate v

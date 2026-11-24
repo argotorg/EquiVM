@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickSqrtMiddleTrace
 import Benchmarks.UniswapV4PoolManager.TickSqrtFinishTrace
 import Benchmarks.UniswapV4PoolManager.WordAbsolute
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,10 +19,10 @@ theorem tickSqrtTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret tick : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 7 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16728⟩ (tick :: ret :: R) mem aw rdata σ k C) :
-    ((EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)).natAbs > 887272 ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16728⟩ (tick :: ret :: R) mem aw rdata σ k C) :
+    ((EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)).natAbs > 887272 ∧ RDrev fork (deployedRuntime v) g s0) ∨
     ((EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)).natAbs ≤ 887272 ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ret
+      RD fork (deployedRuntime v) I g s0 ret
         (tickSqrtPrice (EVM.signed (UInt256.signextend (UInt256.ofNat 2) tick)) :: R) mem aw rdata σ k' C') := by
   let cleanTick := UInt256.signextend (UInt256.ofNat 2) tick
   let absTick := UInt256.ofNat (EVM.signed cleanTick).natAbs

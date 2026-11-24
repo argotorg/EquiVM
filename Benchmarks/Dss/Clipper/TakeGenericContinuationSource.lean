@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.TakeChostVatFluxSource
 import Benchmarks.Dss.Clipper.TakeOweVatMoveSource
 import Benchmarks.Dss.Clipper.YankSuccessSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -20,7 +22,7 @@ theorem clipperTakeCallbackSkipOfEval
         (.binary .and
           (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool false)) :
-    ExecStmt config (Frame.mk contract locals (immStore v)) evm
+    ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -42,7 +44,7 @@ theorem clipperTakeCallbackNoCodeOfEvals
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool true))
     (hcode : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .gt (.extCodeSize (.var "who")) (.intLit 0)) = .ok (.bool false)) :
-    ExecStmt config (Frame.mk contract locals (immStore v)) evm
+    ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -72,9 +74,9 @@ theorem clipperTakeCallbackFailureOfEvals
     (htarget : locals.get? "who" = some (.address target))
     (hargs : evalExprs? config (Frame.mk contract locals (immStore v)) evm
       [sender, .var "owe", .var "slice", .var "data"] = .ok args)
-    (hcall : typedCallViaEVM config evm (EVM.address target) "clipperCall" 0 args
+    (hcall : typedCallViaEVM fork config evm (EVM.address target) "clipperCall" 0 args
       (false, evm', out) true) :
-    ExecStmt config (Frame.mk contract locals (immStore v)) evm
+    ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -86,7 +88,7 @@ theorem clipperTakeCallbackFailureOfEvals
       .reverted := by
   apply ExecStmt.iteTrue hguard
   simpa [checkedExternalCallStmts] using
-    (checkedExternalCallVarFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
+    (checkedExternalCallVarFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
       (receiver := "who") (retVar := "_clipperCallRet") (name := "clipperCall")
       hcode htarget hargs hcall)
 
@@ -104,9 +106,9 @@ theorem clipperTakeCallbackSuccessOfEvals
     (htarget : locals.get? "who" = some (.address target))
     (hargs : evalExprs? config (Frame.mk contract locals (immStore v)) evm
       [sender, .var "owe", .var "slice", .var "data"] = .ok args)
-    (hcall : typedCallViaEVM config evm (EVM.address target) "clipperCall" 0 args
+    (hcall : typedCallViaEVM fork config evm (EVM.address target) "clipperCall" 0 args
       (true, evm', out) true) :
-    ExecStmt config (Frame.mk contract locals (immStore v)) evm
+    ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -119,7 +121,7 @@ theorem clipperTakeCallbackSuccessOfEvals
         (Frame.mk contract (locals.insert "_clipperCallRet" .unit) (immStore v)) evm') := by
   apply ExecStmt.iteTrue hguard
   simpa [checkedExternalCallStmts] using
-    (checkedExternalCallVarSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
+    (checkedExternalCallVarSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
       (receiver := "who") (retVar := "_clipperCallRet") (name := "clipperCall")
       hcode htarget hargs hcall (clipperTakeDecodeClipperCallVoid out))
 
@@ -128,7 +130,7 @@ theorem clipperTakeCheckedCallNoCodeOfEval
     {receiver : Expr} {name retVar : Ident} {args : List Expr}
     (hcode : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool false)) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts receiver name (.intLit 0) args retVar) .reverted := by
   simpa [checkedExternalCallStmts] using
     (checkedExternalCallNoCode (cfg := config) (C := contract)
@@ -143,12 +145,12 @@ theorem clipperTakeCheckedCallFailureOfEvals
     (htarget : evalExpr? config (Frame.mk contract locals (immStore v)) evm receiver =
       .ok (.address target))
     (hargs : evalExprs? config (Frame.mk contract locals (immStore v)) evm argsExpr = .ok args)
-    (hcall : typedCallViaEVM config evm (EVM.address target) name 0 args
+    (hcall : typedCallViaEVM fork config evm (EVM.address target) name 0 args
       (false, evm', out) true) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts receiver name (.intLit 0) argsExpr retVar) .reverted := by
   simpa [checkedExternalCallStmts] using
-    (checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
+    (checkedExternalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
       (receiver := receiver) (retVar := retVar) (name := name)
       hcode htarget hargs hcall)
 
@@ -161,28 +163,28 @@ theorem clipperTakeCheckedCallSuccessOfEvals
     (htarget : evalExpr? config (Frame.mk contract locals (immStore v)) evm receiver =
       .ok (.address target))
     (hargs : evalExprs? config (Frame.mk contract locals (immStore v)) evm argsExpr = .ok args)
-    (hcall : typedCallViaEVM config evm (EVM.address target) name 0 args
+    (hcall : typedCallViaEVM fork config evm (EVM.address target) name 0 args
       (true, evm', out) true)
     (hdecode : config.externalABI.decode? name out = some []) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts receiver name (.intLit 0) argsExpr retVar)
       (.ok (Frame.mk contract (locals.insert retVar .unit) (immStore v)) evm') := by
   simpa [checkedExternalCallStmts] using
-    (checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
+    (checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (cfg := config) (C := contract)
       (receiver := receiver) (retVar := retVar) (name := name)
       hcode htarget hargs hcall hdecode)
 
 theorem clipperTakeAfterSliceOfPrefixAndContinuation {sliceFrame fluxFrame dogFrame callbackFrame : Frame}
     {evmRead evmVat evmCb : EVM.State} {result : ExecResult}
-    (hflux : ExecBlock config sliceFrame evmRead
+    (hflux : ExecBlock fork config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
         clipperTakePostOweFluxStmts)
       (.ok fluxFrame evmVat))
-    (hdog : ExecStmt config fluxFrame evmVat
+    (hdog : ExecStmt fork config fluxFrame evmVat
       (.letDecl "dog_" (some addr) (.storage dogRef)) (.ok dogFrame evmVat))
-    (hcallback : ExecStmt config dogFrame evmVat
+    (hcallback : ExecStmt fork config dogFrame evmVat
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -192,12 +194,12 @@ theorem clipperTakeAfterSliceOfPrefixAndContinuation {sliceFrame fluxFrame dogFr
         (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
           [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
       (.ok callbackFrame evmCb))
-    (htail : ExecBlock config callbackFrame evmCb
+    (htail : ExecBlock fork config callbackFrame evmCb
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
           [sender, .storage vowRef, .var "owe"] "_moveRet" ++
         clipperTakeAfterMoveStmts) result) :
-    ExecBlock config sliceFrame evmRead (clipperTakeAfterSliceStmts) result := by
-  have hrest : ExecBlock config fluxFrame evmVat
+    ExecBlock fork config sliceFrame evmRead (clipperTakeAfterSliceStmts) result := by
+  have hrest : ExecBlock fork config fluxFrame evmVat
       (clipperTakeAfterFluxStmts ++ clipperTakeAfterMoveStmts) result := by
     simpa [clipperTakeAfterFluxStmts, List.append_assoc] using
       ExecBlock.consNormal hdog (ExecBlock.consNormal hcallback htail)
@@ -206,15 +208,15 @@ theorem clipperTakeAfterSliceOfPrefixAndContinuation {sliceFrame fluxFrame dogFr
 
 theorem clipperTakeAfterSliceOfPrefixAndCallbackRevert {sliceFrame fluxFrame dogFrame : Frame}
     {evmRead evmVat : EVM.State}
-    (hflux : ExecBlock config sliceFrame evmRead
+    (hflux : ExecBlock fork config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
         clipperTakePostOweFluxStmts)
       (.ok fluxFrame evmVat))
-    (hdog : ExecStmt config fluxFrame evmVat
+    (hdog : ExecStmt fork config fluxFrame evmVat
       (.letDecl "dog_" (some addr) (.storage dogRef)) (.ok dogFrame evmVat))
-    (hcallback : ExecStmt config dogFrame evmVat
+    (hcallback : ExecStmt fork config dogFrame evmVat
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -224,8 +226,8 @@ theorem clipperTakeAfterSliceOfPrefixAndCallbackRevert {sliceFrame fluxFrame dog
         (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
           [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
       .reverted) :
-    ExecBlock config sliceFrame evmRead (clipperTakeAfterSliceStmts) .reverted := by
-  have hrest : ExecBlock config fluxFrame evmVat
+    ExecBlock fork config sliceFrame evmRead (clipperTakeAfterSliceStmts) .reverted := by
+  have hrest : ExecBlock fork config fluxFrame evmVat
       (clipperTakeAfterFluxStmts ++ clipperTakeAfterMoveStmts) .reverted := by
     simpa [clipperTakeAfterFluxStmts] using
       ExecBlock.consNormal hdog (ExecBlock.consRevert hcallback)
@@ -367,7 +369,7 @@ theorem clipperTakeGenericVatMoveNoCode
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
     (hcode : (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet") .reverted := by
   exact clipperTakeCheckedCallNoCodeOfEval
@@ -383,11 +385,11 @@ theorem clipperTakeGenericVatMoveFailure
           .int (Int.ofNat owe.toNat)])
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address v.vat) "move" 0
       [.address evm.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evm).toNat),
         .int (Int.ofNat owe.toNat)] (false, evm', out) true) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet") .reverted := by
   exact clipperTakeCheckedCallFailureOfEvals
@@ -404,11 +406,11 @@ theorem clipperTakeGenericVatMoveSuccess
           .int (Int.ofNat owe.toNat)])
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address v.vat) "move" 0
       [.address evm.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evm).toNat),
         .int (Int.ofNat owe.toNat)] (true, evm', out) true) :
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet")
       (.ok (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm') := by
@@ -426,9 +428,9 @@ theorem clipperTakeGenericDogNonzeroSuccess
     (hlotNe : lot ≠ ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address dog) "digs" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address dog) "digs" 0
       [v.ilk, .int (Int.ofNat owe.toNat)] (true, evm', out) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -470,7 +472,7 @@ theorem clipperTakeGenericDogNonzeroNoCode
     (hlotNe : lot ≠ ⟨0⟩)
     (hcode : (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -492,7 +494,7 @@ theorem clipperTakeGenericDogNonzeroNoCode
       (.binary .gt (.extCodeSize (.var "dog_")) (.intLit 0)) = .ok (.bool false) := by
     simp [evalExpr?, EvalResult.bind, bind,
       clipperEvalTakeGenericDogTarget hdog', evalBinaryOp?, EVM.Word.ofNat, hcode]
-  have hchecked := clipperTakeCheckedCallNoCodeOfEval
+  have hchecked := clipperTakeCheckedCallNoCodeOfEval (fork := fork)
     (retVar := "_digsRet") (name := "digs")
     (args := [ilkExpr, .var "owe"]) hguard
   exact ExecBlock.consRevert (ExecStmt.iteFalse hcond hchecked)
@@ -506,9 +508,9 @@ theorem clipperTakeGenericDogNonzeroFailure
     (hlotNe : lot ≠ ⟨0⟩)
     (hcode : 0 < (UInt256.ofNat
       ((evm.lookupAccount dog).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evm (EVM.address dog) "digs" 0
+    (hcall : typedCallViaEVM fork config evm (EVM.address dog) "digs" 0
       [v.ilk, .int (Int.ofNat owe.toNat)] (false, evm', out) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -601,7 +603,7 @@ theorem clipperTakeGenericPostDogNonzeroStore
       (clipperTakeSalesTabSlot I) tab
     let evmLot := Stele.EVM.storageStore evmTab evmTab.executionEnv.codeOwner
       (clipperTakeSalesLotSlot I) lot
-    ExecBlock config (Frame.mk contract locals (immStore v)) evm
+    ExecBlock fork config (Frame.mk contract locals (immStore v)) evm
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
@@ -621,14 +623,14 @@ theorem clipperTakeGenericPostDogNonzeroStore
   have htabCond := clipperEvalTakeGenericTabEqZeroFalse (v := v) (evm := evm)
     htab htabNe
   have htabEval := clipperEvalTakeGenericVar (v := v) (evm := evm) htab
-  have htabStmt : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabStmt : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.assign .storage (salesF (.var "id") "tab") (.var "tab"))
       (.ok (Frame.mk contract locals (immStore v)) evmTab) :=
     ExecStmt.assign (hperm := Or.inr (by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) htabEval (by
       simpa [evmTab] using
         clipperTakeGenericAssignSalesTab (v := v) (evm := evm) hid hsales)
   have hlotEval := clipperEvalTakeGenericVar (v := v) (evm := evmTab) hlot
-  have hlotStmt : ExecStmt config (Frame.mk contract locals (immStore v)) evmTab
+  have hlotStmt : ExecStmt fork config (Frame.mk contract locals (immStore v)) evmTab
       (.assign .storage (salesF (.var "id") "lot") (.var "lot"))
       (.ok (Frame.mk contract locals (immStore v)) evmLot) :=
     ExecStmt.assign (hperm := Or.inr (by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) hlotEval (by
@@ -636,7 +638,7 @@ theorem clipperTakeGenericPostDogNonzeroStore
         clipperTakeGenericAssignSalesLot (v := v) (evm := evmTab) hid hsales)
   have hstores := ExecBlock.consNormal htabStmt
     (ExecBlock.consNormal hlotStmt ExecBlock.nil)
-  have htabIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have htabIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
@@ -646,7 +648,7 @@ theorem clipperTakeGenericPostDogNonzeroStore
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ])
       (.ok (Frame.mk contract locals (immStore v)) evmLot) :=
     ExecStmt.iteFalse htabCond hstores
-  have hlotIte : ExecStmt config (Frame.mk contract locals (immStore v)) evm
+  have hlotIte : ExecStmt fork config (Frame.mk contract locals (immStore v)) evm
       (.ite
         (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
@@ -666,7 +668,7 @@ theorem clipperTakeGenericPostDogNonzeroStore
       .ok (Frame.mk contract locals (immStore v),
         Stele.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩) := by
     simpa using assign_clipperLocked v evmLot locals hlocked ⟨0⟩
-  have hunlock := ExecStmt.assign (hperm := Or.inr (by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) hzero hunlockAssign
+  have hunlock := ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) hzero hunlockAssign
   exact ExecBlock.consNormal hlotIte (ExecBlock.consNormal hunlock ExecBlock.nil)
 
 end Benchmarks.Dss.Clipper

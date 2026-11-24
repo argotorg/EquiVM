@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapProtocolInitSource
 import Benchmarks.UniswapV4PoolManager.ProtocolSwapFeeTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapProtocolCostBlock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,9 +15,9 @@ theorem poolSwapProtocolLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (params+UInt256.ofNat 64) (poolSwapResultZeroMem mem state) = UInt256.fromBool zeroForOne)
-    (h : RD (deployedRuntime v) I g s0 ⟨18793⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18793⟩
       ([amount, params, ret, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapResultZeroAW aw state params) ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨18842⟩
+    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapResultZeroAW aw state params) ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨18842⟩
       ([ret, params, state+UInt256.ofNat 32, state+UInt256.ofNat 64, state,
         poolSwapProtocolWord (poolSlot0Word evm id) zeroForOne, amount, UInt256.fromBool (!zeroForOne),
         poolSlot0Word evm id, poolSlot id, state]++R)
@@ -28,7 +30,7 @@ theorem poolSwapProtocolLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
   obtain ⟨k1, C1, hc1, hp1, rd1⟩ := poolSwapProtocolCostBlock (R := R) (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_18793_taken_stack, hmRaw, hslot] at rd1
-  have hfirst : RD (deployedRuntime v) I g s0
+  have hfirst : RD fork (deployedRuntime v) I g s0
       (if zeroForOne then ⟨18833⟩ else ⟨22261⟩)
       ([params, state+UInt256.ofNat 32, state+UInt256.ofNat 64, state, ret, amount,
         UInt256.fromBool (!zeroForOne), poolSlot0Word evm id, poolSlot id, state]++R)

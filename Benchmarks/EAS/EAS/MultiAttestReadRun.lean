@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiAttestFacts
 import Benchmarks.EAS.EAS.RequestArrayCopy
 import Benchmarks.EAS.EAS.MultiRequestBounds
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,22 +19,22 @@ theorem multiAttestReadRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     (hi : i < n) (hn : n < UInt256.size) (hbase : base.toNat+32*i < UInt256.size)
     (hsize : ee.calldata.size < 2^255) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3767⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3767⟩
       (multiAttestLoopStack n i base table available (UInt256.ofNat groups.flatten.length) R) mem aw rdata σ k C) :
     (∃ (rs : List AttestationRequestRecord) (aw' : UInt256) (k' C' : Nat),
       decodeRequestArray ee.calldata (multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)) = some rs ∧
       (multiAttestCheckedLocals L ee.calldata base n i).get? "multiRequest" =
         some (multiRequestTuple (calldataWord ee.calldata (multiRequestRoot ee.calldata base i).toNat) rs) ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestRead++[multiAttestCheck])
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestRead++[multiAttestCheck])
         (.ok {contract := contract,locals := multiAttestCheckedLocals L ee.calldata base n i,immutables := immStore v} evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨5544⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5544⟩
         ((multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)+UInt256.ofNat 32)::
           calldataWord ee.calldata (multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)).toNat::
           UInt256.ofNat ee.calldata.size::⟨3846⟩::
           multiAttestCopySaved ee n i base table available (UInt256.ofNat groups.flatten.length) R) mem aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestRead++[multiAttestCheck]) .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
-  have hr : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestRead
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestRead++[multiAttestCheck]) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
+  have hr : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestRead
       (.ok {contract := contract,locals := multiAttestCheckedLocals L ee.calldata base n i,immutables := immStore v} evm) := by
     have hi' : i < (multiRequestValues ee.calldata base n).length := by rw [multiRequestValues_length]; exact hi
     have hn' : (multiRequestValues ee.calldata base n).length < UInt256.size := by rw [multiRequestValues_length]; exact hn
@@ -40,7 +42,7 @@ theorem multiAttestReadRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
         .ok (multiRequestValues ee.calldata base n)[i] := by
       rw [multiRequestValues_get]
       exact multiRequestValue_normalizes _ _ _
-    have hs := multiAttestReadSource (imms := immStore v) (evm := evm) h hi' hn' hnorm
+    have hs := multiAttestReadSource (fork := fork) (imms := immStore v) (evm := evm) h hi' hn' hnorm
     have hloc : multiAttestReadLocals L (decide (i=(multiRequestValues ee.calldata base n).length-1))
         (multiRequestValues ee.calldata base n)[i] = multiAttestCheckedLocals L ee.calldata base n i := by
       rw [multiRequestValues_length,multiRequestValues_get]

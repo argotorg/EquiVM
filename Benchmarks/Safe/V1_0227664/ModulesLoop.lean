@@ -1,13 +1,15 @@
 import Benchmarks.Safe.V1_0227664.ModulesLoopTrace
 import Benchmarks.Safe.V1_0227664.LinkedPages
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
 
 theorem safeModulesLoop {I g s0 σ k C aw mem rdata capacity doneWords fuel current words last}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4809⟩
+    (h : RD fork safeBytecode I g s0 ⟨4809⟩
       (UInt256.ofNat doneWords.length :: current :: ⟨128⟩ :: UInt256.ofNat capacity :: R)
       mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024)
@@ -16,7 +18,7 @@ theorem safeModulesLoop {I g s0 σ k C aw mem rdata capacity doneWords fuel curr
     (hc : current.toNat < EVM.addressModulus)
     (hp : LinkedPage (moduleLinkAt σ I) fuel current words last) :
     ∃ mem' aw' k' C',
-      RD safeBytecode I g s0 ⟨4942⟩
+      RD fork safeBytecode I g s0 ⟨4942⟩
         (UInt256.ofNat (doneWords ++ words).length :: last :: ⟨128⟩ ::
           UInt256.ofNat capacity :: R) mem' aw' rdata σ k' C' ∧
       AddressArrayMemory mem' capacity

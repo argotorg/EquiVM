@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepPrefix
 import Benchmarks.UniswapV3.Pool.SwapStepExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -35,7 +37,7 @@ theorem evalSwapStepBudgetArgs (imms : Store) (evm : EVM.State) (a : SwapStepArg
 theorem swapStepBudgetSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : fullMathValid (EVM.wordOfInt a.remaining) (swapStepComplement a)
       (UInt256.ofNat 1000000)) :
-    ExecStmt config (swapStepReadyFrame imms a) evm (swapStepPriceBranch true)[0]!
+    ExecStmt fork config (swapStepReadyFrame imms a) evm (swapStepPriceBranch true)[0]!
       (.ok (swapStepBudgetFrame imms a) evm) := by
   exact internalCallFunctionReturn (callee := fullMathFunction)
     (calleeStele := fullMathProductFrame imms (EVM.wordOfInt a.remaining)
@@ -50,7 +52,7 @@ theorem swapStepBudgetSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 theorem swapStepBudgetReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : ¬fullMathValid (EVM.wordOfInt a.remaining) (swapStepComplement a)
       (UInt256.ofNat 1000000)) :
-    ExecStmt config (swapStepReadyFrame imms a) evm (swapStepPriceBranch true)[0]!
+    ExecStmt fork config (swapStepReadyFrame imms a) evm (swapStepPriceBranch true)[0]!
       .reverted := by
   exact internalCallFunctionRevert (callee := fullMathFunction)
     (locals := fullMathLocals (EVM.wordOfInt a.remaining)

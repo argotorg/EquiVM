@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_047
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_046
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -70,12 +72,12 @@ theorem safeReturnDataMemory {mem out : ByteArray} {ptr : Nat}
 set_option maxRecDepth 2000 in
 theorem safeIRReturnBufferTrace {I g s0 σ k C aw mem ptr}
     {out : ByteArray} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10382⟩ (ret :: R) mem aw out σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10382⟩ (ret :: R) mem aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hb : ptr + out.size + 64 < UInt256.size) (hov : R.length + 11 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
-      ∃ aw' k' C', RD safeBytecode I g s0 ret
+    RDrev fork safeBytecode g s0 ∨
+      ∃ aw' k' C', RD fork safeBytecode I g s0 ret
         ((if out.size = 0 then ⟨96⟩ else UInt256.ofNat ptr) :: R)
         (if out.size = 0 then mem else returnDataMemory mem ptr out) aw' out σ k' C' ∧
         (ptr < 2 ^ 64 → (if out.size = 0 then ptr else

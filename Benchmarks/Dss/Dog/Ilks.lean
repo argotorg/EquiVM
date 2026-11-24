@@ -2,6 +2,8 @@ import Reasoning.ABIViews
 import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
@@ -319,12 +321,12 @@ theorem dogIlksReturnMem_read128 {mem : ByteArray} (clip chop hole dirt : UInt25
 theorem RD.dogIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : dogIlksStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨3⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) ::
@@ -481,13 +483,13 @@ theorem RD.dogIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.dogIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc clip chop hole dirt ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (dirt :: hole :: chop :: clip :: ret :: R)
+    (h : RD fork code ee g s0 pc (dirt :: hole :: chop :: clip :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : dogIlksReturnFromMemWf code pc)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 10 ≤ 1024) :
-    RDret code g s0 acc
+    RDret fork code g s0 acc
       (UInt256.toByteArray (UInt256.land clip solcAddrMask) ++ UInt256.toByteArray chop ++
         UInt256.toByteArray hole ++ UInt256.toByteArray dirt) := by
   rcases hwf with
@@ -570,7 +572,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = ilksLocals I) :
-    ExecTransitionBody config contract evm locals ilksTransition.body
+    ExecTransitionBody fork config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
@@ -698,7 +700,7 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 11)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨658⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨658⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xd9638d36⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨0xd9638d36⟩
@@ -723,7 +725,7 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
+  have h43 : RD fork code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
@@ -735,7 +737,7 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
+  have h54 : RD fork code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
@@ -803,10 +805,10 @@ theorem dogIlksBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata = some (ilksLocals I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let baseSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let clipWord := solcSlotWordAt baseSlot σ I
   let chopWord := solcSlotWordAt (baseSlot + ⟨1⟩) σ I
@@ -834,7 +836,7 @@ theorem dogIlksBodyCoreOk
       dirtWord, solcAddressSlotWord]
   have henc := dogIlksReturnEquiv clipWord chopWord holeWord dirtWord
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         ilksTransition.body
         (.returned { contract := contract, locals := locals, immutables := immStore v }
@@ -886,7 +888,7 @@ theorem dogIlksBodyCoreOk
     (dogPatchedDJumpPrefix1405 ⟨687⟩ hpatch (by native_decide))
     (by simp)
   have hret :
-      RDret code (Sat256.ofUInt256 g)
+      RDret fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (UInt256.land clipWord solcAddrMask) ++
           UInt256.toByteArray chopWord ++ UInt256.toByteArray holeWord ++
@@ -930,10 +932,10 @@ theorem dogIlksBodyCoreDecodeFailed_short
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -969,12 +971,12 @@ theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 11) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     dogDispatchIlks hsel
-  have hreach := dogReachIlksBody (σ := σ)
+  have hreach := dogReachIlksBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Benchmarks.Dss.Spot.PokeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -10,10 +12,10 @@ theorem spotPokeBodyCoreDecodeFailed_short
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some pokeTransition)
-    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨185⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -32,10 +34,10 @@ theorem spotPokeBodyCoreDecodeFailed_short
 
 theorem spotPokeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨185⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I) ⟨598⟩
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I) ⟨598⟩
         [pokeIlkWord I, ⟨214⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -59,11 +61,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.spotPokeToPeekExtcodesizeGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
-    (rd : RD spotBytecode I g
+    (rd : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨598⟩
       [pokeIlkWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨664⟩
       (pokePipTargetWord σ I :: pokePipTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨4⟩ :: ⟨128⟩ :: ⟨64⟩ :: ⟨132⟩ :: ⟨1507864023⟩ ::
@@ -146,13 +148,13 @@ theorem RD.spotPokeToPeekExtcodesizeGuard
 theorem RD.spotPokePeekNoCode
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
-    (rd598 : RD spotBytecode I g
+    (rd598 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨598⟩
       [pokeIlkWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd664⟩ := RD.spotPokeToPeekExtcodesizeGuard hsz36 rd598
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
     hcodeSize
@@ -163,13 +165,13 @@ theorem RD.spotPokePeekNoCode
 theorem RD.spotPokePeekCallReady
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
-    (rd598 : RD spotBytecode I g
+    (rd598 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨598⟩
       [pokeIlkWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD spotBytecode I g
+    ∃ gasWord k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨679⟩
       (gasWord :: pokePipTargetWord σ I :: ⟨0⟩ :: pokePeekOutPtr ::
         pokePeekInSize :: pokePeekOutPtr :: pokePeekOutSize :: pokePeekEndPtr ::
@@ -189,7 +191,7 @@ theorem RD.spotPokePeekCallReady
 
 theorem RD.spotPokePeekPostCall
     {σ σ₀ A I} {g : Sat256} {sel gasWord : UInt256} {k C : ℕ}
-    (rd679 : RD spotBytecode I g
+    (rd679 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨679⟩
       (gasWord :: pokePipTargetWord σ I :: ⟨0⟩ :: pokePeekOutPtr ::
         pokePeekInSize :: pokePeekOutPtr :: pokePeekOutSize :: pokePeekEndPtr ::
@@ -200,15 +202,15 @@ theorem RD.spotPokePeekPostCall
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (pokePipTargetWord σ I))
-          (toExecute I.fork σ (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((pokePeekCalldataMem I).readWithPadding
             pokePeekOutPtr.toNat pokePeekInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD spotBytecode I g
+      ∧ RD fork spotBytecode I g
           (initState σ σ₀ g A I) ⟨680⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: pokePeekEndPtr ::
             pokePeekSelectorPlainWord :: pokePipTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ ::
@@ -230,7 +232,7 @@ theorem RD.spotPokePeekPostCall
 
 theorem RD.spotPokePeekCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel gasWord : UInt256} {k C : ℕ}
-    (rd679 : RD spotBytecode I g
+    (rd679 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨679⟩
       (gasWord :: pokePipTargetWord σ I :: ⟨0⟩ :: pokePeekOutPtr ::
         pokePeekInSize :: pokePeekOutPtr :: pokePeekOutSize :: pokePeekEndPtr ::
@@ -238,7 +240,7 @@ theorem RD.spotPokePeekCallDepthLimit
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekCalldataMem I) (UInt256.ofNat 5) ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨680⟩
       (⟨0⟩ :: pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -262,13 +264,13 @@ theorem RD.spotPokePeekCallDepthLimit
 theorem RD.spotPokePeekCallFailed
     {σ σ' σ₀ A I} {g : Sat256} {sel : UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd680 : RD spotBytecode I g
+    (rd680 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨680⟩
       (⟨0⟩ :: pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -280,12 +282,12 @@ theorem RD.spotPokePeekCallSucceeded
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (rd680 : RD spotBytecode I g
+    (rd680 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨680⟩
       (⟨1⟩ :: pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨698⟩
       (pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -300,13 +302,13 @@ theorem RD.spotPokePeekReturnDecodeShortReverts
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd698 : RD spotBytecode I g
+    (rd698 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨698⟩
       (pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have rdPop0 := RD.pop rd698 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPop1 := RD.pop rdPop0 (by native_decide)
@@ -351,13 +353,13 @@ theorem RD.spotPokePeekReturnDecodeOk
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd698 : RD spotBytecode I g
+    (rd698 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨698⟩
       (pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨733⟩
       (pokePeekHasWord out :: pokePeekValWord out :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k' C' := by
@@ -444,9 +446,9 @@ theorem RD.spotCheckedMulReturns
     (hRlen : R.length ≤ 1010)
     (hret : (D_J spotBytecode 0).contains ret = true)
     (hfit : x.toNat * y.toNat < UInt256.size)
-    (rd2051 : RD spotBytecode I g s0 ⟨2051⟩ (y :: x :: ret :: R)
+    (rd2051 : RD fork spotBytecode I g s0 ⟨2051⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    ∃ k' C', RD spotBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork spotBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
   have rd2078prep := evm_run rd2051 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -525,9 +527,9 @@ theorem RD.spotCheckedMulOverflowReverts
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1010)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (rd2051 : RD spotBytecode I g s0 ⟨2051⟩ (y :: x :: ret :: R)
+    (rd2051 : RD fork spotBytecode I g s0 ⟨2051⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    RDrev spotBytecode g s0 := by
+    RDrev fork spotBytecode g s0 := by
   have hyNe : y ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : x.toNat * y.toNat = 0 := by simp [hzero]
@@ -584,9 +586,9 @@ theorem RD.spotRdivReturns
     (hret : (D_J spotBytecode 0).contains ret = true)
     (hfit : x.toNat * pokeRay.toNat < UInt256.size)
     (hdenom : denom ≠ ⟨0⟩)
-    (rd2093 : RD spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
+    (rd2093 : RD fork spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
       mem aw rdata acc k C) :
-    ∃ k' C', RD spotBytecode I g s0 ret
+    ∃ k' C', RD fork spotBytecode I g s0 ret
       (UInt256.div (x * pokeRay) denom :: R) mem aw rdata acc k' C' := by
   have rd2117 := evm_run rd2093 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -630,9 +632,9 @@ theorem RD.spotRdivMulOverflowReverts
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ x.toNat * pokeRay.toNat)
-    (rd2093 : RD spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
+    (rd2093 : RD fork spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
       mem aw rdata acc k C) :
-    RDrev spotBytecode g s0 := by
+    RDrev fork spotBytecode g s0 := by
   have rd2117 := evm_run rd2093 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -658,10 +660,10 @@ theorem RD.spotRdivDivZeroInvalid
     (hRlen : R.length ≤ 1000)
     (hfit : x.toNat * pokeRay.toNat < UInt256.size)
     (hdenom : denom = ⟨0⟩)
-    (rd2093 : RD spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
+    (rd2093 : RD fork spotBytecode I g s0 ⟨2093⟩ (denom :: x :: ret :: R)
       mem aw rdata acc k C) :
-    X (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .InvalidInstruction := by
+    X fork (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .OutOfGass ∨
+      X fork (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .InvalidInstruction := by
   have rd2117 := evm_run rd2093 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -691,12 +693,12 @@ theorem RD.spotPokeHasTrueToValScaledMul
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd733 : RD spotBytecode I g
+    (rd733 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨733⟩
       (pokePeekHasWord out :: pokePeekValWord out :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hhas : pokePeekHasWord out ≠ ⟨0⟩) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨2051⟩
       (pokeBillion :: pokePeekValWord out :: ⟨766⟩ :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ ::
         pokePeekHasWord out :: pokePeekValWord out :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -722,12 +724,12 @@ theorem RD.spotPokeValScaledToRdivPar
     {σ σ' σ₀ A I} {g : Sat256}
     {valScaled has val sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (rd766 : RD spotBytecode I g
+    (rd766 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨766⟩
       (valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨2093⟩
       (pokeParWord σ' I :: valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -735,7 +737,7 @@ theorem RD.spotPokeValScaledToRdivPar
   have rd767 := rd766.jumpdest (by native_decide) (by evm_ov)
   have rd769 := rd767.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k770, C770, rd770raw⟩ := rd769.sload (by native_decide) (by evm_ov)
-  have rd770 : RD spotBytecode I g
+  have rd770 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨770⟩
       (pokeParWord σ' I :: valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -753,11 +755,11 @@ theorem RD.spotPokeAfterRdivParToRdivMat
     (hsz36 : 36 ≤ I.calldata.size)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd774 : RD spotBytecode I g
+    (rd774 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨774⟩
       (spot1 :: ⟨798⟩ :: ⟨0⟩ :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨2093⟩
       (pokeMatWord σ' I :: spot1 :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -793,7 +795,7 @@ theorem RD.spotPokeAfterRdivParToRdivMat
     (by evm_ov)
   have rd792 := rd791.add (by native_decide) (by evm_ov)
   obtain ⟨k794, C794, rd794raw⟩ := rd792.sload (by native_decide) (by evm_ov)
-  have rd794 : RD spotBytecode I g
+  have rd794 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨794⟩
       (pokeMatWord σ' I :: spot1 :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -809,12 +811,12 @@ theorem RD.spotPokeHasFalseToVatFileEntry
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {acc : AccountMap}
     {out : ByteArray} {k C : ℕ}
-    (rd733 : RD spotBytecode I g
+    (rd733 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨733⟩
       (pokePeekHasWord out :: pokePeekValWord out :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hhas : pokePeekHasWord out = ⟨0⟩) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨798⟩
       (⟨0⟩ :: ⟨0⟩ :: pokePeekHasWord out :: pokePeekValWord out ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -834,11 +836,11 @@ theorem RD.spotPokeVatFileCallGuard
     {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd798 : RD spotBytecode I g
+    (rd798 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨798⟩
       (spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨886⟩
       (pokeVatTargetWord σ' I :: pokeVatTargetWord σ' I :: ⟨0⟩ :: pokeVatFileOutPtr ::
         pokeVatFileInSize :: pokeVatFileOutPtr :: pokeVatFileOutSize :: pokeVatFileEndPtr ::
@@ -871,7 +873,7 @@ theorem RD.spotPokeVatFileCallGuard
   have rd799 := rd798.jumpdest (by native_decide) (by evm_ov)
   have rd801 := rd799.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k802, C802, rd802raw⟩ := rd801.sload (by native_decide) (by evm_ov)
-  have rd802 : RD spotBytecode I g
+  have rd802 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨802⟩
       (vatRaw :: spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k802 C802 := by
@@ -957,11 +959,11 @@ theorem RD.spotPokeVatFileCallReady
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (pokeVatTargetWord σ' I) ≠ ⟨0⟩)
-    (rd798 : RD spotBytecode I g
+    (rd798 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨798⟩
       (spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    ∃ gasWord k' C', RD spotBytecode I g
+    ∃ gasWord k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨901⟩
       (gasWord :: pokeVatTargetWord σ' I :: ⟨0⟩ :: pokeVatFileOutPtr ::
         pokeVatFileInSize :: pokeVatFileOutPtr :: pokeVatFileOutSize :: pokeVatFileEndPtr ::
@@ -984,11 +986,11 @@ theorem RD.spotPokeVatFileNoCode
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (pokeVatTargetWord σ' I) = ⟨0⟩)
-    (rd798 : RD spotBytecode I g
+    (rd798 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨798⟩
       (spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd886⟩ := RD.spotPokeVatFileCallGuard hmem hread64 rd798
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
     hcodeSize
@@ -999,7 +1001,7 @@ theorem RD.spotPokeVatFileNoCode
 theorem RD.spotPokeVatFilePostCall
     {σ σ' σ₀ A I} {g : Sat256} {spot has val sel gasWord : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (rd901 : RD spotBytecode I g
+    (rd901 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨901⟩
       (gasWord :: pokeVatTargetWord σ' I :: ⟨0⟩ :: pokeVatFileOutPtr ::
         pokeVatFileInSize :: pokeVatFileOutPtr :: pokeVatFileOutSize :: pokeVatFileEndPtr ::
@@ -1010,15 +1012,15 @@ theorem RD.spotPokeVatFilePostCall
     ∃ (σ'' : AccountMap)
       (z : Bool) (fileOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, fileOut) = Ethereum.EVM.Θ I.fork σ'
+        (σ'', g'', A', z, fileOut) = Ethereum.EVM.Θ fork σ'
           σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-          (toExecute I.fork σ' (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
+          (toExecute fork σ' (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding pokeVatFileOutPtr.toNat pokeVatFileInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD spotBytecode I g
+      ∧ RD fork spotBytecode I g
           (initState σ σ₀ g A I) ⟨902⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: pokeVatFileEndPtr ::
             pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I :: spot :: has :: val ::
@@ -1049,13 +1051,13 @@ theorem RD.spotPokeVatFilePostCall
 theorem RD.spotPokeVatFileCallFailed
     {σ σ' σ'' σ₀ A I} {g : Sat256}
     {spot has val sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd902 : RD spotBytecode I g
+    (rd902 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨902⟩
       (⟨0⟩ :: pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord ::
         pokeVatTargetWord σ' I :: spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata σ'' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1067,12 +1069,12 @@ theorem RD.spotPokeVatFileCallSucceeded
     {σ σ' σ₀ A I} {g : Sat256} {spot has val sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (rd902 : RD spotBytecode I g
+    (rd902 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨902⟩
       (⟨1⟩ :: pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord ::
         pokeVatTargetWord σ' I :: spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
-    ∃ k' C', RD spotBytecode I g
+    ∃ k' C', RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨920⟩
       (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
         spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -1090,14 +1092,14 @@ theorem RD.spotPokeVatFileLogReturnsSplit
     {k C : ℕ}
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd920 : RD spotBytecode I g
+    (rd920 : RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨920⟩
       (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
         spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
     (I.perm = true ∧
-      RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic spotBytecode g (initState σ σ₀ g A I)) := by
+      RDret fork spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic fork spotBytecode g (initState σ σ₀ g A I)) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat

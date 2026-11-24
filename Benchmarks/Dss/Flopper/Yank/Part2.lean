@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Yank.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ theorem flopperYankX_suckCall
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd1050 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
+    (rd1050 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -24,11 +26,11 @@ theorem flopperYankX_suckCall
     let bid := solcSlotWordAt (auctionBidSlot id) σ I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+      RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankSuckEndPtr :: yankSuckSelectorWord ::
           vat :: id :: ⟨334⟩ :: sel :: [])
         (yankSuckCalldataMem vow guy bid memMap) (UInt256.ofNat 8) out σ' k' C'
-    ∧ typedCallViaEVM config (initState σ σ₀ g A I)
+    ∧ typedCallViaEVM fork config (initState σ σ₀ g A I)
         (EVM.address (AccountAddress.ofNat vat.toNat)) "suck" 0
         [.address (AccountAddress.ofNat vow.toNat),
           .address (AccountAddress.ofNat guy.toNat), .int (Int.ofNat bid.toNat)]
@@ -74,7 +76,7 @@ theorem flopperYankX_suckCall
     have hmin : (min yankSuckOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankSuckOutSize
       rfl
-    have rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+    have rd1164 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankSuckEndPtr :: yankSuckSelectorWord ::
           vat :: id :: ⟨334⟩ :: sel :: [])
         (out.write 0 (yankSuckCalldataMem vow guy bid memMap) yankSuckOutPtr.toNat
@@ -98,7 +100,7 @@ theorem flopperYankX_suckCallDepthLimit
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd1050 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
+    (rd1050 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -109,7 +111,7 @@ theorem flopperYankX_suckCallDepthLimit
     let vow := solcAddressSlotWord ⟨9⟩ σ I
     let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
     let bid := solcSlotWordAt (auctionBidSlot id) σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (⟨0⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
         vat :: id :: ⟨334⟩ :: sel :: [])
       (yankSuckCalldataMem vow guy bid memMap) (UInt256.ofNat 8)
@@ -142,12 +144,12 @@ theorem flopperYankX_suckCallFailure
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+    (rd1164 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (⟨0⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: yankIdWord I :: ⟨334⟩ :: sel :: [])
       mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -160,19 +162,19 @@ theorem flopperYankX_suckCallSuccessDeleteSplit
     {σ' : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
     (hstatus : status ≠ ⟨0⟩)
-    (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+    (rd1164 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (status :: yankSuckEndPtr :: yankSuckSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: yankIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C) :
     (I.perm = true ∧
-      RDret flopperBytecode g (initState σ σ₀ g A I)
+      RDret fork flopperBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ' (auctionBidSlot (yankIdWord I)) ⟨0⟩)
             (auctionLotSlot (yankIdWord I)) ⟨0⟩)
           (auctionPackedSlot (yankIdWord I)) ⟨0⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flopperBytecode g (initState σ σ₀ g A I)) := by
   have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
   have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
   have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
@@ -194,14 +196,14 @@ theorem flopperYankBodyCoreStillLive
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩ := hlive
   have hbody :
-      ExecTransitionBody config contract evmStele (yankLocals I)
+      ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .reverted := by
     simpa [evmStele, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -223,16 +225,16 @@ theorem flopperYankBodyCoreGuyNotSet
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguyStele :
       solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩ := hguy
   have hbody :
-      ExecTransitionBody config contract evmStele (yankLocals I)
+      ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .reverted := by
     simpa [evmStele, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -258,10 +260,10 @@ theorem flopperYankBodyCoreSuckNoCode
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguyStele :
@@ -271,7 +273,7 @@ theorem flopperYankBodyCoreSuckNoCode
         (solcAddressSlotWord ⟨2⟩ σ I) = ⟨0⟩ :=
     hnoCode
   have hbody :
-      ExecTransitionBody config contract evmStele (yankLocals I)
+      ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .reverted := by
     simpa [evmStele, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -297,7 +299,7 @@ theorem flopperYankBodyCoreSuckCallFailure
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
-    (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd1164 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
       (⟨0⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: yankIdWord I :: ⟨334⟩ :: sel :: [])
@@ -309,7 +311,7 @@ theorem flopperYankBodyCoreSuckCallFailure
           (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
       (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -329,12 +331,12 @@ theorem flopperYankBodyCoreSuckCallFailure
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCallStele : EVM.State :=
     { evmStele with accountMap := σ', substate := A' }
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "suck" 0
@@ -354,7 +356,7 @@ theorem flopperYankBodyCoreSuckCallFailure
         (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hbody :
-      ExecTransitionBody config contract evmStele (yankLocals I)
+      ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .reverted := by
     simpa [evmStele, evmCallStele, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -382,10 +384,10 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := yankIdWord I
   let memHash := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -394,7 +396,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
   let vow := solcAddressSlotWord ⟨9⟩ σ I
   let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
   let bid := solcSlotWordAt (auctionBidSlot id) σ I
-  let A_suck := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+  let A_suck := (Ethereum.EVM.callSubstate fork evmStele.accountMap
     (EVM.address (AccountAddress.ofNat vat.toNat)) evmStele.substate)
   have hmemHash : memHash.size = 96 := by
     simpa [memHash, id] using
@@ -410,7 +412,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
   have hdepthInit : evmStele.executionEnv.depth = 1024 := by
     simpa [evmStele, initState] using hdepth
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat vat.toNat)) "suck" 0
         [.address (AccountAddress.ofNat vow.toNat),
           .address (AccountAddress.ofNat guy.toNat), .int (Int.ofNat bid.toNat)]
@@ -433,7 +435,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
         (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hbody :
-      ExecTransitionBody config contract evmStele (yankLocals I)
+      ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .reverted := by
     simpa [evmStele, vat, vow, guy, bid, id, solcSlotWordAt, initState,
       Stele.EVM.storageLoad, State.lookupAccount] using
@@ -463,7 +465,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
-    (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd1164 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
       (⟨1⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: yankIdWord I :: ⟨334⟩ :: sel :: [])
@@ -475,7 +477,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
           (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
       (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -494,12 +496,12 @@ theorem flopperYankBodyCoreSuckCallSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCallStele : EVM.State :=
     { evmStele with accountMap := σ', substate := A' }
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "suck" 0
@@ -519,11 +521,11 @@ theorem flopperYankBodyCoreSuckCallSuccess
         (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evmStele (yankLocals I)
+      (I.perm = true → ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body
         (.returned { contract := contract, locals := yankSuckLocals I }
           (yankDeletePostState evmCallStele I) none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evmStele (yankLocals I)
+      (I.perm = false → ExecTransitionBody fork config contract evmStele (yankLocals I)
         yankTransition.body .staticViolation) := by
     simpa [evmStele, evmCallStele, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -558,10 +560,10 @@ theorem flopperYankBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flopperYankX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flopperDecode_yank_none_short hsz4 hshort)
 
@@ -570,12 +572,12 @@ theorem flopperYankBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 19)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 19) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some yankTransition :=
     flopperDispatchYank hsel
-  have hreach := flopperReachYankBody
+  have hreach := flopperReachYankBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -608,7 +610,7 @@ theorem flopperYankBody {σ σ₀ A I} {g : UInt256}
               flopperYankX_suckCall (g := Sat256.ofUInt256 g) hcodeSize
                 hdepthLt rd1050
             by_cases hz : z = true
-            · have rd1164True : RD flopperBytecode I (Sat256.ofUInt256 g)
+            · have rd1164True : RD fork flopperBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                   (⟨1⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
                     solcAddressSlotWord ⟨2⟩ σ I ::
@@ -622,7 +624,7 @@ theorem flopperYankBody {σ σ₀ A I} {g : UInt256}
                   (UInt256.ofNat 8) out σ' k1164 C1164 := by
                 simpa [hz] using rd1164
               have hcallTrue :
-                  typedCallViaEVM config
+                  typedCallViaEVM fork config
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (AccountAddress.ofNat
                       (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -642,7 +644,7 @@ theorem flopperYankBody {σ σ₀ A I} {g : UInt256}
               exact flopperYankBodyCoreSuckCallSuccess hcode hsize hwv hsz36
                 hlive hguy hcodeSize rd1164True hcallTrue hdispatch hdecode
             · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
-              have rd1164False : RD flopperBytecode I (Sat256.ofUInt256 g)
+              have rd1164False : RD fork flopperBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                   (⟨0⟩ :: yankSuckEndPtr :: yankSuckSelectorWord ::
                     solcAddressSlotWord ⟨2⟩ σ I ::
@@ -656,7 +658,7 @@ theorem flopperYankBody {σ σ₀ A I} {g : UInt256}
                   (UInt256.ofNat 8) out σ' k1164 C1164 := by
                 simpa [hzFalse] using rd1164
               have hcallFalse :
-                  typedCallViaEVM config
+                  typedCallViaEVM fork config
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (AccountAddress.ofNat
                       (solcAddressSlotWord ⟨2⟩ σ I).toNat))

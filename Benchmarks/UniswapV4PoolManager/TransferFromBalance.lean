@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.TransferFromTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,12 +22,12 @@ theorem transferFromBalanceCore {σ σ₀ A I} {g : UInt256}
     (henv : evm.executionEnv = I) (hc : receiver.toNat < EVM.addressModulus)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
     (hptr : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       args transferFromTransition.body (balanceTransferResult f evm sender receiver id amount) (immStore v))
-    (h : RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+    (h : RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨537⟩
       (transferFromStack sender receiver id amount R) mem aw .empty evm.accountMap k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   obtain ⟨aws, ks, Cs, rdSub⟩ := transferFromBalanceLoadTrace v hstack hmem h
   have hload : balanceWord evm sender id = solcSlotWordAt (balanceSlot sender id) evm.accountMap I :=
     storageLoad_codeOwner_eq_solcSlotWordAt evm I _ (congrArg ExecutionEnv.codeOwner henv)

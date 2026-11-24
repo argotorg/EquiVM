@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ModulesSource
 import Benchmarks.Safe.ViaIR.Memory
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -38,7 +40,7 @@ theorem safeModulesLastWord {mem capacity words}
 
 theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2710⟩
+    (h : RD fork safeBytecode I g s0 ⟨2710⟩
       (next :: next :: ⟨128⟩ :: UInt256.ofNat capacity :: UInt256.ofNat words.length :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024)
@@ -47,7 +49,7 @@ theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next}
     (hc : next.toNat < EVM.addressModulus)
     (hcwords : ∀ w ∈ words, w.toNat < EVM.addressModulus)
     (hg : next = ⟨1⟩ ∨ 0 < words.length) :
-    ∃ aw' k' C' scratch, RD safeBytecode I g s0 ⟨2734⟩
+    ∃ aw' k' C' scratch, RD fork safeBytecode I g s0 ⟨2734⟩
       (UInt256.ofNat words.length :: modulesPageNext words next :: ⟨128⟩ :: scratch :: R)
       mem aw' rdata σ k' C' := by
   by_cases hs : next = ⟨1⟩
@@ -93,10 +95,10 @@ theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next}
 
 theorem safeModulesFinishEmpty {I g s0 σ k C aw mem rdata capacity next}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2710⟩
+    (h : RD fork safeBytecode I g s0 ⟨2710⟩
       (next :: next :: ⟨128⟩ :: capacity :: ⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) (hc : next.toNat < EVM.addressModulus)
-    (hs : next ≠ ⟨1⟩) : RDrev safeBytecode g s0 := by
+    (hs : next ≠ ⟨1⟩) : RDrev fork safeBytecode g s0 := by
   have h2781 := safeRuntime_block_2710_taken (by simp; omega)
     (by rw [safeAddressMask, solcAddrMask_clean hc, u256_add_lnot_zero_eq_sub_one]
         exact u256_sub_ne_zero_of_ne hs) (by jump_dest) h

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.BoolReturnAllocation
 import Benchmarks.EAS.EAS.RuntimeBlocks_045
 import Benchmarks.EAS.EAS.RuntimeBlocks_048
 import Benchmarks.EAS.EAS.RuntimeBlocks_052
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -34,8 +36,8 @@ theorem payableAllocateEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {ptr junk : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+10 ≤ 1024) (hb : out.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (payableCopyPC site) (ptr::junk::R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableCopyPC site) (ptr::junk::R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (ptr::UInt256.ofNat (min out.size 32)::payableLengthPC site::
         UInt256.ofNat (min out.size 32)::ptr::⟨32⟩::payableCopyTail site ptr junk R) mem aw' out σ k' C' := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ hb
@@ -86,11 +88,11 @@ theorem payableDecodeEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C len : Nat} {ptr junk : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+8 ≤ 1024) (hdepth : site = .multiAttest → 4 ≤ R.length) (hlen : len ≤ 32) (hbound : ptr.toNat+32 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (payableLengthPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableLengthPC site)
       (UInt256.ofNat len::ptr::⟨32⟩::payableCopyTail site ptr junk R) mem aw out σ k C) :
     if 32 ≤ len then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::payableDecodedPC site::R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::payableDecodedPC site::R) mem aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hp : UInt256.ofNat ptr.toNat = ptr := u256_ofNat_toNat ptr
   by_cases hl : 32 ≤ len
   · rw [if_pos hl]
@@ -145,8 +147,8 @@ theorem payableReturn_done {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {word : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+3 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (payableDecodedPC site) (word::R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableDonePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableDecodedPC site) (word::R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableDonePC site)
       (UInt256.ofNat (deployedRuntime v).size::word::R) mem aw' out σ k' C' := by
   cases site with
   | single =>
@@ -166,12 +168,12 @@ theorem payableCopyReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hdepth : site = .multiAttest → 4 ≤ R.length)
     (hlo : 96 ≤ ptr.toNat) (hin : ptr.toNat+32 ≤ mem.size) (hbound : ptr.toNat+32 < UInt256.size)
     (hword : 32 ≤ out.size → memLoad ptr mem = calldataWord out 0)
-    (rd : RD (deployedRuntime v) ee g s0 (payableCopyPC site) (ptr::junk::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableCopyPC site) (ptr::junk::R) mem aw out σ k C) :
     if resolverCallValid ptr.toNat true out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableDonePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableDonePC site)
         (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::R)
         (resolverReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1,k1,C1,rd1⟩ := payableAllocateEntry v site hstack hb rd
   have hd := boolReturnAtAllocation (R := R) v
     (by simp only [List.length_cons]; have := payableCopyTail_length site ptr junk R; omega) (by omega) hlo hin hword

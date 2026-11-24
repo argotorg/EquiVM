@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordArrayLoop
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -34,8 +36,8 @@ theorem easEncodeRecordArrayStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (harray : AttestationArrayMemoryView mem array ats limit)
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+128+attestationArrayOffset ats ats.length < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats 0 R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ (recordArrayStack base array ats 0 R)
       (recordArrayInitialMemory mem base ats.length) aw' rdata σ k' C' := by
   have hp : MemoryPrefix mem (Reasoning.Theory.writeWord mem base.toNat ⟨64⟩) limit :=
     memoryPrefix_sparse_writeWord mem base.toNat limit _ (Or.inl hbase)
@@ -65,7 +67,7 @@ theorem easEncodeRecordArrayStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   simpa only [recordArrayStack, recordArrayHead, recordArrayTail, attestationArrayOffset,
     attestationArrayBodies, List.take_zero, List.map_nil, dynamicBodies, ByteArray.size_empty,
     Nat.mul_zero, Nat.add_zero, recordArrayInitialMemory, Reasoning.Theory.writeWord] using
-    (show ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14292⟩ _ _ aw' rdata σ k' C' from ⟨aw1,k1,C1,rd1⟩)
+    (show ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14292⟩ _ _ aw' rdata σ k' C' from ⟨aw1,k1,C1,rd1⟩)
 
 theorem easEncodeRecordArray {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
@@ -74,8 +76,8 @@ theorem easEncodeRecordArray {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (harray : AttestationArrayMemoryView mem array ats limit)
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+128+attestationArrayOffset ats ats.length < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14300⟩ (recordArrayStack base array ats ats.length R) mem' aw' rdata σ k' C' ∧
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::R) mem aw rdata σ k C) :
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14300⟩ (recordArrayStack base array ats ats.length R) mem' aw' rdata σ k' C' ∧
       RecordArrayLoopView mem mem' base ats limit ats.length := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easEncodeRecordArrayStart v (by omega) harray hbase hbound rd
   exact easEncodeRecordArrayLoop v hstack harray (recordArrayInitialMemory_view mem base ats limit hbase) hbase hbound rd1

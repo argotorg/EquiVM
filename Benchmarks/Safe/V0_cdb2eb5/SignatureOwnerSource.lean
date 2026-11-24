@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.SignaturePiece
 import Benchmarks.Safe.V0_cdb2eb5.OwnerStorage
 import Benchmarks.Safe.V0_cdb2eb5.Membership
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -71,7 +73,7 @@ theorem signatureOwnerSourceAccepted {p : SignatureInput} {f : Frame} {evm : EVM
     (hlast : f.locals["lastOwner"]? = some (.address (AccountAddress.ofUInt256 last)))
     (hi : f.locals["i"]? = some (.int (Int.ofNat i))) (hfit : i + 1 < UInt256.size)
     (hv : signatureOwnerValid evm.accountMap evm.executionEnv current last) :
-    ExecBlock config f evm (signatureLoopBody.drop 5)
+    ExecBlock fork config f evm (signatureLoopBody.drop 5)
       (.ok (signatureNextFrame f current i) evm) := by
   have hi' : (signatureSet f "lastOwner" (.address (AccountAddress.ofUInt256 current))).locals["i"]?
       = some (.int (Int.ofNat i)) := by simp [signatureSet, Std.HashMap.getElem?_insert, hi]
@@ -90,7 +92,7 @@ theorem signatureOwnerSourceRejected {p : SignatureInput} {f : Frame} {evm : EVM
     (hcurrent : f.locals["currentOwner"]? = some (.address (AccountAddress.ofUInt256 current)))
     (hlast : f.locals["lastOwner"]? = some (.address (AccountAddress.ofUInt256 last)))
     (hv : ¬signatureOwnerValid evm.accountMap evm.executionEnv current last) :
-    ExecBlock config f evm (signatureLoopBody.drop 5) .reverted :=
+    ExecBlock fork config f evm (signatureLoopBody.drop 5) .reverted :=
   .consRevert (.requireFalse (by
     simpa only [hv, decide_false] using
       evalSignatureOwnerCondition (evm := evm) hc hcurrent hlast))

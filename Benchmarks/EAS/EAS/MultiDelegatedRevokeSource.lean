@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.DelegatedRevocationDecodeFacts
 import Benchmarks.EAS.EAS.VerifyRevokeRun
 import Benchmarks.EAS.EAS.ArrayAllocateSource
 import Benchmarks.EAS.EAS.RevokeRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -53,7 +55,7 @@ def multiDelegatedRevokeFieldLocals (L : Store) (r : DelegatedRevocationBatch) :
 
 theorem multiDelegatedRevokeFieldsSource {L imms : Store} {evm : EVM.State} {r : DelegatedRevocationBatch}
     (hr : L.get? "multiDelegatedRequest" = some r.tuple) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeFields
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeFields
       (.ok {contract := contract,locals := multiDelegatedRevokeFieldLocals L r,immutables := imms} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil)
   · simp only [evalExpr?,hr,DelegatedRevocationBatch.tuple,EvalResult.ofOption,bind,EvalResult.bind,pure]
@@ -63,7 +65,7 @@ theorem multiDelegatedRevokeFieldsSource {L imms : Store} {evm : EVM.State} {r :
 
 theorem multiDelegatedRevokeCheck_ok {L imms : Store} {evm : EVM.State} {r : DelegatedRevocationBatch}
     (hr : L.get? "multiDelegatedRequest" = some r.tuple) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeCheck
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeCheck
       (.ok {contract := contract,locals := L,immutables := imms} evm) := by
   apply ExecStmt.requireTrue
   simp only [evalExpr?,hr,EvalResult.ofOption,bind,EvalResult.bind,pure,evalStructFields?,multiDelegatedRevokeCheck]
@@ -71,7 +73,7 @@ theorem multiDelegatedRevokeCheck_ok {L imms : Store} {evm : EVM.State} {r : Del
 
 theorem multiDelegatedRevokeCheck_bad {L imms : Store} {evm : EVM.State}
     (hr : L.get? "multiDelegatedRequest" = some ABI.Solc08Calldata.decodeFailure) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeCheck .reverted := by
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeCheck .reverted := by
   apply ExecStmt.requireFalse
   simp only [evalExpr?,hr,EvalResult.ofOption,bind,EvalResult.bind,pure,evalStructFields?,multiDelegatedRevokeCheck]
   rfl

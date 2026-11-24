@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.OperationPotentialMemory
 import Benchmarks.UniswapV4PoolManager.OperationPotentialControl
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 open GasConstants InstructionGasGroups
 namespace Benchmarks.UniswapV4PoolManager
@@ -9,76 +11,76 @@ theorem Caccess_ge_100 (addr : AccountAddress) (A : Substate) : 100 ≤ Caccess 
   unfold Caccess
   split <;> decide
 
-theorem C'_env_ge_two (s : State) (op : Operation.EOp) : 2 ≤ C' s (.Env op) := by
+theorem C'_env_ge_two (s : State) (op : Operation.EOp) : 2 ≤ C' fork s (.Env op) := by
   cases op <;>
     simp [C', Wzero, Wbase, Wverylow, Wlow, Wmid, Whigh, Wcopy, Wextaccount,
       Gbase, Gverylow, Gcopy, Caccess, Gwarmaccess, Gcoldaccountaccess] <;>
     first | omega | split <;> omega
 
-theorem C'_block_ge_two (s : State) (op : Operation.BOp) : 2 ≤ C' s (.Block op) := by
+theorem C'_block_ge_two (s : State) (op : Operation.BOp) : 2 ≤ C' fork s (.Block op) := by
   cases op <;> exact of_decide_eq_true rfl
 
-theorem C'_push_ge_two (s : State) (op : Operation.POp) : 2 ≤ C' s (.Push op) := by
+theorem C'_push_ge_two (s : State) (op : Operation.POp) : 2 ≤ C' fork s (.Push op) := by
   cases op <;> exact of_decide_eq_true rfl
 
-theorem C'_dup_ge_two (s : State) (op : Operation.DOp) : 2 ≤ C' s (.Dup op) := by
+theorem C'_dup_ge_two (s : State) (op : Operation.DOp) : 2 ≤ C' fork s (.Dup op) := by
   cases op <;> exact of_decide_eq_true rfl
 
 theorem step_env_cost_potential {gasCost : Nat} {op : Operation.EOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Env op, arg) s = .ok s') :
-    operationPotential s' ≤ operationPotential s+C' s (.Env op) := by
+    (h : step fork gasCost (.Env op, arg) s = .ok s') :
+    operationPotential s' ≤ operationPotential s+C' fork s (.Env op) := by
   by_cases hn : (.Env op : Operation) ∈ [.CALLDATACOPY, .CODECOPY, .EXTCODECOPY, .RETURNDATACOPY]
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
     rcases hn with hcopy | hcopy | hcopy | hcopy
-    · have hb := step_calldatacopy_potential (by simpa only [hcopy] using h)
+    · have hb := step_calldatacopy_potential (fork := fork) (by simpa only [hcopy] using h)
       simpa only [hcopy, C', Wcopy, List.mem_cons, List.mem_singleton, or_true,
         true_or, if_true, Gverylow, Gcopy, Nat.add_assoc] using hb
-    · have hb := step_codecopy_potential (by simpa only [hcopy] using h)
+    · have hb := step_codecopy_potential (fork := fork) (by simpa only [hcopy] using h)
       simpa only [hcopy, C', Wcopy, List.mem_cons, List.mem_singleton, or_true,
         true_or, if_true, Gverylow, Gcopy, Nat.add_assoc] using hb
-    · have hb := step_extcodecopy_potential (by simpa only [hcopy] using h)
+    · have hb := step_extcodecopy_potential (fork := fork) (by simpa only [hcopy] using h)
       rw [hcopy]
       change operationPotential s' ≤ operationPotential s+(Caccess _ _+3*((s.machineState.stack[3]!.toNat+31)/32))
       exact hb.trans (Nat.add_le_add_left ((show 6 ≤ 100 by decide).trans
         ((Caccess_ge_100 _ _).trans (Nat.le_add_right _ _))) _)
-    · have hb := step_returndatacopy_potential (by simpa only [hcopy] using h)
+    · have hb := step_returndatacopy_potential (fork := fork) (by simpa only [hcopy] using h)
       simpa only [hcopy, C', Wcopy, List.mem_cons, List.mem_singleton, or_true,
         true_or, if_true, Gverylow, Gcopy, Nat.add_assoc] using hb
-  · have hp := step_env_noncopy_potential hn h
-    have hc := C'_env_ge_two s op
+  · have hp := step_env_noncopy_potential (fork := fork) hn h
+    have hc := C'_env_ge_two (fork := fork) s op
     omega
 
 theorem step_stackmemflow_cost_potential {gasCost : Nat} {op : Operation.SMSFOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.StackMemFlow op, arg) s = .ok s') :
-    operationPotential s' ≤ operationPotential s+C' s (.StackMemFlow op) := by
+    (h : step fork gasCost (.StackMemFlow op, arg) s = .ok s') :
+    operationPotential s' ≤ operationPotential s+C' fork s (.StackMemFlow op) := by
   by_cases hn : (.StackMemFlow op : Operation) ∈ [.MSTORE, .MSTORE8, .MCOPY, .PC, .MSIZE, .GAS]
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
     rcases hn with ho | ho | ho | ho | ho | ho
-    · have hb := step_mstore_potential (by simpa only [ho] using h)
+    · have hb := step_mstore_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       exact hb
-    · have hb := step_mstore8_potential (by simpa only [ho] using h)
+    · have hb := step_mstore8_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       exact hb
-    · have hb := step_mcopy_potential (by simpa only [ho] using h)
+    · have hb := step_mcopy_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       simpa only [C', Wcopy, List.mem_cons, List.mem_singleton, or_true,
         true_or, if_true, Gverylow, Gcopy, Nat.add_assoc] using hb
-    · have hb := step_pc_potential (by simpa only [ho] using h)
+    · have hb := step_pc_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       exact Nat.le_of_eq hb
-    · have hb := step_msize_potential (by simpa only [ho] using h)
+    · have hb := step_msize_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       exact Nat.le_of_eq hb
-    · have hb := step_gas_potential (by simpa only [ho] using h)
+    · have hb := step_gas_potential (fork := fork) (by simpa only [ho] using h)
       rw [ho]
       exact Nat.le_of_eq hb
   · exact (step_stackmemflow_other_potential hn h).trans (Nat.le_add_right _ _)
 
 theorem step_selfdestruct_potential {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.SELFDESTRUCT, arg) s = .ok s') :
+    (h : step fork gasCost (.SELFDESTRUCT, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+12 := by
   have hf := memoryFootprint_le s'.machineState.memory
   rw [step.eq_1] at h
@@ -94,17 +96,17 @@ theorem step_selfdestruct_potential {gasCost : Nat} {arg : Option (UInt256 × Na
 -- LIBRARY CANDIDATE: nonrecursive opcodes pay for their change in stack and memory footprint.
 theorem step_nonrecursive_operationPotential {gasCost : Nat} {w : Operation}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (hn : ¬RecursiveSystemStep w) (h : step gasCost (w, arg) s = .ok s') :
-    operationPotential s' ≤ operationPotential s+C' s w := by
+    (hn : ¬RecursiveSystemStep w) (h : step fork gasCost (w, arg) s = .ok s') :
+    operationPotential s' ≤ operationPotential s+C' fork s w := by
   cases w with
   | StopArith op => exact (step_stoparith_potential h).trans (Nat.le_add_right _ _)
   | CompBit op => exact (step_compbit_potential h).trans (Nat.le_add_right _ _)
   | Keccak op => exact (step_keccak_potential h).trans (Nat.le_add_right _ _)
   | Env op => exact step_env_cost_potential h
   | StackMemFlow op => exact step_stackmemflow_cost_potential h
-  | Block op => have hp := step_block_potential h; have hc := C'_block_ge_two s op; omega
-  | Push op => have hp := step_push_potential h; have hc := C'_push_ge_two s op; omega
-  | Dup op => have hp := step_dup_potential h; have hc := C'_dup_ge_two s op; omega
+  | Block op => have hp := step_block_potential (fork := fork) h; have hc := C'_block_ge_two (fork := fork) s op; omega
+  | Push op => have hp := step_push_potential (fork := fork) h; have hc := C'_push_ge_two (fork := fork) s op; omega
+  | Dup op => have hp := step_dup_potential (fork := fork) h; have hc := C'_dup_ge_two (fork := fork) s op; omega
   | Exchange op => exact (Nat.le_of_eq (step_exchange_potential h)).trans (Nat.le_add_right _ _)
   | Log op => exact (step_log_potential h).trans (Nat.le_add_right _ _)
   | System op =>
@@ -114,8 +116,8 @@ theorem step_nonrecursive_operationPotential {gasCost : Nat} {w : Operation}
       omega
     · exact (step_revert_potential h).trans (Nat.le_add_right _ _)
     · rw [step.eq_1] at h; contradiction
-    · have hp := step_selfdestruct_potential h
-      have hc : 12 ≤ C' s .SELFDESTRUCT := by
+    · have hp := step_selfdestruct_potential (fork := fork) h
+      have hc : 12 ≤ C' fork s .SELFDESTRUCT := by
         change 12 ≤ Gselfdestruct+_+_
         change 12 ≤ 5000+_+_
         omega

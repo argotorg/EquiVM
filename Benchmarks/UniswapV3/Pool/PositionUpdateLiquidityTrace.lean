@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionUpdateWords
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,16 +13,16 @@ set_option maxRecDepth 10000
 theorem positionUpdateLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21637⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21637⟩
       (⟨0⟩ :: p :: a.growth1 :: a.growth0 :: EVM.wordOfInt a.delta ::
         solcMappingSlot ⟨7⟩ a.key :: ret :: R) mem aw rdata σ k C)
     (hm : WordArrayMemory mem p (positionSnapshotWords a.key evm.accountMap evm.executionEnv))
     (ha : ActiveWords aw) (hb : p.toNat + 160 ≤ 2 ^ 200)
     (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127)
     (hov : R.length + 18 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ positionUpdateLiquidityValid a evm) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ positionUpdateLiquidityValid a evm) ∨
       (positionUpdateLiquidityValid a evm ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) ee g s0 ⟨21733⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨21733⟩
           (EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::
             EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R)
           mem aw' rdata σ k' C' ∧ ActiveWords aw') := by

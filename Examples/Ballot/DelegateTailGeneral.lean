@@ -1,5 +1,7 @@
 import Examples.Ballot.DelegateChain
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -629,13 +631,13 @@ theorem ballotDelegateBodyReverts_tailDelegateWeight_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := L } evm))
     (hdelegateWeight : delegateTailVoterWeightCurrent evm w = ⟨0⟩) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -664,7 +666,7 @@ theorem ballotDelegateBodyReturns_tailNotVoted_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
@@ -677,7 +679,7 @@ theorem ballotDelegateBodyReturns_tailNotVoted_general (evm : EVM.State)
           (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body
       (.returned { contract := ballotContract, locals := delegateTailGeneralStore I w L }
         (delegateTailFalseSuccessState evm I w) none) := by
@@ -728,14 +730,14 @@ theorem ballotDelegateBodyStatic_tail_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := L } evm))
     (hdelegateWeight : delegateTailVoterWeightCurrent evm w ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -767,7 +769,7 @@ theorem ballotDelegateBodyReverts_tailNotVotedOverflow_general
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
@@ -779,7 +781,7 @@ theorem ballotDelegateBodyReverts_tailNotVotedOverflow_general
       (delegateTailVoterWeightCurrent (delegateTailAfterSenderState evm I w) w).toNat +
         (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -825,7 +827,7 @@ theorem ballotDelegateBodyReturns_tailVoted_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
@@ -841,7 +843,7 @@ theorem ballotDelegateBodyReturns_tailVoted_general (evm : EVM.State)
           (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body
       (.returned { contract := ballotContract, locals := delegateTailGeneralStore I w L }
         (delegateTailTrueSuccessState evm I w) none) := by
@@ -891,7 +893,7 @@ theorem ballotDelegateBodyReverts_tailVotedOob_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
@@ -903,7 +905,7 @@ theorem ballotDelegateBodyReverts_tailVotedOob_general (evm : EVM.State)
       ¬ (delegateTailVoterVoteCurrent (delegateTailAfterSenderState evm I w) w).toNat <
         (delegateTailProposalsLengthCurrent (delegateTailAfterSenderState evm I w)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -948,7 +950,7 @@ theorem ballotDelegateBodyReverts_tailVotedOverflow_general (evm : EVM.State)
     (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
-      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+      ExecStmt fork ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
@@ -963,7 +965,7 @@ theorem ballotDelegateBodyReverts_tailVotedOverflow_general (evm : EVM.State)
       (delegateTailProposalCountCurrent evm I w).toNat +
         (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+    ExecTransitionBody fork ballotConfig ballotContract evm (delegateStore I)
       delegateTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_

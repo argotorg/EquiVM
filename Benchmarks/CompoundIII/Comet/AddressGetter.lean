@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AbiRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -7,20 +9,20 @@ namespace Benchmarks.CompoundIII.Comet
 def addressGetterArgs (name : Ident) (I : ExecutionEnv) : Store :=
   (∅ : Store).insert name (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))
 
-def AddressGetterResult (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def AddressGetterResult (fork : Ethereum.Fork) (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    RDret code g s0 σ out
-  else RDrev code g s0
+    RDret fork code g s0 σ out
+  else RDrev fork code g s0
 
-def CheckedAddressGetterResult (P : Prop) [Decidable P]
+def CheckedAddressGetterResult (fork : Ethereum.Fork) (P : Prop) [Decidable P]
     (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus ∧ P then
-    RDret code g s0 σ out
-  else RDrev code g s0
+    RDret fork code g s0 σ out
+  else RDrev fork code g s0
 
 -- LIBRARY CANDIDATE: refinement connection for nonpayable getters of one address argument.
 theorem checkedAddressGetter_refines {t : TransitionDecl} {imms : Store}
@@ -34,15 +36,15 @@ theorem checkedAddressGetter_refines {t : TransitionDecl} {imms : Store}
     (hreturn : P → returnEquiv out (some values) t.returnType)
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 →
       (calldataWord I.calldata 4).toNat < EVM.addressModulus → P → ∃ frame,
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (addressGetterArgs name I) (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some values)) imms)
     (hsourceRevert : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 → ¬ P →
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (addressGetterArgs name I) (calldataPrologue body) .reverted imms)
-    (hX : CheckedAddressGetterResult P code I (Sat256.ofUInt256 g)
+    (hX : CheckedAddressGetterResult fork P code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   have hdecode : config.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata =
       decodeCalldata [name] [.elem .address] I.calldata := by
@@ -88,12 +90,12 @@ theorem addressGetterValues_refines {t : TransitionDecl} {imms : Store}
     (hreturn : returnEquiv out (some values) t.returnType)
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 →
       (calldataWord I.calldata 4).toNat < EVM.addressModulus → ∃ frame,
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (addressGetterArgs name I) (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some values)) imms)
-    (hX : AddressGetterResult code I (Sat256.ofUInt256 g)
+    (hX : AddressGetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   apply checkedAddressGetter_refines (P := True) hcode hsz hd hp hb (fun _ ↦ hreturn)
     (fun hv hhi hc _ ↦ hsource hv hhi hc) (fun _ _ hn ↦ False.elim (hn trivial))
   simpa only [CheckedAddressGetterResult, AddressGetterResult, and_true] using hX
@@ -109,12 +111,12 @@ theorem addressGetter_refines {t : TransitionDecl} {imms : Store}
     (henc : encodeReturnValue? ty value = some out)
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 →
       (calldataWord I.calldata 4).toNat < EVM.addressModulus → ∃ frame,
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (addressGetterArgs name I) (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [value])) imms)
-    (hX : AddressGetterResult code I (Sat256.ofUInt256 g)
+    (hX : AddressGetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   apply addressGetterValues_refines hcode hsz hd hp hb ?_ hsource hX
   rw [ht]
   exact returnEquiv_of_encode henc

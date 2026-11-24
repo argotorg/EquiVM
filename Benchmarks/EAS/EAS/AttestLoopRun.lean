@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestLoopStep
 import Benchmarks.EAS.EAS.WhileInvariant
 import Benchmarks.EAS.EAS.TimeArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,27 +19,27 @@ theorem attestLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     (hf : AttestLoopLocals L rs s schema attester available last ats values uids used 0 heap.toNat)
     (hm : AttestLoopMemory mem site t3 t4 uidPtr rs s attester ptrs values uids ats heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hreglen : attestLoopLength site = UInt256.ofNat rs.length)
-    (rd : RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site schema (UInt256.ofNat 0) t3 t4 R) mem aw rdata σ k C) :
     (∃ L' evm' σ' mem' aw' k' C' heap' ptrs' ats' values' uids',
       heap.toNat ≤ heap' ∧ heap' ≤ 2^64-1 ∧ (rs.length = 0 ∨ ee.perm = true) ∧ SourceState s0 ee σ' evm' ∧ MemoryPrefix mem mem' uidPtr.toNat ∧
       AttestLoopLocals L' rs s schema attester available last ats' values' uids' used rs.length heap' ∧
       AttestLoopMemory mem' site t3 t4 uidPtr rs s attester ptrs' values' uids' ats' heap' ∧
       WordArrayMemoryView mem' (recordValuesPtr site t4) values' heap' ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 (attestLoopExitPC site)
+      RD fork (deployedRuntime v) ee g s0 (attestLoopExitPC site)
         (recordNextStack site schema (UInt256.ofNat rs.length) t3 t4 R) mem' aw' rdata σ' k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm attestLoopStmt .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   let Inv := fun i L1 e1 => ∃ (σ1 : AccountMap) (m : ByteArray) (a : UInt256) (j D : Nat) (p : UInt256)
       (ps vs us : List UInt256) (records : List AttestationRecord),
     SourceState s0 ee σ1 e1 ∧ heap.toNat ≤ p.toNat ∧ p.toNat ≤ 2^64-1 ∧ (i = 0 ∨ (ee.perm = true ∧ (recordValuesPtr site t4).toNat+32+32*vs.length ≤ m.size)) ∧ MemoryPrefix mem m uidPtr.toNat ∧
     AttestLoopLocals L1 rs s schema attester available last records vs us used i p.toNat ∧
     AttestLoopMemory m site t3 t4 uidPtr rs s attester ps vs us records p.toNat ∧
-    RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site schema (UInt256.ofNat i) t3 t4 R) m a rdata σ1 j D
   have hguard : ∀ i L1 e1, i ≤ rs.length → Inv i L1 e1 →
       evalExpr? config {contract := contract,locals := L1,immutables := immStore v} e1 timeArrayGuard =
@@ -46,10 +48,10 @@ theorem attestLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     simp only [timeArrayGuard,evalExpr?,hf1.index,hf1.length,EvalResult.ofOption,EvalResult.bind,bind,
       evalBinaryOp_lt_int_ok,Int.ofNat_eq_natCast,Nat.cast_lt]
   have hstep : ∀ i L1 e1, i < rs.length → Inv i L1 e1 →
-      (∃ L2 e2, ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration
+      (∃ L2 e2, ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration
         (.ok {contract := contract,locals := L2,immutables := immStore v} e2) ∧ Inv (i+1) L2 e2) ∨
-      (ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-      (ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration .staticViolation ∧ RDstatic (deployedRuntime v) g s0) := by
+      (ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 attestIteration .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) := by
     rintro i L1 e1 hi ⟨σ1,m,a,j,D,p,ps,vs,us,records,hs1,hlo,hhi,hperm,hpre,hf1,hm1,hr1⟩
     have hrun := attestLoopStep v site hstack hs1 hf1 hm1 hi hhi hreglen hr1
     rcases hrun with ⟨L2,e2,σ2,m2,a2,j2,D2,heap2,word,hperm2,hlo2,hhi2,hf2,hsol,hstate,hpre2,hm2,hvc2,hr2⟩ | ⟨hsol,hrev⟩ | ⟨hsol,hstatic⟩
@@ -66,7 +68,7 @@ theorem attestLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     · exact Or.inr (Or.inr ⟨hsol,hstatic⟩)
   have hloop := execWhile_invariant (cfg := config) (contract := contract) (imms := immStore v)
     (cond := timeArrayGuard) (body := attestIteration) (bound := rs.length)
-    Inv (Inv rs.length) (RDrev (deployedRuntime v) g s0) (RDstatic (deployedRuntime v) g s0)
+    Inv (Inv rs.length) (RDrev fork (deployedRuntime v) g s0) (RDstatic fork (deployedRuntime v) g s0)
     hguard (fun _ _ h => h) hstep rs.length 0 L evm (by omega)
     ⟨σ,mem,aw,k,C,heap,ptrs,values,uids,ats,hs,le_refl _,hh,Or.inl rfl,MemoryPrefix.refl _ _,hf,hm,rd⟩
   rcases hloop with ⟨L1,e1,hsol,σ1,m,a,j,D,p,ps,vs,us,records,hstate,hlo,hhi,hperm,hpre,hf1,hm1,hr1⟩ | ⟨hsol,hrev⟩ | ⟨hsol,hstatic⟩

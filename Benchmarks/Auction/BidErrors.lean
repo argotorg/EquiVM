@@ -1,6 +1,8 @@
 import Benchmarks.Auction.ShortError
 import Benchmarks.Auction.SettleGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -24,26 +26,26 @@ theorem bidReserveErrorWf : literalErrorWf auctionBytecode ⟨1440⟩ ⟨994⟩ 
   native_decide
 
 theorem bidWrongNounError {I g s0 R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1289⟩ R mem aw rdata acc k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨1289⟩ R mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, _, _, _, hr⟩ := literalError h bidWrongNounErrorWf hov
   exact auctionErrorRevert hr (by omega)
 
 theorem bidExpiredError {I g s0 R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1372⟩ R mem aw rdata acc k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨1372⟩ R mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, _, _, _, hr⟩ := shortError h bidExpiredErrorWf (by decide) hov
   exact auctionErrorRevert hr (by omega)
 
 theorem bidReserveError {I g s0 R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1440⟩ R mem aw rdata acc k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨1440⟩ R mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, _, _, _, hr⟩ := literalError h bidReserveErrorWf hov
   exact auctionErrorRevert hr (by omega)
 
 theorem bidIncrementError {I g s0 R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1570⟩ R mem aw rdata acc k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨1570⟩ R mem aw rdata acc k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd1574 := evm_run h with [push1 ⟨64⟩, dup1,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
   have rd1578 := rd1574.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)

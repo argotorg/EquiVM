@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetMembershipStore
 import Benchmarks.CompoundIII.Comet.MappingScratch
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_078
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -21,15 +23,15 @@ theorem absorbClear_source (frame : Frame) (evm : EVM.State) (account : AccountA
     (hc : frame.contract = contract) (hl : frame.locals.get? "userBasic" = none)
     (ha : frame.locals.get? "account" = some (.address account))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm absorbClearBlock (.ok frame (absorbClearState evm account)) := by
+    ExecBlock fork config frame evm absorbClearBlock (.ok frame (absorbClearState evm account)) := by
   have he (evm' : EVM.State) : evalExpr? config frame evm' (.var "account") =
       .ok (.address account) := by simp only [evalExpr?, ha, EvalResult.ofOption]
   have h0 := assignUserBasicField frame evm account (.var "account") ⟨2, by decide⟩ ⟨0⟩
     hc hl (he evm)
   have h1 := assignUserBasicField frame (storePackedWord evm (userBasicSlot account) ⟨0⟩ 29 2)
     account (.var "account") ⟨3, by decide⟩ ⟨0⟩ hc hl (he _)
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]; rfl) h0)
-    (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storePackedWord, storageStore_executionEnv] using hperm)) (by simp only [evalExpr?, pure]; rfl) h1) .nil)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]; rfl) h0)
+    (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storePackedWord, storageStore_executionEnv] using hperm)) (by simp only [evalExpr?, pure]; rfl) h1) .nil)
 
 def absorbClearMemory (mem : ByteArray) (account : AccountAddress) : ByteArray :=
   twoWordHashMem (EVM.word account.val) ⟨5⟩ (twoWordHashMem (EVM.word account.val) ⟨5⟩ mem)
@@ -39,11 +41,11 @@ theorem cometAbsorbClear {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {old oldBalance balance price scale principal : UInt256}
     {R : List UInt256} (account : AccountAddress) (hstack : R.length + 15 ≤ 1024)
     (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17261⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17261⟩
       (old :: oldBalance :: balance :: price :: EVM.word account.val :: scale :: principal :: R)
       mem aw rdata σ k C) :
     ∃ σ' aw' k' C', SourceState s0 ee σ' (absorbClearState evm account) ∧
-      RD (deployedRuntime v) ee g s0 ⟨17306⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17306⟩
         (principal :: old :: oldBalance :: balance :: price :: EVM.word account.val ::
           scale :: principal :: R) (absorbClearMemory mem account) aw' rdata σ' k' C' := by
   have r1 := cometWithExtendedAssetList_block_17261 (immWords := wordsOf (immStore v))

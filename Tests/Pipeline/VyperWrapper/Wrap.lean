@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.Unwrap
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `wrap(uint256)`
 
@@ -79,13 +81,13 @@ theorem wrapTail {σ σ₀ A I} {g : UInt256} (imms : Store) (hwf : storageWF σ
     (hcanon2 : (solcSlotWordAt ⟨0⟩ σ2 I).toNat < EVM.addressModulus)
     (minted : UInt256) (M : ByteArray) (hM : M.size = 256) (hMr : M.readWithPadding 96 32 = minted.toByteArray)
     {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
-    (rd : RD (wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms)) I (Sat256.ofUInt256 g)
+    (rd : RD fork (wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms)) I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 730) [solcSelectorWord I] M aw rdata σ2 k C)
     (L : Store) (hLm : L.get? "minted" = some (uint256Value minted)) (hLsh : L.get? "shares" = none)
     (hLts : L.get? "totalShares" = none) (hLhook : L.get? "hook" = none)
-    (hprefix : ∀ result, ExecBlock config (frame imms L) evm2 wrapTailStmts result →
-      ExecBlock config (frame imms (wStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) wrapTransition.body result) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    (hprefix : ∀ result, ExecBlock fork config (frame imms L) evm2 wrapTailStmts result →
+      ExecBlock fork config (frame imms (wStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) wrapTransition.body result) :
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hW9 : (hashMem M I).size = 256 := by rw [hashMem_size_ge _ _ (by rw [hM]; decide)]; exact hM
   have hkec := keccak_hashMem_ge M I (by rw [hM]; decide)
   have hW9r : (hashMem M I).readWithPadding 96 32 = minted.toByteArray := by
@@ -196,7 +198,7 @@ theorem wrapTail {σ σ₀ A I} {g : UInt256} (imms : Store) (hwf : storageWF σ
       write32_read_below _ _ 160 96 (by rw [toByteArray_size]) (by rw [hW9] <;> omega) (by decide), hW9r] at rd4
     have hemit : evalExprs? config (frame imms L) evm4 [.env .caller, .var "minted"] = .ok [.address I.source, uint256Value minted] := by
       rw [evalExprs?, evalExpr_caller, hs4.env, evalExprs?, hmv, evalExprs?]; rfl
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I) wrapTransition.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I) wrapTransition.body
         (.returned (frame imms L) evm4 (some [uint256Value minted])) (restrictImmutables contract imms) :=
       ExecFuncBody.execBlockRet (hprefix _ (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [hs2.env] using hperm)) hadd1 hassign1)
         (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [hs3.env] using hperm)) hadd2 hassign2)
@@ -280,17 +282,17 @@ theorem wrapTail {σ σ₀ A I} {g : UInt256} (imms : Store) (hwf : storageWF σ
   rw [ulit_toNat' 96 (by decide), ulit_toNat' 32 (by decide), ulit_toNat' 160 (by decide), hpost96,
     write32_read_below _ _ 160 96 (by rw [toByteArray_size]) (by rw [hc3] <;> omega) (by decide), hpost96r] at rd10
   set L6 : Store := L.insert "__c4" .unit with hL6
-  have hcallS : ExecStmt config (frame imms L) evm4
+  have hcallS : ExecStmt fork config (frame imms L) evm4
       (.externalCall (.storage hookRef) "onWrap" (.intLit 0) [.env .caller, .var "minted"] "__c4" true)
       (.ok (frame imms L6) evm5) :=
-    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L) evm4 (.storage hookRef) (AccountAddress.ofNat hk.toNat) (.intLit 0)
+    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L) evm4 (.storage hookRef) (AccountAddress.ofNat hk.toNat) (.intLit 0)
       [.env .caller, .var "minted"] [.address I.source, uint256Value minted] "onWrap" evm5 out true [] "__c4"
       hhookRead heth5 hargs5 hcall (decode_onWrap out)
   have hmv6 : evalExpr? config (frame imms L6) evm5 (.var "minted") = .ok (uint256Value minted) :=
     evalVar imms _ _ "minted" _ (by rw [hL6, store_get_ne _ _ (by decide)]; exact hLm)
   have hemit6 : evalExprs? config (frame imms L6) evm5 [.env .caller, .var "minted"] = .ok [.address I.source, uint256Value minted] := by
     rw [evalExprs?, evalExpr_caller, hs5.env, evalExprs?, hmv6, evalExprs?]; rfl
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I) wrapTransition.body
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I) wrapTransition.body
       (.returned (frame imms L6) evm5 (some [uint256Value minted])) (restrictImmutables contract imms) :=
     ExecFuncBody.execBlockRet (hprefix _ (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [hs2.env] using hperm)) hadd1 hassign1)
       (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [hs3.env] using hperm)) hadd2 hassign2)
@@ -305,7 +307,7 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 6) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -369,7 +371,7 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   have hcanon1 : (solcSlotWordAt ⟨0⟩ σ1 I).toNat < EVM.addressModulus := by
     rcases hΘ1 with h | ⟨A_in, callGas, g', A', hΘ⟩
     · rw [h]; exact hwf.1
-    · exact hwf.2.2 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+    · exact hwf.2.2 fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
   rw [ofUInt256_ofNat_eq_address] at hcall1
   have rd5 := RD.normalizePC (pc' := UInt256.ofNat 398) rd4 (by native_decide)
   set L1 : Store := (wStore I).insert "__a0" (.address a) with hL1
@@ -454,10 +456,10 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
     have rd10 := wrapperBlocks.wrapper_block_462 (by simp [wrapperBlocks.wrapper_block_443_fallthrough_stack]) rd9
     have hdec1 : config.externalABI.decode? "transferFrom" out1 = some [.bool false] := by
       rw [decode_transferFrom, decodeReturn_bool_zero out1 h32 (by omega) (by rw [hbw]; exact hok)]; rfl
-    have hcall1S : ExecStmt config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    have hcall1S : ExecStmt fork config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.externalCall (.var "__a0") "transferFrom" (.intLit 0) [.env .caller, .env .this, .var "amount"] "ok" true)
         (.ok (frame imms (L1.insert "ok" (.bool false))) evm1) :=
-      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
+      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
         (.intLit 0) [.env .caller, .env .this, .var "amount"] [.address I.source, .address I.codeOwner, uint256Value (argWord I)]
         "transferFrom" evm1 out1 true [.bool false] "ok" hrecv1 heth1 hargs1 hcall1 hdec1
     refine RDrev.reEquivExecutionRevert hcode' rd10 hd hdec ?_
@@ -484,10 +486,10 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   have hdec1 : config.externalABI.decode? "transferFrom" out1 = some [.bool true] := by
     rw [decode_transferFrom, decodeReturn_bool_one out1 h32 (by omega) (by rw [hbw]; exact hone)]; rfl
   set L2 : Store := L1.insert "ok" (.bool true) with hL2
-  have hcall1S : ExecStmt config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcall1S : ExecStmt fork config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.externalCall (.var "__a0") "transferFrom" (.intLit 0) [.env .caller, .env .this, .var "amount"] "ok" true)
       (.ok (frame imms L2) evm1) :=
-    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
+    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
       (.intLit 0) [.env .caller, .env .this, .var "amount"] [.address I.source, .address I.codeOwner, uint256Value (argWord I)]
       "transferFrom" evm1 out1 true [.bool true] "ok" hrecv1 heth1 hargs1 hcall1 hdec1
   have hokT : evalExpr? config (frame imms L2) evm1 (.var "ok") = .ok (.bool true) :=
@@ -521,13 +523,13 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   have hargs2 : evalExprs? config (frame imms L4) evm1 [.env .this] = .ok [.address I.codeOwner] := by
     rw [evalExprs?, evalThis, hs1.env, evalExprs?]; rfl
   -- the body up to the second call, for the revert cases
-  have hpre : ∀ result, ExecBlock config (frame imms L4) evm1
+  have hpre : ∀ result, ExecBlock fork config (frame imms L4) evm1
       ([.externalCall (.var "__a2") "balanceOf" (.intLit 0) [.env .this] "held" false,
         .ite (.binary .and (.binary .gt (.storage tsRef) (.intLit 0)) (.binary .gt (.var "held") (.var "amount")))
           [.assign .localVar { base := "minted", steps := [] }
             (.binary .div (.inRange (.uint ⟨256, by decide⟩) (.binary .mul (.var "amount") (.storage tsRef)))
               (.inRange (.uint ⟨256, by decide⟩) (.binary .sub (.var "held") (.var "amount"))))] []] ++ wrapTailStmts) result →
-      ExecBlock config (frame imms (wStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) wrapTransition.body result := by
+      ExecBlock fork config (frame imms (wStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) wrapTransition.body result := by
     intro result h
     rw [wrapBody_eq]
     exact ExecBlock.consNormal (ExecStmt.requireTrue hcv)
@@ -580,9 +582,9 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   have hdec2 : config.externalABI.decode? "balanceOf" out2 = some [uint256Value hw] := by
     rw [decode_balanceOf, decodeReturn_uint256_ok out2 h32' (by omega), hhw]; rfl
   set L5 : Store := L4.insert "held" (uint256Value hw) with hL5
-  have hcall2S : ExecStmt config (frame imms L4) evm1
+  have hcall2S : ExecStmt fork config (frame imms L4) evm1
       (.externalCall (.var "__a2") "balanceOf" (.intLit 0) [.env .this] "held" false) (.ok (frame imms L5) evm2) :=
-    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L4) evm1 (.var "__a2") a (.intLit 0) [.env .this]
+    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L4) evm1 (.var "__a2") a (.intLit 0) [.env .this]
       [.address I.codeOwner] "balanceOf" evm2 out2 false [uint256Value hw] "held" hrecv2 heth2 hargs2 hcall2 hdec2
   have hamt5 : ∀ evm, evalExpr? config (frame imms L5) evm (.var "amount") = .ok (uint256Value (argWord I)) := fun evm =>
     evalVar imms _ _ "amount" _ (by
@@ -604,17 +606,17 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   -- the tail from pc 730, given the locals after the `if`
   have htail : ∀ (minted : UInt256) (M : ByteArray), M.size = 256 → M.readWithPadding 96 32 = minted.toByteArray →
       ∀ {aw : UInt256} {rdata : ByteArray} {k C : ℕ},
-      RD (wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms)) I (Sat256.ofUInt256 g)
+      RD fork (wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms)) I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (UInt256.ofNat 730) [solcSelectorWord I] M aw rdata σ2 k C →
       ∀ (L : Store), L.get? "minted" = some (uint256Value minted) → L.get? "shares" = none → L.get? "totalShares" = none →
         L.get? "hook" = none →
-      ExecStmt config (frame imms L5) evm2
+      ExecStmt fork config (frame imms L5) evm2
         (.ite (.binary .and (.binary .gt (.storage tsRef) (.intLit 0)) (.binary .gt (.var "held") (.var "amount")))
           [.assign .localVar { base := "minted", steps := [] }
             (.binary .div (.inRange (.uint ⟨256, by decide⟩) (.binary .mul (.var "amount") (.storage tsRef)))
               (.inRange (.uint ⟨256, by decide⟩) (.binary .sub (.var "held") (.var "amount"))))] [])
         (.ok (frame imms L) evm2) →
-      runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+      runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
     intro minted M hM hMr aw rdata k C rdM L hLm hLsh hLts hLhook hite
     exact wrapTail imms hwf hcode' hd hdec σ2 evm2 hs2 hcanon2 minted M hM hMr rdM L hLm hLsh hLts hLhook
       (fun result h => hpre _ (ExecBlock.consNormal hcall2S (ExecBlock.consNormal hite h)))
@@ -709,7 +711,7 @@ theorem wrapperWrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : immu
   have hassignL : assignStorageRef? config (frame imms L5) evm2 .localVar { base := "minted", steps := [] } (uint256Value minted) =
       .ok (frame imms (L5.insert "minted" (uint256Value minted)), evm2) :=
     assignLocalVar_frame (old := uint256Value (argWord I)) hL5m
-  have hite : ExecStmt config (frame imms L5) evm2
+  have hite : ExecStmt fork config (frame imms L5) evm2
       (.ite (.binary .and (.binary .gt (.storage tsRef) (.intLit 0)) (.binary .gt (.var "held") (.var "amount")))
         [.assign .localVar { base := "minted", steps := [] }
           (.binary .div (.inRange (.uint ⟨256, by decide⟩) (.binary .mul (.var "amount") (.storage tsRef)))

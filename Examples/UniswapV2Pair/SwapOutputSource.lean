@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapLock
 import Examples.UniswapV2Pair.PositiveWordsSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -18,13 +20,13 @@ theorem evalExpr_swap_outputRequire (evm : EVM.State) {locals : Store}
   exact evalExpr_uint256_vars_positiveOr evm "amount0Out" "amount1Out" amount0 amount1 ha0 ha1
 
 theorem uniswapSwapBodyReverts_outputZero (evm : EVM.State) (I : ExecutionEnv)
-    (hlock : ExecBlock config { contract := contract, locals := swapStore I } evm lockEnter
+    (hlock : ExecBlock fork config { contract := contract, locals := swapStore I } evm lockEnter
       (.ok { contract := contract, locals := swapStore I } (uniswapLockEnteredState evm)))
     (hzero : ¬ (0 < (swapAmount0OutWord I).toNat ∨ 0 < (swapAmount1OutWord I).toNat)) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   have hreq := evalExpr_swap_outputRequire (uniswapLockEnteredState evm)
     (swapStore_amount0Out I) (swapStore_amount1Out I)
-  have htail : ExecBlock config { contract := contract, locals := swapStore I }
+  have htail : ExecBlock fork config { contract := contract, locals := swapStore I }
       (uniswapLockEnteredState evm) [swapOutputRequireStmt] .reverted :=
     ExecBlock.consRevert (ExecStmt.requireFalse (by simpa only [hzero, decide_false] using hreq))
   exact ExecFuncBody.execBlockRevert (by
@@ -35,10 +37,10 @@ theorem uniswapSwapBodyReverts_outputZero (evm : EVM.State) (I : ExecutionEnv)
 abbrev swapOutputPrefix : List Stmt := lockEnter ++ [swapOutputRequireStmt]
 
 theorem uniswapSwapOutputPrefix (evm : EVM.State) (I : ExecutionEnv)
-    (hlock : ExecBlock config { contract := contract, locals := swapStore I } evm lockEnter
+    (hlock : ExecBlock fork config { contract := contract, locals := swapStore I } evm lockEnter
       (.ok { contract := contract, locals := swapStore I } (uniswapLockEnteredState evm)))
     (hpos : 0 < (swapAmount0OutWord I).toNat ∨ 0 < (swapAmount1OutWord I).toNat) :
-    ExecBlock config { contract := contract, locals := swapStore I } evm swapOutputPrefix
+    ExecBlock fork config { contract := contract, locals := swapStore I } evm swapOutputPrefix
       (.ok { contract := contract, locals := swapStore I } (uniswapLockEnteredState evm)) := by
   have hreq := evalExpr_swap_outputRequire (uniswapLockEnteredState evm)
     (swapStore_amount0Out I) (swapStore_amount1Out I)

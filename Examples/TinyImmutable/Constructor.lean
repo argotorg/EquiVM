@@ -2,6 +2,8 @@ import Examples.TinyImmutable.Common
 import Reasoning.SteleBody
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # TinyImmutable constructor correctness
 
@@ -684,7 +686,7 @@ theorem tinyCtorBodyReturns (evm : EVM.State)
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm
+    ExecTransitionBody fork config contract evm
       (tinyCtorArgLocals owner scaleInt useScale) contract.ctor.body
       (.returned
         { contract := contract
@@ -721,7 +723,7 @@ theorem tinySteleCtorExecSuccess
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩) :
-    steleCtorExec config contract [.address owner, .int scaleInt, .bool useScale]
+    steleCtorExec fork config contract [.address owner, .int scaleInt, .bool useScale]
       σ σ₀ g A I
       (.returned
         { contract := contract
@@ -745,7 +747,7 @@ theorem tinySteleCtorExecReverts_nonpayable
     {I : ExecutionEnv}
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address owner, .int scaleInt, .bool useScale]
+    steleCtorExec fork config contract [.address owner, .int scaleInt, .bool useScale]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -806,13 +808,13 @@ theorem tinyCtorInitcodeToBody
     (owner : AccountAddress) (scale : UInt256) (useScale : Bool)
     (hcode : I.code = tinyCtorCode owner scale useScale)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (tinyCtorCode owner scale useScale) I g
+    ∃ k C, RD fork (tinyCtorCode owner scale useScale) I g
       (initState σ σ₀ g A I) ⟨46⟩
       [useScale.toUInt256, scale, EVM.word (↑owner : Nat)]
       (tinyCtorAbiFreeMem owner scale useScale) (UInt256.ofNat 9)
       ByteArray.empty σ k C := by
   have rd0 :
-      RD (tinyCtorCode owner scale useScale) I g
+      RD fork (tinyCtorCode owner scale useScale) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -904,10 +906,10 @@ theorem tinyCtorInitcodeSuccessTrue
     (owner : AccountAddress) (scale : UInt256)
     (hcode : I.code = tinyCtorCode owner scale true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (tinyCtorCode owner scale true) g
+    RDret fork (tinyCtorCode owner scale true) g
       (initState σ σ₀ g A I) σ
       (deployedRuntime { owner := owner, scale := scale }) := by
-  obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
+  obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale true hcode hwv
   have rd158 := tiny_ctor_run rd46 with [
@@ -993,10 +995,10 @@ theorem tinyCtorInitcodeSuccessFalse
     (owner : AccountAddress) (scale : UInt256)
     (hcode : I.code = tinyCtorCode owner scale false)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (tinyCtorCode owner scale false) g
+    RDret fork (tinyCtorCode owner scale false) g
       (initState σ σ₀ g A I) σ
       (deployedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) }) := by
-  obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
+  obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale false hcode hwv
   have rd158Raw := tiny_ctor_run rd46 with [
@@ -1077,10 +1079,10 @@ theorem tinyCtorInitcodeNonpayableRevert
     (tail : ByteArray)
     (hcode : I.code = tinyImmutableCreationBytecode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (tinyImmutableCreationBytecode ++ tail) g
+    RDrev fork (tinyImmutableCreationBytecode ++ tail) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (tinyImmutableCreationBytecode ++ tail) I g
+      RD fork (tinyImmutableCreationBytecode ++ tail) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -1100,7 +1102,7 @@ theorem tinyCtorInitcodeNonpayableRevert
 theorem tinyImmutableConstructorCorrect :
     typedConstructorRefinement config tinyImmutableCreationBytecode contract
       (immutableLayout.deployed tinyImmutableBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata _hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata _hperm
   rcases tinyCtorDeployment_shape hdeploy with
     ⟨owner, scaleInt, useScale, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1110,13 +1112,13 @@ theorem tinyImmutableConstructorCorrect :
     · have hcodeCtor :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) false := by
         simpa [tinyCtorCode] using hcode
-      have hrd := tinyCtorInitcodeSuccessFalse
+      have hrd := tinyCtorInitcodeSuccessFalse (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
       · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · refine .execution (by simpa [Sat256.ofUInt256] using hsuccess)
-          (tinySteleCtorExecSuccess (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          (tinySteleCtorExecSuccess (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             owner scaleInt false h0 hlt hwv)
           (ctorResultEquiv.success rfl rfl rfl ?_)
           (tinyCtorFinalImms_fit owner scaleInt false h0 hlt)
@@ -1124,25 +1126,25 @@ theorem tinyImmutableConstructorCorrect :
     · have hcodeCtor :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) true := by
         simpa [tinyCtorCode] using hcode
-      have hrd := tinyCtorInitcodeSuccessTrue
+      have hrd := tinyCtorInitcodeSuccessTrue (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
       · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · refine .execution (by simpa [Sat256.ofUInt256] using hsuccess)
-          (tinySteleCtorExecSuccess (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          (tinySteleCtorExecSuccess (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             owner scaleInt true h0 hlt hwv)
           (ctorResultEquiv.success rfl rfl rfl ?_)
           (tinyCtorFinalImms_fit owner scaleInt true h0 hlt)
         exact (tinyCtorFinalImms_deployed_true owner scaleInt h0 hlt).symm
-  · have hrd := tinyCtorInitcodeNonpayableRevert
+  · have hrd := tinyCtorInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g)
       (tail := tinyCtorTail owner (EVM.word scaleInt.toNat) useScale) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩
     · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · exact .execution (by simpa [Sat256.ofUInt256] using hrev)
-        (tinySteleCtorExecReverts_nonpayable (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (tinySteleCtorExecReverts_nonpayable (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           owner scaleInt useScale hwv)
         (ctorResultEquiv.revert rfl rfl) trivial
 

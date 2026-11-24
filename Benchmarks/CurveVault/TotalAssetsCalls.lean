@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_024
 import Benchmarks.CurveVault.RuntimeBlocks_025
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -11,8 +13,8 @@ theorem vaultTotalAssetsAvailableCall {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     {k C : Nat} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6772) R mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_available_balance" "__c0" "available_balance"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6772) R mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_available_balance" "__c0" "available_balance"
       (UInt256.ofNat 6815) (codeOwnerStorageWord I σ ⟨3⟩ :: R)
       (vaultBlocks.vault_block_6772_memory (mem := mem)) (UInt256.ofNat 64) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_6772 hstack h
@@ -56,8 +58,8 @@ theorem vaultTotalAssetsDebtCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {x0 : UInt256} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6815) (x0 :: R) mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_total_debt" "__c1" "total_debt"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6815) (x0 :: R) mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_total_debt" "__c1" "total_debt"
       (UInt256.ofNat 6862) (codeOwnerStorageWord I σ ⟨3⟩ :: memLoad (UInt256.ofNat 64) mem :: R)
       (vaultBlocks.vault_block_6815_memory (mem := mem)) (UInt256.ofNat 128) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_6815 hstack h
@@ -101,8 +103,8 @@ theorem vaultTotalAssetsFeesCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {x0 x1 x2 : UInt256} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6877) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_admin_fees" "__c2" "admin_fees"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6877) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_admin_fees" "__c2" "admin_fees"
       (UInt256.ofNat 6923) (codeOwnerStorageWord I σ ⟨3⟩ :: x0 :: R)
       (vaultBlocks.vault_block_6877_memory (mem := mem)) (UInt256.ofNat 192) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_6877 hstack h

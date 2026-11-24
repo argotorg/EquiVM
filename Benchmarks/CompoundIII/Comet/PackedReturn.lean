@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PackedGetter
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,9 +15,9 @@ theorem cometReturnUint128Pair {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128)
     (hmem : mem.size = 96)
-    (h : RD (deployedRuntime v) ee g s0 ⟨2463⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2463⟩
       (⟨128⟩ :: a :: b :: ⟨2570⟩ :: ⟨128⟩ :: ⟨128⟩ :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (a.toByteArray ++ b.toByteArray) := by
+    RDret fork (deployedRuntime v) g s0 σ (a.toByteArray ++ b.toByteArray) := by
   have rd1 := cometWithExtendedAssetList_block_2463 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 7 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -29,7 +31,7 @@ theorem cometReturnUint128Pair {v : CometWithExtendedAssetListImmutables}
     rw [u256_land_comm]
     exact low128_clean a ha
   rw [hclean] at rd2
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((low128 b).toByteArray.write 0 (solcScratchReturnMem mem a) 160 32
       |>.readWithPadding 128 64) at rd2
   rw [low128_clean b hb] at rd2

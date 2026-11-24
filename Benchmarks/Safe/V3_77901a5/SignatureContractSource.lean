@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.SignatureOffsetSource
 import Benchmarks.Safe.V3_77901a5.ContractSignatureCheckSource
 import Benchmarks.Safe.V3_77901a5.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -38,15 +40,15 @@ theorem signatureContractLocals {f : Frame} {evm : EVM.State} {r s : UInt256} {o
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old) :
-    ExecBlock config f evm (signatureContractBody.take 2)
+    ExecBlock fork config f evm (signatureContractBody.take 2)
       (.ok (signatureContractFrame f r s) evm) := by
   exact signatureDynamicLocals "contractOffset" hr hs ho
 
 theorem safeInternalCheckContract {p : SignatureInput} {f : Frame} {evm : EVM.State}
     {r s : UInt256} {result : ExecResult} (hc : SignatureCore p f)
-    (hbody : ExecFuncBody config (signatureContractInput p r s).frame evm
+    (hbody : ExecFuncBody fork config (signatureContractInput p r s).frame evm
       checkContractSignatureFunction.body result) :
-    ExecStmt config (signatureContractFrame f r s) evm signatureContractBody[3]!
+    ExecStmt fork config (signatureContractFrame f r s) evm signatureContractBody[3]!
       (internalCallResult (signatureContractFrame f r s) "_contractSigOk" result) := by
   apply internalCallFunctionResult (callee := checkContractSignatureFunction)
     (argVals := [.address (AccountAddress.ofUInt256 r), wordBytes32Value p.hash,
@@ -67,9 +69,9 @@ theorem signatureContractSourceRejected {p : SignatureInput} {f : Frame} {evm : 
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old) (hb : ¬p.requiredBytes ≤ s.toNat) :
-    ExecBlock config f evm signatureContractBody .reverted := by
-  have hp := signatureContractLocals (evm := evm) hr hs ho
-  have htail : ExecBlock config (signatureContractFrame f r s) evm
+    ExecBlock fork config f evm signatureContractBody .reverted := by
+  have hp := signatureContractLocals (fork := fork) (evm := evm) hr hs ho
+  have htail : ExecBlock fork config (signatureContractFrame f r s) evm
       (signatureContractBody.drop 2) .reverted :=
     .consRevert (.requireFalse (by
       simpa only [hb, decide_false] using
@@ -81,18 +83,18 @@ theorem signatureContractSource {p : SignatureInput} {f : Frame} {evm : EVM.Stat
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old) (hb : p.requiredBytes ≤ s.toNat)
-    (hbody : ExecFuncBody config (signatureContractInput p r s).frame evm
+    (hbody : ExecFuncBody fork config (signatureContractInput p r s).frame evm
       checkContractSignatureFunction.body result) :
-    ExecBlock config f evm signatureContractBody
+    ExecBlock fork config f evm signatureContractBody
       (internalCallResult (signatureContractFrame f r s) "_contractSigOk" result) := by
-  have hp := signatureContractLocals (evm := evm) hr hs ho
-  have hg : ExecStmt config (signatureContractFrame f r s) evm
+  have hp := signatureContractLocals (fork := fork) (evm := evm) hr hs ho
+  have hg : ExecStmt fork config (signatureContractFrame f r s) evm
       (.require (geE (.var "contractOffset") (.var "requiredBytes")))
       (.ok (signatureContractFrame f r s) evm) := .requireTrue (by
     simpa only [hb, decide_true] using
       signatureContractOffsetSource (evm := evm) (r := r) (s := s) hc)
   have hcall := safeInternalCheckContract hc hbody
-  have htail : ExecBlock config (signatureContractFrame f r s) evm
+  have htail : ExecBlock fork config (signatureContractFrame f r s) evm
       (signatureContractBody.drop 2)
       (internalCallResult (signatureContractFrame f r s) "_contractSigOk" result) := by
     cases result with

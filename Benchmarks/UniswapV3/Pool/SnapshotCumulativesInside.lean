@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SnapshotBranchesTrace
 import Benchmarks.UniswapV3.Pool.SnapshotCalldata
 import Benchmarks.UniswapV3.Pool.CheckTicks
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `snapshotCumulativesInside(int24,int24)`
 
@@ -32,7 +34,7 @@ theorem uniswapV3PoolSnapshotCumulativesInsideBody {σ σ₀ A I} {g : UInt256} 
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 18) rfl hsel
   have hd : dispatchMsg contract I.calldata = some snapshotTransition := by
     apply uniswapV3PoolDispatch_snapshotCumulativesInside <;>

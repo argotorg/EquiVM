@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.GetAttestationEVM
 import Benchmarks.EAS.EAS.ScalarDecode
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,7 +10,7 @@ set_option maxRecDepth 10000
 theorem easGetAttestationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 8) rfl hsel
   have hd : dispatchMsg contract I.calldata = some getAttestationTransition := by
     apply easDispatch_getAttestation (hsel := hsel)
@@ -16,7 +18,7 @@ theorem easGetAttestationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       change ¬ (_ == I.calldata.extract 0 4) = true
       rw [← byteArray_eq_of_beq hsel]
       decide +kernel
-  obtain ⟨k, C, rd⟩ := easReachGetAttestationBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachGetAttestationBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_2545_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

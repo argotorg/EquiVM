@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.LeastSignificantBit
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem leastSignificantBitNextTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem rdata : ByteArray} {aw x spacing compressed initialized x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+31 ≤ 1024) (hx : x ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨21213⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21213⟩
       ([x, spacing, compressed, initialized, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15] ++ R)
       mem aw rdata σ k C) :
-    RD (deployedRuntime v) I g s0 ⟨21435⟩
+    RD fork (deployedRuntime v) I g s0 ⟨21435⟩
       ([UInt256.signextend ⟨2⟩ (UInt256.mul
           (UInt256.signextend ⟨2⟩ (UInt256.signextend ⟨2⟩ compressed + UInt256.signextend ⟨2⟩
             (UInt256.land (UInt256.sub (leastSignificantBit x) (UInt256.land ⟨255⟩ compressed)) ⟨255⟩))) spacing),

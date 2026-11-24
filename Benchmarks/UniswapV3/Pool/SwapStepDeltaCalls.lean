@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepModel
 import Benchmarks.UniswapV3.Pool.AmountDeltaRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -36,7 +38,7 @@ theorem swapStepDeltaCallReturns (locals imms : Store) (evm : EVM.State) (a : Sw
     (hl : locals.get? "liquidity" = some (.int (Int.ofNat a.liquidity.toNat)))
     (hfit : (swapStepDeltaArgs a price input).Fits)
     (hv : amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a price input)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input priceName) retName)
       (.ok {
@@ -62,7 +64,7 @@ theorem swapStepDeltaCallReverts (locals imms : Store) (evm : EVM.State) (a : Sw
     (hl : locals.get? "liquidity" = some (.int (Int.ofNat a.liquidity.toNat)))
     (hfit : (swapStepDeltaArgs a price input).Fits)
     (hv : ¬amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a price input)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input priceName) retName) .reverted := by
   exact internalCallFunctionRevert (callee := amountDeltaFunction (swapStepDeltaOne a input))

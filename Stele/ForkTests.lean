@@ -16,21 +16,20 @@ private def accounts : AccountMap :=
     |>.insert target { (default : Account) with code := delegationDesignation delegate }
     |>.insert delegate { (default : Account) with code := return42 }
 
-private def state (fork : Fork) : EVM.State :=
+private def state : EVM.State :=
   { (default : EVM.State) with
     accountMap := accounts
     σ₀ := accounts
     executionEnv :=
       { (default : ExecutionEnv) with
-        fork := fork
         codeOwner := caller
         source := caller
         sender := caller
         perm := true } }
 
 private def delegatedCall (fork : Fork) : CallResult :=
-  thetaCall ⟨100000⟩ default
-    { kind := .call, target, value := 0, calldata := .empty, calleePerm := true } (state fork)
+  thetaCall fork ⟨100000⟩ default
+    { kind := .call, target, value := 0, calldata := .empty, calleePerm := true } state
 
 -- Stele's oracle must execute the callee using the caller's fork.
 #guard !(delegatedCall .cancun).success
@@ -40,8 +39,8 @@ private def delegatedCall (fork : Fork) : CallResult :=
 #guard (delegatedCall .osaka).output = (⟨42⟩ : UInt256).toByteArray
 
 private def depthLimitedCall (fork : Fork) : Bool :=
-  let evm := { state fork with executionEnv.depth := 1024 }
-  match callViaEVMRun (thetaOracle ⟨100000⟩) () evm target 0 .empty true with
+  let evm := { state with executionEnv.depth := 1024 }
+  match callViaEVMRun fork (thetaOracle fork ⟨100000⟩) () evm target 0 .empty true with
   | .ok ((false, evm', _), _) => evm'.substate.accessedAccounts.contains delegate
   | _ => false
 
@@ -50,8 +49,8 @@ private def depthLimitedCall (fork : Fork) : Bool :=
 #guard depthLimitedCall .prague
 
 private def depthLimitedDelegateCall (fork : Fork) : Bool :=
-  let evm := { state fork with executionEnv.depth := 1024 }
-  match delegateCallViaEVMRun (thetaOracle ⟨100000⟩) () evm target .empty with
+  let evm := { state with executionEnv.depth := 1024 }
+  match delegateCallViaEVMRun fork (thetaOracle fork ⟨100000⟩) () evm target .empty with
   | .ok ((false, evm', _), _) => evm'.substate.accessedAccounts.contains delegate
   | _ => false
 
@@ -60,9 +59,9 @@ private def depthLimitedDelegateCall (fork : Fork) : Bool :=
 
 -- CLZ is available from Osaka. Creation must pass the caller's fork to the initcode.
 private def createWithClz (fork : Fork) : CreateResult :=
-  lambdaCreate ⟨100000⟩ default
+  lambdaCreate fork ⟨100000⟩ default
     { value := 0, initCode := ⟨#[0x5f, 0x1e, 0x5f, 0x52, 0x60, 0x20, 0x5f, 0xf3]⟩,
-      salt := none } (state fork)
+      salt := none } state
 
 #guard !(createWithClz .cancun).success
 #guard !(createWithClz .prague).success

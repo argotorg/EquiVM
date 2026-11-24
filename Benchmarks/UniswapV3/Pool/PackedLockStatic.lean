@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -18,8 +20,8 @@ theorem packedLockStaticX {code : ByteArray} {σ : AccountMap} {ee : ExecutionEn
     (h11 : decode code (pc + ⟨11⟩) = some (.AND, none))
     (h12 : decode code (pc + ⟨12⟩) = some ((if keepSlot then .DUP2 else .SWAP1), none))
     (h13 : decode code (pc + ⟨13⟩) = some (.SSTORE, none))
-    (rd : RD code ee g s0 pc R mem aw rdata σ k C)
-    (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) : RDstatic code g s0 := by
+    (rd : RD fork code ee g s0 pc R mem aw rdata σ k C)
+    (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) : RDstatic fork code g s0 := by
   have r1 := rd.jumpdest h0 (by omega)
   have r2 := r1.push1 slot h1 (by evm_ov)
   have r3 := r2.dup1 (by simpa only [u256_add_assoc] using h3) (by evm_ov)

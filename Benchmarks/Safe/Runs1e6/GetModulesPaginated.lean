@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.ModulesAllocation
 import Benchmarks.Safe.Runs1e6.ModulesLoopFinish
 import Benchmarks.Safe.Runs1e6.ModulesReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -16,10 +18,10 @@ theorem safeGetmodulespaginatedBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getmodulespaginatedTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xcc 0x2f 0x84 0x52 ⟨0xcc2f8452⟩
     hdispatch getmodulespaginatedSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xcc2f8452⟩ 3 ⟨1270⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -39,7 +41,7 @@ theorem safeGetmodulespaginatedBodyCore
               (getmodulespaginatedTransition.params.map Param.name)
               (transitionSignature getmodulespaginatedTransition).paramTypes I.calldata =
               some (modulesArgs start pageSize) := decodeCalldata_addr_uint256_ok hlen hbig hc
-          change RD safeBytecode I (.ofUInt256 g) evm ⟨5615⟩
+          change RD fork safeBytecode I (.ofUInt256 g) evm ⟨5615⟩
             [pageSize, start, ⟨1301⟩, selWord I] _ _ _ σ _ _ at h₃
           obtain ⟨mem₄, aw₄, k₄, C₄, h₄, hm₄, hr₄⟩ := safeModulesStartCheck h₃
             (by simp) hc solcFreePtrMem_size solcFreePtrMem_read64
@@ -50,11 +52,11 @@ theorem safeGetmodulespaginatedBodyCore
           · have hs' : start = ⟨1⟩ ∨ moduleLink evm start ≠ ⟨0⟩ := by rwa [hlink]
             simp only [hs, not_true_eq_false, decide_false] at h₄
             have h₅ := safeRuntime_block_5663_taken (by simp) (by decide) (by jump_dest) h₄
-            change RD safeBytecode I (.ofUInt256 g) evm ⟨5709⟩
+            change RD fork safeBytecode I (.ofUInt256 g) evm ⟨5709⟩
               [⟨0⟩, ⟨96⟩, pageSize, start, ⟨1301⟩, selWord I] mem₄ aw₄ _ σ _ _ at h₅
             by_cases hz : pageSize = ⟨0⟩
             · have hrev := safeModulesZeroSize (hz ▸ h₅) (by simp)
-              have hbody := safeModulesSourceZero evm start pageSize hc hvalue hs' hz
+              have hbody := safeModulesSourceZero (fork := fork) evm start pageSize hc hvalue hs' hz
               exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                 reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
             · obtain ⟨_, _, h₆⟩ := safeModulesSizeCheck h₅ (by simp) hz
@@ -94,17 +96,17 @@ theorem safeGetmodulespaginatedBodyCore
                 · have hnil : words = [] := List.eq_nil_of_length_eq_zero (by omega)
                   subst words
                   have hrev := safeModulesFinishEmpty h₈ (by simp) hcanon.2 (by simpa using hg)
-                  have hbody := safeModulesSourceEmpty evm start pageSize hc hvalue hs' hz hn hps
+                  have hbody := safeModulesSourceEmpty (fork := fork) evm start pageSize hc hvalue hs' hz hn hps
                     (by simpa using hg)
                   exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                     reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
               · have hrev := safeModulesLargeSize h₆ (by simp) hn
-                have hbody := safeModulesSourceLarge evm start pageSize hc hvalue hs' hz hn
+                have hbody := safeModulesSourceLarge (fork := fork) evm start pageSize hc hvalue hs' hz hn
                 exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                   reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
           · simp only [hs, not_false_eq_true, decide_true] at h₄
             have hrev := safeModulesInvalidStart h₄ (by simp)
-            have hbody := safeModulesSourceInvalid evm start pageSize hc hvalue (by rwa [hlink])
+            have hbody := safeModulesSourceInvalid (fork := fork) evm start pageSize hc hvalue (by rwa [hlink])
             exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
               reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
         · have hrev := safeDecodeAddressWordNoncanon hdecode (by simp) hcheck hc
@@ -127,7 +129,7 @@ theorem safeGetmodulespaginatedRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getmodulespaginatedTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeGetmodulespaginatedBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.Runs1e6

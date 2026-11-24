@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,16 +28,16 @@ theorem poolSetSlot0BodyExec {f : Frame} {evm : EVM.State} {id fee word : UInt25
     (he : f.locals.get? feeName = some (.int (Int.ofNat fee.toNat)))
     (hset : ∀ {fr : Frame}, fr.contract = contract → fr.locals.get? "self" = some (poolRefValue id) →
       fr.locals.get? feeName = some (.int (Int.ofNat fee.toNat)) →
-      ExecStmt config fr evm (.internalCall setterName [.storage {base := "self", steps := [.field "slot0"]}, .var feeName] "__c1")
+      ExecStmt fork config fr evm (.internalCall setterName [.storage {base := "self", steps := [.field "slot0"]}, .var feeName] "__c1")
         (.ok {fr with locals := fr.locals.insert "__c1" (wordBytes32Value word)} evm)) :
-    ExecFuncBody config f evm (poolSetSlot0Body refName feeName setterName)
+    ExecFuncBody fork config f evm (poolSetSlot0Body refName feeName setterName)
       (poolSetSlot0Result (poolSetSlot0Frame f id word refName) evm id word) := by
   let f1 : Frame := {f with locals := f.locals.insert refName (poolRefValue id)}
   let f2 : Frame := {f1 with locals := f1.locals.insert "__c0" .unit}
   let f3 := poolSetSlot0Frame f id word refName
-  have hlet : ExecStmt config f evm (.letStorage refName {base := "self"}) (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm (.letStorage refName {base := "self"}) (.ok f1 evm) :=
     ExecStmt.letStorage (resolveStorageAlias hs)
-  have hcheck := poolCheckCall (f := f1) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c0"
+  have hcheck := poolCheckCall (fork := fork) (f := f1) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) "__c0"
   rw [poolSetSlot0Result]
   by_cases hz : poolSqrtPriceWord evm id = ⟨0⟩
   · rw [if_pos hz] at hcheck ⊢
@@ -55,6 +57,6 @@ theorem poolSetSlot0BodyExec {f : Frame} {evm : EVM.State} {id fee word : UInt25
         (ExecBlock.consNormal hfee (ExecBlock.consStatic (ExecStmt.assignStatic hval hwrite hp)))))
     · rw [if_neg hp]
       exact .execBlockOK (ExecBlock.consNormal hlet (ExecBlock.consNormal hcheck
-        (ExecBlock.consNormal hfee (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hval hwrite) ExecBlock.nil))))
+        (ExecBlock.consNormal hfee (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hval hwrite) ExecBlock.nil))))
 
 end Benchmarks.UniswapV4PoolManager

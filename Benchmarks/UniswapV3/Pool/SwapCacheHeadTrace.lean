@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.BlockTimestamp
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStorage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,11 +15,11 @@ set_option maxRecDepth 10000
 theorem swapCacheFeeX {σ snap : AccountMap} {ee I : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p x0 x1 x2 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (zero : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (if zero then ⟨2770⟩ else ⟨2754⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if zero then ⟨2770⟩ else ⟨2754⟩)
       (x0 :: x1 :: x2 :: p :: R) mem aw rdata σ k C)
     (hp : UInt256.land (UInt256.ofNat 255) (memLoad (UInt256.ofNat 160 + p) mem) =
       slot0FieldWord 29 1 snap I) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2789⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2789⟩
       (poolProtocolDivisor (!zero) snap I :: x0 :: x1 :: x2 :: p :: R)
       mem (M aw (UInt256.ofNat 160 + p) ⟨32⟩) rdata σ k' C' := by
   cases zero
@@ -38,10 +40,10 @@ def swapCacheHeadMem (mem : ByteArray) (p fee : UInt256) (σ : AccountMap) (I : 
 theorem swapCacheHeadBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p fee : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2789⟩ (fee :: p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2789⟩ (fee :: p :: R) mem aw rdata σ k C)
     (hf : UInt256.land (UInt256.ofNat 255) fee = fee) (ha : BoundedActiveWords aw limit)
     (hb : p.toNat + 64 ≤ limit) (hov : R.length + 5 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2822⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2822⟩
       (UInt256.ofNat ee.header.timestamp :: (UInt256.ofNat 64 + p) :: R)
       (swapCacheHeadMem mem p fee σ ee) aw' rdata σ k' C' ∧ BoundedActiveWords aw' limit := by
   have hsmall := ha.small
@@ -64,10 +66,10 @@ theorem swapCacheHeadBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv
 theorem swapCacheHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p fee : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2789⟩ (fee :: p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2789⟩ (fee :: p :: R) mem aw rdata σ k C)
     (hf : UInt256.land (UInt256.ofNat 255) fee = fee) (ha : ActiveWords aw)
     (hb : p.toNat + 64 ≤ 2 ^ 200) (hov : R.length + 5 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2822⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2822⟩
       (UInt256.ofNat ee.header.timestamp :: (UInt256.ofNat 64 + p) :: R)
       (swapCacheHeadMem mem p fee σ ee) aw' rdata σ k' C' ∧ ActiveWords aw' := by
   obtain ⟨aw', k', C', rd', ha'⟩ := swapCacheHeadBoundedX (v := v)

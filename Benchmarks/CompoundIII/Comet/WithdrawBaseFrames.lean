@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseModel
 import Benchmarks.CompoundIII.Comet.UserBasicRead
 import Benchmarks.CompoundIII.Comet.UserBasicLocal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -13,7 +15,7 @@ attribute [local irreducible] signed104
 theorem withdrawBaseRead_source (frame : Frame) (evm : EVM.State) (src : AccountAddress)
     (hc : frame.contract = contract) (hs : frame.locals.get? "src" = some (.address src))
     (hu : frame.locals.get? "userBasic" = none) :
-    ExecBlock config frame evm withdrawBaseReadBlock
+    ExecBlock fork config frame evm withdrawBaseReadBlock
       (.ok (withdrawBaseReadFrame frame evm src) evm) := by
   have hr := evalUserBasic frame evm src (.var "src") hc hu
     (by simp only [evalExpr?, hs, EvalResult.ofOption])

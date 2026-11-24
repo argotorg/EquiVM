@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.AddOwnerSource
 import Benchmarks.Safe.ViaIR.Calldata
 
+variable {fork : Ethereum.Fork}
+
 /-! Regression witness for the IR owner's cached increment with an absent executing account.
 
 The public refinement premises permit this account map. Storage writes leave it unchanged,
@@ -50,7 +52,7 @@ theorem safeIRAbsentOwnerDecoding :
   simpa only [hkey, hthreshold] using hdec
 
 theorem safeIRAbsentOwnerSourceReverts :
-    ExecTransitionBody config contract safeIRAbsentOwnerState (addOwnerArgs ⟨8192⟩ ⟨1⟩)
+    ExecTransitionBody fork config contract safeIRAbsentOwnerState (addOwnerArgs ⟨8192⟩ ⟨1⟩)
       addownerwiththresholdTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeAddOwnerPrefix (hperm := rfl) safeIRAbsentOwnerState ⟨8192⟩ ⟨1⟩
@@ -64,13 +66,13 @@ theorem safeIRAbsentOwnerSourceReverts :
       decide
 
 theorem safeIRAbsentOwnerExecution :
-    (match Ξ default default ⟨100000⟩ default safeIRAbsentOwnerEnv with
+    (match Ξ .cancun default default ⟨100000⟩ default safeIRAbsentOwnerEnv with
       | .ok (.success (_, gas, _) output) => gas == ⟨28205⟩ && output.isEmpty
       | _ => false) = true := by
   native_decide
 
 theorem safeIRAbsentOwnerResultsDiffer (rc : ReturnConvention) :
-    ¬execResultsEquiv (Ξ default default ⟨100000⟩ default safeIRAbsentOwnerEnv)
+    ¬execResultsEquiv (Ξ .cancun default default ⟨100000⟩ default safeIRAbsentOwnerEnv)
       .reverted rc := by
   intro heq
   have hsuccess := safeIRAbsentOwnerExecution
@@ -80,8 +82,8 @@ private def nonHalting (r : ExecResult) : Prop :=
   r ≠ .reverted ∧ r ≠ .staticViolation
 
 private theorem requireTail {cfg f s cond tail r}
-    (h : ExecBlock cfg f s (.require cond :: tail) r) (hr : nonHalting r) :
-    ExecBlock cfg f s tail r := by
+    (h : ExecBlock fork cfg f s (.require cond :: tail) r) (hr : nonHalting r) :
+    ExecBlock fork cfg f s tail r := by
   cases h with
   | consNormal hs ht => cases hs; exact ht
   | consReturn hs => cases hs
@@ -91,7 +93,7 @@ private theorem requireTail {cfg f s cond tail r}
   | consStatic => exact (hr.2 rfl).elim
 
 private theorem twoRequiresReturn {cfg f s c₁ c₂ f' s' value}
-    (h : ExecFuncBody cfg f s [.require c₁, .require c₂] (.returned f' s' value)) :
+    (h : ExecFuncBody fork cfg f s [.require c₁, .require c₂] (.returned f' s' value)) :
     f' = f ∧ s' = s ∧ value = none := by
   cases h <;> rename_i hb
   all_goals
@@ -101,10 +103,10 @@ private theorem twoRequiresReturn {cfg f s c₁ c₂ f' s' value}
   exact ⟨rfl, rfl, rfl⟩
 
 private theorem consTail {cfg f s stmt tail r f' s'}
-    (h : ExecBlock cfg f s (stmt :: tail) r) (hr : nonHalting r)
-    (hs : ∀ result, ExecStmt cfg f s stmt result →
+    (h : ExecBlock fork cfg f s (stmt :: tail) r) (hr : nonHalting r)
+    (hs : ∀ result, ExecStmt fork cfg f s stmt result →
       result = .ok f' s' ∨ result = .reverted ∨ result = .staticViolation) :
-    ExecBlock cfg f' s' tail r := by
+    ExecBlock fork cfg f' s' tail r := by
   cases h with
   | consNormal hstmt ht =>
     rcases hs _ hstmt with he | he | he
@@ -118,25 +120,25 @@ private theorem consTail {cfg f s stmt tail r f' s'}
   | consStatic => exact (hr.2 rfl).elim
 
 private theorem assignResult {cfg f s origin ref expr f' s'}
-    (h : ExecStmt cfg f s (.assign origin ref expr) (.ok f' s'))
-    (r) (h' : ExecStmt cfg f s (.assign origin ref expr) r) :
+    (h : ExecStmt fork cfg f s (.assign origin ref expr) (.ok f' s'))
+    (r) (h' : ExecStmt fork cfg f s (.assign origin ref expr) r) :
     r = .ok f' s' ∨ r = .reverted ∨ r = .staticViolation := by
   cases h with
   | assign _ heval hstore => cases h' <;> simp_all
 
 private theorem emitResult {cfg f s name args r}
-    (h : ExecStmt cfg f s (.emit name args) r) :
+    (h : ExecStmt fork cfg f s (.emit name args) r) :
     r = .ok f s ∨ r = .reverted ∨ r = .staticViolation := by
   cases h <;> simp
 
-private theorem singletonResult {cfg f s stmt r} (h : ExecBlock cfg f s [stmt] r) :
-    ExecStmt cfg f s stmt r := by
+private theorem singletonResult {cfg f s stmt r} (h : ExecBlock fork cfg f s [stmt] r) :
+    ExecStmt fork cfg f s stmt r := by
   cases h with
   | consNormal hs ht => cases ht; exact hs
   | consReturn hs | consBreak hs | consContinue hs | consRevert hs | consStatic hs => exact hs
 
 private theorem falseRequireBlock {cfg f s cond tail r}
-    (h : ExecBlock cfg f s (.require cond :: tail) r) (hr : nonHalting r)
+    (h : ExecBlock fork cfg f s (.require cond :: tail) r) (hr : nonHalting r)
     (hf : evalExpr? cfg f s cond = .ok (.bool false)) : False := by
   cases h with
   | consNormal hs _ => cases hs with | requireTrue ht => rw [hf] at ht; cases ht
@@ -147,7 +149,7 @@ private theorem falseRequireBlock {cfg f s cond tail r}
   | consStatic => exact hr.2 rfl
 
 private theorem absentCanAddResult (r)
-    (h : ExecStmt config (addOwnerFrame ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
+    (h : ExecStmt fork config (addOwnerFrame ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
       (.internalCall "requireCanAddOwner" [.var "owner"] "_ok") r) :
     r = .ok (addOwnerFrame₁ ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState ∨
       r = .reverted ∨ r = .staticViolation := by
@@ -177,7 +179,7 @@ private theorem absentCanAddResult (r)
   | internalCallStatic => exact .inr (.inr rfl)
 
 private theorem absentThresholdCannotReturn {f s value}
-    (h : ExecFuncBody config (thresholdFrame ⟨1⟩) safeIRAbsentOwnerState
+    (h : ExecFuncBody fork config (thresholdFrame ⟨1⟩) safeIRAbsentOwnerState
       changeThresholdBodyFunction.body (.returned f s value)) : False := by
   have hf := safeThresholdBound safeIRAbsentOwnerState ⟨1⟩
   change evalExpr? config (thresholdFrame ⟨1⟩) safeIRAbsentOwnerState
@@ -186,7 +188,7 @@ private theorem absentThresholdCannotReturn {f s value}
   all_goals exact falseRequireBlock hb (by constructor <;> intro h <;> cases h) hf
 
 private theorem absentThresholdStmt {r}
-    (h : ExecStmt config (addOwnerFrame₁ ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
+    (h : ExecStmt fork config (addOwnerFrame₁ ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
       (.internalCall "changeThresholdBody" [.var "_threshold"] "_thresholdChanged") r)
     (hr : nonHalting r) : False := by
   cases h with
@@ -210,24 +212,24 @@ private theorem absentThresholdStmt {r}
   | internalCallStatic => exact hr.2 rfl
 
 private theorem absentAddOwnerBlock {r}
-    (h : ExecBlock config (addOwnerFrame ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
+    (h : ExecBlock fork config (addOwnerFrame ⟨8192⟩ ⟨1⟩) safeIRAbsentOwnerState
       addownerwiththresholdTransition.body r) (hr : nonHalting r) : False := by
   have htail := consTail (requireTail (requireTail h hr) hr) hr absentCanAddResult
   let f := addOwnerFrame₁ ⟨8192⟩ ⟨1⟩
   let s := safeIRAbsentOwnerState
   have hb : f.locals["owners"]? = none := safeAddOwnerLocal _ _ _ (by decide)
-  have hfirst : ExecStmt config f s
+  have hfirst : ExecStmt fork config f s
       (.assign .storage (ownersRef (.var "owner")) (.storage (ownersRef sentinelAddr)))
       (.ok f s) := .assign (Or.inr rfl)
     (safeEvalOwnerLink s _ sentinelAddr ⟨1⟩ hb (by decide) (safeEvalOwnerSentinel s _))
     (safeAssignOwnerLink s _ _ ⟨8192⟩ (ownerLink s ⟨1⟩) hb (by decide)
       (solcAddrMask_result_canonical _) (safeAddOwnerEval s ⟨8192⟩ ⟨1⟩))
-  have hsecond : ExecStmt config f s
+  have hsecond : ExecStmt fork config f s
       (.assign .storage (ownersRef sentinelAddr) (.var "owner")) (.ok f s) :=
     .assign (Or.inr rfl) (safeAddOwnerEval s ⟨8192⟩ ⟨1⟩)
       (safeAssignOwnerLink s _ sentinelAddr ⟨1⟩ ⟨8192⟩ hb (by decide) (by decide)
         (safeEvalOwnerSentinel s _))
-  have hcount : ExecStmt config f s
+  have hcount : ExecStmt fork config f s
       (.assign .storage ownerCountRef (inc256 (.storage ownerCountRef))) (.ok f s) :=
     safeAddOwnerIncrement (hperm := rfl) s ⟨8192⟩ ⟨1⟩ (by decide)
   have hafter := consTail (consTail (consTail htail hr (assignResult hfirst)) hr
@@ -242,7 +244,7 @@ private theorem absentAddOwnerBlock {r}
   | iteCondRevert => exact hr.1 rfl
 
 theorem safeIRAbsentOwnerSourceCannotReturn {f s value} :
-    ¬ExecTransitionBody config contract safeIRAbsentOwnerState (addOwnerArgs ⟨8192⟩ ⟨1⟩)
+    ¬ExecTransitionBody fork config contract safeIRAbsentOwnerState (addOwnerArgs ⟨8192⟩ ⟨1⟩)
       addownerwiththresholdTransition.body (.returned f s value) := by
   intro h
   cases h <;> rename_i hb
@@ -250,7 +252,7 @@ theorem safeIRAbsentOwnerSourceCannotReturn {f s value} :
 
 /-- The unrestricted runtime obligation includes this input and is false for the current model. -/
 theorem safeIRAbsentOwnerNotRefines :
-    ¬runtimeRefinementFor config contract default default ⟨100000⟩ default
+    ¬runtimeRefinementFor .cancun config contract default default ⟨100000⟩ default
       safeIRAbsentOwnerEnv := by
   intro h
   have hex := safeIRAbsentOwnerExecution

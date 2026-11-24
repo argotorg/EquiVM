@@ -4,6 +4,8 @@ import Benchmarks.Safe.Main.CheckedSubtract
 import Benchmarks.Safe.Main.Memory
 import Benchmarks.Safe.Main.Blocks.Runtime_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -32,7 +34,7 @@ theorem safeModulesLastWord {mem capacity words}
 
 theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next start ret}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5128⟩
+    (h : RD fork safeBytecode I g s0 ⟨5128⟩
       (UInt256.ofNat words.length :: next :: ⟨128⟩ :: UInt256.ofNat capacity :: start :: ret :: R)
       mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024)
@@ -40,9 +42,9 @@ theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next start 
     (hn : capacity ≤ 2 ^ 64 - 1) (hlen : words.length ≤ capacity)
     (hc : next.toNat < EVM.addressModulus) (hg : next = ⟨1⟩ ∨ 0 < words.length)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (modulesPageNext words next :: ⟨128⟩ :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (modulesPageNext words next :: ⟨128⟩ :: R)
       (writeWord mem 128 (UInt256.ofNat words.length)) aw' rdata σ k' C' := by
-  have h5184 : ∃ aw' k' C', RD safeBytecode I g s0 ⟨5184⟩
+  have h5184 : ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨5184⟩
       (UInt256.ofNat words.length :: modulesPageNext words next :: ⟨128⟩ ::
         UInt256.ofNat capacity :: start :: ret :: R) mem aw' rdata σ k' C' := by
     by_cases hs : next = ⟨1⟩
@@ -78,10 +80,10 @@ theorem safeModulesFinish {I g s0 σ k C aw mem rdata capacity words next start 
 
 theorem safeModulesFinishEmpty {I g s0 σ k C aw mem rdata capacity next start ret}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5128⟩
+    (h : RD fork safeBytecode I g s0 ⟨5128⟩
       (⟨0⟩ :: next :: ⟨128⟩ :: capacity :: start :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) (hc : next.toNat < EVM.addressModulus)
-    (hs : next ≠ ⟨1⟩) : RDrev safeBytecode g s0 := by
+    (hs : next ≠ ⟨1⟩) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_5128_fallthrough (by simp; omega)
     (by rw [safeAddressMask, solcAddrMask_clean hc]; exact u256_eq_of_ne (Ne.symm hs)) h
   have h₂ := safeRuntime_block_5146 (by simp; omega) (by jump_dest) h₁

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.IsInAssetModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 theorem isInAsset_source (evm : EVM.State) (imms : Store)
     (assets offset reserved : UInt256) (ha : assets.toNat < 2^16)
     (ho : offset.toNat < 2^8) (hr : reserved.toNat < 2^8) :
-    ExecFuncBody config (isInAssetEntry imms assets offset reserved) evm
+    ExecFuncBody fork config (isInAssetEntry imms assets offset reserved) evm
       isInAssetCallable.body (.returned (isInAssetEntry imms assets offset reserved) evm
         (some [.bool (isInAssetBool assets offset reserved)])) := by
   let frame := isInAssetEntry imms assets offset reserved
@@ -68,15 +70,15 @@ theorem isInAsset_call (frame : Frame) (evm : EVM.State) (assets offset reserved
     (hea : evalExpr? config frame evm assetExpr = .ok (.int assets.toNat))
     (heo : evalExpr? config frame evm offsetExpr = .ok (.int offset.toNat))
     (her : evalExpr? config frame evm reservedExpr = .ok (.int reserved.toNat)) :
-    ExecStmt config frame evm (.internalCall "isInAsset" [assetExpr, offsetExpr, reservedExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "isInAsset" [assetExpr, offsetExpr, reservedExpr] ret)
       (.ok { frame with
         locals := frame.locals.insert ret (.bool (isInAssetBool assets offset reserved)) }
         evm) := by
-  exact ExecStmt.internalCallReturn (cfg := config) (stele := frame) (evm := evm)
+  exact ExecStmt.internalCallReturn (fork := fork) (cfg := config) (stele := frame) (evm := evm)
     (args := [assetExpr, offsetExpr, reservedExpr]) (callee := isInAssetCallable)
     (argVals := [.int assets.toNat, .int offset.toNat, .int reserved.toNat])
     (by simp only [evalExprs?, hea, heo, her, pure, bind, EvalResult.bind])
     (by rw [hc]; exact isInAssetCallable_lookup) rfl
-    (by simpa only [hc] using isInAsset_source evm frame.immutables assets offset reserved ha ho hr)
+    (by simpa only [hc] using isInAsset_source (fork := fork) evm frame.immutables assets offset reserved ha ho hr)
 
 end Benchmarks.CompoundIII.Comet

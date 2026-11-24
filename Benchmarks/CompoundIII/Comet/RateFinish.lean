@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -15,9 +17,9 @@ theorem cometRateFinish {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hfit : x.toNat < 2^64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8229⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8229⟩
       (x :: UInt256.ofNat 2425 :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (x :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (x :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_8229
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -31,8 +33,8 @@ theorem cometRateFinish_revert {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hfit : ¬ x.toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8229⟩ (x :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8229⟩ (x :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_8229
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

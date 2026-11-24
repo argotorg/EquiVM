@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Arithmetic
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_059
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,13 +15,13 @@ theorem nextAmount1AddTailTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw price q liquidity amount j0 j1 j2 j3 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024) (hp : price.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨20520⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20520⟩
       ([q, ⟨20528⟩, ⟨20533⟩, liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R)
       mem aw rdata σ k C) :
     if price.toNat+q.toNat < 2^160 then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20464⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20464⟩
         ([price+q, liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManagerBlocks.poolManager_block_20520 (by change R.length+13 ≤ 1024; exact hstack)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_20520_stack, solcAddrMask_clean hp] at rd1

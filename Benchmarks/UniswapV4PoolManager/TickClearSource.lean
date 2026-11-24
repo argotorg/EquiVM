@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickStorage
 import Benchmarks.UniswapV4PoolManager.CallComposition
 import Reasoning.PackedStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -50,21 +52,21 @@ def tickClearResult (f : Frame) (evm : EVM.State) (id : UInt256) (tick : Int) : 
 theorem tickClearBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick : Int}
     (hs : f.locals.get? "self" = some (poolRefValue id))
     (ht : f.locals.get? "tick" = some (.int tick)) :
-    ExecFuncBody config f evm tickClearFunction.body (tickClearResult f evm id tick) := by
+    ExecFuncBody fork config f evm tickClearFunction.body (tickClearResult f evm id tick) := by
   have hc := tickClearStorage (evm := evm) hs ht
   unfold tickClearResult
   by_cases hp : evm.executionEnv.perm = false
   · rw [if_pos hp]
     exact .execBlockStatic (ExecBlock.consStatic (ExecStmt.deleteStatic hc hp))
   · rw [if_neg hp]
-    exact .execBlockOK (execBlock_singleton (ExecStmt.delete (hperm := Bool.eq_true_of_not_eq_false hp) hc))
+    exact .execBlockOK (execBlock_singleton (ExecStmt.delete (fork := fork) (hperm := Bool.eq_true_of_not_eq_false hp) hc))
 
 theorem tickClearCall {f : Frame} {evm : EVM.State} {es et : Expr} {id : UInt256} {tick : Int}
     (hf : f.contract = contract) (hs : evalExpr? config f evm es = .ok (poolRefValue id))
     (ht : evalExpr? config f evm et = .ok (.int tick)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_clearTick" [es, et] ret)
+    ExecStmt fork config f evm (.internalCall "Pool_clearTick" [es, et] ret)
       (resumeCallResult f ret (tickClearResult f evm id tick)) := by
-  have hb := tickClearBody (evm := evm)
+  have hb := tickClearBody (fork := fork) (evm := evm)
     (f := {f with locals := (((∅ : Store).insert "tick" (.int tick)).insert "self" (poolRefValue id))})
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("self" == "tick") = false)).trans (store_get_self _ _ _))

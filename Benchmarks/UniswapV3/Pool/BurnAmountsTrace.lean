@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BurnOwedSource
 import Benchmarks.UniswapV3.Pool.PositionUpdateGrowthTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem burnAmountsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a0 a1 : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9737⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9737⟩
       (EVM.wordOfInt a1 :: EVM.wordOfInt a0 :: key ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9770⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9770⟩
       ((burnHasAmounts a0 a1).toUInt256 :: EVM.wordOfInt a1 :: EVM.wordOfInt a0 :: key ::
         burnAmount a1 :: burnAmount a0 :: R) mem aw rdata σ k' C' := by
   have hflag : UInt256.gt (UInt256.sub (UInt256.ofNat 0) (EVM.wordOfInt a0)) (UInt256.ofNat 0) =
@@ -36,7 +38,7 @@ theorem burnAmountsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have hhas : burnHasAmounts a0 a1 = decide (0 < (burnAmount a1).toNat) := by
       simp only [burnHasAmounts, decide_eq_false hp, Bool.false_or]
     simpa only [uniswapV3Pool_block_9765_stack, gtZero_wordPositive, hhas, burnAmount] using
-      (show ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9770⟩
+      (show ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9770⟩
         (uniswapV3Pool_block_9765_stack (x1 := EVM.wordOfInt a1) (x2 := EVM.wordOfInt a0)
           (x3 := key) (x4 := burnAmount a1) (R := burnAmount a0 :: R))
         mem aw rdata σ k' C' from ⟨_, _, r2⟩)

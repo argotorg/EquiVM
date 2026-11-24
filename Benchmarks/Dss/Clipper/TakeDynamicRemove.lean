@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeDynamicEvent
 import Benchmarks.Dss.Clipper.TakeOweVatFlux
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -72,7 +74,7 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccessWF {code : ByteArray}
     {move owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8379⟩
+    (rd : RD fork code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
@@ -81,7 +83,7 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccessWF {code : ByteArray}
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-    RDret code g s0
+    RDret fork code g s0
       (sstoreAccountMap ee.codeOwner (clipperYankRemoveAccountMap σ ee lastIndex)
         ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
@@ -106,14 +108,14 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5025⟩
+    (rd : RD fork code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem aw o σ k C)
     (htabNew : tabNew ≠ ⟨0⟩)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
-    ∃ k' C', RD code ee g s0 ⟨5250⟩
+    ∃ k' C', RD fork code ee g s0 ⟨5250⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (twoWordHashMem id ⟨12⟩ mem) aw o
@@ -180,7 +182,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k5244, C5244, rd5244raw⟩ :=
     rd5243pre.sstore hperm (by clipper_runtime_decode) (by evm_ov)
-  have rd5244 : RD code ee g s0 ⟨5244⟩
+  have rd5244 : RD fork code ee g s0 ⟨5244⟩
       (solcMappingSlot ⟨12⟩ id :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
@@ -206,14 +208,14 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToReturnSuccessWF {code : ByteA
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5025⟩
+    (rd : RD fork code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem aw o σ k C)
     (htabNew : tabNew ≠ ⟨0⟩)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
-    RDret code g s0
+    RDret fork code g s0
       (sstoreAccountMap ee.codeOwner
           (sstoreAccountMap ee.codeOwner
             (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew)

@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ContractSignatureBounds
 import Benchmarks.Safe.ViaIR.ContractSignatureState
 import Benchmarks.Safe.ViaIR.MemoryPreserves
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,7 +17,7 @@ set_option maxHeartbeats 1000000
 theorem safeCheckContractTrace (p : ContractSignatureInput)
     {I g s0 σ k C aw mem rdata ptr src} {owner last : UInt256} {R : List UInt256}
     (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨7635⟩
+    (h : RD fork safeBytecode I g s0 ⟨7635⟩
       (p.offset :: last :: owner :: UInt256.ofNat src :: p.hash :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (howner : p.owner = AccountAddress.ofUInt256 owner)
@@ -23,13 +25,13 @@ theorem safeCheckContractTrace (p : ContractSignatureInput)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hs : 128 ≤ src)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hov : R.length + 33 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm checkContractSignatureFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm checkContractSignatureFunction.body .reverted) ∨
     ∃ evm' σ' mem' ptr' aw' out k' C',
-      ExecFuncBody config p.frame evm checkContractSignatureFunction.body
+      ExecFuncBody fork config p.frame evm checkContractSignatureFunction.body
         (.returned (p.finalFrame true) evm' none) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨7803⟩
+      RD fork safeBytecode I g s0 ⟨7803⟩
         (last :: owner :: UInt256.ofNat src :: p.hash :: R) mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
       memLoad ⟨96⟩ mem' = ⟨0⟩ ∧ ptr ≤ ptr' ∧ ptr' ≤ ptr + 2 ^ 140 ∧
@@ -76,12 +78,12 @@ theorem safeCheckContractTrace (p : ContractSignatureInput)
         have hg : 2 ^ 65 ≤ maxReturnDataSizeByGas := by decide +kernel
         omega)
       (by simp; omega)
-  · have hc' : callViaEVM evm (EVM.address p.owner) 0
+  · have hc' : callViaEVM fork evm (EVM.address p.owner) 0
         (contractSignatureCallBytes p.hash p.signature) (z, evm', out) false := by
       simpa only [howner] using hc
     exact .inl ⟨hrev, by simpa only [hfalse, Bool.false_eq_true, if_false]
       using safeCheckContractSource p hstart hend (by omega) hc'⟩
-  have hc' : callViaEVM evm (EVM.address p.owner) 0
+  have hc' : callViaEVM fork evm (EVM.address p.owner) 0
       (contractSignatureCallBytes p.hash p.signature) (z, evm', out) false := by
     simpa only [howner] using hc
   have hsource := safeCheckContractSource p hstart hend (by omega) hc'

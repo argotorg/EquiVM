@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -44,7 +46,7 @@ theorem jugDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body
       (.returned { contract := contract, locals := relyStore I } (denyPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [denyTransition, nonpayable, auth] using
@@ -68,7 +70,7 @@ theorem jugDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [denyTransition, nonpayable, auth] using
@@ -92,7 +94,7 @@ theorem jugDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -108,7 +110,7 @@ theorem jugReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (jugSelBytes 1)) :
-    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork jugBytecode I g (initState σ σ₀ g A I)
         ⟨429⟩ [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : jugSelWord I = ⟨0x9c52a7f1⟩ :=
@@ -132,10 +134,10 @@ theorem jugReachDenyBody {σ σ₀ A I} {g : Sat256}
 
 theorem jugDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I) ⟨1838⟩
+    ∃ k C, RD fork jugBytecode I g (initState σ σ₀ g A I) ⟨1838⟩
         [relyUsrMaskedWord I, ⟨226⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
@@ -156,10 +158,10 @@ theorem jugDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem jugDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork jugBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -177,10 +179,10 @@ theorem jugDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem jugDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD jugBytecode I g s0 ⟨1838⟩
+    (h : RD fork jugBytecode I g s0 ⟨1838⟩
       [relyUsrMaskedWord I, ⟨226⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD jugBytecode I g s0 ⟨1927⟩
+    ∃ k' C', RD fork jugBytecode I g s0 ⟨1927⟩
       [relyUsrMaskedWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -211,7 +213,7 @@ theorem jugDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1855, C1855, rd1855raw⟩ := rd1854.sload (by native_decide) (by evm_ov)
-  have rd1855 : RD jugBytecode I g s0 ⟨1855⟩
+  have rd1855 : RD fork jugBytecode I g s0 ⟨1855⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
@@ -227,10 +229,10 @@ theorem jugDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem jugDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD jugBytecode I g s0 ⟨1838⟩
+    (h : RD fork jugBytecode I g s0 ⟨1838⟩
       [relyUsrMaskedWord I, ⟨226⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g s0 := by
+    RDrev fork jugBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -259,7 +261,7 @@ theorem jugDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1855, C1855, rd1855raw⟩ := rd1854.sload (by native_decide) (by evm_ov)
-  have rd1855 : RD jugBytecode I g s0 ⟨1855⟩
+  have rd1855 : RD fork jugBytecode I g s0 ⟨1855⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
@@ -293,14 +295,14 @@ theorem jugDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem jugDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD jugBytecode I g s0 ⟨1927⟩
+    (h : RD fork jugBytecode I g s0 ⟨1927⟩
       [relyUsrMaskedWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret jugBytecode g s0
+    RDret fork jugBytecode g s0
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic jugBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork jugBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -363,14 +365,14 @@ theorem jugDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
 theorem jugX_deny_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret jugBytecode g (initState σ σ₀ g A I)
+    RDret fork jugBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic jugBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork jugBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1838⟩ := jugDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1927⟩ := jugDenyX_authorized (I := I) hauth rd1838
   exact jugDenyX_storeAuthorizedSplit rd1927
@@ -378,10 +380,10 @@ theorem jugX_deny_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem jugX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret jugBytecode g (initState σ σ₀ g A I)
+    RDret fork jugBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty :=
   permSplit_true hperm (jugX_deny_split hsz36 hsize hauth hreach)
@@ -389,19 +391,19 @@ theorem jugX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem jugX_deny_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = false) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic jugBytecode g (initState σ σ₀ g A I) :=
+    RDstatic fork jugBytecode g (initState σ σ₀ g A I) :=
   permSplit_false hperm (jugX_deny_split hsz36 hsize hauth hreach)
 
 theorem jugX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork jugBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1838⟩ := jugDenyX_decoded (g := g) hsz36 hsize hreach
   exact jugDenyX_unauthorized (I := I) hauth rd1838
 
@@ -415,14 +417,14 @@ theorem jugDenyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmStele I) none) := by
@@ -452,14 +454,14 @@ theorem jugDenyBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body
         .staticViolation := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
@@ -482,14 +484,14 @@ theorem jugDenyBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -505,10 +507,10 @@ theorem jugDenyBodyCoreDecodeFailed_short
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨429⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (jugDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (jugDecode_deny_none_short hsz4 hshort)
 
@@ -518,12 +520,12 @@ theorem jugDenyBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     jugDispatchDeny hsel
-  have hreach := jugReachDenyBody
+  have hreach := jugReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -541,7 +543,7 @@ theorem jugDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact jugDenyBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm
@@ -549,7 +551,7 @@ theorem jugDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (jugSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     jugDispatchDeny hsel
-  have hreach := jugReachDenyBody
+  have hreach := jugReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

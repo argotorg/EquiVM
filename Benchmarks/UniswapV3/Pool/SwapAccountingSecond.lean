@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingFirst
 import Benchmarks.UniswapV3.Pool.SwapAccountingRemainingTrace
 import Benchmarks.UniswapV3.Pool.SwapAccountingFrameLaws
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem swapAccountingSecondX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       (q :: p :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstate : frame.locals.get? "state" = some s.value)
     (hstep : frame.locals.get? "step" = some d.value)
@@ -20,13 +22,13 @@ theorem swapAccountingSecondX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hd : SwapIterationMemory mem q d) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 8 ≤ 1024) :
-    (ExecBlock config frame evm ((swapAccountingBody exactInput).take 3) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm ((swapAccountingBody exactInput).take 3)
+    (ExecBlock fork config frame evm ((swapAccountingBody exactInput).take 3) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm ((swapAccountingBody exactInput).take 3)
         (.ok (swapAccountingSecondFrame frame exactInput s d) evm) ∧
       safeCast256Valid (swapAccountingSecond exactInput d) ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3424⟩ else ⟨3487⟩)
+        RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3424⟩ else ⟨3487⟩)
           ([swapAccountingSecond exactInput d, (if exactInput then ⟨3435⟩ else ⟨3498⟩), q, p] ++ R)
           mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free ∧
         SwapStateMemory mem' p {s with remaining := swapAccountingRemaining exactInput s d} ∧
@@ -40,7 +42,7 @@ theorem swapAccountingSecondX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   · exact Or.inl ⟨by rw [hbody]; exact ExecBlock.consRevert hex1, hr⟩
   · have hg := (swapAccountingFirstFrame_get frame exactInput d "state"
       (by cases exactInput <;> decide)).trans hstate
-    have hex2 := swapAccountingRemainingSource (evm := evm) exactInput s d hg
+    have hex2 := swapAccountingRemainingSource (fork := fork) (evm := evm) exactInput s d hg
       (swapAccountingFirstFrame_result frame exactInput d)
     obtain ⟨a2, k2, C2, hC2, r2, hm2, hs2, hd2, hp2, hmono2⟩ :=
       swapAccountingRemainingX exactInput s d r1 hm1 hs hd hp hdisj hb (by omega)

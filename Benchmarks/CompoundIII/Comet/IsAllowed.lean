@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.TwoAddressDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `isAllowed(address,address)`
 
@@ -24,7 +26,7 @@ set_option maxRecDepth 10000
 
 theorem isAllowed_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (twoAddressGetterArgs "arg0" "arg1" I) isAllowedTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [wordToElem .bool (isAllowedWord σ I
@@ -49,7 +51,7 @@ theorem isAllowedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 45)) :
-    TwoAddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    TwoAddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (isAllowedWord σ I
         (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
         (AccountAddress.ofNat (calldataWord I.calldata 36).toNat)))).toByteArray := by
@@ -88,7 +90,7 @@ theorem isAllowedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
       let slot₀ := solcMappingSlot ⟨3⟩ w₀
       have hhash₀ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀ = slot₀ :=
         mappingGetterHash w₀ ⟨3⟩
-      change RD _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀,
+      change RD fork _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀,
         w₁, ⟨4787⟩, ⟨255⟩, ⟨32⟩] mem₀ _ _ _ _ _ at rd5
       rw [hhash₀] at rd5
       have rd6 := cometWithExtendedAssetList_block_2428 (immWords := wordsOf (immStore v))
@@ -105,7 +107,7 @@ theorem isAllowedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
       have hmem₁ : mem₁.size = 96 := twoWordHashMem_size_96 w₁ slot₀ hmem₀
       have hhash₁ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁ = slot₁ :=
         twoWordHashMem_solcMappingSlot slot₀ w₁ hmem₀
-      change RD _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁, ⟨255⟩, ⟨32⟩]
+      change RD fork _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁, ⟨255⟩, ⟨32⟩]
         mem₁ _ _ _ _ _ at rd6
       rw [hhash₁] at rd6
       have rd7 := cometWithExtendedAssetList_block_4787
@@ -116,7 +118,7 @@ theorem isAllowedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
             (twoWordHashMem_read64 w₀ ⟨3⟩ solcFreePtrMem_size solcFreePtrMem_read64))
       let val := solcSlotWordAt slot₁ σ I
       let out := UInt256.isZero (UInt256.isZero (UInt256.land val ⟨255⟩))
-      change RDret _ _ _ _
+      change RDret fork _ _ _ _
         ((out.toByteArray.write 0 mem₁ (memLoad (UInt256.ofNat 64) mem₁).toNat 32).readWithPadding
           (memLoad (UInt256.ofNat 64) mem₁).toNat 32) at rd7
       rw [hload] at rd7
@@ -135,7 +137,7 @@ theorem isAllowedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
 theorem cometWithExtendedAssetListIsAllowedBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 45)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 45) rfl hsel
   let w := isAllowedWord σ I
     (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)

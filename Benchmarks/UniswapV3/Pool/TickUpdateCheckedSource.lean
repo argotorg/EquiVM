@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdatePrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -35,7 +37,7 @@ theorem evalTickUpdateFlipped (imms : Store) (evm : EVM.State) (a : TickUpdateAr
 theorem tickUpdateMaxReverts (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta)
     (hm : ¬ tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat) :
-    ExecFuncBody config (tickUpdateFrame imms a) evm tickUpdateFunction.body .reverted := by
+    ExecFuncBody fork config (tickUpdateFrame imms a) evm tickUpdateFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 tickUpdateFunction.body]
   apply execBlock_append_ok (tickUpdateAfterSource imms evm a hv)
@@ -45,14 +47,14 @@ theorem tickUpdateMaxReverts (imms : Store) (evm : EVM.State) (a : TickUpdateArg
 theorem tickUpdateCheckedSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta)
     (hm : tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat) :
-    ExecBlock config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 6)
+    ExecBlock fork config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 6)
       (.ok (tickUpdateFlippedFrame imms a evm) evm) := by
-  change ExecBlock config (tickUpdateFrame imms a) evm
+  change ExecBlock fork config (tickUpdateFrame imms a) evm
     (tickUpdateFunction.body.take 4 ++ [tickUpdateFunction.body[4]!, tickUpdateFunction.body[5]!]) _
   apply execBlock_append_ok (tickUpdateAfterSource imms evm a hv)
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (by simpa only [hm, decide_true] using evalTickUpdateMax imms evm a)) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickUpdateFlipped imms evm a)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickUpdateFlipped imms evm a)
     (assignLocalVarBase_frame (old := .bool false) (by tick_update_get))) ExecBlock.nil
 
 end Benchmarks.UniswapV3.Pool

@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_004
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -74,7 +76,7 @@ theorem safeApproveHashSource (evm : EVM.State) (key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (howner : approveHashOwnerWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (approveHashArgs key) approvehashTransition.body
+    ExecTransitionBody fork config contract evm (approveHashArgs key) approvehashTransition.body
       (.returned (approveHashFrame key)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner (approveHashSlot evm.executionEnv
           key) ⟨1⟩)
@@ -91,7 +93,7 @@ theorem safeApproveHashSourceStatic (evm : EVM.State) (key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (howner : approveHashOwnerWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (approveHashArgs key) approvehashTransition.body
+    ExecTransitionBody fork config contract evm (approveHashArgs key) approvehashTransition.body
       .staticViolation := by
   exact .execBlockStatic (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [howner] using safeApproveHashGuard evm key))
@@ -101,7 +103,7 @@ theorem safeApproveHashSourceStatic (evm : EVM.State) (key : UInt256)
 theorem safeApproveHashSourceRevert (evm : EVM.State) (key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (howner : approveHashOwnerWord evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (approveHashArgs key) approvehashTransition.body
+    ExecTransitionBody fork config contract evm (approveHashArgs key) approvehashTransition.body
       .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [howner] using safeApproveHashGuard evm key))
@@ -115,23 +117,23 @@ theorem safeApproveHashSlot (I : ExecutionEnv) (key : UInt256) (mem : ByteArray)
   exact twoWordHashMemMapSlot _ _ (twoWordHashMem_size_96 _ _ hmem)
 
 theorem safeApproveHashTrace {I g s0 σ k C aw mem rdata} {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2420⟩ (key :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2420⟩ (key :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hmem : mem.size = 96) (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ (approveHashSlot I key) ⟨1⟩)
+    RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ (approveHashSlot I key) ⟨1⟩)
       ByteArray.empty := by
   have hret := safeRuntime_block_2420 hov hperm h
   let mem' := twoWordHashMem key
     (keccakWord ⟨0⟩ (UInt256.ofNat 64) (twoWordHashMem (solcSourceWord I) ⟨8⟩ mem))
     (twoWordHashMem (solcSourceWord I) ⟨8⟩ mem)
-  change RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ
+  change RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ
     (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem') ⟨1⟩) (mem'.readWithPadding 0 0) at hret
   rw [byteArray_readWithPadding_zero, safeApproveHashSlot I key mem hmem] at hret
   exact hret
 
 theorem safeApproveHashTraceStatic {I g s0 σ k C aw mem rdata} {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2420⟩ (key :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2420⟩ (key :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have houter := evm_run h with
     [caller, dup3, genMstore, push1 ⟨8⟩, push1 ⟨32⟩, genMstore,
       push1 ⟨64⟩, dup3, genKeccak256]
@@ -141,8 +143,8 @@ theorem safeApproveHashTraceStatic {I g s0 σ k C aw mem rdata} {key : UInt256} 
   exact hstore.sstoreStatic hperm (by native_decide) (by simp; omega)
 
 theorem safeApproveHashTraceRevert {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2485⟩ R mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2485⟩ R mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   exact safeRuntime_block_2485 (by omega) h
 
 theorem safeApproveHashCheck (σ : AccountMap) (I : ExecutionEnv) :
@@ -160,10 +162,10 @@ theorem safeApprovehashBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvehashTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xd4 0xd9 0xbd 0xcd ⟨0xd4d9bdcd⟩
     hdispatch approvehashSelectorBytes (by decide)
-  obtain ⟨k, C, h2370⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h2370⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xd4d9bdcd⟩ 19 ⟨2370⟩ hcode hsize hlong hword
     (by native_decide)
   have hlenWord := safeIRArgumentSizeSub hlong hsize
@@ -186,7 +188,7 @@ theorem safeApprovehashBodyCore
             (by rw [hcheck, howner]; decide) (by jump_dest) h2389
           have hrev := safeApproveHashTraceRevert h2485
             (by simp [safeRuntime_block_2389_taken_stack])
-          have hbody := safeApproveHashSourceRevert (initState σ σ₀ (.ofUInt256 g) A I)
+          have hbody := safeApproveHashSourceRevert (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hvalue howner
           exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
             reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
@@ -195,14 +197,14 @@ theorem safeApprovehashBodyCore
           cases hperm : I.perm with
           | false =>
               have hstatic := safeApproveHashTraceStatic h2420 (by simp) hperm
-              have hbody := safeApproveHashSourceStatic (initState σ σ₀ (.ofUInt256 g) A I)
+              have hbody := safeApproveHashSourceStatic (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
                 (calldataWord I.calldata 4) hvalue howner hperm
               exact RDstatic.reEquivElim hcode hstatic fun hΞ ↦
                 reEquivSelectorExecution hdispatch hdec hbody (.staticHalt hΞ rfl)
           | true =>
               have hret := safeApproveHashTrace h2420 (by simp)
                 (twoWordHashMem_size_96 (solcSourceWord I) ⟨2⟩ solcFreePtrMem_size) hperm
-              have hbody := safeApproveHashSource (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
+              have hbody := safeApproveHashSource (fork := fork) (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
                 (calldataWord I.calldata 4) hvalue howner
               refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
               exact reEquivSelectorExecution hdispatch hdec hbody
@@ -235,7 +237,7 @@ theorem safeApprovehashRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some approvehashTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeApprovehashBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.Authorization
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -30,7 +32,7 @@ theorem transferOwnershipBodyReturns (evm : EVM.State) (locals imms : Store) (ne
     (hnew : locals.get? "newOwner" = some (.address (AccountAddress.ofNat newOwner.toNat)))
     (hbase : locals.get? "owner" = none) (hauth : ownerAuthorized evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm locals transferOwnershipTransition.body
+    ExecTransitionBody fork config contract evm locals transferOwnershipTransition.body
       (.returned (calldataFrame contract locals imms evm) (transferOwnershipPost evm newOwner) none) imms := by
   have hn := (store_get_ne locals (.bytes evm.executionEnv.calldata) (by decide : ("__calldata" == "newOwner") = false)).trans hnew
   apply ExecFuncBody.execBlockOK
@@ -38,9 +40,9 @@ theorem transferOwnershipBodyReturns (evm : EVM.State) (locals imms : Store) (ne
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact (ownerGuard_eval rfl ((store_get_ne locals _ (by decide : ("__calldata" == "owner") = false)).trans hbase)).trans
       (by rw [decide_eq_true hauth])
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (evalLocalValue hn)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalLocalValue hn)
     (transferOwnershipAssign evm locals imms newOwner hc hbase)) ?_
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [transferOwnershipPost, storageStore_executionEnv] using hperm)
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [transferOwnershipPost, storageStore_executionEnv] using hperm)
     (vals := [.address evm.executionEnv.source, .address (AccountAddress.ofNat newOwner.toNat)]) ?_) ExecBlock.nil
   simp only [evalExprs?, evalExpr?, calldataFrame, hn, EvalResult.ofOption,
     bind, EvalResult.bind, pure, envValue, transferOwnershipPost, storageStore_executionEnv]
@@ -52,7 +54,7 @@ theorem transferOwnershipBodyStatic (evm : EVM.State) (locals imms : Store) (new
     (hnew : locals.get? "newOwner" = some (.address (AccountAddress.ofNat newOwner.toNat)))
     (hbase : locals.get? "owner" = none) (hauth : ownerAuthorized evm)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm locals transferOwnershipTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm locals transferOwnershipTransition.body .staticViolation imms := by
   apply ExecFuncBody.execBlockStatic
   apply nonpayableCalldataBlock hwv hhi
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -67,8 +69,8 @@ open poolManagerBlocks in
 theorem transferOwnershipStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 2245) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 2245) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2245⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨2246⟩ : UInt256), UInt8.ofNat 22, .AND, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -86,15 +88,15 @@ theorem transferOwnershipStaticTrace {immWords : String → UInt256} {ee : Execu
 theorem poolManagerTransferOwnershipBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 29)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 29) rfl hsel
   have hd : dispatchMsg contract I.calldata = some transferOwnershipTransition := by
     apply poolManagerDispatch_transferOwnership <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachTransferOwnershipBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachTransferOwnershipBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2120⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -134,7 +136,7 @@ theorem poolManagerTransferOwnershipBodyCore {σ σ₀ A I} {g : UInt256} (v : P
                   _ hwv hhi hcanon (store_get_self _ _ _) hbase hauth hperm)
             | true =>
               have hret := poolManagerBlocks.poolManager_block_2245 (by simp) hperm rdStore
-              have hbody := transferOwnershipBodyReturns (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
+              have hbody := transferOwnershipBodyReturns (fork := fork) (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
                 (immStore v) _ hwv hhi hcanon (store_get_self _ _ _) hbase hauth
               exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (storageStore_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner ⟨0⟩
@@ -164,7 +166,7 @@ theorem poolManagerTransferOwnershipBody {σ σ₀ A I} {g : UInt256} (v : PoolM
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 29)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerTransferOwnershipBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.OraclePriceABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -8,9 +10,9 @@ set_option maxRecDepth 1000
 theorem oraclePriceSourceOk {frame : Frame} {evm evm' : EVM.State} {target : Expr}
     {oracle : AccountAddress} (retVar : Ident) (out : ByteArray)
     (ht : evalExpr? config frame evm target = .ok (.address oracle))
-    (hcall : typedCallViaEVM config evm oracle "price" 0 [] (true, evm', out) false)
+    (hcall : typedCallViaEVM fork config evm oracle "price" 0 [] (true, evm', out) false)
     (hlen : 32 ≤ out.size) (hout : out.size < 2 ^ 138) :
-    ExecStmt config frame evm (.externalCall target "price" (.intLit 0) [] retVar false)
+    ExecStmt fork config frame evm (.externalCall target "price" (.intLit 0) [] retVar false)
       (.ok { frame with locals := frame.locals.insert retVar (.int (Int.ofNat (calldataWord out 0).toNat)) } evm') := by
   have htarget : EVM.address oracle.val = oracle := by apply Fin.ext; exact Nat.mod_eq_of_lt oracle.isLt
   rw [← htarget] at hcall
@@ -20,9 +22,9 @@ theorem oraclePriceSourceOk {frame : Frame} {evm evm' : EVM.State} {target : Exp
 theorem oraclePriceSourceReverts {frame : Frame} {evm evm' : EVM.State} {target : Expr}
     {oracle : AccountAddress} (retVar : Ident) (z : Bool) (out : ByteArray)
     (ht : evalExpr? config frame evm target = .ok (.address oracle))
-    (hcall : typedCallViaEVM config evm oracle "price" 0 [] (z, evm', out) false)
+    (hcall : typedCallViaEVM fork config evm oracle "price" 0 [] (z, evm', out) false)
     (hbad : ¬ (z = true ∧ 32 ≤ out.size)) :
-    ExecStmt config frame evm (.externalCall target "price" (.intLit 0) [] retVar false) .reverted := by
+    ExecStmt fork config frame evm (.externalCall target "price" (.intLit 0) [] retVar false) .reverted := by
   have htarget : EVM.address oracle.val = oracle := by apply Fin.ext; exact Nat.mod_eq_of_lt oracle.isLt
   rw [← htarget] at hcall
   cases z

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionTickTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,17 +16,17 @@ theorem updatePositionTicksX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19273⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19273⟩
       (updatePositionTickEntryWords v a evm false ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 38 ≤ 1024) :
-    (ExecBlock config (updatePositionOracleFrame (immStore v) a evm) evm
-      updatePositionTicksBody .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config (updatePositionOracleFrame (immStore v) a evm) evm
-      updatePositionTicksBody .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (updatePositionOracleFrame (immStore v) a evm) evm updatePositionTicksBody
+    (ExecBlock fork config (updatePositionOracleFrame (immStore v) a evm) evm
+      updatePositionTicksBody .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (updatePositionOracleFrame (immStore v) a evm) evm
+      updatePositionTicksBody .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (updatePositionOracleFrame (immStore v) a evm) evm updatePositionTicksBody
       (.ok (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)) ∧
       ∃ σ' k' C', SourceState s0 ee σ' (updatePositionTickAfter v a evm true) ∧
-      RD (deployedRuntime v) ee g s0 ⟨19386⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨19386⟩
         ((updatePositionFlipped v a evm true).toUInt256 ::
           updatePositionTickSavedWords v a evm true ++ R)
         (updatePositionTicksMemory mem a) aw rdata σ' k' C' ∧

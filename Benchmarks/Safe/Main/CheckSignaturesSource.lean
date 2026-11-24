@@ -2,6 +2,8 @@ import Benchmarks.Safe.Main.CheckNSignaturesSource
 import Benchmarks.Safe.Main.SignatureBranchSource
 import Benchmarks.Safe.Main.OwnerCount
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -47,7 +49,7 @@ theorem evalSignatureCheckNonzero (p : SignatureCheckInput) (evm : EVM.State)
 
 theorem signatureCheckZero (p : SignatureCheckInput) (evm : EVM.State)
     (hz : storedThreshold evm = ⟨0⟩) :
-    ExecFuncBody config p.frame evm checkSignaturesImplFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   exact .consNormal (.letDecl (evalSignatureCheckThreshold p evm))
     (.consRevert (.requireFalse (by
@@ -56,12 +58,12 @@ theorem signatureCheckZero (p : SignatureCheckInput) (evm : EVM.State)
 
 theorem signatureCheckSource (p : SignatureCheckInput) (evm : EVM.State) {result : ExecResult}
     (hn : storedThreshold evm ≠ ⟨0⟩)
-    (hbody : ExecFuncBody config (p.withRequired (storedThreshold evm)).frame evm
+    (hbody : ExecFuncBody fork config (p.withRequired (storedThreshold evm)).frame evm
       checkNSignaturesImplFunction.body result) :
-    ExecBlock config p.frame evm checkSignaturesImplFunction.body
+    ExecBlock fork config p.frame evm checkSignaturesImplFunction.body
       (internalCallResult (p.thresholdFrame (storedThreshold evm)) "_checked" result) := by
   have ht : (storedThreshold evm).toNat ≠ 0 := fun hh ↦ hn (u256_inj hh)
-  have hcall : ExecStmt config (p.thresholdFrame (storedThreshold evm)) evm
+  have hcall : ExecStmt fork config (p.thresholdFrame (storedThreshold evm)) evm
       (.internalCall "checkNSignaturesImpl"
         [.var "executor", .var "dataHash", .var "signatures", .var "_threshold"] "_checked")
       (internalCallResult (p.thresholdFrame (storedThreshold evm)) "_checked" result) := by

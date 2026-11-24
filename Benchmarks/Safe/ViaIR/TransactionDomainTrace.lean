@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.TransactionHashMemory
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -40,12 +42,12 @@ theorem safeTransactionDomainStack {I : ExecutionEnv} {mem : ByteArray} {ptr : N
 set_option maxRecDepth 2000 in
 theorem safeTransactionDomainTrace {I g s0 σ k C aw mem rdata ptr} {R : List UInt256}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256}
-    (h : RD safeBytecode I g s0 ⟨9040⟩
+    (h : RD fork safeBytecode I g s0 ⟨9040⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hb : ptr + 96 < UInt256.size)
     (hov : R.length + 19 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9114⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9114⟩
       (domainWord I :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x1 :: x0 :: x3 :: x2 ::
         ⟨30⟩ :: ⟨66⟩ :: R)
       (domainMemoryAt mem ptr I) aw' rdata σ k' C' := by

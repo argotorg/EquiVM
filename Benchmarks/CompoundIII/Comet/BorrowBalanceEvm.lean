@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.PresentValueEvm
 import Benchmarks.CompoundIII.Comet.Negate104Evm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_082
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -18,9 +20,9 @@ theorem cometBorrowNegativePrincipal {v : CometWithExtendedAssetListImmutables}
     {aw ret indexB indexS account : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (haddr : account.toNat < EVM.addressModulus)
     (hp : signed104 (solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee) < 0)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18357⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18357⟩
       (indexB :: indexS :: account :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨10633⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨10633⟩
       (UInt256.signextend (UInt256.ofNat 12) (solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee) ::
         ⟨18413⟩ :: ⟨17536⟩ :: indexB :: ⟨2425⟩ :: ret :: R)
       (twoWordHashMem account ⟨5⟩ mem) aw' rdata σ k' C' := by
@@ -42,7 +44,7 @@ theorem cometBorrowNegativePrincipal {v : CometWithExtendedAssetListImmutables}
   unfold cometWithExtendedAssetList_block_18357_fallthrough_stack
     cometWithExtendedAssetList_block_18357_fallthrough_memory at r1
   rw [hclean] at r1
-  change RD _ _ _ _ _ (UInt256.ofNat 0 :: indexB :: UInt256.signextend (UInt256.ofNat 12)
+  change RD fork _ _ _ _ _ (UInt256.ofNat 0 :: indexB :: UInt256.signextend (UInt256.ofNat 12)
     (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁) σ ee) ::
     ret :: R) mem₁ _ _ _ _ _ at r1
   rw [hhash] at r1
@@ -58,10 +60,10 @@ theorem cometBorrowBalanceReturn {v : CometWithExtendedAssetListImmutables}
     (haddr : account.toNat < EVM.addressModulus)
     (hmin : -(2^103 : Int) < signed104 (solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee))
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18357⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18357⟩
       (indexB :: indexS :: account :: ret :: R) mem aw rdata σ k C) :
     let basic := solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((if signed104 basic < 0 then presentValueWord indexB (negativePrincipal basic)
         else ⟨0⟩) :: R) (twoWordHashMem account ⟨5⟩ mem) aw' rdata σ k' C' := by
   dsimp only
@@ -108,9 +110,9 @@ theorem cometBorrowBalanceReturn_revert {v : CometWithExtendedAssetListImmutable
     (hstack : R.length + 10 ≤ 1024)
     (haddr : account.toNat < EVM.addressModulus)
     (hmin : signed104 (solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee) = -(2^103 : Int))
-    (h : RD (deployedRuntime v) ee g s0 ⟨18357⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18357⟩
       (indexB :: indexS :: account :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hp : signed104 (solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee) < 0 := by
     rw [hmin]
     norm_num
@@ -122,16 +124,16 @@ theorem cometBorrowBalance {v : CometWithExtendedAssetListImmutables}
     {aw ret account : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 34 ≤ 1024) (haddr : account.toNat < EVM.addressModulus)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18346⟩ (account :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18346⟩ (account :: ret :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     let basic := solcSlotWordAt (solcMappingSlot ⟨5⟩ account) σ ee
     if BorrowBalanceValid v w0 w1 (timestampWord ee) basic then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         (borrowBalanceWord v w0 w1 (timestampWord ee) basic :: R)
         (twoWordHashMem account ⟨5⟩ mem) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   have r1 := cometWithExtendedAssetList_block_18346
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)

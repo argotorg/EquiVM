@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleAmountTrace
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaInternal
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,20 +15,20 @@ theorem modifyPositionMiddleFinalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
     {s0 : EVM.State} {k C : Nat} {aw p q key free : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (modifyPositionMiddleStoresState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16705⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16705⟩
       (EVM.wordOfInt (signedAmountDeltaResult true (modifyPositionMiddleAmountArgs a evm true)) ::
         modifyPositionMiddleLiquidity v a evm :: p :: ⟨0⟩ ::
         EVM.wordOfInt (signedAmountDeltaResult false (modifyPositionMiddleAmountArgs a evm false)) ::
         key :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hperm : ee.perm = true) (hov : R.length + 15 ≤ 1024) :
-    (ExecBlock config (modifyPositionMiddleAssigned1Frame v a evm) (modifyPositionMiddleStoresState v a evm)
-      (modifyPositionMiddleBody.drop 11) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionMiddleAssigned1Frame v a evm) (modifyPositionMiddleStoresState v a evm)
+    (ExecBlock fork config (modifyPositionMiddleAssigned1Frame v a evm) (modifyPositionMiddleStoresState v a evm)
+      (modifyPositionMiddleBody.drop 11) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionMiddleAssigned1Frame v a evm) (modifyPositionMiddleStoresState v a evm)
       (modifyPositionMiddleBody.drop 11)
       (.ok (modifyPositionMiddleFinalFrame v a evm) (modifyPositionMiddleFinalState v a evm)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (modifyPositionMiddleFinalState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨16801⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
         (p :: EVM.wordOfInt (signedAmountDeltaResult true (modifyPositionMiddleAmountArgs a evm true)) ::
           EVM.wordOfInt (signedAmountDeltaResult false (modifyPositionMiddleAmountArgs a evm false)) ::
           key :: q :: R) mem aw' rdata σ' k' C' ∧ HeapMemory mem aw' free) := by
@@ -36,7 +38,7 @@ theorem modifyPositionMiddleFinalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
       (modifyPositionUpdatedState v a evm).executionEnv
     change (Int.ofNat (modifyPositionMiddleLiquidity v a evm).toNat) < Int.ofNat (2 ^ 128)
     exact Int.ofNat_lt.mpr h
-  have r1' : RD (deployedRuntime v) ee g s0 ⟨13807⟩
+  have r1' : RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
       (EVM.wordOfInt a.delta :: EVM.wordOfInt (Int.ofNat (modifyPositionMiddleLiquidity v a evm).toNat) ::
         ⟨16721⟩ :: modifyPositionMiddleLiquidity v a evm :: p ::
         EVM.wordOfInt (signedAmountDeltaResult true (modifyPositionMiddleAmountArgs a evm true)) ::
@@ -53,7 +55,7 @@ theorem modifyPositionMiddleFinalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
   · obtain ⟨σ', ks, Cs, hs', rs⟩ := poolLiquidityStoreX (v := v)
       (modifyPositionMiddleStoresState v a evm) hs rr hperm (by evm_ov)
     exact Or.inr ⟨ExecBlock.consNormal hcall (ExecBlock.consNormal
-      (modifyPositionMiddleLiquidityStoreSource (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) v a evm _) ExecBlock.nil),
+      (modifyPositionMiddleLiquidityStoreSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) v a evm _) ExecBlock.nil),
       σ', aw1, ks, Cs, hs', rs, hm1⟩
 
 end Benchmarks.UniswapV3.Pool

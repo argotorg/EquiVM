@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WordStructMemory
 import Benchmarks.CompoundIII.Comet.AssetMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -45,9 +47,9 @@ theorem cometMappingHash {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {slot key ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hkey : key.toNat < EVM.addressModulus)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨2428⟩ (slot :: key :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2428⟩ (slot :: key :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (solcMappingSlot slot key :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (solcMappingSlot slot key :: R)
       (twoWordHashMem key slot mem) aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_2428 (immWords := wordsOf (immStore v))
     hstack hret h
@@ -57,7 +59,7 @@ theorem cometMappingHash {v : CometWithExtendedAssetListImmutables}
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
         (UInt256.ofNat 1)) key = key := solcAddrMask_clean_left hkey
   rw [hmask] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem key slot mem) :: R)
     (twoWordHashMem key slot mem) _ _ _ _ _ at r1
   have hhash : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)

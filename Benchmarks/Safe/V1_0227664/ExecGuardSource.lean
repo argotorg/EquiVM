@@ -3,6 +3,8 @@ import Benchmarks.Safe.V1_0227664.ExecTransactionSignatureSource
 import Benchmarks.Safe.V1_0227664.OptionalCheckedCall
 import Benchmarks.Safe.V1_0227664.PreModuleSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -37,7 +39,7 @@ theorem safeExecGuardArguments (p : ExecTransactionInput) (evm : EVM.State) {loc
     hl.signatures, EvalResult.ofOption, EvalResult.bind, bind, pure]
 
 theorem safeExecGuardLoad (p : ExecTransactionInput) (initial current : EVM.State) :
-    ExecStmt config (execSignedFrame p initial) current
+    ExecStmt fork config (execSignedFrame p initial) current
       (.letDecl "guard" (some addr) (.storage guardRef))
       (.ok (execGuardFrame p initial current) current) := by
   apply ExecStmt.letDecl

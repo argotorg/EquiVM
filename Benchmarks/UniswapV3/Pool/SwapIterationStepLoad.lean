@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationTargetSelect
 import Benchmarks.UniswapV3.Pool.SwapStepPrefixTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,13 +21,13 @@ theorem swapIterationStepLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {aw p q free callRet exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3302⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3302⟩
       (swapIterationTarget a d :: swapIterationCompareWords a s.price callRet q p exactWord
         cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 21 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨12447⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨12447⟩
         (swapStepRawWords (swapIterationStepArgs v a s d) s.price (swapIterationTarget a d)
           s.liquidity (wordsOf (immStore v) "fee") ++ callRet :: q ::
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)

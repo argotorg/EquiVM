@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevocationCopyMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -22,15 +24,15 @@ theorem copyRevocationArrayLoopStrong {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (n : Nat) (hn : i+n = rs.length)
     (hm : CopyRevocationArrayMemory mem array rs i cursor)
     (hh : cursor ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat cursor)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5973⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat ee.calldata.size::
         UInt256.ofNat (offset.toNat+64*rs.length)::UInt256.ofNat (offset.toNat+64*i)::ret::array::R) mem aw rdata σ k C) :
     if cursor+64*n ≤ 2^64-1 then
       ∃ mem' aw' k' C', MemoryPrefix mem mem' array.toNat ∧
         CopyRevocationArrayMemory mem' array rs rs.length (cursor+64*n) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (cursor+64*n) ∧
-        RD (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   induction n generalizing i cursor mem aw k C with
   | zero =>
     have hi : i = rs.length := by omega
@@ -84,15 +86,15 @@ theorem copyRevocationArrayLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (n : Nat) (hn : i+n = rs.length)
     (hm : CopyRevocationArrayMemory mem array rs i cursor)
     (hh : cursor ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat cursor)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5973⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat ee.calldata.size::
         UInt256.ofNat (offset.toNat+64*rs.length)::UInt256.ofNat (offset.toNat+64*i)::ret::array::R) mem aw rdata σ k C) :
     if cursor+64*n ≤ 2^64-1 then
       ∃ mem' aw' k' C', MemoryPrefix mem mem' array.toNat ∧
         RevocationRequestArrayMemoryView mem' array rs (cursor+64*n) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (cursor+64*n) ∧
-        RD (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have h := copyRevocationArrayLoopStrong v hstack hc hsize hret n hn hm hh hfree rd
   by_cases hg : cursor+64*n ≤ 2^64-1
   · rw [if_pos hg] at h ⊢

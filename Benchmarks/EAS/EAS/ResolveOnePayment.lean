@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ResolveOneAmountRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,9 +16,9 @@ theorem resolveOnePaymentRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat2
     (hsrc : src.toNat+320 ≤ ptr.toNat) (hdata : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15764⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15764⟩
       (src::rev.toUInt256::UInt256.ofNat target.val::last.toUInt256::available::value::ret::R) mem aw rdata σ k C) :
-    HeapReturnPost (value.toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnPost fork (value.toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm resolveOneSuffix (.int (Int.ofNat value.toNat)) ret (value::R) mem ptr.toNat := by
   have he : evalExpr? config {contract := contract, locals := locals, immutables := imms} evm resolveOneValueNonzero =
       .ok (.bool (decide (value ≠ ⟨0⟩))) := by
@@ -25,7 +27,7 @@ theorem resolveOnePaymentRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat2
   · subst value
     obtain ⟨aw1,k1,C1,rd1⟩ := resolveOneNoPayment v (by simp only [List.length_cons]; omega) rd
     have hnext := resolveOneAmountRun (imms := imms) v hf hstack hperm hs hview hsrc hdata hheap hh hret rd1
-    have hpay : ExecStmt config {contract := contract, locals := locals, immutables := imms} evm resolveOnePayment
+    have hpay : ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm resolveOnePayment
         (.ok {contract := contract, locals := locals, immutables := imms} evm) :=
       ExecStmt.iteFalse (by simpa only [ne_self_iff_false, decide_false] using he) ExecBlock.nil
     exact hnext.prepend (ExecBlock.consNormal hpay ExecBlock.nil) (MemoryPrefix.refl _ _) (le_refl _)
@@ -54,7 +56,7 @@ theorem resolveOnePaymentRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat2
       have hfinish := resolveOneAmountRun (imms := imms) v hf' hstack hperm hs' hview'
         (by rw [hnext]; omega) (by rw [hnext]; omega) (by rw [hnext]; exact halloc.1) hhh hret rd2
       simp only [hnext] at hfinish
-      have hpay : ExecStmt config {contract := contract, locals := locals, immutables := imms} evm resolveOnePayment
+      have hpay : ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm resolveOnePayment
           (.ok {contract := contract, locals := payableProbeLocals locals out ptr.toNat, immutables := imms} evm') :=
         ExecStmt.iteTrue (by simpa only [decide_eq_true hz] using he) hsource
       exact hfinish.prepend (ExecBlock.consNormal hpay ExecBlock.nil) hp halloc.2

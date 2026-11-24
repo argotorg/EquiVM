@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Entry
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS memory-copy loop and dynamic-byte ABI encoder -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem easCopyLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbefore : n > 0 → i + 32 * (n - 1) < len.toNat)
     (hafter : len.toNat ≤ i + 32 * n)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4403⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4403⟩
       (UInt256.ofNat i :: src :: dst :: len :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord (easCopyWords src dst mem i n) (len + dst).toNat ⟨0⟩)
       aw' rdata σ k' C' := by
   induction n generalizing mem aw k C i with
@@ -55,8 +57,8 @@ theorem easCopy {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {src dst len ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 8 ≤ 1024) (hbound : len.toNat + 31 < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4400⟩ (src :: dst :: len :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4400⟩ (src :: dst :: len :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord (easCopyWords src dst mem 0 ((len.toNat + 31) / 32))
         (len + dst).toNat ⟨0⟩) aw' rdata σ k' C' := by
   have rd1 := easBlocks.eas_block_4400 (immWords := wordsOf (immStore v))
@@ -76,8 +78,8 @@ theorem easEncodeBytes {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {src dst ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 14 ≤ 1024) (hbound : (memLoad src mem).toNat + 31 < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4435⟩ (src :: dst :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4435⟩ (src :: dst :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (((UInt256.land (memLoad src mem + ⟨31⟩) (UInt256.lnot ⟨31⟩) + dst) + ⟨32⟩) :: R)
       (easEncodeBytesMemory src dst mem) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_4435_packed (immWords := wordsOf (immStore v))

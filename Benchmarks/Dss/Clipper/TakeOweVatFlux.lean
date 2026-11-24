@@ -8,6 +8,8 @@ import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.TakePostDogSource
 import Benchmarks.Dss.Clipper.TakeNoAdjustPostDogSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -40,7 +42,7 @@ theorem RD.clipperTakeOweGtTabToVatFluxExtcodesizeGuard {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (rd :
-      RD code ee g s0 ⟨8686⟩
+      RD fork code ee g s0 ⟨8686⟩
         (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem (UInt256.ofNat 7) rdata σ k C)
@@ -50,7 +52,7 @@ theorem RD.clipperTakeOweGtTabToVatFluxExtcodesizeGuard {code : ByteArray}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4380⟩
+      RD fork code ee g s0 ⟨4380⟩
         (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
           ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
             clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
@@ -74,7 +76,7 @@ theorem RD.clipperTakeOweGtTabVatFluxPostCall {σ₀ σStart σ I}
     {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨8686⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨8686⟩
         (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         baseMem (UInt256.ofNat 7) rdata σ k C)
@@ -88,7 +90,7 @@ theorem RD.clipperTakeOweGtTabVatFluxPostCall {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4396⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -100,7 +102,7 @@ theorem RD.clipperTakeOweGtTabVatFluxPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "flux" 0
@@ -127,7 +129,7 @@ theorem RD.clipperTakeOweGtTabVatFluxNoCode {code : ByteArray}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (rd :
-      RD code ee g s0 ⟨8686⟩
+      RD fork code ee g s0 ⟨8686⟩
         (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem (UInt256.ofNat 7) rdata σ k C)
@@ -138,7 +140,7 @@ theorem RD.clipperTakeOweGtTabVatFluxNoCode {code : ByteArray}
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨k4380, C4380, rd4380⟩ :=
     RD.clipperTakeOweGtTabToVatFluxExtcodesizeGuard (v := v) (hpatch := hpatch)
       rd hmul hgt hmem hread64 (by omega)
@@ -200,7 +202,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -211,7 +213,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
     (hnoVatCode :
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -242,7 +244,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
     Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock config sliceFrame evmRead
+      ExecBlock fork config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
@@ -252,7 +254,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
         slice hmul hgt hsliceLot hvatCode hcallVat
   have hmove :
-      ExecBlock config fluxFrame evmVat
+      ExecBlock fork config fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
@@ -286,7 +288,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -298,12 +300,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
       0 <
         (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallMove :
-      typedCallViaEVM config evmVat (EVM.address v.vat) "move" 0
+      typedCallViaEVM fork config evmVat (EVM.address v.vat) "move" 0
         [.address evmVat.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat),
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmMove, outMove) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -334,7 +336,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
     Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock config sliceFrame evmRead
+      ExecBlock fork config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
@@ -344,7 +346,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
         slice hmul hgt hsliceLot hvatCode hcallVat
   have hmove :
-      ExecBlock config fluxFrame evmVat
+      ExecBlock fork config fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
@@ -380,7 +382,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivCore
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPriceStele : EVM.State} {price : UInt256}
     (hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hsrcMul :
@@ -400,15 +402,15 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivCore
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     exact
@@ -437,7 +439,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostWords
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceStele I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceStele I)
     (hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hmul : price.toNat * (clipperMinWord (clipperTakeAmtWord I) lot).toNat < UInt256.size)
@@ -448,13 +450,13 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostWords
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   exact
     clipperTakeOweGtTabVatFluxNoCodeRevertEquivCore (hperm := by assumption) v hcode hwv hdispatch hdec
       hlockedStele hstoppedSteleLt husrStele hrev hmax
@@ -483,7 +485,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostAccounts
     (husrStele :
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (rd :
-      RD code I (Sat256.ofUInt256 g)
+      RD fork code I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8686⟩
         (price :: slice :: ⟨4057⟩ :: slice :: ⟨0⟩ :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -504,15 +506,15 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostAccounts
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.clipperTakeOweGtTabVatFluxNoCode (v := v) (hpatch := hpatch) rd hmul hgt
       hmem hread64 hnoVatCodeEvm hov
@@ -551,7 +553,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPriceStele evmVatStele : EVM.State} {outVat : ByteArray} {price : UInt256}
     (hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hsrcMul :
@@ -570,7 +572,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore
         (UInt256.ofNat ((evmPriceStele.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallVatStele :
-      typedCallViaEVM config evmPriceStele (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPriceStele (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceStele.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -580,15 +582,15 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     exact
@@ -617,7 +619,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostWords
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceStele I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceStele I)
     (hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hmul : price.toNat * (clipperMinWord (clipperTakeAmtWord I) lot).toNat < UInt256.size)
@@ -627,7 +629,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostWords
         (UInt256.ofNat ((evmPriceStele.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallVatStele :
-      typedCallViaEVM config evmPriceStele (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPriceStele (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceStele.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -637,13 +639,13 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostWords
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   exact
     clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore (hperm := by assumption) v hcode hwv hdispatch hdec
       hlockedStele hstoppedSteleLt husrStele hrev hmax
@@ -673,7 +675,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
     (husrStele :
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (rd :
-      RD code I (Sat256.ofUInt256 g)
+      RD fork code I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
@@ -681,7 +683,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
               dataStart :: who :: max :: amt :: id :: R)
         mem aw outVat σVat k C)
     (hcallVatEvm :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σPost }
         (EVM.address v.vat) "flux" 0
@@ -709,16 +711,16 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+      ExecStmt fork config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceStele))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   subst zVat
   have hrev :
-      RDrev code (Sat256.ofUInt256 g)
+      RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.clipperTakeVatFluxCallFailure (v := v) (hpatch := hpatch)
       (by simpa using rd) houtVat (by simp only [List.length_cons]; omega)
@@ -749,7 +751,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
       substate := AVatStele
        }
   have hcallVatStele :
-      typedCallViaEVM config evmPriceStele (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPriceStele (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceStele.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -770,7 +772,7 @@ theorem RD.clipperTakeOweGtTabVatFluxCallFailure {code : ByteArray}
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -779,7 +781,7 @@ theorem RD.clipperTakeOweGtTabVatFluxCallFailure {code : ByteArray}
     (hzVat : zVat = false)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   subst zVat
   exact RD.clipperTakeVatFluxCallFailure (v := v) (hpatch := hpatch)
     (by simpa using rd) hosz (by simp only [List.length_cons]; omega)
@@ -792,7 +794,7 @@ theorem RD.clipperTakeOweGtTabVatFluxCallSuccessToPostGuard {code : ByteArray}
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -801,7 +803,7 @@ theorem RD.clipperTakeOweGtTabVatFluxCallSuccessToPostGuard {code : ByteArray}
     (hzVat : zVat = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4414⟩
+      RD fork code ee g s0 ⟨4414⟩
         (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
           tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
             tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt ::
@@ -819,7 +821,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoVat {code : ByteArray}
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -830,7 +832,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoVat {code : ByteArray}
     (hwhoVat : UInt256.land who solcAddrMask = clipperTakeVatTarget v)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4701⟩
+      RD fork code ee g s0 ⟨4701⟩
         (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
           tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
             tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt ::
@@ -850,7 +852,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoDog {code : ByteArray}
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -862,7 +864,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoDog {code : ByteArray}
     (hwhoDog : UInt256.land who solcAddrMask = UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4701⟩
+      RD fork code ee g s0 ⟨4701⟩
         (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
           tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
             tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt ::
@@ -913,7 +915,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatToVatMoveExtcodesizeGuard
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -927,7 +929,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatToVatMoveExtcodesizeGuard
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4813⟩
+      RD fork code ee g s0 ⟨4813⟩
         (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
           ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
             clipperTakeVatTarget v :: UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
@@ -950,7 +952,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogToVatMoveExtcodesizeGuard
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -965,7 +967,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogToVatMoveExtcodesizeGuard
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4813⟩
+      RD fork code ee g s0 ⟨4813⟩
         (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
           ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
             clipperTakeVatTarget v :: UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
@@ -988,7 +990,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatVatMoveNoCode {code : ByteArra
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1003,7 +1005,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatVatMoveNoCode {code : ByteArra
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   subst aw
   obtain ⟨k4701, C4701, rd4701⟩ :=
     RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoVat (v := v) (hpatch := hpatch)
@@ -1019,7 +1021,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogVatMoveNoCode {code : ByteArra
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1035,7 +1037,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogVatMoveNoCode {code : ByteArra
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   subst aw
   obtain ⟨k4701, C4701, rd4701⟩ :=
     RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoDog (v := v) (hpatch := hpatch)
@@ -1051,7 +1053,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCode {code : ByteA
     {price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zVat : Bool}
     (rd :
-      RD code ee g s0 ⟨4396⟩
+      RD fork code ee g s0 ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1065,7 +1067,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCode {code : ByteA
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   subst aw
   subst zVat
   obtain ⟨k4414, C4414, rd4414⟩ :=
@@ -1085,7 +1087,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMovePostCall
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4396⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1102,7 +1104,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMovePostCall
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zMove : Bool) (outMove : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask ::
             tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
@@ -1115,7 +1117,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMovePostCall
             (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outMove σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address v.vat) "move" 0
         [.address I.source, .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
@@ -1149,7 +1151,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatVatMovePostCall
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4396⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1167,7 +1169,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatVatMovePostCall
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zMove : Bool) (outMove : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask ::
             tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
@@ -1180,7 +1182,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoVatVatMovePostCall
             (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outMove σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address v.vat) "move" 0
         [.address I.source, .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
@@ -1206,7 +1208,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogVatMovePostCall
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4396⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4396⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1225,7 +1227,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogVatMovePostCall
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zMove : Bool) (outMove : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask ::
             tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
@@ -1238,7 +1240,7 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessWhoDogVatMovePostCall
             (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outMove σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address v.vat) "move" 0
         [.address I.source, .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
@@ -1265,7 +1267,7 @@ theorem RD.clipperTakeOweGtTabVatMoveCallFailure {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1274,7 +1276,7 @@ theorem RD.clipperTakeOweGtTabVatMoveCallFailure {code : ByteArray}
     (hzMove : zMove = false)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   subst zMove
   exact RD.clipperTakeVatMoveCallFailure (v := v) (hpatch := hpatch)
     (by simpa using rd) hosz (by simp only [List.length_cons]; omega)
@@ -1287,7 +1289,7 @@ theorem RD.clipperTakeOweGtTabVatMoveCallSuccessToDogDigs {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1296,7 +1298,7 @@ theorem RD.clipperTakeOweGtTabVatMoveCallSuccessToDogDigs {code : ByteArray}
     (hzMove : zMove = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C',
-      RD code ee g s0 ⟨4850⟩
+      RD fork code ee g s0 ⟨4850⟩
         (dog :: tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) :: price ::
           tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         mem aw o acc k' C' := by
@@ -1312,7 +1314,7 @@ theorem RD.clipperTakeOweGtTabDogDigsCallSetupNonzero {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1324,7 +1326,7 @@ theorem RD.clipperTakeOweGtTabDogDigsCallSetupNonzero {code : ByteArray}
     (hlotNew : lot.sub (tab.div price) ≠ ⟨0⟩)
     (haw : aw = UInt256.ofNat 9)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4964⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4964⟩
       (UInt256.land solcAddrMask dog :: UInt256.land solcAddrMask dog :: ⟨0⟩ ::
         ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ ::
         clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog ::
@@ -1347,7 +1349,7 @@ theorem RD.clipperTakeOweGtTabDogDigsCallSetupZero {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1359,7 +1361,7 @@ theorem RD.clipperTakeOweGtTabDogDigsCallSetupZero {code : ByteArray}
     (hlotNew : lot.sub (tab.div price) = ⟨0⟩)
     (haw : aw = UInt256.ofNat 9)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4964⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4964⟩
       (UInt256.land solcAddrMask dog :: UInt256.land solcAddrMask dog :: ⟨0⟩ ::
         ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ ::
         clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog ::
@@ -1383,7 +1385,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallNonzero {σ₀ σStart σ I}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {zMove : Bool}
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1399,7 +1401,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallNonzero {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4980⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4980⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ ::
           clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog :: dog ::
             tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) ::
@@ -1412,7 +1414,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallNonzero {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outDog σ_dog k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog))) "digs" 0
@@ -1439,7 +1441,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallZero {σ₀ σStart σ I}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {zMove : Bool}
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1455,7 +1457,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallZero {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4980⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4980⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ ::
           clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog :: dog ::
             tab.div price :: tab :: tab.sub tab :: lot.sub (tab.div price) ::
@@ -1468,7 +1470,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallZero {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outDog σ_dog k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog))) "digs" 0
@@ -1494,7 +1496,7 @@ theorem RD.clipperTakeOweGtTabDogDigsNoCodeNonzero {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1507,7 +1509,7 @@ theorem RD.clipperTakeOweGtTabDogDigsNoCodeNonzero {code : ByteArray}
     (hcodeSizeDog :
       Reasoning.Theory.extCodeSizeWord σ (UInt256.land solcAddrMask dog) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨k4964, C4964, rd4964⟩ :=
     RD.clipperTakeOweGtTabDogDigsCallSetupNonzero
       (v := v) (hpatch := hpatch) rd hzMove hmem hread64 hlotNew rfl (by omega)
@@ -1522,7 +1524,7 @@ theorem RD.clipperTakeOweGtTabDogDigsNoCodeZero {code : ByteArray}
     {dog price tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ} {zMove : Bool}
     (rd :
-      RD code ee g s0 ⟨4829⟩
+      RD fork code ee g s0 ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1535,7 +1537,7 @@ theorem RD.clipperTakeOweGtTabDogDigsNoCodeZero {code : ByteArray}
     (hcodeSizeDog :
       Reasoning.Theory.extCodeSizeWord σ (UInt256.land solcAddrMask dog) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨k4964, C4964, rd4964⟩ :=
     RD.clipperTakeOweGtTabDogDigsCallSetupZero
       (v := v) (hpatch := hpatch) rd hzMove hmem hread64 hlotNew rfl (by omega)
@@ -1551,7 +1553,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesNonzero
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {zMove : Bool}
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1567,7 +1569,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesNonzero
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate),
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog))) "digs" 0
@@ -1579,10 +1581,10 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesNonzero
              },
           outDog) true ∧
       outDog.size < UInt256.size ∧
-      (zDog = false → RDrev code g (initState σStart σ₀ g A I)) ∧
+      (zDog = false → RDrev fork code g (initState σStart σ₀ g A I)) ∧
       (zDog = true →
         ∃ k' C',
-          RD code I g (initState σStart σ₀ g A I) ⟨5003⟩
+          RD fork code I g (initState σStart σ₀ g A I) ⟨5003⟩
             (tab :: tab.sub tab :: lot.sub (tab.div price) :: price :: tic :: packed ::
               stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
             (outDog.write 0 (clipperDogDigsCalldataMem v tab baseMem)
@@ -1615,7 +1617,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesZero
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {zMove : Bool}
     (rd :
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zMove then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: tab.div price :: tab :: tab.sub tab ::
             lot.sub (tab.div price) :: price :: tic :: packed :: stopped :: dataLen ::
@@ -1631,7 +1633,7 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesZero
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate),
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog))) "digs" 0
@@ -1643,10 +1645,10 @@ theorem RD.clipperTakeOweGtTabDogDigsPostCallCasesZero
              },
           outDog) true ∧
       outDog.size < UInt256.size ∧
-      (zDog = false → RDrev code g (initState σStart σ₀ g A I)) ∧
+      (zDog = false → RDrev fork code g (initState σStart σ₀ g A I)) ∧
       (zDog = true →
         ∃ k' C',
-          RD code I g (initState σStart σ₀ g A I) ⟨5003⟩
+          RD fork code I g (initState σStart σ₀ g A I) ⟨5003⟩
             (tab :: tab.sub tab :: lot.sub (tab.div price) :: price :: tic :: packed ::
               stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
             (outDog.write 0 (clipperDogDigsCalldataMem v tab baseMem)
@@ -1678,7 +1680,7 @@ theorem RD.clipperTakePostDogLotZeroToRemoveJoin {code : ByteArray}
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5003⟩
+    (rd : RD fork code ee g s0 ⟨5003⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
         who :: max :: amt :: id :: R)
       mem aw o σ k C)
@@ -1694,7 +1696,7 @@ theorem RD.clipperTakePostDogLotZeroToRemoveJoin {code : ByteArray}
     let aw1 := UInt256.ofNat (MachineState.M aw.toNat 0 32)
     let aw2 := UInt256.ofNat (MachineState.M aw1.toNat 0 32)
     let move := solcSlotWord σ ee (clipperYankActiveSlot lastIndex)
-    ∃ k' C', RD code ee g s0 ⟨8379⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
       activeMem aw2 o σ k' C' := by
@@ -1717,7 +1719,7 @@ theorem RD.clipperTakeRemoveJoinToEventTail {code : ByteArray} (v : ClipperImmut
     {move owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8379⟩
+    (rd : RD fork code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
@@ -1733,7 +1735,7 @@ theorem RD.clipperTakeRemoveJoinToEventTail {code : ByteArray} (v : ClipperImmut
     let aw3 := UInt256.ofNat (MachineState.M aw2.toNat 0 32)
     let aw4 := UInt256.ofNat (MachineState.M aw3.toNat 32 32)
     let aw5 := UInt256.ofNat (MachineState.M aw4.toNat 0 64)
-    ∃ k' C', RD code ee g s0 ⟨5250⟩
+    ∃ k' C', RD fork code ee g s0 ⟨5250⟩
       [owe, tabNew, lotNew, price, tic, packed, stopped, dataLen, dataStart, who, max,
         amt, id, ⟨502⟩, sel]
       saleHashMem aw5 o (clipperYankRemoveAccountMap σ ee lastIndex) k' C' := by
@@ -1757,7 +1759,7 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccess {code : ByteArray} (v : ClipperI
     {move owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8379⟩
+    (rd : RD fork code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
@@ -1768,7 +1770,7 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccess {code : ByteArray} (v : ClipperI
     (haw : aw = UInt256.ofNat 9)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-    RDret code g s0
+    RDret fork code g s0
       (sstoreAccountMap ee.codeOwner (clipperYankRemoveAccountMap σ ee lastIndex)
         ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
@@ -1801,14 +1803,14 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTail {code : ByteArray}
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5025⟩
+    (rd : RD fork code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem (UInt256.ofNat 9) o σ k C)
     (htabNew : tabNew ≠ ⟨0⟩)
     (hmem : mem.size = 260)
     (hperm : ee.perm = true) :
-    ∃ k' C', RD code ee g s0 ⟨5250⟩
+    ∃ k' C', RD fork code ee g s0 ⟨5250⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 9) o
@@ -1866,7 +1868,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTail {code : ByteArray}
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k5244, C5244, rd5244raw⟩ :=
     rd5243pre.sstore hperm (by clipper_runtime_decode) (by evm_ov)
-  have rd5244 : RD code ee g s0 ⟨5244⟩
+  have rd5244 : RD fork code ee g s0 ⟨5244⟩
       (solcMappingSlot ⟨12⟩ id :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
@@ -1893,7 +1895,7 @@ theorem RD.clipperTakePostDogLotZeroToReturnSuccess {code : ByteArray}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5003⟩
+    (rd : RD fork code ee g s0 ⟨5003⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       mem aw o σ k C)
@@ -1908,7 +1910,7 @@ theorem RD.clipperTakePostDogLotZeroToReturnSuccess {code : ByteArray}
     (haw : aw = UInt256.ofNat 9)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-    RDret code g s0
+    RDret fork code g s0
       (sstoreAccountMap ee.codeOwner (clipperYankRemoveAccountMap σ ee lastIndex)
         ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Allocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -13,7 +15,7 @@ theorem ecdsaError_body : ecdsaErrorFunction.body =
 
 theorem ecdsaError_return {cfg : Config} {frame : Frame} {evm : EVM.State} {heap : Nat}
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecStmt cfg frame evm ecdsaErrorReturn (.returned frame evm (some [.tuple [],.int (Int.ofNat heap)])) := by
+    ExecStmt fork cfg frame evm ecdsaErrorReturn (.returned frame evm (some [.tuple [],.int (Int.ofNat heap)])) := by
   apply ExecStmt.return
   simp only [evalExprs?,evalExpr?,evalExprList?,hh,EvalResult.ofOption,EvalResult.bind,bind,pure]
 
@@ -21,9 +23,9 @@ theorem ecdsaErrorSource {cfg : Config} {frame : Frame} {evm : EVM.State} {n hea
     (he : frame.locals.get? "error" = some (.int (Int.ofNat n)))
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if n = 0 ∨ n = 4 then
-      ExecFuncBody cfg frame evm ecdsaErrorFunction.body
+      ExecFuncBody fork cfg frame evm ecdsaErrorFunction.body
         (.returned frame evm (some [.tuple [],.int (Int.ofNat heap)]))
-    else ExecFuncBody cfg frame evm ecdsaErrorFunction.body .reverted := by
+    else ExecFuncBody fork cfg frame evm ecdsaErrorFunction.body .reverted := by
   rw [ecdsaError_body]
   by_cases hn : n < 5
   · interval_cases n
@@ -112,13 +114,13 @@ theorem ecdsaErrorCall {cfg : Config} {L imms : Store} {evm : EVM.State}
     (he : evalExprs? cfg {contract := contract,locals := L,immutables := imms} evm args =
       .ok [.int (Int.ofNat n),.int (Int.ofNat heap)]) :
     if n = 0 ∨ n = 4 then
-      ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm
+      ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm
         (.internalCall "ECDSA__throwError" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} retVar
           (some [.tuple [],.int (Int.ofNat heap)])) evm)
-    else ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm
+    else ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "ECDSA__throwError" args retVar) .reverted := by
-  have hs := ecdsaErrorSource (cfg := cfg) (evm := evm) (n := n) (heap := heap)
+  have hs := ecdsaErrorSource (fork := fork) (cfg := cfg) (evm := evm) (n := n) (heap := heap)
     (frame := {contract := contract,locals := ecdsaErrorArgs n heap,immutables := imms})
     (by simp only [ecdsaErrorArgs,store_get_self])
     (by simp only [ecdsaErrorArgs,store_get_ne _ _ (by decide : ("error" == "$EAS.freeMemory") = false),store_get_self])

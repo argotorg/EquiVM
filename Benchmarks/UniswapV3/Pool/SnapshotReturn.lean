@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SnapshotArithmetic
 import Benchmarks.UniswapV3.Pool.WordArrayMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -37,9 +39,9 @@ theorem writeWordArray_load64 {mem : ByteArray} {aw p : UInt256}
 theorem snapshotReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p seconds liquidity tick : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1952⟩ (seconds :: liquidity :: tick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1952⟩ (seconds :: liquidity :: tick :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 96 ≤ 2 ^ 200) (hov : R.length + 7 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 σ (wordBytes (snapshotCleanWords seconds liquidity tick)) := by
+    RDret fork (deployedRuntime v) g s0 σ (wordBytes (snapshotCleanWords seconds liquidity tick)) := by
   have hload : memLoad (UInt256.ofNat 64) mem = p := hm.load64
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 160 - 1) := by native_decide
@@ -55,7 +57,7 @@ theorem snapshotReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have hnew := writeWordArray_load64 hm (snapshotCleanWords seconds liquidity tick)
   have hr := uniswapV3Pool_block_1952 (immWords := wordsOf (immStore v)) hov rd
   simp only [hload, hmask, h32, h64, hfold, hnew, u256_sub_self, u256_add_zero] at hr
-  change RDret (deployedRuntime v) g s0 σ
+  change RDret fork (deployedRuntime v) g s0 σ
     ((writeWordArray mem p.toNat (snapshotCleanWords seconds liquidity tick)).readWithPadding p.toNat 96) at hr
   rw [snapshotCleanWords, writeWordArray_readTriple] at hr
   exact hr

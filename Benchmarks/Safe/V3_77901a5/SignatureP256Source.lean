@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.SignatureContext
 import Benchmarks.Safe.V3_77901a5.P256Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -36,15 +38,15 @@ theorem signatureP256Locals {f : Frame} {evm : EVM.State} {r s : UInt256} {old :
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old) :
-    ExecBlock config f evm (signatureP256Body.take 2)
+    ExecBlock fork config f evm (signatureP256Body.take 2)
       (.ok (signatureP256OffsetFrame f r s) evm) := signatureDynamicLocals "p256Offset" hr hs ho
 
 theorem signatureP256EndSource {p : SignatureInput} {f : Frame} {evm : EVM.State}
     {r s : UInt256} (hc : SignatureCore p f) (hb : s.toNat + 128 < UInt256.size) :
-    ExecStmt config (signatureP256OffsetFrame f r s) evm signatureP256Body[3]!
+    ExecStmt fork config (signatureP256OffsetFrame f r s) evm signatureP256Body[3]!
       (.ok (signatureP256EndFrame f r s) evm) := by
   have he : (s + (⟨128⟩ : UInt256)).toNat = s.toNat + 128 := addWord_toNat _ _ hb
-  have ha := safeInternalAdd (caller := signatureP256OffsetFrame f r s) (evm := evm)
+  have ha := safeInternalAdd (fork := fork) (caller := signatureP256OffsetFrame f r s) (evm := evm)
     (lhs := .var "p256Offset") (rhs := .intLit 128) (retVar := "p256End")
     (a := s) (b := ⟨128⟩) (hc.p256Offset r s).contract
     (evalLocalValue (by simp [signatureP256OffsetFrame, signatureDynamicFrame, signatureSet,
@@ -68,9 +70,9 @@ theorem signatureP256Prefix {p : SignatureInput} {f : Frame} {evm : EVM.State}
     (ho : f.locals["currentOwner"]? = some old)
     (hl : p.requiredBytes ≤ s.toNat) (hh : s.toNat + 128 ≤ p.signatures.size)
     (hb : p.signatures.size < UInt256.size) :
-    ExecBlock config f evm (signatureP256Body.take 5)
+    ExecBlock fork config f evm (signatureP256Body.take 5)
       (.ok (signatureP256EndFrame f r s) evm) := by
-  have htail : ExecBlock config (signatureP256OffsetFrame f r s) evm
+  have htail : ExecBlock fork config (signatureP256OffsetFrame f r s) evm
       ((signatureP256Body.drop 2).take 3) (.ok (signatureP256EndFrame f r s) evm) :=
     .consNormal (.requireTrue (by
       simpa only [hl, decide_true] using
@@ -87,9 +89,9 @@ theorem signatureP256BoundsFailed {p : SignatureInput} {f : Frame} {evm : EVM.St
     (hs : f.locals["s"]? = some (wordBytes32Value s))
     (ho : f.locals["currentOwner"]? = some old)
     (hbad : ¬(p.requiredBytes ≤ s.toNat ∧ s.toNat + 128 ≤ p.signatures.size)) :
-    ExecBlock config f evm signatureP256Body .reverted := by
-  have hprefix := signatureP256Locals (evm := evm) hr hs ho
-  have htail : ExecBlock config (signatureP256OffsetFrame f r s) evm
+    ExecBlock fork config f evm signatureP256Body .reverted := by
+  have hprefix := signatureP256Locals (fork := fork) (evm := evm) hr hs ho
+  have htail : ExecBlock fork config (signatureP256OffsetFrame f r s) evm
       (signatureP256Body.drop 2) .reverted := by
     by_cases hl : p.requiredBytes ≤ s.toNat
     swap

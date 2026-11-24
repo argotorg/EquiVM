@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepWords
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -45,7 +47,7 @@ theorem swapStepPreludeSource {f : Frame} {evm : EVM.State} {price target remain
     (ht : f.locals.get? "sqrtPriceTargetX96" = some (.int (Int.ofNat target.toNat)))
     (hr : f.locals.get? "amountRemaining" = some (.int (EVM.signed remaining)))
     (hf : f.locals.get? "feePips" = some (.int (Int.ofNat fee.toNat))) :
-    ExecBlock config f evm (swapStepFunction.body.take 7)
+    ExecBlock fork config f evm (swapStepFunction.body.take 7)
       (.ok (swapStepPreludeFrame f price target remaining fee) evm) := by
   rw [swapStepPrelude_eq]
   let f1 := wordLocal f "sqrtPriceNextX96" ⟨0⟩
@@ -54,25 +56,25 @@ theorem swapStepPreludeSource {f : Frame} {evm : EVM.State} {price target remain
   let f4 := wordLocal f3 "feeAmount" ⟨0⟩
   let f5 := swapStepPreludeWordsFrame f fee
   let f6 := valueLocal f5 "zeroForOne" (.bool (swapStepDirection price target))
-  have h0 : ExecStmt config f evm swapStepPreludeStmts[0]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm swapStepPreludeStmts[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h1 : ExecStmt config f1 evm swapStepPreludeStmts[1]! (.ok f2 evm) :=
+  have h1 : ExecStmt fork config f1 evm swapStepPreludeStmts[1]! (.ok f2 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h2 : ExecStmt config f2 evm swapStepPreludeStmts[2]! (.ok f3 evm) :=
+  have h2 : ExecStmt fork config f2 evm swapStepPreludeStmts[2]! (.ok f3 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h3 : ExecStmt config f3 evm swapStepPreludeStmts[3]! (.ok f4 evm) :=
+  have h3 : ExecStmt fork config f3 evm swapStepPreludeStmts[3]! (.ok f4 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have hf4 : f4.locals.get? "feePips" = some (.int (Int.ofNat fee.toNat)) := by
     simp only [f4, f3, f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hf]
-  have h4 : ExecStmt config f4 evm swapStepPreludeStmts[4]! (.ok f5 evm) :=
+  have h4 : ExecStmt fork config f4 evm swapStepPreludeStmts[4]! (.ok f5 evm) :=
     ExecStmt.letDecl (evalLocalValue hf4)
   have hp5 : f5.locals.get? "sqrtPriceCurrentX96" = some (.int (Int.ofNat price.toNat)) := by
     simp only [f5, swapStepPreludeWordsFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hp]
   have ht5 : f5.locals.get? "sqrtPriceTargetX96" = some (.int (Int.ofNat target.toNat)) := by
     simp only [f5, swapStepPreludeWordsFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, ht]
   have hge := naturalGeSource (evalLocalValue (cfg := config) (evm := evm) hp5) (evalLocalValue ht5)
-  have h5 : ExecStmt config f5 evm swapStepPreludeStmts[5]! (.ok f6 evm) := by
-    change ExecStmt config f5 evm
+  have h5 : ExecStmt fork config f5 evm swapStepPreludeStmts[5]! (.ok f6 evm) := by
+    change ExecStmt fork config f5 evm
       (.letDecl "zeroForOne" (some (.elem .bool))
         (.binary .ge (.var "sqrtPriceCurrentX96") (.var "sqrtPriceTargetX96"))) (.ok f6 evm)
     exact ExecStmt.letDecl hge
@@ -80,7 +82,7 @@ theorem swapStepPreludeSource {f : Frame} {evm : EVM.State} {price target remain
     simp only [f5, swapStepPreludeWordsFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hr]
   have hr6 : f6.locals.get? "amountRemaining" = some (.int (EVM.signed remaining)) :=
     (store_get_ne _ _ (by decide : ("zeroForOne" == "amountRemaining") = false)).trans hr5
-  have h6 : ExecStmt config f6 evm swapStepPreludeStmts[6]!
+  have h6 : ExecStmt fork config f6 evm swapStepPreludeStmts[6]!
       (.ok (swapStepPreludeFrame f price target remaining fee) evm) := by
     apply ExecStmt.letDecl
     change evalExpr? config f6 evm (.binary .lt (.var "amountRemaining") (.intLit 0)) = _

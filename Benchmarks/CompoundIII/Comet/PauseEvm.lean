@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.PauseAuthEvm
 import Benchmarks.CompoundIII.Comet.PauseReturn
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -11,20 +13,20 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def PauseResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def PauseResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : State) (σ : AccountMap) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 164 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       PauseCanonical I.calldata ∧ PauseAuthorized v I then
     if I.perm = true then
-      RDret (deployedRuntime v) g s0 (pauseAccounts σ I (pauseInputs I.calldata)) ByteArray.empty
-    else RDstatic (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+      RDret fork (deployedRuntime v) g s0 (pauseAccounts σ I (pauseInputs I.calldata)) ByteArray.empty
+    else RDstatic fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem pauseX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 25)) :
-    PauseResult v I g (initState σ σ₀ g A I) σ := by
+    PauseResult fork v I g (initState σ σ₀ g A I) σ := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachPauseBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1159 (immWords := wordsOf (immStore v))

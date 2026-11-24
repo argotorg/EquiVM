@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BatchRowRead
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -17,13 +19,13 @@ theorem multiRequestReadSource {L imms : Store} {evm : EVM.State} {requests : Li
     (hrequests : L.get? "multiRequests" = some (.array requests))
     (hindex : L.get? "i" = some (.int (Int.ofNat i))) (hi : i < requests.length)
     (hlen : requests.length < UInt256.size) (hnorm : normalizeRawBoolWord? requests[i] = .ok requests[i]) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm (multiRequestRead ty)
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm (multiRequestRead ty)
       (.ok {contract := contract,locals := multiAttestReadLocals L (decide (i=requests.length-1)) requests[i],immutables := imms} evm) := by
   exact batchRowReadSource ty "multiRequests" "multiRequest" (by decide) hrequests hindex hi hlen hnorm
 
 theorem multiRequestCheck_ok {L imms : Store} {evm : EVM.State} {fields : List Value}
     (h : L.get? "multiRequest" = some (.tuple fields)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiAttestCheck
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiAttestCheck
       (.ok {contract := contract,locals := L,immutables := imms} evm) := by
   apply ExecStmt.requireTrue
   simp only [evalExpr?,h,EvalResult.ofOption,bind,EvalResult.bind,pure,evalStructFields?,multiAttestCheck]
@@ -31,7 +33,7 @@ theorem multiRequestCheck_ok {L imms : Store} {evm : EVM.State} {fields : List V
 
 theorem multiRequestCheck_bad {L imms : Store} {evm : EVM.State}
     (h : L.get? "multiRequest" = some ABI.Solc08Calldata.decodeFailure) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm multiAttestCheck .reverted := by
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm multiAttestCheck .reverted := by
   apply ExecStmt.requireFalse
   simp only [evalExpr?,h,EvalResult.ofOption,bind,EvalResult.bind,pure,evalStructFields?,multiAttestCheck]
   rfl

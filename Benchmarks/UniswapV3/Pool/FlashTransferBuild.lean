@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashTransferSource
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -26,15 +28,15 @@ theorem flashTransferBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw junk bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 (flashTransferEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashTransferEntry second)
       (flashTransferInput second junk bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 recipient R)
       mem aw rdata σ k C) (hov : R.length + 15 ≤ 1024) :
     ((if second then amount1 else amount0) = ⟨0⟩ ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (flashTransferExit second)
+      RD fork (deployedRuntime v) ee g s0 (flashTransferExit second)
         (flashTransferRest bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 recipient R)
         mem aw rdata σ k' C') ∨
     ((if second then amount1 else amount0) ≠ ⟨0⟩ ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨15238⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
         ((if second then amount1 else amount0) :: EVM.word recipient.val ::
           EVM.word (poolToken v second).val :: flashTransferExit second ::
           flashTransferRest bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 recipient R)

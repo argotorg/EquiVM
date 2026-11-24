@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -45,7 +47,7 @@ theorem evalCheckTicksUpper (imms : Store) (evm : EVM.State) (lower upper : Int)
 
 theorem checkTicksReturns (imms : Store) (evm : EVM.State) (lower upper : Int)
     (h : validTicks lower upper) :
-    ExecFuncBody config (checkTicksFrame imms lower upper) evm checkTicksFunction.body
+    ExecFuncBody fork config (checkTicksFrame imms lower upper) evm checkTicksFunction.body
       (.returned (checkTicksFrame imms lower upper) evm none) := by
   apply ExecFuncBody.execBlockOK
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -57,7 +59,7 @@ theorem checkTicksReturns (imms : Store) (evm : EVM.State) (lower upper : Int)
 
 theorem checkTicksReverts (imms : Store) (evm : EVM.State) (lower upper : Int)
     (h : ¬ validTicks lower upper) :
-    ExecFuncBody config (checkTicksFrame imms lower upper) evm checkTicksFunction.body .reverted := by
+    ExecFuncBody fork config (checkTicksFrame imms lower upper) evm checkTicksFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   by_cases ho : lower < upper
   · refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_

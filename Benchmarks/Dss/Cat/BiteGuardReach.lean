@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.BiteConnect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -39,12 +41,12 @@ theorem RD.catBiteReachMul3720Tail {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
     {a b ret pc : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I g (initState σ σ₀ g A I) pc
+    (rd : RD fork catBytecode I g (initState σ σ₀ g A I) pc
       (a :: b :: ret :: R) mem aw rdata acc k C)
     (hpush : decode catBytecode pc = some (.Push .PUSH2, some (⟨3720⟩, 2)))
     (hjump : decode catBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨3720⟩
+    ∃ k' C', RD fork catBytecode I g (initState σ σ₀ g A I) ⟨3720⟩
       (a :: b :: ret :: R) mem aw rdata acc k' C' := by
   have rd1 := rd.push2 ⟨3720⟩ hpush (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rd1.jump hjump (by jump_dest) (by simp only [List.length_cons]; omega)⟩
@@ -62,12 +64,12 @@ theorem catBiteReachGuardArtRate {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iRate :: art :: ⟨1542⟩ :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -95,13 +97,13 @@ theorem catBiteReachGuardInkSpot {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iSpot :: ink :: ⟨1552⟩ :: UInt256.mul art iRate :: art :: ink :: iDust :: iSpot :: iRate ::
         ⟨0⟩ :: urn :: ilk :: R)
@@ -145,7 +147,7 @@ theorem catBiteReachGuardDunkRoomWad {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk milkChop milkDunk dunkRoom : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
       (room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
@@ -158,7 +160,7 @@ theorem catBiteReachGuardDunkRoomWad {σ σ₀ A I} {g : UInt256}
     (haw : q.toNat + 96 ≤ aw.toNat * 32) (hqsz : q.toNat + 96 < UInt256.size)
     (hDunkRoom : (if UInt256.gt milkDunk room = ⟨0⟩ then milkDunk else room) = dunkRoom)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (⟨1000000000000000000⟩ :: dunkRoom :: ⟨1851⟩ :: iRate :: milkChop :: art :: ⟨1872⟩ :: room ::
         ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -208,12 +210,12 @@ theorem catBiteReachGuardInkDart {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk dart : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (dart :: ink :: ⟨1892⟩ :: art :: ink :: ⟨1899⟩ :: ⟨0⟩ :: dart :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -243,13 +245,13 @@ theorem catBiteReachGuardDartRate {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {status d0 d1 d2 dink dart q art ink iDust iSpot iRate urn ilk : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
       (status :: d0 :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
         ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iRate :: dart :: ⟨2242⟩ :: ⟨1769929592⟩ ::
         UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
@@ -267,7 +269,7 @@ theorem catBiteReachGuardDartRate {σ σ₀ A I} {g : UInt256}
   have rd2212 := rd2211.pop (by native_decide) (by evm_ov)
   have rd2214 := rd2212.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2215raw⟩ := rd2214.sload (by native_decide) (by evm_ov)
-  have rd2215 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd2215 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2215⟩
       (solcSlotWord σ' I ⟨4⟩ :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd2215raw
@@ -300,7 +302,7 @@ theorem catBiteReachGuardTabBase {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dink dart milkChop dartRate : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k C)
@@ -311,7 +313,7 @@ theorem catBiteReachGuardTabBase {σ σ₀ A I} {g : UInt256}
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hDartRate : UInt256.mul dart iRate = dartRate)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (milkChop :: dartRate :: ⟨2354⟩ :: ⟨1000000000000000000⟩ :: ⟨0⟩ :: dink :: dart :: q :: art ::
         ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -352,7 +354,7 @@ theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk fp q : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' k C)
     (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -369,7 +371,7 @@ theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
     (hfpsz : fp.toNat + 96 < UInt256.size)
     (hqsz : q.toNat + 96 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: ⟨1708⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink ::
         iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -556,7 +558,7 @@ theorem catBiteReachGuardMilkChopZero {σ σ₀ A I} {g : UInt256}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {milkChop milkDunk dunkRoom dunkRoomWad dartDenomRate : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
       (room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
@@ -574,7 +576,7 @@ theorem catBiteReachGuardMilkChopZero {σ σ₀ A I} {g : UInt256}
     (hDartDenom : UInt256.div dunkRoomWad iRate = dartDenomRate)
     (hChopZero : milkChop = ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1865⟩
       (dartDenomRate :: milkChop :: art :: ⟨1872⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -643,19 +645,19 @@ theorem catBiteReachGuardLive {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1447⟩
       (art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k C)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1458⟩
       (UInt256.eq ⟨1⟩ (solcSlotWordAt ⟨2⟩ σ' I) :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R)
       mem aw o σ' k' C' := by
   have rd1449 := rd.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1450, C1450, rd1450raw⟩ := rd1449.sload (by native_decide) (by evm_ov)
-  have rd1450 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1450 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1450⟩
       (solcSlotWordAt ⟨2⟩ σ' I :: art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o σ' k1450 C1450 := rd1450raw
@@ -676,14 +678,14 @@ theorem catBiteReachGuardUnsafe {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
       (UInt256.lt (UInt256.mul ink iSpot) (UInt256.mul art iRate) :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -728,13 +730,13 @@ theorem catBiteReachGuardRoomDust {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k C)
     (hlitterbox : (solcSlotWord σ' I ⟨6⟩).toNat < (solcSlotWord σ' I ⟨5⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
       (UInt256.isZero (UInt256.lt room iDust) :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -744,13 +746,13 @@ theorem catBiteReachGuardRoomDust {σ σ₀ A I} {g : UInt256}
   have rd1711 := rd1710.pop (by native_decide) (by evm_ov)
   have rd1713 := rd1711.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by native_decide) (by evm_ov)
-  have rd1714 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1714 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
       (solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o σ' _ _ := rd1714raw
   have rd1716 := rd1714.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by native_decide) (by evm_ov)
-  have rd1717 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1717 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd1717raw
@@ -778,7 +780,7 @@ theorem catBiteReachGuardDinkPos {σ σ₀ A I} {g : UInt256}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {dart inkDart dinkCandidate dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
@@ -789,7 +791,7 @@ theorem catBiteReachGuardDinkPos {σ σ₀ A I} {g : UInt256}
     (hDink : (if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate) = dink)
     (hDartPos : 0 < dart.toNat)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (UInt256.gt dink ⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R)
@@ -846,13 +848,13 @@ theorem catBiteReachGuardDinkLimit {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
       (UInt256.isZero (UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩)) :: dink :: dart ::
         q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -896,12 +898,12 @@ theorem catBiteReachGuardSpot {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hSpotZero : iSpot = ⟨0⟩)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
       (⟨0⟩ :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -926,13 +928,13 @@ theorem catBiteReachGuardLitter {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k C)
     (hLitterFail : (solcSlotWord σ' I ⟨5⟩).toNat ≤ (solcSlotWord σ' I ⟨6⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
       (⟨0⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k' C' := by
@@ -941,13 +943,13 @@ theorem catBiteReachGuardLitter {σ σ₀ A I} {g : UInt256}
   have rd1711 := rd1710.pop (by native_decide) (by evm_ov)
   have rd1713 := rd1711.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by native_decide) (by evm_ov)
-  have rd1714 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1714 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
       (solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o σ' _ _ := rd1714raw
   have rd1716 := rd1714.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by native_decide) (by evm_ov)
-  have rd1717 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1717 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd1717raw
@@ -969,7 +971,7 @@ theorem catBiteReachGuardDartPos {σ σ₀ A I} {g : UInt256}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {dart inkDart dinkCandidate dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
@@ -980,7 +982,7 @@ theorem catBiteReachGuardDartPos {σ σ₀ A I} {g : UInt256}
     (hDink : (if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate) = dink)
     (hDartZero : dart = ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -1032,13 +1034,13 @@ theorem catBiteReachGuardDartLimit {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hDartLimFail : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat < dart.toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
       (⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by

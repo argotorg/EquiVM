@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.PackedGetter
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_063
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometCheckedAdd128 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hx : x.toNat < 2^128) (hy : y.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13689⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    (x.toNat + y.toNat < 2^128 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((x + y) :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13689⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    (x.toNat + y.toNat < 2^128 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((x + y) :: R)
       mem aw rdata σ k' C') ∨
-    (¬ x.toNat + y.toNat < 2^128 ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ x.toNat + y.toNat < 2^128 ∧ RDrev fork (deployedRuntime v) g s0) := by
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
     (UInt256.ofNat 1)
   have hs : (UInt256.sub mask y).toNat = 2^128 - 1 - y.toNat := by

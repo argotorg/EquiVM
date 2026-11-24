@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleInitializeStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -24,7 +26,7 @@ def oracleInitializeReadyFrame (imms : Store) (time : UInt256) : Frame :=
     locals := ((oracleInitializeLocals time).insert "cardinality" (.int 0)).insert "cardinalityNext" (.int 0)}
 
 theorem oracleInitializeReadySource (imms : Store) (evm : EVM.State) (time : UInt256) :
-    ExecBlock config (oracleInitializeFrame imms time) evm (oracleInitializeFunction.body.take 2)
+    ExecBlock fork config (oracleInitializeFrame imms time) evm (oracleInitializeFunction.body.take 2)
       (.ok (oracleInitializeReadyFrame imms time) evm) := by
   exact ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
     (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil)
@@ -73,20 +75,20 @@ theorem oracleInitializeAssign (imms : Store) (evm : EVM.State) (time : UInt256)
 theorem oracleInitializeReturns (imms : Store) (evm : EVM.State) (time : UInt256)
     (ht : time.toNat < 2 ^ 32)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (oracleInitializeFrame imms time) evm oracleInitializeFunction.body
+    ExecFuncBody fork config (oracleInitializeFrame imms time) evm oracleInitializeFunction.body
       (.returned (oracleInitializeReadyFrame imms time) (oracleInitializeState evm time)
         (some [.int 1, .int 1])) := by
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 2 oracleInitializeFunction.body]
   apply execBlock_append_ok (oracleInitializeReadySource imms evm time)
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (evalOracleInitializeValue imms evm time)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalOracleInitializeValue imms evm time)
     (oracleInitializeAssign imms evm time ht))
     (ExecBlock.consReturn (ExecStmt.return (by
       simp only [evalExprs?, evalExpr?, bind, EvalResult.bind, pure])))
 
 theorem oracleInitializeStatic (imms : Store) (evm : EVM.State) (time : UInt256)
     (ht : time.toNat < 2 ^ 32) (hperm : evm.executionEnv.perm = false) :
-    ExecFuncBody config (oracleInitializeFrame imms time) evm oracleInitializeFunction.body
+    ExecFuncBody fork config (oracleInitializeFrame imms time) evm oracleInitializeFunction.body
       .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 2 oracleInitializeFunction.body]

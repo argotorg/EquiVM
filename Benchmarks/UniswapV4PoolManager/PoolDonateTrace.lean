@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolDonateCastTrace
 import Benchmarks.UniswapV4PoolManager.PoolDonateGrowthTrace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,13 +14,13 @@ theorem poolDonateTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id hook key src amount0 amount1 len junk j0 j1 : UInt256}
     {k C : Nat} {R : List UInt256} (f : Frame) (v : PoolManagerImmutables)
     (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨10191⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10191⟩
       (j0 :: j1 :: hook :: key :: src :: amount1 :: amount0 :: len :: poolSlot id :: id :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values =>
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
       values = some [.int (EVM.signed (poolDonateDelta amount0 amount1))] ∧
-      ∃ j0' j1' k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨10284⟩
+      ∃ j0' j1' k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨10284⟩
         (j0' :: j1' :: id :: hook :: key :: src :: amount1 :: amount0 :: len ::
           poolDonateDelta amount0 amount1 :: ⟨32⟩ :: junk :: R) mem aw rdata post.accountMap k' C')
       (poolDonateResult f evm id amount0 amount1) := by

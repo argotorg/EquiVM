@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.InitializeHookMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,9 +17,9 @@ theorem afterInitializeEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hv : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+292 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4611⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4611⟩
       (hook :: keyPtr :: price :: tick :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨11822⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨11822⟩
       (free :: UInt256.ofNat 292 :: ⟨4778⟩ :: hook :: free :: ⟨4783⟩ :: tick :: ⟨32⟩ :: R)
       (wordCallObjectMemory mem free afterInitializeSelectorWord
         (accountWord I.source :: poolKeyWordList key ++ [price, tick])) aw' rdata σ k' C' := by

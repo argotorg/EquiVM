@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.RevokeCallTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Attester revoke proof scaffold
 
@@ -24,11 +26,11 @@ theorem attesterRevokeBody (imms : Store) (hfit : immutablesFit contract imms)
     (hcode : I.code = deployedRuntime attesterBytecode imms)
     (hsize : I.calldata.size < UInt256.size) (hvalue : I.weiValue = ⟨0⟩)
     (hselector : (attesterRevokeSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hc := hcode.trans (deployedRuntime_eq_layout hfit)
   have hd := attesterRevokeDispatch hselector
   have hsz := calldata_size_ge_of_selIs I attesterRevokeSelBytes rfl hselector
-  obtain ⟨k, C, rd⟩ := attesterRevokeReachDecode (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := attesterRevokeReachDecode (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hc hvalue hsize hselector
   by_cases hshort : I.calldata.size < 68
   · exact (attesterDecodeTwoWordsRevert rd (by simp) hsz hsize (.inl hshort))
@@ -57,7 +59,7 @@ theorem attesterRevokeBody (imms : Store) (hfit : immutablesFit contract imms)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.extCodeSize (.var "eas")) (.intLit 0)) = .ok (.bool false) := by
       simpa only [hzero] using hguard
-    have hbody := revokeSourceNoCode hvalue heas' hguard'
+    have hbody := revokeSourceNoCode (fork := fork) hvalue heas' hguard'
     exact (revokeNoCode rd hzero).reEquivExecutionRevert hc hd hdec hbody
   have hpos : 0 < (extCodeSizeWord σ
       (UInt256.land solcAddrMask (wordsOf imms "_eas"))).toNat := by
@@ -71,8 +73,8 @@ theorem attesterRevokeBody (imms : Store) (hfit : immutablesFit contract imms)
   have hencode := revokeRequest_encoding (calldataWord I.calldata 4) (calldataWord I.calldata 36)
   by_cases hdepth : I.depth = 1024
   · obtain ⟨k', C', rd'⟩ := RD.callDepthLimit rd hcallDec hdepth (by simp)
-    have hbody := revokeSourceFailure hvalue heas' hguard
-      (callNotMade_depthLimit (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hencode hdepth)
+    have hbody := revokeSourceFailure (fork := fork) hvalue heas' hguard
+      (callNotMade_depthLimit (fork := fork) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hencode hdepth)
     exact (revokeAfterCallFailure rd' (by simp)).reEquivExecutionRevert hc hd hdec hbody
   have hdepthlt : I.depth.val < 1024 := by
     have hbound := I.depth.isLt

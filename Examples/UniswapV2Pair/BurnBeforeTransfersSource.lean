@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnAmountsGuardCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -24,9 +26,9 @@ abbrev burnBeforeTransfersPrefix : List Stmt :=
     [burnAmountsRequireStmt, burnInternalBurnStmt]
 
 theorem uniswapBurnBodyReverts_beforeTransfers (evm : EVM.State) (I : ExecutionEnv)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm
       burnBeforeTransfersPrefix .reverted) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [burnTransition, burnBeforeTransfersPrefix, burnBeforeAmountsPrefix,
       burnBeforeFeePrefix, burnCachePrefix, burnAmount0Stmt, burnAmount1Stmt,

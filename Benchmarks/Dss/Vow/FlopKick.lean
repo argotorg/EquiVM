@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.FlopAsh
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -32,7 +34,7 @@ theorem flopPrefixToDaiSuccess
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -57,7 +59,7 @@ theorem flopPrefixToDaiSuccess
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -65,7 +67,7 @@ theorem flopPrefixToDaiSuccess
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals } evm0 flopPrefixToDaiStmts
+    ExecBlock fork config { contract := contract, locals := locals } evm0 flopPrefixToDaiStmts
       (.ok { contract := contract, locals := locals4 } evmDai) := by
   intro locals evm0 locals4
   let locals1 := flopLocalsVatSin vatSin
@@ -85,7 +87,7 @@ theorem flopPrefixToDaiSuccess
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallSinStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmSin) := by
@@ -114,10 +116,10 @@ theorem flopPrefixToDaiSuccess
         some (uintBinaryLocals vatSin SinVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hfreeStmt :
-      ExecStmt config { contract := contract, locals := locals1 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals1 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
         (.ok { contract := contract, locals := locals2 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := vatSin) (y := SinVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := vatSin) (y := SinVal)
       (diff := freeSin) hfree hfreeOk
     simpa [locals1, locals2, flopLocalsVatSinFreeSin, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -153,10 +155,10 @@ theorem flopPrefixToDaiSuccess
         some (uintBinaryLocals freeSin AshVal) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hdebtStmt :
-      ExecStmt config { contract := contract, locals := locals2 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "flopDebt")
         (.ok { contract := contract, locals := locals3 } evmSin) := by
-    have hbody := execSubFunctionReturn (evm := evmSin) (x := freeSin) (y := AshVal)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmSin) (x := freeSin) (y := AshVal)
       (diff := flopDebt) hdebt hdebtOk
     simpa [locals2, locals3, flopLocalsVatSinFreeSinDebt, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -204,7 +206,7 @@ theorem flopPrefixToDaiSuccess
       simpa [evm0] using typedCallViaEVM_executionEnv_eq hcallSin
     simpa [locals3, henvSin, evm0, initState] using evalExprs_kissThis evmSin locals3
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals3 } evmSin
+      ExecStmt fork config { contract := contract, locals := locals3 } evmSin
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals4 } evmDai) := by
@@ -240,7 +242,7 @@ theorem flopAshAssignThenKickNoCode
           0 (fun acc => acc.code.size))).toNat = 0)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai
       (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
   intro locals4
   let locals5 := flopLocalsVatSinFreeSinDebtDaiAshNew vatSin freeSin flopDebt vatDai AshNew
@@ -251,7 +253,7 @@ theorem flopAshAssignThenKickNoCode
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [evmAsh] using hflopperNoCode
   have hassignBlock :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopAshAssignStmts (.ok { contract := contract, locals := locals5 } evmAsh) := by
     simpa [flopAshAssignStmts, locals4, locals5, evmAsh] using
       flopAshAddAssignSuccess (hperm := hperm) (evmDai := evmDai) (vatSin := vatSin)
@@ -274,7 +276,7 @@ theorem flopAshAssignThenKickNoCode
           .ok (.bool false) :=
     evalExpr_extCodeGuard_false hflopper hflopperNoCode'
   have hkickBlock :
-      ExecBlock config { contract := contract, locals := locals5 } evmAsh
+      ExecBlock fork config { contract := contract, locals := locals5 } evmAsh
         flopKickAndReturnStmts .reverted := by
     simp only [flopKickAndReturnStmts, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -308,7 +310,7 @@ theorem flopAshAssignThenKickCallFailure
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -320,7 +322,7 @@ theorem flopAshAssignThenKickCallFailure
         (false, evmKick, outKick) true)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai
       (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
   intro locals4
   let locals5 := flopLocalsVatSinFreeSinDebtDaiAshNew vatSin freeSin flopDebt vatDai AshNew
@@ -337,14 +339,14 @@ theorem flopAshAssignThenKickCallFailure
           (fun acc => acc.code.size))).toNat := by
     simpa [evmAsh] using hflopperCode
   have hcallKick' :
-      typedCallViaEVM config evmAsh (EVM.address (flopFlopperAddressOf evmAsh))
+      typedCallViaEVM fork config evmAsh (EVM.address (flopFlopperAddressOf evmAsh))
         "kick" 0
         [.address evmAsh.executionEnv.codeOwner, .int (Int.ofNat DumpVal.toNat),
           .int (Int.ofNat SumpVal.toNat)]
         (false, evmKick, outKick) true := by
     simpa [evmAsh] using hcallKick
   have hassignBlock :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopAshAssignStmts (.ok { contract := contract, locals := locals5 } evmAsh) := by
     simpa [flopAshAssignStmts, locals4, locals5, evmAsh] using
       flopAshAddAssignSuccess (hperm := hperm) (evmDai := evmDai) (vatSin := vatSin)
@@ -392,14 +394,14 @@ theorem flopAshAssignThenKickCallFailure
             .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)] := by
     simp [evalExprs?, hthis, hdump, hsump, EvalResult.bind, bind, pure]
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals5 } evmAsh
+      ExecStmt fork config { contract := contract, locals := locals5 } evmAsh
         (.externalCall (.storage flopperRef) "kick" (.intLit 0)
           [thisAddr, .storage dumpRef, .storage sumpRef] "id")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hflopper (by simp [evalExpr?, pure])
       hargsKick hcallKick'
   have hkickBlock :
-      ExecBlock config { contract := contract, locals := locals5 } evmAsh
+      ExecBlock fork config { contract := contract, locals := locals5 } evmAsh
         flopKickAndReturnStmts .reverted := by
     simp only [flopKickAndReturnStmts, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -434,7 +436,7 @@ theorem flopAshAssignThenKickDecodeRevert
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -447,7 +449,7 @@ theorem flopAshAssignThenKickDecodeRevert
     (hdecKick : config.externalABI.decode? "kick" outKick = none)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai
       (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
   intro locals4
   let locals5 := flopLocalsVatSinFreeSinDebtDaiAshNew vatSin freeSin flopDebt vatDai AshNew
@@ -464,14 +466,14 @@ theorem flopAshAssignThenKickDecodeRevert
           (fun acc => acc.code.size))).toNat := by
     simpa [evmAsh] using hflopperCode
   have hcallKick' :
-      typedCallViaEVM config evmAsh (EVM.address (flopFlopperAddressOf evmAsh))
+      typedCallViaEVM fork config evmAsh (EVM.address (flopFlopperAddressOf evmAsh))
         "kick" 0
         [.address evmAsh.executionEnv.codeOwner, .int (Int.ofNat DumpVal.toNat),
           .int (Int.ofNat SumpVal.toNat)]
         (true, evmKick, outKick) true := by
     simpa [evmAsh] using hcallKick
   have hassignBlock :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopAshAssignStmts (.ok { contract := contract, locals := locals5 } evmAsh) := by
     simpa [flopAshAssignStmts, locals4, locals5, evmAsh] using
       flopAshAddAssignSuccess (hperm := hperm) (evmDai := evmDai) (vatSin := vatSin)
@@ -519,14 +521,14 @@ theorem flopAshAssignThenKickDecodeRevert
             .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)] := by
     simp [evalExprs?, hthis, hdump, hsump, EvalResult.bind, bind, pure]
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals5 } evmAsh
+      ExecStmt fork config { contract := contract, locals := locals5 } evmAsh
         (.externalCall (.storage flopperRef) "kick" (.intLit 0)
           [thisAddr, .storage dumpRef, .storage sumpRef] "id")
         .reverted := by
     exact ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hflopper (by simp [evalExpr?, pure])
       hargsKick hcallKick' hdecKick
   have hkickBlock :
-      ExecBlock config { contract := contract, locals := locals5 } evmAsh
+      ExecBlock fork config { contract := contract, locals := locals5 } evmAsh
         flopKickAndReturnStmts .reverted := by
     simp only [flopKickAndReturnStmts, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -573,7 +575,7 @@ theorem flopPostDaiTailNoCode
           0 (fun acc => acc.code.size))).toNat = 0)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
       .reverted := by
   intro locals4
   have hreqVatDai :
@@ -583,7 +585,7 @@ theorem flopPostDaiTailNoCode
       evalExpr_flopVatDaiZero (evmDai := evmDai) (vatSin := vatSin)
         (freeSin := freeSin) (flopDebt := flopDebt) (vatDai := vatDai) hvatDaiZero
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
     simpa [locals4] using
       flopAshAssignThenKickNoCode (hperm := hperm) (evmDai := evmDai) (vatSin := vatSin)
@@ -621,7 +623,7 @@ theorem flopPostDaiTailCallFailure
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -633,7 +635,7 @@ theorem flopPostDaiTailCallFailure
         (false, evmKick, outKick) true)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
       .reverted := by
   intro locals4
   have hreqVatDai :
@@ -643,7 +645,7 @@ theorem flopPostDaiTailCallFailure
       evalExpr_flopVatDaiZero (evmDai := evmDai) (vatSin := vatSin)
         (freeSin := freeSin) (flopDebt := flopDebt) (vatDai := vatDai) hvatDaiZero
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
     simpa [locals4] using
       flopAshAssignThenKickCallFailure (hperm := hperm) (evmDai := evmDai) (evmKick := evmKick)
@@ -683,7 +685,7 @@ theorem flopPostDaiTailDecodeRevert
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -696,7 +698,7 @@ theorem flopPostDaiTailDecodeRevert
     (hdecKick : config.externalABI.decode? "kick" outKick = none)
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-    ExecBlock config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
       .reverted := by
   intro locals4
   have hreqVatDai :
@@ -706,7 +708,7 @@ theorem flopPostDaiTailDecodeRevert
       evalExpr_flopVatDaiZero (evmDai := evmDai) (vatSin := vatSin)
         (freeSin := freeSin) (flopDebt := flopDebt) (vatDai := vatDai) hvatDaiZero
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         (flopAshAssignStmts ++ flopKickAndReturnStmts) .reverted := by
     simpa [locals4] using
       flopAshAssignThenKickDecodeRevert (hperm := hperm) (evmDai := evmDai) (evmKick := evmKick)
@@ -746,7 +748,7 @@ theorem flopPostDaiTailSuccess
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -762,7 +764,7 @@ theorem flopPostDaiTailSuccess
     (hperm : evmDai.executionEnv.perm = true) :
     let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
     let locals6 := flopLocalsVatSinFreeSinDebtDaiAshNewId vatSin freeSin flopDebt vatDai AshNew id
-    ExecBlock config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
+    ExecBlock fork config { contract := contract, locals := locals4 } evmDai flopPostDaiTailStmts
       (.returned { contract := contract, locals := locals6 } evmKick
         (some [.int (Int.ofNat id.toNat)])) := by
   intro locals4 locals6
@@ -773,7 +775,7 @@ theorem flopPostDaiTailSuccess
       evalExpr_flopVatDaiZero (evmDai := evmDai) (vatSin := vatSin)
         (freeSin := freeSin) (flopDebt := flopDebt) (vatDai := vatDai) hvatDaiZero
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         (flopAshAssignStmts ++ flopKickAndReturnStmts)
         (.returned { contract := contract, locals := locals6 } evmKick
           (some [.int (Int.ofNat id.toNat)])) := by
@@ -798,7 +800,7 @@ theorem flopSourceBlockFromPostDai
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -823,22 +825,22 @@ theorem flopSourceBlockFromPostDai
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
         some [.int (Int.ofNat vatDai.toNat)])
     (htail :
       let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts result) :
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := locals } evm0 flopTransition.body result := by
+    ExecBlock fork config { contract := contract, locals := locals } evm0 flopTransition.body result := by
   intro locals evm0
   let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
   have hprefix :
-      ExecBlock config { contract := contract, locals := locals } evm0 flopPrefixToDaiStmts
+      ExecBlock fork config { contract := contract, locals := locals } evm0 flopPrefixToDaiStmts
         (.ok { contract := contract, locals := locals4 } evmDai) := by
     simpa [locals, evm0, locals4] using
       flopPrefixToDaiSuccess (σ := σ) (σ₀ := σ₀)
@@ -849,7 +851,7 @@ theorem flopSourceBlockFromPostDai
         hwv hvatCode hcallSin hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk
         hSumpLoad henough hvatLoadSin hvatCodeDai hcallDai hdecDai
   have htail' :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts result := by
     simpa [locals4] using htail
   have hblock := execBlock_append_ok hprefix htail'
@@ -867,7 +869,7 @@ theorem vowFlopSourceKickNoCode
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -892,7 +894,7 @@ theorem vowFlopSourceKickNoCode
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -913,11 +915,11 @@ theorem vowFlopSourceKickNoCode
     (hperm : I.perm = true) :
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts .reverted := by
     simpa [locals4] using
       flopPostDaiTailNoCode (hperm := by rw [typedCallViaEVM_executionEnv_eq hcallDai, typedCallViaEVM_executionEnv_eq hcallSin]; exact hperm) (evmDai := evmDai) (vatSin := vatSin)
@@ -925,7 +927,7 @@ theorem vowFlopSourceKickNoCode
         (AshValDai := AshValDai) (SumpValDai := SumpValDai) (AshNew := AshNew)
         hvatDaiZero hAshLoadDai hSumpLoadDai hAshNew hfit hflopperNoCode
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 flopTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 flopTransition.body
         .reverted := by
     simpa [locals, evm0] using
       flopSourceBlockFromPostDai (σ := σ)
@@ -949,7 +951,7 @@ theorem vowFlopSourceKickCallFailure
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -974,7 +976,7 @@ theorem vowFlopSourceKickCallFailure
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1003,7 +1005,7 @@ theorem vowFlopSourceKickCallFailure
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1016,11 +1018,11 @@ theorem vowFlopSourceKickCallFailure
     (hperm : I.perm = true) :
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts .reverted := by
     simpa [locals4] using
       flopPostDaiTailCallFailure (hperm := by rw [typedCallViaEVM_executionEnv_eq hcallDai, typedCallViaEVM_executionEnv_eq hcallSin]; exact hperm) (evmDai := evmDai) (evmKick := evmKick)
@@ -1030,7 +1032,7 @@ theorem vowFlopSourceKickCallFailure
         (SumpVal := SumpVal) hvatDaiZero hAshLoadDai hSumpLoadDai hAshNew hfit
         hDumpLoadAsh hSumpLoadAsh hflopperCode hcallKick
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 flopTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 flopTransition.body
         .reverted := by
     simpa [locals, evm0] using
       flopSourceBlockFromPostDai (σ := σ)
@@ -1054,7 +1056,7 @@ theorem vowFlopSourceKickDecodeRevert
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1079,7 +1081,7 @@ theorem vowFlopSourceKickDecodeRevert
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1108,7 +1110,7 @@ theorem vowFlopSourceKickDecodeRevert
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1122,11 +1124,11 @@ theorem vowFlopSourceKickDecodeRevert
     (hperm : I.perm = true) :
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts .reverted := by
     simpa [locals4] using
       flopPostDaiTailDecodeRevert (hperm := by rw [typedCallViaEVM_executionEnv_eq hcallDai, typedCallViaEVM_executionEnv_eq hcallSin]; exact hperm) (evmDai := evmDai) (evmKick := evmKick)
@@ -1136,7 +1138,7 @@ theorem vowFlopSourceKickDecodeRevert
         (SumpVal := SumpVal) hvatDaiZero hAshLoadDai hSumpLoadDai hAshNew hfit
         hDumpLoadAsh hSumpLoadAsh hflopperCode hcallKick hdecKick
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 flopTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 flopTransition.body
         .reverted := by
     simpa [locals, evm0] using
       flopSourceBlockFromPostDai (σ := σ)
@@ -1160,7 +1162,7 @@ theorem vowFlopSourceSuccess
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1185,7 +1187,7 @@ theorem vowFlopSourceSuccess
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1214,7 +1216,7 @@ theorem vowFlopSourceSuccess
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1231,13 +1233,13 @@ theorem vowFlopSourceSuccess
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals6 := flopLocalsVatSinFreeSinDebtDaiAshNewId vatSin freeSin flopDebt vatDai AshNew id
-    ExecTransitionBody config contract evm0 locals flopTransition.body
+    ExecTransitionBody fork config contract evm0 locals flopTransition.body
       (.returned { contract := contract, locals := locals6 } evmKick
         (some [.int (Int.ofNat id.toNat)])) := by
   intro locals evm0 locals6
   let locals4 := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai
   have htail :
-      ExecBlock config { contract := contract, locals := locals4 } evmDai
+      ExecBlock fork config { contract := contract, locals := locals4 } evmDai
         flopPostDaiTailStmts
         (.returned { contract := contract, locals := locals6 } evmKick
           (some [.int (Int.ofNat id.toNat)])) := by
@@ -1249,7 +1251,7 @@ theorem vowFlopSourceSuccess
         (SumpVal := SumpVal) (id := id) hvatDaiZero hAshLoadDai hSumpLoadDai hAshNew
         hfit hDumpLoadAsh hSumpLoadAsh hflopperCode hcallKick hdecKick
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 flopTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 flopTransition.body
         (.returned { contract := contract, locals := locals6 } evmKick
           (some [.int (Int.ofNat id.toNat)])) := by
     simpa [locals, evm0] using
@@ -1274,7 +1276,7 @@ theorem vowFlopSourceStatic
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1299,7 +1301,7 @@ theorem vowFlopSourceStatic
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1314,13 +1316,13 @@ theorem vowFlopSourceStatic
     (hpf : I.perm = false) :
     let locals := (∅ : Store)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals flopTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm0 locals flopTransition.body .staticViolation := by
   intro locals evm0
   have hpermDai : evmDai.executionEnv.perm = false := by
     rw [typedCallViaEVM_executionEnv_eq hcallDai, typedCallViaEVM_executionEnv_eq hcallSin]
     simpa [initState] using hpf
   have htail :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract,
           locals := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai } evmDai
         flopPostDaiTailStmts .staticViolation := by
@@ -1336,7 +1338,7 @@ theorem RD.vowFlopToKickStart
     {σ σ₀ A I} {g sel target vatDai : UInt256}
     {acc : AccountMap}
     {mem outDai : ByteArray} {k C : ℕ}
-    (rd3832 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd3832 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3832⟩
       (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outDai.write 0 (vatDaiCalldataMem I mem) 128
@@ -1352,7 +1354,7 @@ theorem RD.vowFlopToKickStart
     (hfit :
       (solcSlotWordAt ⟨6⟩ acc I).toNat + (solcSlotWordAt ⟨9⟩ acc I).toNat <
         UInt256.size) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
       ((solcSlotWordAt ⟨6⟩ acc I + solcSlotWordAt ⟨9⟩ acc I) ::
         ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -1439,7 +1441,7 @@ theorem vowFlopKickNoCodeBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
-    (rd3832 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd3832 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3832⟩
       (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outDai.write 0 (vatDaiCalldataMem I mem) 128
@@ -1457,7 +1459,7 @@ theorem vowFlopKickNoCodeBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1482,7 +1484,7 @@ theorem vowFlopKickNoCodeBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hAshLoadDai :
       Stele.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨6⟩ = AshValDai)
@@ -1502,7 +1504,7 @@ theorem vowFlopKickNoCodeBodyCore
       let σAsh := sstoreAccountMap I.codeOwner acc ⟨6⟩ AshNew
       Reasoning.Theory.extCodeSizeWord σAsh
         (solcAddressSlotWord ⟨3⟩ σAsh I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let memDai := outDai.write 0 (vatDaiCalldataMem I mem) 128 32
   have hmemDai : memDai.size = 164 := by
     simpa [memDai] using vatDaiWrite_size I outDai 32 hmem (by omega) ho32
@@ -1514,7 +1516,7 @@ theorem vowFlopKickNoCodeBodyCore
     simpa [← hAshEvm, ← hSumpEvm] using hfit
   obtain ⟨k3959, C3959, rd3959Raw⟩ :=
     RD.vowFlopToKickStart rd3832 hmem hread64 ho32 hosz hvatDai hvatDaiZero hfitEvm
-  have rd3959 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd3959 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
       (AshNew :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       memDai (UInt256.ofNat 6) outDai acc k3959 C3959 := by
@@ -1524,7 +1526,7 @@ theorem vowFlopKickNoCodeBodyCore
       config.externalABI.decode? "dai" outDai =
         some [.int (Int.ofNat vatDai.toNat)] := by
     simpa [hvatDai] using kissDaiDecode_ok (o := outDai) ho32
-  have hbody := vowFlopSourceKickNoCode (hperm := hperm)
+  have hbody := vowFlopSourceKickNoCode (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (outSin := outSin) (outDai := outDai)
     (vatSin := vatSin) (SinVal := SinVal) (freeSin := freeSin) (AshVal := AshVal)
@@ -1547,7 +1549,7 @@ theorem vowFlopKickCallFailureBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
-    (rd1498 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1498 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
       (⟨0⟩ :: flopKickEndPtr :: flopKickSelectorWord ::
         target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -1558,7 +1560,7 @@ theorem vowFlopKickCallFailureBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1583,7 +1585,7 @@ theorem vowFlopKickCallFailureBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1612,7 +1614,7 @@ theorem vowFlopKickCallFailureBodyCore
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1623,9 +1625,9 @@ theorem vowFlopKickCallFailureBodyCore
           .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)]
         (false, evmKick, outKick) true)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopKickCallFailure rd1498 houtKickSize (by simp)
-  have hbody := vowFlopSourceKickCallFailure (hperm := hperm)
+  have hbody := vowFlopSourceKickCallFailure (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (evmKick := evmKick)
     (outSin := outSin) (outDai := outDai) (outKick := outKick)
@@ -1651,7 +1653,7 @@ theorem vowFlopKickDecodeShortBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
-    (rd1516 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1516 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 8) outKick acc k C)
@@ -1667,7 +1669,7 @@ theorem vowFlopKickDecodeShortBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1692,7 +1694,7 @@ theorem vowFlopKickDecodeShortBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1721,7 +1723,7 @@ theorem vowFlopKickDecodeShortBodyCore
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1732,11 +1734,11 @@ theorem vowFlopKickDecodeShortBodyCore
           .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)]
         (true, evmKick, outKick) true)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopKickReturnDecodeShortReverts rd1516 hshort hosz hmload64
   have hdecKick : config.externalABI.decode? "kick" outKick = none :=
     flopKickDecode_none_short hshort
-  have hbody := vowFlopSourceKickDecodeRevert (hperm := hperm)
+  have hbody := vowFlopSourceKickDecodeRevert (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (evmKick := evmKick)
     (outSin := outSin) (outDai := outDai) (outKick := outKick)
@@ -1762,7 +1764,7 @@ theorem vowFlopKickSuccessBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
-    (rd1498 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1498 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
       (⟨1⟩ :: flopKickEndPtr :: flopKickSelectorWord ::
         target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -1779,7 +1781,7 @@ theorem vowFlopKickSuccessBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1804,7 +1806,7 @@ theorem vowFlopKickSuccessBodyCore
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+      typedCallViaEVM fork config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1833,7 +1835,7 @@ theorem vowFlopKickSuccessBodyCore
             (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew))).option
           0 (fun acc => acc.code.size))).toNat)
     (hcallKick :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address
           (flopFlopperAddressOf
@@ -1845,13 +1847,13 @@ theorem vowFlopKickSuccessBodyCore
         (true, evmKick, outKick) true)
     (hAccountsFinal : Eq acc evmKick.accountMap)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hret := RD.vowFlopKickSuccess rd1498 hmem hread64 ho32 hosz hid
   have hdecKick :
       config.externalABI.decode? "kick" outKick =
         some [.int (Int.ofNat id.toNat)] := by
     simpa [hid] using flopKickDecode_ok (o := outKick) ho32
-  have hbody := vowFlopSourceSuccess (hperm := hperm)
+  have hbody := vowFlopSourceSuccess (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (evmKick := evmKick)
     (outSin := outSin) (outDai := outDai) (outKick := outKick)

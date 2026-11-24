@@ -10,6 +10,8 @@ import Reasoning.Solc
 import Reasoning.Reach
 import Reasoning.Constructor
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -44,7 +46,7 @@ theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     `return true` yields `(.bool true)` with the frame/EVM-state unchanged. -/
 theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody truthConfig truthContract evm locals truthTransition.body
+    ExecTransitionBody fork truthConfig truthContract evm locals truthTransition.body
       (.returned { contract := truthContract, locals := locals } evm (some [(.bool true)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
@@ -57,7 +59,7 @@ theorem truthBodyReturns (evm : EVM.State) (locals : Store)
 theorem truthX_callvalue_ne
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev truthBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork truthBytecode g (initState σ σ₀ g A I) := by
   -- prologue → PUSH1 0x0e · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
   exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
         (by decide) (by decide)) with [
@@ -113,7 +115,7 @@ theorem truthReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD truthBytecode I g (initState σ σ₀ g A I) ⟨42⟩
+    ∃ k C, RD fork truthBytecode I g (initState σ σ₀ g A I) ⟨42⟩
         [truthSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := truthFirstArmPc) (bodyPC := ⟨42⟩) (i := 0)
@@ -130,7 +132,7 @@ theorem truthReachBody {σ σ₀ A I} {g : Sat256}
 theorem truthX_cvz_prefix
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩) :
-    RD truthBytecode I g (initState σ σ₀ g A I) ⟨22⟩
+    RD fork truthBytecode I g (initState σ σ₀ g A I) ⟨22⟩
         [⟨38⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 14 53 := by
   -- prologue → PUSH1 0x0e · JUMPI(taken, cv=0) · JUMPDEST · POP · PUSH1 4 · CALLDATASIZE · LT · PUSH1 0x26
@@ -145,7 +147,7 @@ theorem truthX_cvz_prefix
 theorem truthX_cvz_short
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev truthBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork truthBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
     jumpiT (lt_four_ne_zero_of_lt hsz) truthContains38,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
@@ -158,7 +160,7 @@ theorem truthX_cvz_revertB
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
-    RDrev truthBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork truthBytecode g (initState σ σ₀ g A I) := by
   -- prefix falls through the size JUMPI (size ≥ 4 ⇒ LT = 0), decodes the selector, mismatch ⇒ revert
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
     jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
@@ -185,7 +187,7 @@ theorem truthX_cvz_success {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    RDret truthBytecode g (initState σ σ₀ g A I) σ (UInt256.toByteArray ⟨1⟩) := by
+    RDret fork truthBytecode g (initState σ σ₀ g A I) σ (UInt256.toByteArray ⟨1⟩) := by
   -- the dispatch machinery (`truthReachBody`) reaches the `truth()` body entry at pc 42; from there
   -- abi-encode bool 1 (PUSH/JUMP plumbing through the solc helpers) → MSTORE 1 @128 → RETURN 1
   obtain ⟨k, C, hreach⟩ := truthReachBody hcode hwv hsz hsize hmatch
@@ -226,7 +228,7 @@ theorem truthReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeRefinementFor truthConfig truthContract σ σ₀
+    runtimeRefinementFor fork truthConfig truthContract σ σ₀
       g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Stele fails to dispatch
@@ -251,7 +253,7 @@ theorem truthReEquiv_callvalueZero
 /-- The runtime bytecode refines the Stele specification, for every initial state. -/
 theorem truthCorrect :
     runtimeRefinement truthConfig truthBytecode truthContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Stele coupling
@@ -301,12 +303,12 @@ theorem truthFinal_read :
 set_option maxHeartbeats 400000 in
 theorem truthInitcodeRun {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthInitcode) :
-    RDret ctorTruthInitcode g
+    RDret fork ctorTruthInitcode g
       (initState σ σ₀ g A I) σ
       truthBytecode := by
   set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
-      RD ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+      RD fork ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [

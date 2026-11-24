@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcTraceModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_041
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem swapStepMaxX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12654⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12654⟩
       (swapStepPriceWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (ha : a.Fits) (hv : swapStepPriceValid a) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapStepRecalcEntry (swapStepZeroForOne a))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapStepRecalcEntry (swapStepZeroForOne a))
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepBeforeAmount a true) (swapStepBeforeAmount a false) ++ R)
       mem aw rdata σ k' C' := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingMathLoad
 import Benchmarks.UniswapV3.Pool.SwapAccountingSource
 import Benchmarks.UniswapV3.Pool.SafeArithmeticInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem swapAccountingMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3424⟩ else ⟨3487⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3424⟩ else ⟨3487⟩)
       ([swapAccountingSecond exactInput d, (if exactInput then ⟨3435⟩ else ⟨3498⟩), q, p] ++ R)
       mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstate : frame.locals.get? "state" = some s.value)
@@ -22,13 +24,13 @@ theorem swapAccountingMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hx : -(2 ^ 255 : Int) ≤ s.calculated ∧ s.calculated < 2 ^ 255)
     (hy : safeCast256Valid (swapAccountingSecond exactInput d))
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
-    (ExecStmt config frame evm (swapAccountingBody exactInput)[3]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config frame evm (swapAccountingBody exactInput)[3]!
+    (ExecStmt fork config frame evm (swapAccountingBody exactInput)[3]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config frame evm (swapAccountingBody exactInput)[3]!
         (.ok (resumeAfterInternalCall frame (swapAccountingResultName exactInput)
           (some [.int (swapAccountingCalculated exactInput s d)])) evm) ∧
       ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3435⟩ else ⟨3498⟩)
+        RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3435⟩ else ⟨3498⟩)
           (EVM.wordOfInt (swapAccountingCalculated exactInput s d) :: q :: p :: R)
           mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat) := by
   obtain ⟨a1, k1, C1, hC1, r1, hm1, hmono⟩ :=

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickNetArithmetic
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_021
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,14 +14,14 @@ theorem tickUpperNetTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw packed gross slot flipped x4 x5 x6 x7 x8 x9 x10 : UInt256}
     {delta : Int} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7132⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7132⟩
       (packed :: gross :: slot :: flipped :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: EVM.wordOfInt delta :: R)
       mem aw rdata σ k C) :
     if signedFits ⟨128, by decide⟩ (tickNetAfter packed delta true) then ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨7205⟩
+      RD fork (deployedRuntime v) I g s0 ⟨7205⟩
         (slot :: gross :: EVM.wordOfInt (tickNetAfter packed delta true) :: flipped ::
           x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: EVM.wordOfInt delta :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hs : UInt256.signextend (UInt256.ofNat 15) (UInt256.sar (UInt256.ofNat 128) packed) = tickNetWord packed :=
     tickNetWord_signextend packed
   have hd' : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt delta) = EVM.wordOfInt delta :=

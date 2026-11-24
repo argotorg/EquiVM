@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_037
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -22,7 +24,7 @@ theorem contractSignatureArgs_free {mem : ByteArray} {ptr len : Nat} {hash : UIn
 
 theorem safeContractSignatureArgs (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {hash owner last sig : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7707⟩
+    (h : RD fork safeBytecode I g s0 ⟨7707⟩
       (UInt256.ofNat src :: last :: owner :: sig :: hash :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -30,7 +32,7 @@ theorem safeContractSignatureArgs (words : List UInt256)
     (hin : src + 32 + 32 * words.length ≤ mem.size)
     (ha : src + 32 + 32 * words.length ≤ ptr + 32)
     (hb : ptr + 164 + 32 * words.length < UInt256.size) (hov : R.length + 23 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨7757⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7757⟩
       (UInt256.ofNat (ptr + 132 + 32 * words.length) :: UInt256.ofNat ptr :: ⟨7771⟩ ::
         UInt256.ofNat ptr :: UInt256.ofNat (ptr + 32) :: ⟨0⟩ :: ⟨0⟩ ::
         last :: owner :: sig :: hash :: R)
@@ -115,7 +117,7 @@ theorem safeContractSignatureEncodedMemory {mem : ByteArray} {ptr len : Nat} {ha
 
 theorem safeContractSignatureEncode {I g s0 σ k C aw mem rdata ptr len}
     {hash owner last sig : UInt256} {words : List UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7757⟩
+    (h : RD fork safeBytecode I g s0 ⟨7757⟩
       (UInt256.ofNat (ptr + 132 + 32 * words.length) :: UInt256.ofNat ptr :: ⟨7771⟩ ::
         UInt256.ofNat ptr :: UInt256.ofNat (ptr + 32) :: ⟨0⟩ :: ⟨0⟩ ::
         last :: owner :: sig :: hash :: R)
@@ -123,9 +125,9 @@ theorem safeContractSignatureEncode {I g s0 σ k C aw mem rdata ptr len}
         (ptr + 36) len hash words) aw rdata σ k C)
     (hn : words.length = (len + 31) / 32)
     (hb : contractSignatureCallEnd ptr len + 32 < UInt256.size) (hov : R.length + 14 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
       ∃ aw' k' C', contractSignatureCallEnd ptr len < 2 ^ 64 ∧
-        RD safeBytecode I g s0 ⟨7771⟩
+        RD fork safeBytecode I g s0 ⟨7771⟩
           (UInt256.ofNat ptr :: UInt256.ofNat (ptr + 32) :: ⟨0⟩ :: ⟨0⟩ ::
             last :: owner :: sig :: hash :: R)
           (contractSignatureEncodedMemory mem ptr len hash words) aw' rdata σ k' C' := by

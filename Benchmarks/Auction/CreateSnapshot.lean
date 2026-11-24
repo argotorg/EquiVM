@@ -1,5 +1,7 @@
 import Benchmarks.Auction.SnapshotMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -9,11 +11,11 @@ def createdSnapshot (noun start finish : UInt256) : Snapshot :=
 
 set_option maxRecDepth 2048 in
 theorem createSnapshotPrefix {I g s0 noun start finish ret R mem aw ptr rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3189⟩ (finish :: ⟨0⟩ :: start :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3189⟩ (finish :: ⟨0⟩ :: start :: noun :: ret :: R)
       mem aw rdata acc k C)
     (hm : MemoryCursor mem aw ptr) (hb : ptr.toNat + 192 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3240⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3240⟩
       (⟨0⟩ :: ⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
       ((createdSnapshot noun start finish).mem mem ptr) (snapshotWords aw ptr)
       rdata acc k' C' := by

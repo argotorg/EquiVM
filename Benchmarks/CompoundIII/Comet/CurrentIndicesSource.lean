@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AccruedIndicesSource
 import Benchmarks.CompoundIII.Comet.AccrualTime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -46,7 +48,7 @@ theorem currentIndicesBlock_result (v : CometWithExtendedAssetListImmutables)
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecBlock config frame evm currentIndicesBlock
+    ExecBlock fork config frame evm currentIndicesBlock
       (if CurrentIndicesValid v w0 w1 time then
         .ok (currentIndicesFrame frame v w0 w1 time) evm else .reverted) := by
   dsimp only
@@ -54,7 +56,7 @@ theorem currentIndicesBlock_result (v : CometWithExtendedAssetListImmutables)
   let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
   let time := timestampWord evm.executionEnv
   let f1 : Frame := { frame with locals := frame.locals.insert "__c0" (.int time.toNat) }
-  change ExecBlock _ _ _ _ (if CurrentIndicesValid v w0 w1 time then _ else _)
+  change ExecBlock fork _ _ _ _ (if CurrentIndicesValid v w0 w1 time then _ else _)
   by_cases ht : time.toNat < 2^40
   · apply ExecBlock.consNormal (now_call_ok frame evm "__c0" hc ht)
     have he : evalExpr? config f1 evm (.var "__c0") = .ok (.int (Int.ofNat time.toNat)) := by

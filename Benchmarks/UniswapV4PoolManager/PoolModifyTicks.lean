@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyTwoTicks
 import Benchmarks.UniswapV4PoolManager.PoolModifyTickFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,7 +29,7 @@ theorem poolModifyTicks {f : Frame} {evm : State} {id : UInt256} {p : PoolModify
     (hc : PoolModifyContext f id p)
     (hs : f.locals.get? "state" = some (poolModifyStateValue false ⟨0⟩ false ⟨0⟩))
     (ht : poolTicksValid p.lower p.upper) :
-    ExecStmt config f evm poolModifyFunction.body[7]! (poolModifyTicksResult f evm id p) := by
+    ExecStmt fork config f evm poolModifyFunction.body[7]! (poolModifyTicksResult f evm id p) := by
   rw [poolModifyTicksStmt]
   have he : evalExpr? config f evm (.binary .ne (.var "liquidityDelta") (.intLit 0)) =
       .ok (.bool (decide (p.delta ≠ 0))) := by
@@ -36,7 +38,7 @@ theorem poolModifyTicks {f : Frame} {evm : State} {id : UInt256} {p : PoolModify
   by_cases hd : p.delta ≠ 0
   · rw [poolModifyTicksResult, if_pos hd]
     apply ExecStmt.iteTrue (by simpa only [decide_eq_true hd] using he)
-    have hpre := poolModifyTwoTicks (evm := evm) hc.contract hc.self hc.lower hc.upper hc.liquidityDelta hs
+    have hpre := poolModifyTwoTicks (fork := fork) (evm := evm) hc.contract hc.self hc.lower hc.upper hc.liquidityDelta hs
     apply execBlock_continue hpre
     intro f1 post hpost
     exact poolModifyTickFinish (evm := post) (poolModifyTwoTicksResult_context hc hpost)

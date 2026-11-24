@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BooleanSource
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -44,7 +46,7 @@ theorem hookBaseValidReturn {f : Frame} {evm : EVM.State} {hook : AccountAddress
     (hs : f.locals.get? "self" = some (.address hook))
     (hf : f.locals.get? "flags" = some (.int (Int.ofNat (accountWord hook).toNat)))
     (he : f.locals.get? "fee" = some (.int (Int.ofNat fee.toNat))) :
-    ExecBlock config f evm (hookValidationFunction.body.drop 5)
+    ExecBlock fork config f evm (hookValidationFunction.body.drop 5)
       (.returned f evm (some [.bool (hookBaseValid (accountWord hook) fee)])) := by
   have hz : evalExpr? config f evm (.cast (.intLit 0) (.elem .address)) = .ok (.address (AccountAddress.ofNat 0)) := by
     simp only [evalExpr?, bind, EvalResult.bind, pure]; rfl
@@ -67,7 +69,7 @@ theorem hookBaseValidReturn {f : Frame} {evm : EVM.State} {hook : AccountAddress
 theorem hookValidationBody {f : Frame} {evm : EVM.State} {hook : AccountAddress} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.address hook))
     (he : f.locals.get? "fee" = some (.int (Int.ofNat fee.toNat))) :
-    ExecFuncBody config f evm hookValidationFunction.body
+    ExecFuncBody fork config f evm hookValidationFunction.body
       (.returned {f with locals := f.locals.insert "flags" (.int (Int.ofNat (accountWord hook).toNat))}
         evm (some [.bool (hookAddressValid (accountWord hook) fee)])) := by
   let f1 : Frame := {f with locals := f.locals.insert "flags" (.int (Int.ofNat (accountWord hook).toNat))}
@@ -76,7 +78,7 @@ theorem hookValidationBody {f : Frame} {evm : EVM.State} {hook : AccountAddress}
   have h1 := evalHookPair (evm := evm) hflags (accountWord_canonical hook) (UInt256.ofNat 64) (UInt256.ofNat 4) (by decide) (by decide)
   have h2 := evalHookPair (evm := evm) hflags (accountWord_canonical hook) (UInt256.ofNat 1024) (UInt256.ofNat 2) (by decide) (by decide)
   have h3 := evalHookPair (evm := evm) hflags (accountWord_canonical hook) (UInt256.ofNat 256) (UInt256.ofNat 1) (by decide) (by decide)
-  have hend := hookBaseValidReturn (f := f1) (evm := evm)
+  have hend := hookBaseValidReturn (fork := fork) (f := f1) (evm := evm)
     ((store_get_ne _ _ (by decide : ("flags" == "self") = false)).trans hs) hflags
     ((store_get_ne _ _ (by decide : ("flags" == "fee") = false)).trans he)
   exact .execBlockRet (ExecBlock.consNormal (ExecStmt.letDecl (evalAddressUint160 (evalLocalValue hs)))
@@ -85,7 +87,7 @@ theorem hookValidationBody {f : Frame} {evm : EVM.State} {hook : AccountAddress}
 theorem hookValidationCall {f : Frame} {evm : EVM.State} {es ef : Expr} {hook : AccountAddress} {fee : UInt256}
     (hf : f.contract = contract) (hs : evalExpr? config f evm es = .ok (.address hook))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_isValidHookAddress" [es, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Hooks_isValidHookAddress" [es, ef] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (hookAddressValid (accountWord hook) fee))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address hook, .int (Int.ofNat fee.toNat)])
     (value := some [.bool (hookAddressValid (accountWord hook) fee)])

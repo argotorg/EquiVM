@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRevocationArrayRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,9 +11,9 @@ theorem easCopyRevocationArrayInvalid {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {header heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hd : decodeRevocationArray ee.calldata header = none)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
       ((header+UInt256.ofNat 32)::calldataWord ee.calldata header.toNat::UInt256.ofNat ee.calldata.size::ret::R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hl : (calldataWord ee.calldata header.toNat).toNat ≤ 2^64-1
   · apply easCopyRevocationArrayReject v hstack hfree hl ?_ rd
     intro he

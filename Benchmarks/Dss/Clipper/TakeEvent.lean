@@ -3,6 +3,8 @@ import Reasoning.Reach
 import Benchmarks.Dss.Clipper.TakeCallback
 import Benchmarks.Dss.Clipper.TakeDogDigs
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -107,14 +109,14 @@ theorem RD.clipperTakeEventTailSuccess {code : ByteArray} (v : ClipperImmutables
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5250⟩
+    (rd : RD fork code ee g s0 ⟨5250⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: ⟨502⟩ :: [sel])
       mem (UInt256.ofNat 9) o σ k C)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨2662707474673484271508566864567884168301912169458095775925153504702713661105⟩
   have hmload64 :

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PrincipalMagnitudeModel
 import Benchmarks.CompoundIII.Comet.CheckedAddSubSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -72,9 +74,9 @@ theorem principalMagnitude_source (borrow : Bool) (evm : EVM.State) (imms : Stor
     (index present : UInt256) :
     let frame := principalMagnitudeEntry imms borrow index present
     if PrincipalMagnitudeFits borrow index present then
-      ∃ final, ExecFuncBody config frame evm (principalMagnitudeCallable borrow).body
+      ∃ final, ExecFuncBody fork config frame evm (principalMagnitudeCallable borrow).body
         (.returned final evm (some [.int (principalMagnitudeWord borrow index present).toNat]))
-    else ExecFuncBody config frame evm (principalMagnitudeCallable borrow).body .reverted := by
+    else ExecFuncBody fork config frame evm (principalMagnitudeCallable borrow).body .reverted := by
   dsimp only
   let frame := principalMagnitudeEntry imms borrow index present
   have hp : evalExpr? config frame evm (.var "presentValue_") = .ok (.int present.toNat) := by
@@ -87,7 +89,7 @@ theorem principalMagnitude_source (borrow : Bool) (evm : EVM.State) (imms : Stor
       Std.HashMap.getElem?_insert, beq_self_eq_true, if_true, EvalResult.ofOption]
   by_cases he : PrincipalMagnitudeEvalFits borrow index present
   · have hx := principalMagnitudeExpr_ok borrow config frame evm index present hp hi he
-    have hc := safeUint_call ⟨104, by decide⟩ "safe104" safe104Callable_lookup frame evm
+    have hc := safeUint_call (fork := fork) ⟨104, by decide⟩ "safe104" safe104Callable_lookup frame evm
       (principalMagnitudeWord borrow index present) (principalMagnitudeExpr borrow) "__c0" rfl hx
     by_cases hn : (principalMagnitudeWord borrow index present).toNat < 2^104
     · rw [if_pos hn] at hc
@@ -115,12 +117,12 @@ theorem principalMagnitude_call (borrow : Bool) (frame : Frame) (evm : EVM.State
     (hc : frame.contract = contract)
     (hi : evalExpr? config frame evm indexExpr = .ok (.int index.toNat))
     (hp : evalExpr? config frame evm presentExpr = .ok (.int present.toNat)) :
-    ExecStmt config frame evm (.internalCall (principalMagnitudeName borrow) [indexExpr, presentExpr] ret)
+    ExecStmt fork config frame evm (.internalCall (principalMagnitudeName borrow) [indexExpr, presentExpr] ret)
       (if PrincipalMagnitudeFits borrow index present then
         .ok { frame with
           locals := frame.locals.insert ret (.int (principalMagnitudeWord borrow index present).toNat) }
           evm else .reverted) := by
-  have hb := principalMagnitude_source borrow evm frame.immutables index present
+  have hb := principalMagnitude_source (fork := fork) borrow evm frame.immutables index present
   dsimp only at hb
   split_ifs with hn
   · rw [if_pos hn] at hb

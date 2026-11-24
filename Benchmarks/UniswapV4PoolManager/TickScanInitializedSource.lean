@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickScanWords
 import Benchmarks.UniswapV4PoolManager.TickScanSyntax
 import Benchmarks.UniswapV4PoolManager.LeastSignificantBitSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,7 +35,7 @@ theorem tickScanDistance_eval {f : Frame} {evm : EVM.State} {bit index : UInt256
 theorem tickScanIndexCall {f : Frame} {evm : EVM.State} {e : Expr} {masked : UInt256} (lte : Bool)
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat masked.toNat)))
     (hn : masked ≠ ⟨0⟩) :
-    ExecStmt config f evm (.internalCall (tickScanIndexFunctionName lte) [e] (tickScanIndexName lte))
+    ExecStmt fork config f evm (.internalCall (tickScanIndexFunctionName lte) [e] (tickScanIndexName lte))
       (.ok (wordLocal f (tickScanIndexName lte) (tickScanIndex masked lte)) evm) := by
   cases lte with
   | true => simpa only [if_neg hn] using mostSignificantBitCall hf he "msb"
@@ -56,7 +58,7 @@ theorem tickScanInitializedSource {f : Frame} {evm : EVM.State} {compressed spac
     (hb : f.locals.get? "bitPos" = some (.int (Int.ofNat (tickPositionBit compressed).toNat)))
     (hm : f.locals.get? "masked" = some (.int (Int.ofNat masked.toNat)))
     (ho : f.locals.get? "next" = some old) (hn : masked ≠ ⟨0⟩) :
-    ExecBlock config f evm (tickScanInitializedStmts lte)
+    ExecBlock fork config f evm (tickScanInitializedStmts lte)
       (.ok (tickScanInitializedFrame f compressed spacing masked lte) evm) := by
   let f1 := wordLocal f (tickScanIndexName lte) (tickScanIndex masked lte)
   have hc1 : f1.locals.get? "compressed" = some (.int (EVM.signed (UInt256.signextend (UInt256.ofNat 2) compressed))) :=
@@ -72,6 +74,6 @@ theorem tickScanInitializedSource {f : Frame} {evm : EVM.State} {compressed spac
   have he := tickScanNext_eval lte hc1 hs1 (tickScanDistance_fits _ _ _)
     (tickScanDistance_eval (evm := evm) lte hb1 hi1)
   exact ExecBlock.consNormal (tickScanIndexCall lte hf (evalLocalValue hm) hn)
-    (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ho1)))
+    (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ho1)))
 
 end Benchmarks.UniswapV4PoolManager

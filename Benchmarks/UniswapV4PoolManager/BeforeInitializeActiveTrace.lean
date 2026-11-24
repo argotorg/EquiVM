@@ -2,15 +2,17 @@ import Benchmarks.UniswapV4PoolManager.BeforeInitializeEncodeTrace
 import Benchmarks.UniswapV4PoolManager.BeforeInitializeMemory
 import Benchmarks.UniswapV4PoolManager.HookCallBoundTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def poolInitializeEntryTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def poolInitializeEntryTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm : State) (mem rdata : ByteArray) (keyPtr price fee junk : UInt256) (R : List UInt256) : Prop :=
-  ∃ x0 x1 aw k C, RD (deployedRuntime v) I g s0 ⟨4292⟩
+  ∃ x0 x1 aw k C, RD fork (deployedRuntime v) I g s0 ⟨4292⟩
     (x0 :: x1 :: price :: (keyPtr+⟨32⟩) :: (keyPtr+⟨64⟩) :: (keyPtr+⟨128⟩) :: keyPtr ::
       price :: (keyPtr+⟨96⟩) :: fee :: junk :: R) mem aw rdata evm.accountMap k C
 
@@ -24,18 +26,18 @@ theorem beforeInitializeActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (hgas : g.toNat < 324518553658429321982441292826060)
     (haw : aw.toNat ≤ 2048) (hs : free.toNat ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4847⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4847⟩
       (accountWord hook :: price :: (keyPtr+⟨32⟩) :: (keyPtr+⟨64⟩) :: (keyPtr+⟨128⟩) ::
         keyPtr :: price :: (keyPtr+⟨96⟩) :: fee :: junk :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ evm' z out,
-      callViaEVM evm hook 0 (beforeInitializePayload I.source key price) (z, evm', out) ∧
+      callViaEVM fork evm hook 0 (beforeInitializePayload I.source key price) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (z = true → out.size+4096 ≤ solcMaxU64) ∧
       (if z = true ∧ hookReplyValid (beforeInitializePayload I.source key price) out then
-        poolInitializeEntryTrace v I g s0 evm'
+        poolInitializeEntryTrace fork v I g s0 evm'
           (beforeInitializeReplyMemory mem free I.source key price out) out keyPtr price fee junk R
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨aw1, k1, C1, haw1, rd1⟩ := beforeInitializeEncodeTrace v
     (by simp only [List.length_cons]; omega) hv hc hb hf haw hs hfree h
   have hf256 : free.toNat+1024 < UInt256.size := by

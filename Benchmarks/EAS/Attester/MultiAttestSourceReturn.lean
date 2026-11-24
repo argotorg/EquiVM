@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiAttestSource
 import Benchmarks.EAS.Attester.MultiAttestReturnTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -15,9 +17,9 @@ theorem multiAttestSourceCall {imms locals : Store} {evm evm' : State} {cd data 
     (heas : locals.get? "eas" = some (.address eas))
     (hrequest : locals.get? "multiRequests" = some (multiAttestRequests cd))
     (hencode : config.externalABI.encode? "multiAttest" [multiAttestRequests cd] = some data)
-    (hcall : typedCallViaEVM config evm eas "multiAttest" 0 [multiAttestRequests cd] (z, evm',
+    (hcall : typedCallViaEVM fork config evm eas "multiAttest" 0 [multiAttestRequests cd] (z, evm',
         out)) :
-    ExecBlock config ⟨contract, locals, imms⟩ evm ((multiAttestTransition.body.drop 7).take 2)
+    ExecBlock fork config ⟨contract, locals, imms⟩ evm ((multiAttestTransition.body.drop 7).take 2)
       (.ok ⟨contract, multiAttestCallLocals locals data z out, imms⟩ evm') := by
   obtain ⟨data', hencode', hraw⟩ := hcall
   rw [hencode] at hencode'
@@ -35,11 +37,11 @@ theorem multiAttestSourceCall {imms locals : Store} {evm evm' : State} {cd data 
       pure, hencode]
   cases z with
   | false =>
-      exact ExecBlock.consNormal (ExecStmt.lowLevelCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hreceiver
+      exact ExecBlock.consNormal (ExecStmt.lowLevelCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hreceiver
         (by simp only [evalExpr?, pure]) hdata
         (by simpa only [address_of_val] using hraw)) ExecBlock.nil
   | true =>
-      exact ExecBlock.consNormal (ExecStmt.lowLevelCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hreceiver
+      exact ExecBlock.consNormal (ExecStmt.lowLevelCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hreceiver
         (by simp only [evalExpr?, pure]) hdata
         (by simpa only [address_of_val] using hraw)) ExecBlock.nil
 
@@ -78,9 +80,9 @@ theorem multiAttestSourceCallFailure {imms locals : Store} {evm evm' : State}
     (heas : locals.get? "eas" = some (.address eas))
     (hrequest : locals.get? "multiRequests" = some (multiAttestRequests cd))
     (hencode : config.externalABI.encode? "multiAttest" [multiAttestRequests cd] = some data)
-    (hcall : typedCallViaEVM config evm eas "multiAttest" 0 [multiAttestRequests cd]
+    (hcall : typedCallViaEVM fork config evm eas "multiAttest" 0 [multiAttestRequests cd]
       (false, evm', out)) :
-    ExecBlock config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 7) .reverted :=
+    ExecBlock fork config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 7) .reverted :=
         by
   rw [← List.take_append_drop 2 (multiAttestTransition.body.drop 7)]
   apply execBlock_append (multiAttestSourceCall heas hrequest hencode hcall)
@@ -94,11 +96,11 @@ theorem multiAttestSourceCallSuccessPrefix {imms locals : Store} {evm evm' : Sta
     (heas : locals.get? "eas" = some (.address eas))
     (hrequest : locals.get? "multiRequests" = some (multiAttestRequests cd))
     (hencode : config.externalABI.encode? "multiAttest" [multiAttestRequests cd] = some data)
-    (hcall : typedCallViaEVM config evm eas "multiAttest" 0 [multiAttestRequests cd] (true, evm',
+    (hcall : typedCallViaEVM fork config evm eas "multiAttest" 0 [multiAttestRequests cd] (true, evm',
         out))
-    (hrest : ExecBlock config ⟨contract, multiAttestCallLocals locals data true out, imms⟩ evm'
+    (hrest : ExecBlock fork config ⟨contract, multiAttestCallLocals locals data true out, imms⟩ evm'
       (multiAttestTransition.body.drop 10) result) :
-    ExecBlock config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 7) result := by
+    ExecBlock fork config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 7) result := by
   rw [← List.take_append_drop 2 (multiAttestTransition.body.drop 7)]
   apply execBlock_append (multiAttestSourceCall heas hrequest hencode hcall)
   apply ExecBlock.consNormal (ExecStmt.requireTrue (evalLocalValue ?_)) hrest
@@ -107,7 +109,7 @@ theorem multiAttestSourceCallSuccessPrefix {imms locals : Store} {evm evm' : Sta
 theorem multiAttestSourceReturnDecodeFailure {imms locals : Store} {evm : State}
     {out : ByteArray} (hout : locals.get? "rawReturn" = some (.bytes out))
     (hdecode : decodeReturnValue? bytes32Array out = none) :
-    ExecBlock config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10) .reverted :=
+    ExecBlock fork config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10) .reverted :=
         by
   apply ExecBlock.consRevert
   apply ExecStmt.letDeclRevert
@@ -120,10 +122,10 @@ theorem multiAttestSourceReturnDecodeFailure {imms locals : Store} {evm : State}
 theorem multiAttestSourceReturnDecode {imms locals : Store} {evm : State} {out : ByteArray}
     {result : ExecResult} (hout : locals.get? "rawReturn" = some (.bytes out))
     (hdecode : decodeReturnValue? bytes32Array out = some (.array (returnArrayValues out)))
-    (hrest : ExecBlock config
+    (hrest : ExecBlock fork config
       ⟨contract, locals.insert "uids" (.array (returnArrayValues out)), imms⟩ evm
       (multiAttestTransition.body.drop 11) result) :
-    ExecBlock config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10) result := by
+    ExecBlock fork config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10) result := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .array (returnArrayValues out)) ?_) hrest
   change evalExpr? config ⟨contract, locals, imms⟩ evm
     (.abiDecode bytes32Array (.var "rawReturn")) = .ok (.array (returnArrayValues out))
@@ -135,10 +137,10 @@ theorem multiAttestSourceReturn {imms locals : Store} {evm : State} {base : Nat}
     (hbase : locals.get? "allocationEnd" = some (.int (Int.ofNat base)))
     (hout : locals.get? "rawReturn" = some (.bytes out)) (hhi : out.size < 2 ^ 255) :
     ((¬ ReturnArrayChecks out ∨ ¬ returnArrayEnd base out ≤ solcMaxU64) →
-      ExecBlock config ⟨contract, locals, imms⟩ evm
+      ExecBlock fork config ⟨contract, locals, imms⟩ evm
         (multiAttestTransition.body.drop 10) .reverted) ∧
     (ReturnArrayChecks out → returnArrayEnd base out ≤ solcMaxU64 →
-      ExecBlock config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10)
+      ExecBlock fork config ⟨contract, locals, imms⟩ evm (multiAttestTransition.body.drop 10)
         (.returned ⟨contract, locals.insert "uids" (.array (returnArrayValues out)), imms⟩ evm
           (some [.array (returnArrayValues out)]))) := by
   have hguard := multiAttestReturnGuard_eval (cfg := config) (evm := evm)

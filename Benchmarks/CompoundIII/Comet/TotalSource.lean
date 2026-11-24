@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CurrentIndicesSource
 import Benchmarks.CompoundIII.Comet.CheckedGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -33,7 +35,7 @@ theorem totalReadTail_returns (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
-    ∃ final, ExecBlock config (currentIndicesFrame frame v w0 w1 (timestampWord evm.executionEnv))
+    ∃ final, ExecBlock fork config (currentIndicesFrame frame v w0 w1 (timestampWord evm.executionEnv))
       evm (totalReadTail borrow) (.returned final evm
         (some [.int (totalReadWord v w0 w1 (timestampWord evm.executionEnv) borrow).toNat])) := by
   dsimp only
@@ -78,7 +80,7 @@ theorem getTotal_returns {σ σ₀ A I} {g : Sat256}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
     (hvalid : CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I)) :
-    ∃ final, ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ∃ final, ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       (totalTransition borrow).body (.returned final (initState σ σ₀ g A I)
         (some [.int (totalReadWord v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
           (timestampWord I) borrow).toNat])) (immStore v) := by
@@ -94,7 +96,7 @@ theorem getTotal_returns {σ σ₀ A I} {g : Sat256}
   rw [totalTransition_body]
   apply ExecFuncBody.execBlockRet
   apply (calldataPrologue_ok hv hhi).run
-  have hb := currentIndicesBlock_result v frame evm rfl rfl
+  have hb := currentIndicesBlock_result (fork := fork) v frame evm rfl rfl
     (by simp [frame, calldataLocalFrame])
   dsimp only at hb
   rw [if_pos hvs] at hb
@@ -106,14 +108,14 @@ theorem getTotal_reverts {σ σ₀ A I} {g : Sat256}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
     (hvalid : ¬ CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I)) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       (totalTransition borrow).body .reverted (immStore v) := by
   let evm := initState σ σ₀ g A I
   let frame := calldataLocalFrame { contract := contract, locals := ∅, immutables := immStore v } evm
   rw [totalTransition_body]
   apply ExecFuncBody.execBlockRevert
   apply (calldataPrologue_ok hv hhi).run
-  have hb := currentIndicesBlock_result v frame evm rfl rfl
+  have hb := currentIndicesBlock_result (fork := fork) v frame evm rfl rfl
     (by simp [frame, calldataLocalFrame])
   dsimp only at hb
   have hvs : ¬ CurrentIndicesValid v

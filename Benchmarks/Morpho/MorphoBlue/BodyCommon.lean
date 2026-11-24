@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.Common
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source guards and refinement bridges for contracts with fallback entries. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,7 +28,7 @@ def calldataPrelude (rest : List Stmt) : List Stmt :=
 theorem calldataPrelude_ok {cfg : Config} {stele : Frame} {evm : EVM.State}
     {rest : List Stmt} (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ABlock cfg evm stele (calldataPrelude rest)
+    ABlock fork cfg evm stele (calldataPrelude rest)
       { stele with locals := stele.locals.insert "__calldata" (.bytes evm.executionEnv.calldata) }
       rest := by
   apply ABlock.requireStep
@@ -42,7 +44,7 @@ theorem calldataPrelude_reverts {cfg : Config} {C : ContractDecl} {evm : EVM.Sta
     {locals imms : Store} {rest : List Stmt}
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : ¬ evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody cfg C evm locals (calldataPrelude rest) .reverted imms := by
+    ExecTransitionBody fork cfg C evm locals (calldataPrelude rest) .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply ABlock.requireRevert
     ((ABlock.start.requireStep (evalCallvalueEq_true hcv)).letStep
@@ -74,15 +76,15 @@ theorem reEquivSelectorExecutionGen {cfg : Config} {contract : ContractDecl} {t 
     {immutables : Store} {σ σ₀ A I} {g : UInt256}
     {code o : ByteArray} {callargs cs retVal} {acc : AccountMap} {evm' : EVM.State}
     (hcode : I.code = code)
-    (h : RDret code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) acc o)
+    (h : RDret fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) acc o)
     (hd : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
       callargs t.body (.returned cs evm' retVal) immutables)
     (hAccounts : acc = evm'.accountMap)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rw [← hcode] at hoog; exact hoog))
   · have hxi := Xi_success_of_X (g := g) (by rw [← hcode] at hX; exact hX)
@@ -96,13 +98,13 @@ theorem reEquivSelectorExecutionGen {cfg : Config} {contract : ContractDecl} {t 
 theorem reEquivSelectorStatic {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {immutables : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray} {callargs}
     (hcode : I.code = code)
-    (h : RDstatic code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
+    (h : RDstatic fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
     (hd : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
       callargs t.body .staticViolation immutables) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   apply RDstatic.reEquivElim hcode h
   intro hxi
   refine .execution rfl (.intro hd rfl hdec rfl hbody) ?_
@@ -115,14 +117,14 @@ theorem reEquivSelectorExecution {cfg : Config} {contract : ContractDecl} {t : T
     {immutables : Store} {σ σ₀ A I} {g : UInt256}
     {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
-    (h : RDret code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) σ o)
+    (h : RDret fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) σ o)
     (hd : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
       callargs t.body (.returned cs (initState σ σ₀ (.ofUInt256 g) A I) retVal) immutables)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables :=
   reEquivSelectorExecutionGen hcode h hd hdec hbody rfl henc
 
 -- GENERALIZES Reasoning.Reach.RDrev.reEquivExecutionRevert — accept selector dispatch
@@ -130,13 +132,13 @@ theorem reEquivSelectorExecution {cfg : Config} {contract : ContractDecl} {t : T
 theorem reEquivSelectorRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {immutables : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray} {callargs}
     (hcode : I.code = code)
-    (h : RDrev code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
+    (h : RDrev fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
     (hd : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
       callargs t.body .reverted immutables) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   apply RDrev.reEquivElim hcode h
   intro g' o hxi
   refine .execution rfl (.intro hd rfl hdec rfl hbody) ?_
@@ -196,11 +198,11 @@ theorem wordReturn_twoWordHash (key slot w : UInt256) :
 theorem reEquivSelectorDecodingFailed {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl} {immutables : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray}
     (hcode : I.code = code)
-    (h : RDrev code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
+    (h : RDrev fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
     (hd : selectorDispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   apply RDrev.reEquivElim hcode h
   intro g' o hxi
   exact .execution hxi (.decodingFailed hd hdec) (.decodingFailed rfl rfl)

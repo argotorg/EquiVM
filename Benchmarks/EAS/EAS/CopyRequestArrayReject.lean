@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RequestArrayElements
 import Benchmarks.EAS.EAS.CopyRequestArrayRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,10 +17,10 @@ theorem easCopyRequestArrayLoopReject {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hbad : decodeRequestElements ee.calldata offset i n = none)
     (hspan : array.toNat+32+32*len ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5594⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat (offset.toNat+32*i)::offset::
         UInt256.ofNat (offset.toNat+32*len)::UInt256.ofNat ee.calldata.size::ret::array::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   induction n generalizing i mem aw heap k C with
   | zero => rw [decodeRequestElements] at hbad; contradiction
   | succ n ih =>
@@ -30,7 +32,7 @@ theorem easCopyRequestArrayLoopReject {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     by_cases ho : (calldataWord ee.calldata (offset.toNat+32*i)).toNat ≤ 2^64-1
     · obtain ⟨a1,k1,C1,r1⟩ := hr.1 (by rw [hsrc]; exact ho)
       rw [hsrc] at r1
-      change RD (deployedRuntime v) ee g s0 ⟨5344⟩
+      change RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
         (requestArrayElement ee.calldata offset i::UInt256.ofNat ee.calldata.size::⟨5641⟩::UInt256.ofNat (array.toNat+32+32*i)::
           ⟨32⟩::⟨32⟩::UInt256.ofNat (offset.toNat+32*i)::offset::UInt256.ofNat (offset.toNat+32*len)::
           UInt256.ofNat ee.calldata.size::ret::array::R) mem a1 rdata σ k1 C1 at r1
@@ -70,8 +72,8 @@ theorem easCopyRequestArrayReject {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbad : decodeRequestElements ee.calldata offset 0 len = none)
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat len::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat len::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hhead := easCopyRequestArrayHead v (by omega) hfree rd
   by_cases hv : requestArrayHeadValid offset (UInt256.ofNat len) (UInt256.ofNat ee.calldata.size) heap
   · obtain ⟨a1,k1,C1,r1⟩ := hhead.1 hv

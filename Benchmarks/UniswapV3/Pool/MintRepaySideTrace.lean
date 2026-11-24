@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.MintRepayMathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,20 +13,20 @@ theorem mintRepaySideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (a : MintArgs) (locals : Store)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 (mintRepayEntryPC second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (mintRepayEntryPC second)
       (mintRepayEntryWords second junk0 junk1 junk2 junk3 before0 before1 amount0 amount1 R)
       mem aw rdata σ k C) (hv : MintCallValues locals a amount0 amount1 before0 before1)
     (hm : HeapMemory mem aw p) (hsize : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
-    (ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
-        (mintRepayStmt second) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
+        (mintRepayStmt second) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ evm' σ' out mem' aw' free locals' k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (mintRepayStmt second)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       MintCallValues locals' a amount0 amount1 before0 before1 ∧
-      RD (deployedRuntime v) ee g s0 (mintRepayNextPC second)
+      RD fork (deployedRuntime v) ee g s0 (mintRepayNextPC second)
         (mintRepayWords before0 before1 amount0 amount1 R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' free ∧ 128 ≤ mem'.size ∧
       memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧ free.toNat ≤ p.toNat + 2 ^ 138 + 131) := by

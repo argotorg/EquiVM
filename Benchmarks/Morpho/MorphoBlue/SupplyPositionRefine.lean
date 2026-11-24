@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyMathRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,9 +14,9 @@ def supplyPositionMem (id account : UInt256) (mem : ByteArray) : ByteArray :=
 theorem morphoSupplyPositionReachAdd {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {aw id assets shares account srcOff len : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
       (supplyUpdateTail id assets shares account srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([solcSlotWordAt (positionSlot id account) σ ee, shares, UInt256.ofNat 4017, positionSlot id account] ++
         supplyUpdateTail id assets shares account srcOff len R)
       (supplyPositionMem id account mem) aw' out σ k' C' := by
@@ -28,7 +30,7 @@ theorem morphoSupplyPositionReachAdd {v : MorphoImmutables} {ee : ExecutionEnv} 
   have hm2 : m2 = supplyPositionMem id account mem := by dsimp only [m2]; rw [hh1]; rfl
   have hh2 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (supplyPositionMem id account mem) =
       positionSlot id account := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2) σ ee, shares,
       UInt256.ofNat 4017, keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2] ++
       supplyUpdateTail id assets shares account srcOff len R) m2 _ _ _ _ _ at rd1
@@ -39,8 +41,8 @@ theorem morphoSupplyPositionStatic {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {s0 : State} {aw slot value : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
     (hp : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4017) (value :: slot :: R) mem aw out σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4017) (value :: slot :: R) mem aw out σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.jumpdest (by
     immutable_decode(immutableLayout, morphoBytecode, wordsOf (immStore v),
       (⟨4017⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none,
@@ -63,32 +65,32 @@ theorem SupplyLocals.evalPositionShares {p assets shares account data locals}
   evalMorphoPositionField evm locals imms _ _ p.id account 0 hl.position
     (hl.evalId imms evm) (hl.evalAccount imms evm) hc
 
-inductive SupplyPositionRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive SupplyPositionRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets shares account srcOff len : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (supplyTransition.body.drop 12) .reverted → RDrev (deployedRuntime v) g s0 →
-      SupplyPositionRefines v ee g s0 p assets shares account srcOff len locals imms evm mem R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (supplyTransition.body.drop 12) .staticViolation → RDstatic (deployedRuntime v) g s0 →
-      SupplyPositionRefines v ee g s0 p assets shares account srcOff len locals imms evm mem R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (supplyTransition.body.drop 12) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      SupplyPositionRefines fork v ee g s0 p assets shares account srcOff len locals imms evm mem R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (supplyTransition.body.drop 12) .staticViolation → RDstatic fork (deployedRuntime v) g s0 →
+      SupplyPositionRefines fork v ee g s0 p assets shares account srcOff len locals imms evm mem R
   | ok {evm' σ' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (supplyTransition.body.drop 12) { contract := contract, locals := locals, immutables := imms }
         evm' (supplyTransition.body.drop 13) → SourceState s0 ee σ' evm' → ee.perm = true →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
         ([shares, UInt256.ofNat 4031, UInt256.ofNat 4056] ++ supplyUpdateTail p.id assets shares account srcOff len R)
         (supplyPositionMem p.id account mem) aw' out' σ' k' C' →
-      SupplyPositionRefines v ee g s0 p assets shares account srcOff len locals imms evm mem R
+      SupplyPositionRefines fork v ee g s0 p assets shares account srcOff len locals imms evm mem R
 
 theorem morphoSupplyPositionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw assets shares account srcOff len : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (p : MarketParamsWords) (data : ByteArray)
     (locals imms : Store) (hstack : R.length + 24 ≤ 1024) (hc : account.toNat < EVM.addressModulus)
     (hl : SupplyLocals p assets shares account data locals) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3984)
       (supplyUpdateTail p.id assets shares account srcOff len R) mem aw out σ k C) :
-    SupplyPositionRefines v ee g s0 p assets shares account srcOff len locals imms evm mem R := by
+    SupplyPositionRefines fork v ee g s0 p assets shares account srcOff len locals imms evm mem R := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoSupplyPositionReachAdd (v := v) hstack h
   have hp := hl.evalPositionShares imms evm hc
   have hsh := hl.evalShares imms evm
@@ -102,7 +104,7 @@ theorem morphoSupplyPositionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g
     (by rw [morphoPatchedValidJumps v]; jump_dest) hf rd1
   have hf' : (solcSlotWordAt (positionSlot p.id account) evm.accountMap evm.executionEnv).toNat + shares.toNat < UInt256.size := by
     simpa only [hs.env, ← hs.accounts] using hf
-  have hass : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  have hass : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
       evm supplyTransition.body[12]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms }
         (storePositionSupplyShares evm p.id account

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SafeTransferDynamicCopyMemory
 import Examples.UniswapV2Pair.SafeTransferCopyRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,13 +12,13 @@ theorem RD.uniswapSafeTransferDynamicWordsCopied
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩
+    (rd6512 : RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩
       ((ptr + ⟨96⟩) :: (ptr + ⟨164⟩) :: ⟨68⟩ :: R)
       (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6512⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩
       ((ptr + ⟨160⟩) :: (ptr + ⟨228⟩) :: ⟨4⟩ :: R)
       (safeTransferDynamicCallMem1 base ptr toWord value) (safeTransferDynamicCallWords1 aw ptr) rdata σ k' C' := by
   have hp96 : (ptr + ⟨96⟩).toNat = ptr.toNat + 96 := uadd_word_ofNat_toNat ptr 96 (by omega)
@@ -37,7 +39,7 @@ theorem RD.uniswapSafeTransferDynamicWordsCopied
     show (⟨96⟩ : UInt256) + ⟨32⟩ = ⟨128⟩ by native_decide,
     show (⟨164⟩ : UInt256) + ⟨32⟩ = ⟨196⟩ by native_decide,
     show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by native_decide] at rd0
-  change RD _ _ _ _ ⟨6512⟩ ((ptr + ⟨128⟩) :: (ptr + ⟨196⟩) :: ⟨36⟩ :: R)
+  change RD fork _ _ _ _ ⟨6512⟩ ((ptr + ⟨128⟩) :: (ptr + ⟨196⟩) :: ⟨36⟩ :: R)
     (safeTransferDynamicCallMem0 base ptr toWord value) (safeTransferDynamicCallWords0 aw ptr) rdata σ k0 C0 at rd0
   have hc128 : (ptr + ⟨128⟩).toNat + 32 ≤ (safeTransferDynamicCallWords0 aw ptr).toNat * 32 := by rw [hp128]; omega
   have hload1 : memoryWordLoad (safeTransferDynamicCallMem0 base ptr toWord value) (ptr + ⟨128⟩) = safeTransferDynamicCopyWord1 base ptr toWord value := by
@@ -59,14 +61,14 @@ theorem RD.uniswapSafeTransferDynamicTailCopied
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩
+    (rd6512 : RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩
       ((ptr + ⟨160⟩) :: (ptr + ⟨228⟩) :: ⟨4⟩ :: R)
       (safeTransferDynamicCallMem1 base ptr toWord value) (safeTransferDynamicCallWords1 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size)
     (hbase : base.size ≤ ptr.toNat + 228)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6575⟩ R
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6575⟩ R
       (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) rdata σ k' C' := by
   have hp160 : (ptr + ⟨160⟩).toNat = ptr.toNat + 160 := uadd_word_ofNat_toNat ptr 160 (by omega)
   have hp228 : (ptr + ⟨228⟩).toNat = ptr.toNat + 228 := uadd_word_ofNat_toNat ptr 228 (by omega)

@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.DecodedLengthOk
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,12 +19,12 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
     (hwv : I.weiValue = ⟨0⟩)
     (hcalldataSign : I.calldata.size < 2 ^ 255)
-    (hhead : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (hhead : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd1806⟩ := hhead
   obtain ⟨values, fakes, secrets, hstore, hguards⟩ :=
@@ -116,7 +118,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
               apply u256_inj
               omega
             have hbody :
-                ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+                ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
                   callargs revealTransition.body .reverted := by
               exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
                 evmStele hdec hvaluesGet hfakesGet hsecretsGet hwvStele hafterBody
@@ -136,7 +138,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
             apply u256_inj
             omega
           have hbody :
-              ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+              ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
                 callargs revealTransition.body .reverted := by
             exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
               evmStele hdec hvaluesGet hfakesGet hsecretsGet hwvStele hafterBody
@@ -156,7 +158,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
           apply u256_inj
           omega
         have hbody :
-            ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+            ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
               callargs revealTransition.body .reverted := by
           exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
             evmStele hdec hvaluesGet hfakesGet hsecretsGet hwvStele hafterBody
@@ -179,7 +181,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
           (revealScratchTimestampWord I).toNat
         exact Nat.le_of_not_gt hbefore
       have hbody :
-          ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+          ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
             callargs revealTransition.body .reverted := by
         exact blindAuctionRevealBodyReverts_tooLate hwvStele hbiddingAbsent
           hrevealAbsent hafterBody hlateBody
@@ -195,7 +197,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
         (revealScratchBiddingEndWord σ I).toNat
       exact Nat.le_of_not_gt hafter
     have hbody :
-        ExecTransitionBody blindAuctionConfig blindAuctionContract evmStele
+        ExecTransitionBody fork blindAuctionConfig blindAuctionContract evmStele
           callargs revealTransition.body .reverted := by
       exact blindAuctionRevealBodyReverts_tooEarly hwvStele hbiddingAbsent htimeBody
     exact hrev.reEquivExecutionRevert hcode hd hdec hbody

@@ -18,6 +18,8 @@ import Benchmarks.Dss.Dog.Vow
 import Benchmarks.Dss.Dog.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Dog benchmark correctness stub
 
@@ -75,8 +77,8 @@ theorem dogNoSelectorMatches {I : ExecutionEnv}
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     runtimeRefinement config code contract (immStore v) := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
     · exact dogDirtBodyCore hpatch hcode hsize hwv hDirt

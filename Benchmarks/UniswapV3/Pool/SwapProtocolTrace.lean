@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapProtocolUpdateTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,14 +12,14 @@ theorem swapProtocolX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q cache exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3504⟩ ([q, p, exactWord, cache] ++ R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3504⟩ ([q, p, exactWord, cache] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
     (hs : SwapStateMemory mem p s) (hd : SwapIterationMemory mem q d)
     (hf : c.feeProtocol.toNat < 256) (hp : 96 ≤ p.toNat)
     (hcache : cache.toNat + 192 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
     ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3574⟩ ([q, p, exactWord, cache] ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3574⟩ ([q, p, exactWord, cache] ++ R)
         mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free ∧
       SwapStateMemory mem' p (swapProtocolState c s d) ∧
       SwapIterationMemory mem' q (swapProtocolData c d) ∧

@@ -1,6 +1,8 @@
 import Benchmarks.WETH9.Routines
 import Benchmarks.WETH9.Opcodes
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `totalSupply()` refinement
 
@@ -36,7 +38,7 @@ theorem weth9Decode_totalSupply_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.s
 /-- The Stele `totalSupply()` body returns `address(this).balance`. -/
 theorem weth9TotalSupplyBodyReturns {σ σ₀ A I} {g : Sat256}
     (h : I.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       totalSupplyTransition.body
       (.returned { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
         (some [(.int (Int.ofNat (totalSupplyWord σ I).toNat))])) := by
@@ -53,9 +55,9 @@ theorem weth9TotalSupplyX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 2)) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (totalSupplyWord σ I)) := by
-  obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
+  obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h395⟩ := solcFunctionGuardPeelOk (gt := ⟨393⟩) h381 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -79,7 +81,7 @@ theorem weth9TotalSupplyBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (weth9SelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
   exact weth9ReEquivExecGen hcode
@@ -91,12 +93,12 @@ theorem weth9TotalSupplyBodyCoreOk {σ σ₀ A I} {g : UInt256}
 theorem weth9TotalSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9TotalSupplyBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
-    obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
+    obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨393⟩) h381 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

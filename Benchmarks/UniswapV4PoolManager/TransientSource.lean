@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-! Transient lock, currency delta slots, and their source helpers. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -53,14 +55,14 @@ theorem evalDeltaCountSlot {f : Frame} {evm : EVM.State} (hf : f.contract = cont
   rw [evalExpr?, hf]; rfl
 
 theorem lockBodyExec {f : Frame} {evm : EVM.State} (hf : f.contract = contract) :
-    ExecFuncBody config f evm lockFunction.body
+    ExecFuncBody fork config f evm lockFunction.body
       (.returned f evm (some [.bool (decide (transientWord evm lockSlot ≠ ⟨0⟩))])) := by
   have he := evalNeWords (rawTransient_read hf (evalLockSlot hf))
     (by simp only [evalExpr?]; rfl : evalExpr? config f evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)))
   exact ExecFuncBody.execBlockRet (ABlock.start.returns he)
 
 theorem lockCall {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Lock_isUnlocked" [] retVar)
+    ExecStmt fork config f evm (.internalCall "Lock_isUnlocked" [] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (decide (transientWord evm lockSlot ≠ ⟨0⟩)))} evm) := by
   exact internalCallFunctionReturn rfl (by rw [hf]; exact lockFunction_lookup) rfl
     (lockBodyExec (f := {f with locals := ∅}) hf)
@@ -102,7 +104,7 @@ def currencyDeltaSlot (target currency : AccountAddress) : UInt256 :=
 theorem deltaSlotBodyExec {f : Frame} {evm : EVM.State} {target currency : AccountAddress}
     (ht : f.locals.get? "target" = some (.address target))
     (hc : f.locals.get? "currency" = some (.address currency)) :
-    ExecFuncBody config f evm deltaSlotFunction.body
+    ExecFuncBody fork config f evm deltaSlotFunction.body
       (.returned f evm (some [wordBytes32Value (currencyDeltaSlot target currency)])) := by
   have he := evalKeccakWord (cfg := config) (evm := evm)
     (evalPackedWords2 (evalAddressUint160 (evalLocalValue ht)) (evalAddressUint160 (evalLocalValue hc)))
@@ -112,7 +114,7 @@ theorem deltaSlotCall {f : Frame} {evm : EVM.State} {target currency : AccountAd
     {et ec : Expr} (hf : f.contract = contract)
     (ht : evalExpr? config f evm et = .ok (.address target))
     (hc : evalExpr? config f evm ec = .ok (.address currency)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyDelta__computeSlot" [et, ec] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyDelta__computeSlot" [et, ec] retVar)
       (.ok {f with locals := f.locals.insert retVar (wordBytes32Value (currencyDeltaSlot target currency))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address target, .address currency])
     (value := some [wordBytes32Value (currencyDeltaSlot target currency)])
@@ -128,10 +130,10 @@ theorem getDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Accoun
     (hf : f.contract = contract)
     (hc : f.locals.get? "currency" = some (.address currency))
     (ht : f.locals.get? "target" = some (.address target)) :
-    ExecFuncBody config f evm getDeltaFunction.body
+    ExecFuncBody fork config f evm getDeltaFunction.body
       (.returned {f with locals := f.locals.insert "hashSlot" (wordBytes32Value (currencyDeltaSlot target currency))}
         evm (some [.int (currencyDeltaValue evm target currency)])) := by
-  have hcall := deltaSlotCall (evm := evm) hf (evalLocalValue ht) (evalLocalValue hc) "hashSlot"
+  have hcall := deltaSlotCall (fork := fork) (evm := evm) hf (evalLocalValue ht) (evalLocalValue hc) "hashSlot"
   apply ExecFuncBody.execBlockRet
   refine ExecBlock.consNormal hcall (ABlock.start.returns ?_)
   apply evalExpr_cast_int
@@ -141,7 +143,7 @@ theorem getDeltaCall {f : Frame} {evm : EVM.State} {target currency : AccountAdd
     {ec et : Expr} (hf : f.contract = contract)
     (hc : evalExpr? config f evm ec = .ok (.address currency))
     (ht : evalExpr? config f evm et = .ok (.address target)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyDelta_getDelta" [ec, et] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyDelta_getDelta" [ec, et] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (currencyDeltaValue evm target currency))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address currency, .address target])
     (value := some [.int (currencyDeltaValue evm target currency)])

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapEncodeTrace
 import Benchmarks.UniswapV4PoolManager.WordBytesCallTailAllocation
 import Benchmarks.UniswapV4PoolManager.WordBytesCallAllocationGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,11 +22,11 @@ theorem beforeSwapPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hf : free.toNat+len.toNat+480 < UInt256.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨15230⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15230⟩
       (src :: len :: paramsPtr :: hook :: keyPtr :: R) mem aw rdata σ k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     (AllocationBounds free (beforeSwapAllocationSize len) ∧
-      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨16165⟩
+      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨16165⟩
         (hook :: free :: UInt256.ofNat 15462 :: hook :: keyPtr :: R)
         (beforeSwapMemory I.calldata mem src.toNat free len I.source key p) aw' rdata σ k' C') := by
   obtain ⟨aw1, k1, C1, hs1, hc1, rd1⟩ := beforeSwapEncodeTrace v hstack hk hp hc hl hkb hpb (by omega) hfree h

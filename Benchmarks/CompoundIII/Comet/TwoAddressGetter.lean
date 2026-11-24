@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AddressGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -8,13 +10,13 @@ def twoAddressGetterArgs (name₀ name₁ : Ident) (I : ExecutionEnv) : Store :=
   (addressGetterArgs name₀ I).insert name₁
     (.address (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))
 
-def TwoAddressGetterResult (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def TwoAddressGetterResult (fork : Ethereum.Fork) (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 68 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata 36).toNat < EVM.addressModulus then
-    RDret code g s0 σ out
-  else RDrev code g s0
+    RDret fork code g s0 σ out
+  else RDrev fork code g s0
 
 -- LIBRARY CANDIDATE: refinement connection for nonpayable getters of one address argument.
 theorem twoAddressGetter_refines {t : TransitionDecl} {imms : Store}
@@ -28,12 +30,12 @@ theorem twoAddressGetter_refines {t : TransitionDecl} {imms : Store}
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 →
       (calldataWord I.calldata 4).toNat < EVM.addressModulus →
       (calldataWord I.calldata 36).toNat < EVM.addressModulus → ∃ frame,
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (twoAddressGetterArgs name₀ name₁ I) (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some values)) imms)
-    (hX : TwoAddressGetterResult code I (Sat256.ofUInt256 g)
+    (hX : TwoAddressGetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   have hdecode : config.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata =
       decodeCalldata [name₀, name₁] [.elem .address, .elem .address] I.calldata := by

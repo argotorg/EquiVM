@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.ExecTransactionAllocate
 import Benchmarks.Safe.ViaIR.ExecTransactionGasMath
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -39,13 +41,13 @@ private theorem execGasSubtractValid (gas : UInt256) (h : 2500 ≤ gas.toNat) :
 
 theorem safeExecExecutePrepare (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src} {guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4639⟩
+    (h : RD fork safeBytecode I g s0 ⟨4639⟩
       (execGasSaved p src guard hash (⟨0⟩ :: R)) mem aw rdata σ k C)
     (hc : ExecTransactionCalldataFields I.calldata p) (hov : R.length + 36 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ p.tx.gasPrice = ⟨0⟩ ∧
+    (RDrev fork safeBytecode g s0 ∧ p.tx.gasPrice = ⟨0⟩ ∧
       ∃ gasLeft : UInt256, gasLeft.toNat < 2500) ∨
     ∃ before gasLeft k' C', (p.tx.gasPrice = ⟨0⟩ → 2500 ≤ gasLeft.toNat) ∧
-      RD safeBytecode I g s0 ⟨7208⟩
+      RD fork safeBytecode I g s0 ⟨7208⟩
         ([UInt256.ofNat src, UInt256.ofNat p.tx.payload.size, UInt256.ofNat I.calldata.size,
           ⟨4689⟩, execCallGas p gasLeft, UInt256.ofNat p.tx.target.val, ⟨0⟩, ⟨0⟩] ++
           execCallSaved p before guard hash R) mem aw rdata σ k' C' := by

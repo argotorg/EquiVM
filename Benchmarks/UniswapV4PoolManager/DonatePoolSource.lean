@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolDonateSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,12 +17,12 @@ def donatePoolDeltaFrame (f : Frame) (delta : UInt256) : Frame :=
 
 theorem donatePoolAliasSource {f : Frame} {evm : State} {id : UInt256}
     (hp : f.locals.get? "pool" = some (poolRefValue id)) :
-    ExecStmt config f evm donateTransition.body[14]! (.ok (donatePoolAliasFrame f id) evm) :=
+    ExecStmt fork config f evm donateTransition.body[14]! (.ok (donatePoolAliasFrame f id) evm) :=
   ExecStmt.letStorage (resolveStorageAlias hp)
 
 theorem donatePoolDeltaSource {f : Frame} {evm : State} {delta : UInt256} {old : Value}
     (hd : f.locals.get? "delta" = some old) :
-    ExecStmt config (donatePoolCallFrame f delta) evm donateTransition.body[16]!
+    ExecStmt fork config (donatePoolCallFrame f delta) evm donateTransition.body[16]!
       (.ok (donatePoolDeltaFrame f delta) evm) :=
   ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
     (assignLocalValue ((store_get_ne _ _ (by decide : ("__c6" == "delta") = false)).trans hd))

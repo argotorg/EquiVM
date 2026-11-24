@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.SetupSource
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,18 +12,18 @@ set_option maxRecDepth 2000
 
 theorem safeSetupFallbackTrace (p : SetupInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata locals} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (if p.fallbackHandler = ⟨0⟩ then ⟨3401⟩ else ⟨3671⟩)
+    (h : RD fork safeBytecode I g s0 (if p.fallbackHandler = ⟨0⟩ then ⟨3401⟩ else ⟨3671⟩)
       (p.fallbackHandler :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hl : SetupLocals p locals) (hc : p.fallbackHandler.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hov : R.length + 12 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecStmt config { contract := contract, locals := locals } evm setupFallbackStmt .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecStmt fork config { contract := contract, locals := locals } evm setupFallbackStmt .reverted) ∨
     ∃ locals' evm' k' C',
-      ExecStmt config { contract := contract, locals := locals } evm setupFallbackStmt
+      ExecStmt fork config { contract := contract, locals := locals } evm setupFallbackStmt
         (.ok { contract := contract, locals := locals' } evm') ∧
       SetupLocals p locals' ∧ evm'.executionEnv = I ∧ evm'.σ₀ = evm.σ₀ ∧
-      RD safeBytecode I g s0 ⟨3401⟩ (⟨0⟩ :: R) mem aw rdata evm'.accountMap k' C' := by
+      RD fork safeBytecode I g s0 ⟨3401⟩ (⟨0⟩ :: R) mem aw rdata evm'.accountMap k' C' := by
   by_cases hz : p.fallbackHandler = ⟨0⟩
   · simp only [hz, ite_true] at h
     rw [← hacc] at h
@@ -46,7 +48,7 @@ theorem safeSetupFallbackTrace (p : SetupInput) (evm : EVM.State)
   refine .inr ⟨locals.insert "_fallbackSet" .unit,
     Stele.EVM.storageStore evm evm.executionEnv.codeOwner fallbackHandlerSlot p.fallbackHandler,
     k' + 4, C' + 14, safeSetupFallbackCall p evm hl hc hz
-      (safeInternalSetFallbackHandlerSource (hperm := by simpa only [hee] using hperm) evm p.fallbackHandler hc (by rwa [hee])),
+      (safeInternalSetFallbackHandlerSource (fork := fork) (hperm := by simpa only [hee] using hperm) evm p.fallbackHandler hc (by rwa [hee])),
     hl.set _ _ (by decide), ?_, ?_, ?_⟩
   · simpa only [storageStore_executionEnv] using hee
   · exact storageStore_σ₀ _ _ _ _

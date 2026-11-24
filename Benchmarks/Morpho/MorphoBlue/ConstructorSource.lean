@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.ConstructorABI
 import Benchmarks.Morpho.MorphoBlue.MarketParamsCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -88,7 +90,7 @@ theorem morphoConstructorOwner_eval (a : AccountAddress) (evm : EVM.State) :
 theorem morphoConstructorSource (a : AccountAddress) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hne : a ≠ AccountAddress.ofNat 0)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (morphoConstructorArgs a) contract.ctor.body
+    ExecTransitionBody fork config contract evm (morphoConstructorArgs a) contract.ctor.body
       (.returned (morphoConstructorFinal a evm.executionEnv) (morphoConstructorState evm a) none)
       (initialImmutables contract) := by
   apply ExecFuncBody.execBlockOK
@@ -103,9 +105,9 @@ theorem morphoConstructorSource (a : AccountAddress) (evm : EVM.State)
     exact ha
   have hv : AccountAddress.ofNat (UInt256.ofNat a.val).toNat = a := by
     exact address_word_roundtrip a
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm)
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm)
     (evm' := morphoConstructorState evm a) (value := .address a) ?_ ?_)
-  · apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [morphoConstructorState, storageStore_executionEnv] using hperm) (vals := [.address a]) ?_)
+  · apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [morphoConstructorState, storageStore_executionEnv] using hperm) (vals := [.address a]) ?_)
     · exact ExecBlock.nil
     · simp only [evalExprs?, evalExpr?, morphoConstructorFinal, morphoConstructorFrame,
         morphoConstructorArgs, store_get_self, EvalResult.ofOption, pure, bind, EvalResult.bind]
@@ -118,7 +120,7 @@ theorem morphoConstructorSource (a : AccountAddress) (evm : EVM.State)
 
 theorem morphoConstructorSourceRejects (a : AccountAddress) (evm : EVM.State)
     (hbad : evm.executionEnv.weiValue ≠ ⟨0⟩ ∨ a = AccountAddress.ofNat 0) :
-    ExecTransitionBody config contract evm (morphoConstructorArgs a) contract.ctor.body .reverted
+    ExecTransitionBody fork config contract evm (morphoConstructorArgs a) contract.ctor.body .reverted
       (initialImmutables contract) := by
   rcases hbad with hcv | ha
   · exact bodyReverts_nonPayable hcv
@@ -131,9 +133,9 @@ theorem morphoConstructorSourceRejects (a : AccountAddress) (evm : EVM.State)
     · exact bodyReverts_nonPayable hcv
 
 theorem morphoConstructorExec {σ σ₀ A I} {g : UInt256} {res : ExecResult} (a : AccountAddress)
-    (hb : ExecTransitionBody config contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hb : ExecTransitionBody fork config contract (initState σ σ₀ (.ofUInt256 g) A I)
       (morphoConstructorArgs a) contract.ctor.body res (initialImmutables contract)) :
-    steleCtorExec config contract [.address a] σ σ₀ g A I res := by
+    steleCtorExec fork config contract [.address a] σ σ₀ g A I res := by
   exact steleCtorExec.intro rfl rfl rfl hb
 
 theorem morphoConstructorFinal_fit (a : AccountAddress) (I : ExecutionEnv) :

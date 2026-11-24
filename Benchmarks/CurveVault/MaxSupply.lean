@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.Storage
 import Benchmarks.CurveVault.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,7 +20,7 @@ theorem vaultMaxSupplyEval (evm : EVM.State) (locals : Store)
 theorem vaultMaxSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 39)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 39) rfl hsel
   have hd : dispatchMsg contract I.calldata = some maxSupplyTransition := by
     apply vaultDispatch_maxSupply
@@ -36,7 +38,7 @@ theorem vaultMaxSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (vaultReachMaxSupplyBody hcode hsz hsize hsel)
   intro k C rdBody
   have hret := vaultBlocks.vault_block_6414 (by simp) rdBody
-  change RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     σ (((codeOwnerStorageWord I σ ⟨5⟩).toByteArray.write 0 _ 64 32).readWithPadding 64 32) at hret
   rwa [vaultWordReturn_read] at hret
 
@@ -44,7 +46,7 @@ theorem vaultMaxSupplyBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 39)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultMaxSupplyBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

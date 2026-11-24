@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorTraceVatMaskLow
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor vat high-word mask trace
 -/
@@ -14,13 +16,13 @@ theorem spotCtorVatMaskHighReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd90 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨90⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨2⟩, ⟨1⟩,
           solcSlotWord σWards I ⟨2⟩]
         (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨102⟩
       [UInt256.land (solcSlotWord σWards I ⟨2⟩) (UInt256.lnot solcAddrMask), ⟨2⟩,
         ⟨1⟩, UInt256.land (EVM.word vat.val) solcAddrMask]

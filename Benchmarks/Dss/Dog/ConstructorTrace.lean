@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Dog.ConstructorBase
 import Benchmarks.Dss.Dog.Rely
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Dog constructor EVM trace
 -/
@@ -16,10 +18,10 @@ theorem dogInitcodeNonpayableRevert
     (vat : AccountAddress)
     (hcode : I.code = dogCtorCode vat)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (dogCtorCode vat) g
+    RDrev fork (dogCtorCode vat) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -43,12 +45,12 @@ theorem dogCtorArgsReach
     (vat : AccountAddress)
     (hcode : I.code = dogCtorCode vat)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (dogCtorCode vat) I g
+    ∃ k C, RD fork (dogCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨54⟩
       [EVM.word vat.val] (dogCtorArgFreeMem vat) (UInt256.ofNat 6) ByteArray.empty
       σ k C := by
   have rd0 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -109,11 +111,11 @@ theorem dogCtorVatDecodeReach
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd54 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (dogCtorArgFreeMem vat) (UInt256.ofNat 6) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (dogCtorCode vat) I g
+    ∃ k' C', RD fork (dogCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨72⟩
       [EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
       σ k' C' := by
@@ -134,11 +136,11 @@ theorem dogCtorLiveStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd72 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨72⟩
         [EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (dogCtorCode vat) I g
+    ∃ k' C', RD fork (dogCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨79⟩
       [⟨1⟩, EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩) k' C' := by
@@ -153,11 +155,11 @@ theorem dogCtorWardsStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd79 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨79⟩
         [⟨1⟩, EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
         σLive k C) :
-    ∃ k' C', RD (dogCtorCode vat) I g
+    ∃ k' C', RD fork (dogCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨99⟩
       [⟨0⟩, solcSourceWord I, ⟨64⟩, EVM.word vat.val]
       (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
@@ -183,12 +185,12 @@ theorem dogCtorRelyLogReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd99 :
-      RD (dogCtorCode vat) I g
+      RD fork (dogCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨99⟩
         [⟨0⟩, solcSourceWord I, ⟨64⟩, EVM.word vat.val]
         (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (dogCtorCode vat) I g
+    ∃ k' C', RD fork (dogCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨139⟩
       [] (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
       σWards k' C' := by
@@ -212,9 +214,9 @@ theorem dogCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
-    (h : RD (dogCtorCode vat) I g s0 ⟨139⟩ []
+    (h : RD fork (dogCtorCode vat) I g s0 ⟨139⟩ []
       (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) rdata acc k C) :
-    RDret (dogCtorCode vat) g s0 acc (dogCtorPatchedRuntime vat) := by
+    RDret fork (dogCtorCode vat) g s0 acc (dogCtorPatchedRuntime vat) := by
   have hcopy : (dogCtorCode vat).write 182 (dogCtorWardsHashMem I vat) 0 4745 =
       dogBytecode := by
     exact dogCtorRuntime_codecopy_mem I vat
@@ -284,7 +286,7 @@ theorem dogInitcodeSuccess
     (hcode : I.code = dogCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (dogCtorCode vat) g
+    RDret fork (dogCtorCode vat) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩)

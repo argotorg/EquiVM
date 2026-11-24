@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cure.LoadBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -9,7 +11,7 @@ namespace Benchmarks.Dss.Cure
 theorem cureLoadSourceBodyStillLiveRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨0⟩) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -17,7 +19,7 @@ theorem cureLoadSourceBodyStillLiveRevert {σ σ₀ A I} {g : UInt256}
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ ≠ ⟨0⟩ := by
     simpa [evm0, solcSlotWordAt] using hlive
   have hguard := evalExpr_loadLiveEqZero_false evm0 I hliveLoad
-  have hblock := nonpayableSecondRequireReverts
+  have hblock := nonpayableSecondRequireReverts (fork := fork)
     (cfg := config) (stele := { contract := contract, locals := loadLocals I })
     (evm := evm0)
     (guard := .binary .eq (.storage liveRef) (.intLit 0))
@@ -43,7 +45,7 @@ theorem cureLoadSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I = ⟨0⟩) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -56,7 +58,7 @@ theorem cureLoadSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_false evm0 I hposLoad
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -84,7 +86,7 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -114,7 +116,7 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) (locals := localsOld) hsrc hnoCode
   have hcall :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         .reverted := by
@@ -124,7 +126,7 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
         (receiver := "src") (retVar := "newAmt_") (name := "cure") (sendVal := 0)
         (args := []) (perm := false) hguardCall
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -139,7 +141,7 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append_term hcall (by intro f e h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -172,11 +174,11 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (false, evmCall, out) false) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -207,7 +209,7 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) (locals := localsOld) hsrc hcode
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         .reverted := by
@@ -219,7 +221,7 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
         (argVals := []) (out := out) (perm := false) hguardCall hsrc
         (by rfl) hcall
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -234,7 +236,7 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -267,12 +269,12 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
     (hdec : config.externalABI.decode? "cure" out = none) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -306,7 +308,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := localsOld } evm0 [] = .ok [] := by
     rfl
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         .reverted := by
@@ -317,7 +319,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
         (name := "cure") (target := loadSrc I) (sendVal := 0) (args := [])
         (argVals := []) (out := out) (perm := false) hguardCall hsrc hargs hcall hdec
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -332,7 +334,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -365,7 +367,7 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
@@ -379,11 +381,11 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
         (Stele.EVM.storageLoad
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           I.codeOwner (loadAmtSlotFor I)).toNat →
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted) ∧
     (evmCall.executionEnv.perm = false →
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
         loadTransition.body .staticViolation) := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -420,7 +422,7 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := localsOld } evm0 [] = .ok [] := by
     rfl
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         (.ok { contract := contract, locals := localsNew } evmCall) := by
@@ -460,9 +462,9 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
     simpa [evmAmt] using assign_loadAmtStorage (evm := evmCall) (locals := localsNew)
       I newAmt hbase hsrcNew
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := localsNew } evmCall
+      (hrest : ExecBlock fork config { contract := contract, locals := localsNew } evmCall
         (loadTransition.body.drop 6) result) :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         loadTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -514,14 +516,14 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
               oldAmt) := by
       simp [subFunction, uint256, bindParams?, uintBinaryLocals]
     have hsubStmt :
-        ExecStmt config { contract := contract, locals := localsNew } evmAmt
+        ExecStmt fork config { contract := contract, locals := localsNew } evmAmt
           (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld") .reverted := by
       have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
         dsimp [evmAmt]
         simp only [Stele.EVM.storageStore, State.lookupAccount]
         cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
           simp only [Option.option, State.setAccount]
-      have hbody := execSubFunctionRevert (evm := evmAmt)
+      have hbody := execSubFunctionRevert (fork := fork) (evm := evmAmt)
         (x := Stele.EVM.storageLoad evmAmt evmAmt.executionEnv.codeOwner ⟨9⟩)
         (y := oldAmt)
         (by simpa [evmAmt, oldAmt, evm0, hownerAmt] using hunder)
@@ -540,7 +542,7 @@ theorem cureLoadSourceBodySubRevertSplit {σ σ₀ A I} {g : UInt256}
             oldAmt)
         hargsSub (by rfl) hbindSub hbody
     exact ExecFuncBody.execBlockRevert (hprefix
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hnewVar hassignAmt)
         (ExecBlock.consRevert hsubStmt)))
   · intro hperm
@@ -554,7 +556,7 @@ theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
@@ -570,7 +572,7 @@ theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           I.codeOwner (loadAmtSlotFor I)).toNat)
     (hperm : evmCall.executionEnv.perm = true) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted :=
   (cureLoadSourceBodySubRevertSplit hwv hlive hpos hcode hcall hdec).1 hperm hunder
@@ -582,7 +584,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
@@ -608,7 +610,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             I.codeOwner (loadAmtSlotFor I))).toNat + newAmt.toNat)
     (hperm : evmCall.executionEnv.perm = true) :
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -649,7 +651,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := localsOld } evm0 [] = .ok [] := by
     rfl
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         (.ok { contract := contract, locals := localsNew } evmCall) := by
@@ -720,7 +722,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals sayAfter oldAmt) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hsubStmt :
-      ExecStmt config { contract := contract, locals := localsNew } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
         (.ok { contract := contract, locals := localsWithout } evmAmt) := by
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
@@ -730,7 +732,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
-    have hbody := execSubFunctionReturn (evm := evmAmt)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmAmt)
       (x := sayAfter) (y := oldAmt) (diff := withoutOld)
       (by simp [withoutOld]) hle
     simpa [localsWithout, resumeAfterInternalCall] using
@@ -786,9 +788,9 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
   have hoverLocal : UInt256.size ≤ withoutOld.toNat + newAmt.toNat := by
     simpa [withoutOld, sayAfter, evmAmt, oldAmt, evm0, hownerAmtLocal, howner0Local] using hover
   have haddStmt :
-      ExecStmt config { contract := contract, locals := localsWithout } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsWithout } evmAmt
         (.internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew") .reverted := by
-    have hbody := execAddFunctionRevert (evm := evmAmt)
+    have hbody := execAddFunctionRevert (fork := fork) (evm := evmAmt)
       (x := withoutOld) (y := newAmt) hoverLocal
     exact internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := localsWithout })
@@ -799,7 +801,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
       (locals := uintBinaryLocals withoutOld newAmt)
       hargsAdd (by rfl) hbindAdd hbody
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -813,7 +815,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
             [] ])
         .reverted := by
     have hrest :
-        ExecBlock config { contract := contract, locals := localsNew } evmCall
+        ExecBlock fork config { contract := contract, locals := localsNew } evmCall
           [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
             .internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld",
             .internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew",
@@ -824,13 +826,13 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
                 .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
               [] ]
           .reverted := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hnewVar hassignAmt) ?_
       refine ExecBlock.consNormal hsubStmt ?_
       exact ExecBlock.consRevert haddStmt
     exact execBlock_append hcallBlock hrest
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -863,7 +865,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
@@ -903,7 +905,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     let localsSay : Store := localsWithout.insert "sayNew" (.int (Int.ofNat sayNew.toNat))
     let evmSay := Stele.EVM.storageStore evmAmt evmAmt.executionEnv.codeOwner ⟨9⟩ sayNew
     Stele.EVM.storageLoad evmSay evmSay.executionEnv.codeOwner (loadLoadedSlotFor I) ≠ ⟨0⟩ →
-    ExecTransitionBody config contract evm0 (loadLocals I) loadTransition.body
+    ExecTransitionBody fork config contract evm0 (loadLocals I) loadTransition.body
       (.returned { contract := contract, locals := localsSay } evmSay none) := by
   intro evm0 oldAmt oldAmtVal localsOld localsNew evmAmt sayAfter withoutOld localsWithout
     sayNew localsSay evmSay hloaded
@@ -933,7 +935,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := localsOld } evm0 [] = .ok [] := by
     rfl
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         (.ok { contract := contract, locals := localsNew } evmCall) := by
@@ -1004,7 +1006,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals sayAfter oldAmt) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hsubStmt :
-      ExecStmt config { contract := contract, locals := localsNew } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
         (.ok { contract := contract, locals := localsWithout } evmAmt) := by
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
@@ -1014,7 +1016,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
-    have hbody := execSubFunctionReturn (evm := evmAmt)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmAmt)
       (x := sayAfter) (y := oldAmt) (diff := withoutOld)
       (by simp [withoutOld]) hle
     simpa [localsWithout, resumeAfterInternalCall] using
@@ -1069,10 +1071,10 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
   have haddOkLocal : withoutOld.toNat + newAmt.toNat < UInt256.size := by
     simpa [withoutOld, sayAfter, evmAmt, oldAmt, evm0, hownerAmtLocal, howner0Local] using haddOk
   have haddStmt :
-      ExecStmt config { contract := contract, locals := localsWithout } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsWithout } evmAmt
         (.internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew")
         (.ok { contract := contract, locals := localsSay } evmAmt) := by
-    have hbody := execAddFunctionReturn (evm := evmAmt)
+    have hbody := execAddFunctionReturn (fork := fork) (evm := evmAmt)
       (x := withoutOld) (y := newAmt) (sum := sayNew) (by simp [sayNew]) haddOkLocal
     simpa [localsSay, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -1131,7 +1133,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     exact evalExpr_loadLoadedEqZero_false (evm := evmSay) (locals := localsSay) I
       hbase hsrcSay hloaded
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -1145,7 +1147,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
             [] ])
         (.ok { contract := contract, locals := localsSay } evmSay) := by
     have hrest :
-        ExecBlock config { contract := contract, locals := localsNew } evmCall
+        ExecBlock fork config { contract := contract, locals := localsNew } evmCall
           [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
             .internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld",
             .internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew",
@@ -1156,16 +1158,16 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
                 .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
               [] ]
           (.ok { contract := contract, locals := localsSay } evmSay) := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hnewVar hassignAmt) ?_
       refine ExecBlock.consNormal hsubStmt ?_
       refine ExecBlock.consNormal haddStmt ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal (ExecStmt.iteFalse hcond ExecBlock.nil) ExecBlock.nil
     exact execBlock_append hcallBlock hrest
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::
@@ -1198,7 +1200,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (loadSrc I)) "cure" 0 []
         (true, evmCall, out) false)
@@ -1243,7 +1245,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     let evmCount := Stele.EVM.storageStore evmLoaded evmLoaded.executionEnv.codeOwner
       ⟨8⟩ (count + ⟨1⟩)
     Stele.EVM.storageLoad evmSay evmSay.executionEnv.codeOwner (loadLoadedSlotFor I) = ⟨0⟩ →
-    ExecTransitionBody config contract evm0 (loadLocals I) loadTransition.body
+    ExecTransitionBody fork config contract evm0 (loadLocals I) loadTransition.body
       (.returned { contract := contract, locals := localsSay } evmCount none) := by
   intro evm0 oldAmt oldAmtVal localsOld localsNew evmAmt sayAfter withoutOld localsWithout
     sayNew localsSay evmSay evmLoaded count evmCount hloaded
@@ -1273,7 +1275,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := localsOld } evm0 [] = .ok [] := by
     rfl
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false))
         (.ok { contract := contract, locals := localsNew } evmCall) := by
@@ -1344,7 +1346,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals sayAfter oldAmt) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hsubStmt :
-      ExecStmt config { contract := contract, locals := localsNew } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
         (.ok { contract := contract, locals := localsWithout } evmAmt) := by
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
@@ -1354,7 +1356,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
-    have hbody := execSubFunctionReturn (evm := evmAmt)
+    have hbody := execSubFunctionReturn (fork := fork) (evm := evmAmt)
       (x := sayAfter) (y := oldAmt) (diff := withoutOld)
       (by simp [withoutOld]) hle
     simpa [localsWithout, resumeAfterInternalCall] using
@@ -1409,10 +1411,10 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
   have haddOkLocal : withoutOld.toNat + newAmt.toNat < UInt256.size := by
     simpa [withoutOld, sayAfter, evmAmt, oldAmt, evm0, hownerAmtLocal, howner0Local] using haddOk
   have haddStmt :
-      ExecStmt config { contract := contract, locals := localsWithout } evmAmt
+      ExecStmt fork config { contract := contract, locals := localsWithout } evmAmt
         (.internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew")
         (.ok { contract := contract, locals := localsSay } evmAmt) := by
-    have hbody := execAddFunctionReturn (evm := evmAmt)
+    have hbody := execAddFunctionReturn (fork := fork) (evm := evmAmt)
       (x := withoutOld) (y := newAmt) (sum := sayNew) (by simp [sayNew]) haddOkLocal
     simpa [localsSay, resumeAfterInternalCall] using
       (internalCallFunctionReturn
@@ -1449,7 +1451,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     simpa [evmSay] using assign_loadSayStorage (evm := evmAmt) (locals := localsSay)
       sayNew hbase
   have htail :
-      ExecStmt config { contract := contract, locals := localsSay } evmSay
+      ExecStmt fork config { contract := contract, locals := localsSay } evmSay
         (.ite
           (.binary .eq (.storage (loadedRef (.var "src"))) (.intLit 0))
           [ .assign .storage (loadedRef (.var "src")) (.intLit 1),
@@ -1485,7 +1487,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
         simpa only [evmSay, evmAmt, storageStore_executionEnv] using hperm) (evm := evmSay) (locals := localsSay) I
         hbaseLoaded hbaseLCount hsrcSay hloaded
   have hcallTail :
-      ExecBlock config { contract := contract, locals := localsOld } evm0
+      ExecBlock fork config { contract := contract, locals := localsOld } evm0
         (checkedExternalCallStmts (.var "src") "cure" (.intLit 0) [] "newAmt_"
           (perm := false) ++
         [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
@@ -1499,7 +1501,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
             [] ])
         (.ok { contract := contract, locals := localsSay } evmCount) := by
     have hrest :
-        ExecBlock config { contract := contract, locals := localsNew } evmCall
+        ExecBlock fork config { contract := contract, locals := localsNew } evmCall
           [ .assign .storage (amtRef (.var "src")) (.var "newAmt_"),
             .internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld",
             .internalCall "_add" [.var "withoutOld", .var "newAmt_"] "sayNew",
@@ -1510,16 +1512,16 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
                 .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
               [] ]
           (.ok { contract := contract, locals := localsSay } evmCount) := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hnewVar hassignAmt) ?_
       refine ExecBlock.consNormal hsubStmt ?_
       refine ExecBlock.consNormal haddStmt ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmAmt, storageStore_executionEnv] using hperm)) hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal htail ExecBlock.nil
     exact execBlock_append hcallBlock hrest
   have hblock :
-      ExecBlock config { contract := contract, locals := loadLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 0)) ::
         .require (.binary .gt (.storage (posRef (.var "src"))) (.intLit 0)) ::

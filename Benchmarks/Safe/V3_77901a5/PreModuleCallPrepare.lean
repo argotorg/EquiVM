@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.PreModuleEncode
 import Benchmarks.Safe.V3_77901a5.PreModuleCallMemory
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -12,7 +14,7 @@ set_option maxHeartbeats 1000000 in
 theorem safePreModuleCallPrepare (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {oldHash guard target value operation : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7281⟩
+    (h : RD fork safeBytecode I g s0 ⟨7281⟩
       (oldHash :: guard :: operation :: UInt256.ofNat src :: value :: target :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -23,7 +25,7 @@ theorem safePreModuleCallPrepare (words : List UInt256)
     (ha : src + 32 + 32 * words.length ≤ ptr)
     (hb : ptr + 228 + 32 * words.length < UInt256.size)
     (ho : operation.toNat < 2) (hov : R.length + 29 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨7345⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨7345⟩
       (gasArg :: UInt256.land guard solcAddrMask :: ⟨0⟩ :: UInt256.ofNat ptr ::
         UInt256.ofNat (196 + 32 * words.length) :: UInt256.ofNat ptr :: ⟨32⟩ ::
         UInt256.ofNat (ptr + 196 + 32 * words.length) :: ⟨1921788274⟩ ::
@@ -51,12 +53,12 @@ theorem safePreModuleCallPrepare (words : List UInt256)
     rw [u256_add_comm]; exact hadd 4 (by omega)
   simp only [safeRuntime_block_7281_stack, safeRuntime_block_7281_memory,
     safeAddressMask, hf, hpt, h4] at h₁
-  change RD safeBytecode I g s0 _ _ m _ _ _ _ _ at h₁
+  change RD fork safeBytecode I g s0 _ _ m _ _ _ _ _ at h₁
   obtain ⟨aw', k', C', h₂⟩ := safePreModuleEncode words h₁ hload
     (hw.writeAfter mem (src + 32) words hin ptr preModuleSelectorWord ha) hn
     (by omega) (by omega)
     (by omega) (by omega) ho (by simp; omega) (by jump_dest)
-  change RD safeBytecode I g s0 _ _
+  change RD fork safeBytecode I g s0 _ _
     (preModuleCallMemory mem ptr len target value operation (UInt256.ofNat I.source.val) words)
     _ _ _ _ _ at h₂
   have he : ptr + 4 + 192 + 32 * words.length = ptr + 196 + 32 * words.length := by omega

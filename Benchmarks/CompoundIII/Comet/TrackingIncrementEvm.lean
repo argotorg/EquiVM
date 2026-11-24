@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TrackingAccrualModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,13 +14,13 @@ theorem cometTrackingIncrement {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {total elapsed ret : UInt256}
     {borrow : Bool} {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩
       (trackingSpeed v borrow :: elapsed :: ⟨8224⟩ :: total :: ⟨8229⟩ :: ret :: R)
       mem aw rdata σ k C) :
     if TrackingIncrementValid v borrow total elapsed then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (trackingIncrement v borrow total elapsed :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hm : (trackingSpeed v borrow).toNat * elapsed.toNat < UInt256.size
   · obtain ⟨k1, C1, r1⟩ := cometCheckedMul (v := v)
       (by simp only [List.length_cons]; omega) hm

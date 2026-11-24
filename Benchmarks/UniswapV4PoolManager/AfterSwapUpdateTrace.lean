@@ -6,6 +6,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_019
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,10 +20,10 @@ theorem afterSwapUpdateTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
     (hu : signedFits ⟨128, by decide⟩ unspecified)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨6381⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6381⟩
       (delta :: UInt256.ofNat 16136 :: EVM.wordOfInt unspecified :: ret :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (EVM.wordOfInt (unspecified+EVM.signed delta) :: R)
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C', C ≤ C' ∧
+      RD fork (deployedRuntime v) I g s0 ret (EVM.wordOfInt (unspecified+EVM.signed delta) :: R)
         mem aw rdata post.accountMap k' C') (fun _ _ => False)
       (afterSwapUpdateResult f evm unspecified delta) := by
   have rd1 := poolManager_block_6381 (by simp only [List.length_cons]; omega)

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiAttestFacts
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -50,7 +52,7 @@ theorem multiAttestUpdateSourceOfFields {L imms : Store} {evm : EVM.State}
     (hr : L.get? "res" = some (attestationsResultValue words used))
     (hi : i<groups.length) (hib : i+1<UInt256.size)
     (hc : groups.flatten.length+words.length<UInt256.size) (hu : used.toNat≤available.toNat) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiAttestUpdate
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiAttestUpdate
       (.ok {contract := contract,locals := multiAttestNextLocals L groups words available used i,immutables := imms} evm) := by
   let L1 := L.insert "availableValue" (.int (Int.ofNat (UInt256.sub available used).toNat))
   let L2 := L1.insert "totalUids" (.array ((groups.set i words).map wordListValue))
@@ -58,13 +60,13 @@ theorem multiAttestUpdateSourceOfFields {L imms : Store} {evm : EVM.State}
     simpa (disch := decide) only [L1,store_get_ne] using hr
   have hr2 : L2.get? "res" = some (attestationsResultValue words used) := by
     simpa (disch := decide) only [L2,store_get_ne] using hr1
-  have hs1 : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+  have hs1 : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.assign .localVar {base := "availableValue"}
         (.inRange abiUInt256Int (.binary .sub (.var "availableValue") (.field (.var "res") "usedValue"))))
       (.ok {contract := contract,locals := L1,immutables := imms} evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_uint256_sub (evalLocalValue ha)
       (evalRecordField (evalLocalValue hr) rfl) hu) (assignLocalValue ha)
-  have hs2 : ExecStmt config {contract := contract,locals := L1,immutables := imms} evm
+  have hs2 : ExecStmt fork config {contract := contract,locals := L1,immutables := imms} evm
       (.assign .localVar {base := "totalUids",steps := [.aindex (.var "i")]} (.field (.var "res") "uids"))
       (.ok {contract := contract,locals := L2,immutables := imms} evm) := by
     apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalRecordField (evalLocalValue hr1) (value := wordListValue words) rfl)
@@ -85,7 +87,7 @@ theorem multiAttestUpdateSourceOfFields {L imms : Store} {evm : EVM.State}
   rw [Nat.mod_eq_of_lt hc] at he
   apply ExecBlock.consNormal hs1
   apply ExecBlock.consNormal hs2
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue hcount))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue hcount))
   apply ExecBlock.consNormal (execLocalCastIncrement ?_ hib) ExecBlock.nil
   simpa (disch := decide) only [L2,L1,store_get_ne] using hi0
 
@@ -95,7 +97,7 @@ theorem multiAttestUpdateSource {L imms : Store} {evm : EVM.State} {requests : L
     (hr : L.get? "res" = some (attestationsResultValue words used))
     (hi : i<groups.length) (hib : i+1<UInt256.size)
     (hc : groups.flatten.length+words.length<UInt256.size) (hu : used.toNat≤available.toNat) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiAttestUpdate
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiAttestUpdate
       (.ok {contract := contract,locals := multiAttestNextLocals L groups words available used i,immutables := imms} evm) :=
   multiAttestUpdateSourceOfFields h.groups h.count h.available h.index hr hi hib hc hu
 

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.StructAllocate
 import Benchmarks.EAS.EAS.BytesLength
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -44,8 +46,8 @@ theorem easCopyStored_fields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 11 ≤ 1024)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat)
     (hg : allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6501⟩ (slot :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨6418⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6501⟩ (slot :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨6418⟩
       (solcSlotWord σ ee (slot + ⟨6⟩) :: ⟨6685⟩ :: (slot + ⟨6⟩) :: solcSlotWord σ ee (slot + ⟨6⟩) :: ⟨0⟩ ::
         UInt256.ofNat (allocateNext heap.toNat 320) :: heap :: UInt256.ofNat (allocateNext heap.toNat 320) :: ret :: heap :: R)
       (copyStoredFieldsMemory mem heap σ ee slot) aw' rdata σ k' C' := by
@@ -60,7 +62,7 @@ theorem easCopyStored_fields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd3
   have hm := copyStoredFieldsMemory_eq mem heap slot σ ee
     (by have hb := (allocate320_bounds hg).2; change heap.toNat + 320 < 2^256; omega)
-  change RD (deployedRuntime v) ee g s0 ⟨6418⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨6418⟩
     (solcSlotWord σ ee (slot + ⟨6⟩) :: ⟨6685⟩ :: (slot + ⟨6⟩) :: solcSlotWord σ ee (slot + ⟨6⟩) :: ⟨0⟩ ::
       memLoad (UInt256.ofNat 64) _ :: heap :: memLoad (UInt256.ofNat 64) _ :: ret :: heap :: R) _ aw3 rdata σ k3 C3 at rd4
   have hmExpanded := hm
@@ -74,8 +76,8 @@ theorem easCopyStored_revert_allocate {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 8 ≤ 1024)
     (hh : memLoad (UInt256.ofNat 64) mem = heap)
     (hg : ¬ (allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6501⟩ (slot :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6501⟩ (slot :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := easBlocks.eas_block_6501 (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_6501_stack, hh] at rd1

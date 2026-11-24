@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogMsbWords
 import Benchmarks.UniswapV3.Pool.TickLogStartTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -74,9 +76,9 @@ theorem tickLogMsbBlockStack_eq (price : UInt256) (R : List UInt256) :
 theorem tickLogMsbPrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14102⟩ (⟨0⟩ :: price :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14102⟩ (⟨0⟩ :: price :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14216⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14216⟩
       (tickLogMsbPrefixStack (tickLogRatio (tickLogPrice price)) price R) mem aw rdata σ k' C' := by
   have rout := uniswapV3Pool_block_14102 (immWords := wordsOf (immStore v)) (by evm_ov) rd
   refine ⟨k + 64, C + 190, ?_⟩

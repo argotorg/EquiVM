@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,9 +17,9 @@ theorem morphoWithdrawCollateralUpdates {v : MorphoImmutables} {ee : ExecutionEn
     (hget : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 128))))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hparams : p.InMemory (UInt256.ofNat 128) mem)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
       (withdrawCollateralGuardTail p.id assets account receiver []) mem aw out σ k C) :
-    VoidBlockRefines config (deployedRuntime v) ee g s0
+    VoidBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawCollateralTransition.body.drop 12) := by
   have hp := morphoWithdrawCollateralUpdateRefine p locals imms (by decide) ha hl hs hm h

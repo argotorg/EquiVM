@@ -1,5 +1,7 @@
 import Examples.StringStoreLite.SetLongNewShortOldShort
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — valid set-branch, new short
 
@@ -37,7 +39,7 @@ theorem stringStoreLiteSetNewShortRuntime
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩)
     (hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hflag :
     UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩

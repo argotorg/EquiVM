@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.CollateralReadEvm
 import Benchmarks.CompoundIII.Comet.PriceInternal
 import Benchmarks.CompoundIII.Comet.PriceAssetMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -9,15 +11,15 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def CollateralValueRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def CollateralValueRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (borrow : Bool) (ret a b : UInt256) (R : List UInt256)
     (free : UInt256) (growth : Nat) (result : Option (EVM.State × CollateralValueData)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', d) => ∃ σ' mem' free' aw' rdata' k' C',
       SourceState s0 ee σ' evm' ∧ free'.toNat = free.toNat + growth ∧
       memLoad ⟨64⟩ mem' = free' ∧ free'.toNat ≤ mem'.size + 32 ∧
-      RD (deployedRuntime v) ee g s0 ret (d.value borrow :: a :: b :: ⟨1⟩ :: R)
+      RD fork (deployedRuntime v) ee g s0 ret (d.value borrow :: a :: b :: ⟨1⟩ :: R)
         mem' aw' rdata' σ' k' C'
 
 theorem cometCollateralPriceMath {v : CometWithExtendedAssetListImmutables}
@@ -28,12 +30,12 @@ theorem cometCollateralPriceMath {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (collateralPricePc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralPricePc borrow)
       (amount :: ⟨10579⟩ :: UInt256.ofNat (collateralFactorOffset borrow) ::
         ⟨10587⟩ :: ⟨10592⟩ :: ptr :: ⟨10598⟩ :: ret :: a :: b :: ⟨1⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, CollateralAfterAsset borrow out amount evm result ∧
-      CollateralValueRun v ee g s0 borrow ret a b R free 160 result := by
+    ∃ result, CollateralAfterAsset fork borrow out amount evm result ∧
+      CollateralValueRun fork v ee g s0 borrow ret a b R free 160 result := by
   obtain ⟨aw2, k2, C2, r2⟩ := cometCollateralPriceStart borrow
     (by change R.length + 5 + 11 ≤ 1024; omega) hm hv.2 h
   have hlo : 96 ≤ free.toNat := by have ha := hm.lower; have hb := hm.separate; omega
@@ -78,13 +80,13 @@ theorem cometCollateralAfterAsset {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10490⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10490⟩
       (ptr :: ⟨10498⟩ :: ⟨10518⟩ :: collateralPricePc borrow :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ ::
         EVM.word account.val :: ⟨10598⟩ :: ret :: a :: b :: ⟨1⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, CollateralAfterAsset borrow out (collateralBalanceWord evm account out)
-      evm result ∧ CollateralValueRun v ee g s0 borrow ret a b R free 160 result := by
+    ∃ result, CollateralAfterAsset fork borrow out (collateralBalanceWord evm account out)
+      evm result ∧ CollateralValueRun fork v ee g s0 borrow ret a b R free 160 result := by
   obtain ⟨aw1, k1, C1, r1⟩ := cometCollateralBalanceRead borrow account
     (by change R.length + 5 + 16 ≤ 1024; omega) hm hv.2 hs h
   let mem1 := collateralReadMemory mem account out
@@ -102,13 +104,13 @@ theorem cometCollateralValue {v : CometWithExtendedAssetListImmutables}
     (hi : i.toNat < 256) (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 1184 < 2^64) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7179⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7179⟩
       (i :: ⟨10490⟩ :: ⟨10498⟩ :: ⟨10518⟩ :: collateralPricePc borrow :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ ::
         EVM.word account.val :: ⟨10598⟩ :: ret :: a :: b :: ⟨1⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, CollateralValueTrace v borrow account i evm result ∧
-      CollateralValueRun v ee g s0 borrow ret a b R free 928 result := by
+    ∃ result, CollateralValueTrace fork v borrow account i evm result ∧
+      CollateralValueRun fork v ee g s0 borrow ret a b R free 928 result := by
   obtain ⟨evm', σ', z, out, hcall, hs', hh, hr⟩ := cometAssetInternal (v := v)
     (by change R.length + 13 + 13 ≤ 1024; omega) hi hfree hlo (by omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) hs h

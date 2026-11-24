@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RuntimeBlocks_039
 import Benchmarks.EAS.EAS.RuntimeBlocks_040
 import Benchmarks.EAS.EAS.RuntimeBlocks_041
 import Benchmarks.EAS.EAS.GetAttestationEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -37,11 +39,11 @@ theorem easRevokeUIDCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {cell request idx word : UInt256} {R : List UInt256} (v : EASImmutables) (kind : RevokeKind)
     (hstack : R.length+5 ≤ 1024) (hp : memLoad cell mem = request) (hu : memLoad request mem = word)
-    (rd : RD (deployedRuntime v) ee g s0 kind.uidPC (cell::idx::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.uidPC (cell::idx::R) mem aw rdata σ k C) :
     if solcSlotWord σ ee (dbSlot word) ≠ ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.schemaPC (request::idx::dbSlot word::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.schemaPC (request::idx::dbSlot word::R)
         (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hk : keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem word ⟨1⟩ mem) = dbSlot word :=
     twoWordHashMem_solcMappingSlot_any ⟨1⟩ word mem
   by_cases hv : solcSlotWord σ ee (dbSlot word) ≠ ⟨0⟩
@@ -56,7 +58,7 @@ theorem easRevokeUIDCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           rw [hp,hu,hk]
           exact hc) rd
       simp only [easBlocks.eas_block_12296_fallthrough_stack,easBlocks.eas_block_12296_fallthrough_memory,hp,hu] at hr
-      change RD (deployedRuntime v) ee g s0 _
+      change RD fork (deployedRuntime v) ee g s0 _
         (request::idx::keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem word ⟨1⟩ mem)::R)
         (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C' at hr
       rw [hk] at hr
@@ -69,7 +71,7 @@ theorem easRevokeUIDCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           rw [hp,hu,hk]
           exact hc) rd
       simp only [easBlocks.eas_block_12935_fallthrough_stack,easBlocks.eas_block_12935_fallthrough_memory,hp,hu] at hr
-      change RD (deployedRuntime v) ee g s0 _
+      change RD fork (deployedRuntime v) ee g s0 _
         (request::idx::keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem word ⟨1⟩ mem)::R)
         (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C' at hr
       rw [hk] at hr

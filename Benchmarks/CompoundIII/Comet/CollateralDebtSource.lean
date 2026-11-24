@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralCheckModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -18,11 +20,11 @@ theorem pricePositive_bounds {price : UInt256} (hp : 0 < signedPrice price) :
     norm_num at hp
     omega
 
-def CollateralCheckSourceResult (frame : Frame) (evm : EVM.State) (body : List Stmt)
+def CollateralCheckSourceResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (body : List Stmt)
     (result : Option (EVM.State × Bool)) : Prop :=
   match result with
-  | none => ExecBlock config frame evm body .reverted
-  | some (evm', value) => ∃ final, ExecBlock config frame evm body
+  | none => ExecBlock fork config frame evm body .reverted
+  | some (evm', value) => ∃ final, ExecBlock fork config frame evm body
       (.returned final evm' (some [.bool value]))
 
 theorem collateralBasePriceFeed_eval (v : CometWithExtendedAssetListImmutables)
@@ -35,7 +37,7 @@ theorem collateralBasePriceFeed_eval (v : CometWithExtendedAssetListImmutables)
 theorem collateralDebtPrice_call (v : CometWithExtendedAssetListImmutables)
     (account : AccountAddress) (basic magnitude price : UInt256) (evm : EVM.State)
     (hp : price.toNat < 2^255) :
-    ExecStmt config (collateralBasePriceFrame v account basic magnitude price) evm
+    ExecStmt fork config (collateralBasePriceFrame v account basic magnitude price) evm
       (.internalCall "signedMulPrice" [.var "__c0", .var "__c1",
         .cast (.immutable "baseScale") (.elem (.int (.uint ⟨64, by decide⟩)))] "liquidity")
       (if signedDebtPriceValid magnitude price (collateralBaseScale v) then
@@ -79,8 +81,8 @@ theorem collateralInitialFrame_spec (v : CometWithExtendedAssetListImmutables)
 theorem collateralDebt_source {v : CometWithExtendedAssetListImmutables} {borrow : Bool}
     {account : AccountAddress} {basic magnitude : UInt256} {evm : EVM.State}
     {result : Option (EVM.State × Bool)}
-    (ht : CollateralDebtTrace v borrow account basic magnitude evm result) :
-    CollateralCheckSourceResult (collateralPresentFrame v account basic magnitude) evm
+    (ht : CollateralDebtTrace fork v borrow account basic magnitude evm result) :
+    CollateralCheckSourceResult fork (collateralPresentFrame v account basic magnitude) evm
       (collateralDebtTail borrow) result := by
   have hf := collateralBasePriceFeed_eval v account basic magnitude evm
   cases ht with
@@ -91,20 +93,20 @@ theorem collateralDebt_source {v : CometWithExtendedAssetListImmutables} {borrow
   | @mathFailed evm' out hc hh hv hm =>
       have hp := price_call_ok (collateralPresentFrame v account basic magnitude)
         evm evm' _ _ "__c1" out rfl hf hc hh hv
-      have hmath := collateralDebtPrice_call v account basic magnitude (calldataWord out 32)
+      have hmath := collateralDebtPrice_call (fork := fork) v account basic magnitude (calldataWord out 32)
         evm' (pricePositive_bounds hv.2.2).2
       rw [if_neg hm] at hmath
       exact ExecBlock.consNormal hp (ExecBlock.consRevert hmath)
   | @loop evm' out result hc hh hv hm ht =>
       have hp := price_call_ok (collateralPresentFrame v account basic magnitude)
         evm evm' _ _ "__c1" out rfl hf hc hh hv
-      have hmath := collateralDebtPrice_call v account basic magnitude (calldataWord out 32)
+      have hmath := collateralDebtPrice_call (fork := fork) v account basic magnitude (calldataWord out 32)
         evm' (pricePositive_bounds hv.2.2).2
       rw [if_pos hm] at hmath
       have hloop := collateralLoop_source ht (packedUint_lt basic _ (by decide))
         (packedUint_lt basic _ (by decide)) _
         (collateralInitialFrame_spec v account basic magnitude (calldataWord out 32) hm)
-      have hinit : ExecStmt config (collateralLiquidityFrame v account basic magnitude
+      have hinit : ExecStmt fork config (collateralLiquidityFrame v account basic magnitude
           (calldataWord out 32)) evm'
           (.letDecl "i" (some (.elem (.int (.uint ⟨8, by decide⟩)))) (.intLit 0))
           (.ok (collateralInitialFrame v account basic magnitude (calldataWord out 32)) evm') :=

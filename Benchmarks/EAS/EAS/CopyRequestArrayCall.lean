@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRequestArrayRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,18 +16,18 @@ theorem copyRequestArrayCallRun {L : Store} {args : List Expr} {retVar : Ident}
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     (∃ mem' aw' k' C' next,
       heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       AttestationRequestArrayRegion mem' heap rs heap.toNat next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
         (.internalCall "_copyAttestationArray" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := immStore v} retVar
           (some [.tuple [],.int (Int.ofNat next)])) evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
-      (.internalCall "_copyAttestationArray" args retVar) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
+      (.internalCall "_copyAttestationArray" args retVar) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hd : (copyRequestArrayArgs rs heap.toNat).get? "data" = some (.array (rs.map AttestationRequestRecord.tuple)) := store_get_self _ _ _
   have hf : (copyRequestArrayArgs rs heap.toNat).get? "$EAS.freeMemory" = some (.int (Int.ofNat heap.toNat)) := by
     simp (disch := decide) only [copyRequestArrayArgs,store_get_ne,store_get_self]

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_050
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,9 +18,9 @@ set_option maxHeartbeats 1000000 in
 theorem balanceBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 68 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (balanceBuildExit second)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (balanceBuildExit second)
       (⟨36⟩ :: (p + ⟨68⟩) :: p :: (p + ⟨32⟩) :: EVM.word (balanceToken v second).val ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R)
       (balanceBuildMem mem p (EVM.word ee.codeOwner.val)) aw' rdata σ k' C' ∧

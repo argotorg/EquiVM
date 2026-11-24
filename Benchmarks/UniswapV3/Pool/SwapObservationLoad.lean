@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossFlags
 import Benchmarks.UniswapV3.Pool.Slot0Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,14 +13,14 @@ theorem swapObservationLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q p exactWord cache snap free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (initial : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3691⟩ ([q, p, exactWord, cache, snap] ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3691⟩ ([q, p, exactWord, cache, snap] ++ R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
     (hs : Slot0Memory mem snap initial.accountMap initial.executionEnv)
     (hbc : cache.toNat + 192 ≤ 2 ^ 200) (hbs : snap.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 15 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨13193⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
         ([slot0FieldWord 25 2 initial.accountMap initial.executionEnv, c.liquidityStart,
           slot0FieldWord 23 2 initial.accountMap initial.executionEnv,
           EVM.wordOfInt (slot0TickValue initial.accountMap initial.executionEnv),

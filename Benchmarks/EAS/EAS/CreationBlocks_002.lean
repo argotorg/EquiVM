@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.EAS.EAS.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -13,8 +15,8 @@ private abbrev j := Reasoning.Theory.D_J_contains_append_left Benchmarks.EAS.EAS
 /-- Automatically generated RD summary for bytecode block at pc 411. -/
 theorem easCreation_block_411 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 411) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 411) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.EAS.easCreationBytecode.size = 17674 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -32,8 +34,8 @@ theorem easCreation_block_411 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
 
 /-- Automatically generated RD summary for bytecode block at pc 433. -/
 theorem easCreation_block_433 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
-    (h : RD (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 433) R mem aw rdata σ k C)
-    : RDinvalid (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 433) R mem aw rdata σ k C)
+    : RDinvalid fork (Benchmarks.EAS.EAS.easCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.EAS.easCreationBytecode.size = 17674 := by native_decide
   exact RD.invalid r0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide))

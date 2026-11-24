@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.InitializeState
 import Benchmarks.CompoundIII.Comet.InitializeStatic
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -13,19 +15,19 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def InitializeResult (code : ByteArray) (I : ExecutionEnv) (g : Sat256)
+def InitializeResult (fork : Ethereum.Fork) (code : ByteArray) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (σ : AccountMap) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ I.calldata.size < 2^255 + 4 ∧
       lastAccrualWord (solcSlotWordAt ⟨1⟩ σ I) = ⟨0⟩ ∧ (timestampWord I).toNat < 2^40 then
-    if I.perm = true then RDret code g s0 (initializeAccounts σ I) ByteArray.empty
-    else RDstatic code g s0
-  else RDrev code g s0
+    if I.perm = true then RDret fork code g s0 (initializeAccounts σ I) ByteArray.empty
+    else RDstatic fork code g s0
+  else RDrev fork code g s0
 
 theorem initializeX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 6)) :
-    InitializeResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ := by
+    InitializeResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachInitializeStorageBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1330 (immWords := wordsOf (immStore v))
@@ -52,7 +54,7 @@ theorem initializeX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListI
           · rw [if_pos hperm]
             have rd7 := cometWithExtendedAssetList_block_1861
               (immWords := wordsOf (immStore v)) (by decide) hperm rd6
-            change RDret _ _ _ (initializeAccounts σ I)
+            change RDret fork _ _ _ (initializeAccounts σ I)
               (solcFreePtrMem.readWithPadding (memLoad ⟨64⟩ solcFreePtrMem).toNat 0) at rd7
             rw [byteArray_readWithPadding_zero] at rd7
             exact rd7

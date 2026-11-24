@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolSwapFeeSource
 import Benchmarks.UniswapV4PoolManager.WordConditionalSource
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,13 +31,13 @@ theorem poolSwapLPInitFrame_fee (f : Frame) (packed override : UInt256) :
 theorem poolSwapLPInitSource {f : Frame} {evm : State} {packed : UInt256} {p : PoolSwapParamsWords}
     (hf : f.contract = contract) (hp : f.locals.get? "params" = some (poolSwapParamsValue p))
     (hs : f.locals.get? "slot0Start" = some (wordBytes32Value packed)) (hc : p.lpFeeOverride.toNat < 2^24) :
-    ExecBlock config f evm ((poolSwapFunction.body.drop 18).take 3)
+    ExecBlock fork config f evm ((poolSwapFunction.body.drop 18).take 3)
       (if poolSwapLPFeeValid p.lpFeeOverride then .ok (poolSwapLPInitFrame f packed p.lpFeeOverride) evm else .reverted) := by
   let f1 := valueLocal f "__c6" (.bool (lpFeeIsOverride p.lpFeeOverride))
   let f2 := wordLocal f1 "lpFee" ⟨0⟩
-  have h0 : ExecStmt config f evm poolSwapFunction.body[18]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm poolSwapFunction.body[18]! (.ok f1 evm) :=
     lpFeeOverrideCall hf hc (evalStructField (field := "lpFeeOverride") (evalLocalValue hp) rfl) "__c6"
-  have h1 : ExecStmt config f1 evm poolSwapFunction.body[19]! (.ok f2 evm) :=
+  have h1 : ExecStmt fork config f1 evm poolSwapFunction.body[19]! (.ok f2 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have hp2 : f2.locals.get? "params" = some (poolSwapParamsValue p) :=
     (store_get_ne2 _ _ _ (by decide : ("__c6" == "params") = false) (by decide : ("lpFee" == "params") = false)).trans hp
@@ -43,7 +45,7 @@ theorem poolSwapLPInitSource {f : Frame} {evm : State} {packed : UInt256} {p : P
     (store_get_ne2 _ _ _ (by decide : ("__c6" == "slot0Start") = false) (by decide : ("lpFee" == "slot0Start") = false)).trans hs
   have hg2 : f2.locals.get? "__c6" = some (.bool (lpFeeIsOverride p.lpFeeOverride)) :=
     (store_get_ne _ _ (by decide : ("lpFee" == "__c6") = false)).trans (store_get_self _ _ _)
-  have h2 := poolSwapLPSelectSource (f := f2) (evm := evm) hf hp2 hs2 hg2 (store_get_self _ _ _) hc
+  have h2 := poolSwapLPSelectSource (fork := fork) (f := f2) (evm := evm) hf hp2 hs2 hg2 (store_get_self _ _ _) hc
   exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (execBlock_singleton h2))
 
 def poolSwapEffectiveFee (protocol lpFee : UInt256) : UInt256 :=
@@ -77,14 +79,14 @@ theorem poolSwapFeeInitSource {f : Frame} {evm : State} {protocol lpFee : UInt25
     (hp : f.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)))
     (hl : f.locals.get? "lpFee" = some (.int (Int.ofNat lpFee.toNat)))
     (hs : f.locals.get? "swapFee" = some old) :
-    ExecBlock config f evm ((poolSwapFunction.body.drop 21).take 2)
+    ExecBlock fork config f evm ((poolSwapFunction.body.drop 21).take 2)
       (.ok (poolSwapFeeInitFrame f protocol lpFee) evm) := by
   let f1 := wordLocal f "__c9" (protocolSwapFeeWord protocol lpFee)
   have he := evalExpr_cast_int (intType := .uint ⟨16, by decide⟩) (evalLocalValue (cfg := config) (evm := evm) hp)
   have hn := normalizeInt_uint_eq_self ⟨16, by decide⟩ (Int.ofNat protocol.toNat)
     (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hc)
   rw [hn] at he
-  have h0 : ExecStmt config f evm poolSwapFunction.body[21]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm poolSwapFunction.body[21]! (.ok f1 evm) :=
     protocolSwapFeeCall hf hc hlc he (evalLocalValue hl) "__c9"
   have hp1 : f1.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)) :=
     (store_get_ne _ _ (by decide : ("__c9" == "protocolFee") = false)).trans hp
@@ -94,7 +96,7 @@ theorem poolSwapFeeInitSource {f : Frame} {evm : State} {protocol lpFee : UInt25
     (store_get_ne _ _ (by decide : ("__c9" == "swapFee") = false)).trans hs
   have hg := evalEqWords (evalLocalValue (cfg := config) (evm := evm) hp1)
     (show evalExpr? config f1 evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) by simp only [evalExpr?, pure]; rfl)
-  have h1 : ExecStmt config f1 evm poolSwapFunction.body[22]! (.ok (poolSwapFeeInitFrame f protocol lpFee) evm) :=
+  have h1 : ExecStmt fork config f1 evm poolSwapFunction.body[22]! (.ok (poolSwapFeeInitFrame f protocol lpFee) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalWordConditional hg (evalLocalValue hl1) (evalLocalValue (store_get_self _ _ _))) (assignLocalValue hs1)
   exact ExecBlock.consNormal h0 (execBlock_singleton h1)
 

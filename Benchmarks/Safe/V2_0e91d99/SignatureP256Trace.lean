@@ -5,6 +5,8 @@ import Benchmarks.Safe.V2_0e91d99.SignatureBranchResult
 import Benchmarks.Safe.V2_0e91d99.P256Trace
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -14,8 +16,8 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 800000
 
 theorem safeSignatureP256Reject {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2365⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 12 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2365⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 12 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_2365_fallthrough (by omega) (by decide) h
   have h₂ := safeRuntime_block_2371 (by
     simp only [safeRuntime_block_2365_fallthrough_stack]; omega) (by jump_dest) h₁
@@ -26,7 +28,7 @@ theorem safeSignatureP256Reject {I g s0 σ k C aw mem rdata} {R : List UInt256}
 theorem safeSignatureP256Trace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src i} {s r current last executor : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2218⟩
+    (h : RD fork safeBytecode I g s0 ⟨2218⟩
       (UInt256.ofNat i :: s :: r :: ⟨2⟩ :: current :: last :: p.required :: UInt256.ofNat src ::
         p.hash :: executor :: R) mem aw rdata σ k C)
     (hc : SignatureContext p f i last)
@@ -39,7 +41,7 @@ theorem safeSignatureP256Trace (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hov : R.length + 43 ≤ 1024) :
-    SignatureBranchResult p I g s0 f evm i last executor src ptr mem R signatureP256Body := by
+    SignatureBranchResult fork p I g s0 f evm i last executor src ptr mem R signatureP256Body := by
   have hsize : p.signatures.size < UInt256.size := lt_trans hn (by decide)
   have hbound : src + 64 + p.signatures.size < UInt256.size := by
     change src + 64 + p.signatures.size < 2 ^ 256

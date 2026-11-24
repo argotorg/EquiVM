@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.TakeCallbackSource
 import Benchmarks.Dss.Clipper.TakePostDogRemoveSource
 import Benchmarks.Dss.Clipper.TakePostDogSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -116,7 +118,7 @@ theorem clipperTakeVatMoveNoCodeBlockAtCallbackRet (v : ClipperImmutables)
     (hnoCode :
       (UInt256.ofNat ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmCb
@@ -136,12 +138,12 @@ theorem clipperTakeVatMoveCallFailureBlockAtCallbackRet (v : ClipperImmutables)
       0 <
         (UInt256.ofNat
           ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmCb (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM fork config evmCb (EVM.address v.vat) "move" 0
       [.address evmCb.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCb).toNat),
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (false, evmMove, outMove) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmCb
@@ -154,7 +156,7 @@ theorem clipperTakeVatMoveCallFailureBlockAtCallbackRet (v : ClipperImmutables)
         (clipperEvalTakeVatCodeGuardTrueAtCallbackRet v evmLoc evmRead evmVat evmCb I
           price slice owe0 owe slice' tabNew lotNew hcode))
       (ExecBlock.consRevert
-        (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalVat v evmCb
             (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe
               slice' tabNew lotNew))
@@ -170,12 +172,12 @@ theorem clipperTakeVatMoveCallSuccessBlockAtCallbackRet (v : ClipperImmutables)
       0 <
         (UInt256.ofNat
           ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmCb (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM fork config evmCb (EVM.address v.vat) "move" 0
       [.address evmCb.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCb).toNat),
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (true, evmMove, outMove) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmCb
@@ -192,7 +194,7 @@ theorem clipperTakeVatMoveCallSuccessBlockAtCallbackRet (v : ClipperImmutables)
         (clipperEvalTakeVatCodeGuardTrueAtCallbackRet v evmLoc evmRead evmVat evmCb I
           price slice owe0 owe slice' tabNew lotNew hcode))
       (ExecBlock.consNormal
-        (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalVat v evmCb
             (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe
               slice' tabNew lotNew))
@@ -341,7 +343,7 @@ theorem clipperTakeDogDigsOweNoCodeBlockAtCallbackMoveRet (v : ClipperImmutables
         ((evmMove.lookupAccount
           (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -373,12 +375,12 @@ theorem clipperTakeDogDigsOweCallFailureBlockAtCallbackMoveRet (v : ClipperImmut
           ((evmMove.lookupAccount
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmMove
+    (hcall : typedCallViaEVM fork config evmMove
       (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
       "digs" 0
       [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (false, evmDog, outDog) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -400,7 +402,7 @@ theorem clipperTakeDogDigsOweCallFailureBlockAtCallbackMoveRet (v : ClipperImmut
           (clipperEvalTakeDogCodeGuardTrueAtCallbackMoveRet v evmLoc evmRead evmVat
             evmMove I price slice owe0 owe slice' tabNew lotNew hcode))
         (ExecBlock.consRevert
-          (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (clipperEvalTakeDogDigsTargetAtCallbackMoveRet v evmLoc evmRead evmVat
               evmMove I price slice owe0 owe slice' tabNew lotNew)
             (by simp [evalExpr?, pure])
@@ -418,12 +420,12 @@ theorem clipperTakeDogDigsOweCallSuccessBlockAtCallbackMoveRet (v : ClipperImmut
           ((evmMove.lookupAccount
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmMove
+    (hcall : typedCallViaEVM fork config evmMove
       (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
       "digs" 0
       [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (true, evmDog, outDog) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -449,7 +451,7 @@ theorem clipperTakeDogDigsOweCallSuccessBlockAtCallbackMoveRet (v : ClipperImmut
             (clipperEvalTakeDogCodeGuardTrueAtCallbackMoveRet v evmLoc evmRead evmVat
               evmMove I price slice owe0 owe slice' tabNew lotNew hcode))
           (ExecBlock.consNormal
-            (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+            (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
               (clipperEvalTakeDogDigsTargetAtCallbackMoveRet v evmLoc evmRead evmVat
                 evmMove I price slice owe0 owe slice' tabNew lotNew)
               (by simp [evalExpr?, pure])
@@ -576,7 +578,7 @@ theorem clipperTakeDogDigsOweZeroNoCodeBlockAtCallbackMoveRet (v : ClipperImmuta
         ((evmMove.lookupAccount
           (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -591,7 +593,7 @@ theorem clipperTakeDogDigsOweZeroNoCodeBlockAtCallbackMoveRet (v : ClipperImmuta
       slice' tabNew lotNew) (immStore v)
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsAmt evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
-  have hdigs : ExecStmt config moveFrame evmMove
+  have hdigs : ExecStmt fork config moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
@@ -599,7 +601,7 @@ theorem clipperTakeDogDigsOweZeroNoCodeBlockAtCallbackMoveRet (v : ClipperImmuta
       ExecStmt.letDecl
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
-  have hdog : ExecBlock config digsFrame evmMove
+  have hdog : ExecBlock fork config digsFrame evmMove
       (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
         [ilkExpr, .var "digsAmt"] "_digsRet") .reverted := by
     have hguard : evalExpr? config digsFrame evmMove
@@ -629,12 +631,12 @@ theorem clipperTakeDogDigsOweZeroCallFailureBlockAtCallbackMoveRet
           ((evmMove.lookupAccount
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmMove
+    (hcall : typedCallViaEVM fork config evmMove
       (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
       "digs" 0
       [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (false, evmDog, outDog) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -649,7 +651,7 @@ theorem clipperTakeDogDigsOweZeroCallFailureBlockAtCallbackMoveRet
       slice' tabNew lotNew) (immStore v)
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsAmt evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
-  have hdigs : ExecStmt config moveFrame evmMove
+  have hdigs : ExecStmt fork config moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
@@ -657,7 +659,7 @@ theorem clipperTakeDogDigsOweZeroCallFailureBlockAtCallbackMoveRet
       ExecStmt.letDecl
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
-  have hdog : ExecBlock config digsFrame evmMove
+  have hdog : ExecBlock fork config digsFrame evmMove
       (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
         [ilkExpr, .var "digsAmt"] "_digsRet") .reverted := by
     have hguard : evalExpr? config digsFrame evmMove
@@ -669,7 +671,7 @@ theorem clipperTakeDogDigsOweZeroCallFailureBlockAtCallbackMoveRet
     simpa [checkedExternalCallStmts] using
       ExecBlock.consNormal (ExecStmt.requireTrue hguard)
         (ExecBlock.consRevert
-          (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (clipperEvalTakeDogDigsTargetAtCallbackDigsAmt v evmLoc evmRead evmVat
               evmMove I price slice owe0 owe slice' tabNew lotNew)
             (by simp [evalExpr?, pure])
@@ -695,12 +697,12 @@ theorem clipperTakeDogDigsOweZeroCallSuccessBlockAtCallbackMoveRet
           ((evmMove.lookupAccount
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmMove
+    (hcall : typedCallViaEVM fork config evmMove
       (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
       "digs" 0
       [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (true, evmDog, outDog) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -720,7 +722,7 @@ theorem clipperTakeDogDigsOweZeroCallSuccessBlockAtCallbackMoveRet
       slice' tabNew lotNew) (immStore v)
   let retFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
-  have hdigs : ExecStmt config moveFrame evmMove
+  have hdigs : ExecStmt fork config moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
         (wrap256 (.binary .add (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
@@ -728,7 +730,7 @@ theorem clipperTakeDogDigsOweZeroCallSuccessBlockAtCallbackMoveRet
       ExecStmt.letDecl
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
-  have hdog : ExecBlock config digsFrame evmMove
+  have hdog : ExecBlock fork config digsFrame evmMove
       (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
         [ilkExpr, .var "digsAmt"] "_digsRet") (.ok retFrame evmDog) := by
     have hguard : evalExpr? config digsFrame evmMove
@@ -741,7 +743,7 @@ theorem clipperTakeDogDigsOweZeroCallSuccessBlockAtCallbackMoveRet
       clipperTakeLocalsCallbackDigsAmtRet, collapseReturns] using
       ExecBlock.consNormal (ExecStmt.requireTrue hguard)
         (ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (clipperEvalTakeDogDigsTargetAtCallbackDigsAmt v evmLoc evmRead evmVat
               evmMove I price slice owe0 owe slice' tabNew lotNew)
             (by simp [evalExpr?, pure])
@@ -929,14 +931,14 @@ theorem clipperTakePostDogTabZeroFluxNoCodeBlockAtCallbackDigsRet
     (hnoCode :
       (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts) .reverted := by
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock config digsFrame evmDog
+      ExecBlock fork config digsFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         .reverted := by
@@ -945,7 +947,7 @@ theorem clipperTakePostDogTabZeroFluxNoCodeBlockAtCallbackDigsRet
         (ExecStmt.requireFalse
           (clipperEvalTakeVatCodeGuard_false v evmDog digsFrame.locals hnoCode))
   have htabIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -960,7 +962,7 @@ theorem clipperTakePostDogTabZeroFluxNoCodeBlockAtCallbackDigsRet
             price slice owe0 owe slice' tabNew lotNew htab))
       (execBlockAppendReverted hflux)
   have hlotIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -987,19 +989,19 @@ theorem clipperTakePostDogTabZeroFluxCallFailureBlockAtCallbackDigsRet
       0 <
         (UInt256.ofNat
           ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
       [v.ilk, .address evmDog.executionEnv.codeOwner,
         .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
         .int (Int.ofNat lotNew.toNat)]
       (false, evmFlux, outFlux) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts) .reverted := by
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock config digsFrame evmDog
+      ExecBlock fork config digsFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         .reverted := by
@@ -1008,14 +1010,14 @@ theorem clipperTakePostDogTabZeroFluxCallFailureBlockAtCallbackDigsRet
         (ExecStmt.requireTrue
           (clipperEvalTakeVatCodeGuard_true v evmDog digsFrame.locals hcode))
         (ExecBlock.consRevert
-          (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (clipperEvalVat v evmDog digsFrame.locals)
             (by simp [evalExpr?, pure])
             (clipperEvalTakeVatFluxUsrArgsAtCallbackDigsRet v evmLoc evmRead evmVat
               evmDog I price slice owe0 owe slice' tabNew lotNew)
             hcall))
   have htabIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -1030,7 +1032,7 @@ theorem clipperTakePostDogTabZeroFluxCallFailureBlockAtCallbackDigsRet
             price slice owe0 owe slice' tabNew lotNew htab))
       (execBlockAppendReverted hflux)
   have hlotIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1078,15 +1080,15 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsAtCallbackDigsRet
       0 <
         (UInt256.ofNat
           ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
       [v.ilk, .address evmDog.executionEnv.codeOwner,
         .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
         .int (Int.ofNat lotNew.toNat)]
       (true, evmFlux, outFlux) true)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmFlux removeFunction.body .reverted) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts) .reverted := by
@@ -1095,7 +1097,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsAtCallbackDigsRet
   let fluxFrame : Frame :=
     { contract := contract, locals := digsFrame.locals.insert "_fluxUsrRet" .unit, immutables := immStore v }
   have hflux :
-      ExecBlock config digsFrame evmDog
+      ExecBlock fork config digsFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         (.ok fluxFrame evmFlux) := by
@@ -1107,7 +1109,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsAtCallbackDigsRet
           evmDog I price slice owe0 owe slice' tabNew lotNew)
         hcall (clipperTakeDecodeFluxVoid outFlux)
   have hremoveStmt :
-      ExecStmt config fluxFrame evmFlux
+      ExecStmt fork config fluxFrame evmFlux
         (.internalCall "_remove" [.var "id"] "_removeRet2") .reverted := by
     exact internalCallFunctionRevert
       (cfg := config) (caller := fluxFrame) (evm := evmFlux)
@@ -1120,7 +1122,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsAtCallbackDigsRet
             evmFlux I price slice owe0 owe slice' tabNew lotNew))
       (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove
   have htabIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -1135,7 +1137,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsAtCallbackDigsRet
             price slice owe0 owe slice' tabNew lotNew htab))
       (execBlockAppendOk hflux (ExecBlock.consRevert hremoveStmt))
   have hlotIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1164,12 +1166,12 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
       0 <
         (UInt256.ofNat
           ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+    (hcall : typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
       [v.ilk, .address evmDog.executionEnv.codeOwner,
         .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
         .int (Int.ofNat lotNew.toNat)]
       (true, evmFlux, outFlux) true)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmFlux removeFunction.body (.returned calleeStele evmRemove none))
     (hperm : evmRemove.executionEnv.perm = true) :
@@ -1179,7 +1181,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
           ((clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew).insert "_fluxUsrRet" .unit).insert
               "_removeRet2" .unit, immutables := immStore v }
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts)
@@ -1191,7 +1193,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
   let fluxFrame : Frame :=
     { contract := contract, locals := digsFrame.locals.insert "_fluxUsrRet" .unit, immutables := immStore v }
   have hflux :
-      ExecBlock config digsFrame evmDog
+      ExecBlock fork config digsFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         (.ok fluxFrame evmFlux) := by
@@ -1203,7 +1205,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
           evmDog I price slice owe0 owe slice' tabNew lotNew)
         hcall (clipperTakeDecodeFluxVoid outFlux)
   have hremoveStmt :
-      ExecStmt config fluxFrame evmFlux
+      ExecStmt fork config fluxFrame evmFlux
         (.internalCall "_remove" [.var "id"] "_removeRet2")
         (.ok resultFrame evmRemove) := by
     simpa [resumeAfterInternalCall, fluxFrame, digsFrame, resultFrame] using
@@ -1219,7 +1221,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
               evmFlux I price slice owe0 owe slice' tabNew lotNew))
         (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove)
   have htabIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -1234,7 +1236,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
             price slice owe0 owe slice' tabNew lotNew htab))
       (execBlockAppendOk hflux (ExecBlock.consNormal hremoveStmt ExecBlock.nil))
   have hlotIte :
-      ExecStmt config digsFrame evmDog
+      ExecStmt fork config digsFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1251,7 +1253,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkAtCallbackDigsRet
             price slice owe0 owe slice' tabNew lotNew hlot))
       (ExecBlock.consNormal htabIte ExecBlock.nil)
   have hunlock :
-      ExecStmt config resultFrame evmRemove
+      ExecStmt fork config resultFrame evmRemove
         (.assign .storage lockedRef (.intLit 0))
         (.ok resultFrame
           (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
@@ -1326,16 +1328,16 @@ theorem clipperTakePostDogLotZeroRemoveSourceRevertsAtCallbackDigsAmtRet
     (evmLoc evmRead evmVat evmDog : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hlot : lotNew = ⟨0⟩)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmDog removeFunction.body .reverted) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts) .reverted := by
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
-  have hremoveStmt : ExecStmt config digsFrame evmDog
+  have hremoveStmt : ExecStmt fork config digsFrame evmDog
       (.internalCall "_remove" [.var "id"] "_removeRet") .reverted := by
     exact internalCallFunctionRevert
       (cfg := config) (caller := digsFrame) (evm := evmDog)
@@ -1346,7 +1348,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceRevertsAtCallbackDigsAmtRet
         (clipperTakeRemoveArgsAtCallbackDigsAmtRet v evmLoc evmRead evmVat evmDog I
           price slice owe0 owe slice' tabNew lotNew))
       (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove
-  have hlotIte : ExecStmt config digsFrame evmDog
+  have hlotIte : ExecStmt fork config digsFrame evmDog
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1369,7 +1371,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceOkAtCallbackDigsAmtRet
     (evmLoc evmRead evmVat evmDog evmRemove : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) {calleeStele : Frame}
     (hlot : lotNew = ⟨0⟩)
-    (hremove : ExecFuncBody config
+    (hremove : ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
       evmDog removeFunction.body (.returned calleeStele evmRemove none))
     (hperm : evmRemove.executionEnv.perm = true) :
@@ -1378,7 +1380,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceOkAtCallbackDigsAmtRet
         locals :=
           (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew).insert "_removeRet" .unit, immutables := immStore v }
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (clipperTakePostDogStmts)
@@ -1387,7 +1389,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceOkAtCallbackDigsAmtRet
   intro resultFrame
   let digsFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsAmtRet evmLoc evmRead evmVat I price slice owe0 owe
       slice' tabNew lotNew) (immStore v)
-  have hremoveStmt : ExecStmt config digsFrame evmDog
+  have hremoveStmt : ExecStmt fork config digsFrame evmDog
       (.internalCall "_remove" [.var "id"] "_removeRet")
       (.ok resultFrame evmRemove) := by
     simpa [resumeAfterInternalCall, digsFrame, resultFrame] using
@@ -1401,7 +1403,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceOkAtCallbackDigsAmtRet
           (clipperTakeRemoveArgsAtCallbackDigsAmtRet v evmLoc evmRead evmVat evmDog I
             price slice owe0 owe slice' tabNew lotNew))
         (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremove)
-  have hlotIte : ExecStmt config digsFrame evmDog
+  have hlotIte : ExecStmt fork config digsFrame evmDog
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1429,7 +1431,7 @@ theorem clipperTakePostDogLotZeroRemoveSourceOkAtCallbackDigsAmtRet
       clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
       clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
       clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]
-  have hunlock : ExecStmt config resultFrame evmRemove
+  have hunlock : ExecStmt fork config resultFrame evmRemove
       (.assign .storage lockedRef (.intLit 0))
       (.ok resultFrame
         (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
@@ -1538,7 +1540,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
         "digs" 0
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
@@ -1550,7 +1552,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
     let evmLot :=
       Stele.EVM.storageStore evmTab evmTab.executionEnv.codeOwner
         (clipperTakeSalesLotSlot I) lotNew
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmMove
@@ -1581,7 +1583,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
       tabNew lotNew) (immStore v)
   let digsRetFrame := Frame.mk contract (clipperTakeLocalsCallbackDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
       tabNew lotNew) (immStore v)
-  have hdog : ExecBlock config moveFrame evmMove
+  have hdog : ExecBlock fork config moveFrame evmMove
       [ .ite (.binary .eq (.var "lot") (.intLit 0))
           (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
             checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
@@ -1596,7 +1598,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
     evmVat evmDog I price slice owe0 owe slice' tabNew lotNew hlotNew
   have htabCond := clipperEvalTakeTabEqZeroFalseAtCallbackDigsRet v evmLoc evmRead
     evmVat evmDog I price slice owe0 owe slice' tabNew lotNew htabNew
-  have htabStmt : ExecStmt config digsRetFrame evmDog
+  have htabStmt : ExecStmt fork config digsRetFrame evmDog
       (.assign .storage (salesF (.var "id") "tab") (.var "tab"))
       (.ok digsRetFrame evmTab) := by
     exact ExecStmt.assign (hperm := Or.inr (by
@@ -1607,7 +1609,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
       (by simpa [digsRetFrame, evmTab] using
         (clipperTakeAssignSalesTabAtCallbackDigsRet v evmLoc evmRead evmVat evmDog I
           price slice owe0 owe slice' tabNew lotNew))
-  have hlotStmt : ExecStmt config digsRetFrame evmTab
+  have hlotStmt : ExecStmt fork config digsRetFrame evmTab
       (.assign .storage (salesF (.var "id") "lot") (.var "lot"))
       (.ok digsRetFrame evmLot) := by
     exact ExecStmt.assign (hperm := Or.inr (by
@@ -1620,7 +1622,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
           price slice owe0 owe slice' tabNew lotNew))
   have hstoreBlock := ExecBlock.consNormal htabStmt
     (ExecBlock.consNormal hlotStmt ExecBlock.nil)
-  have htabIte : ExecStmt config digsRetFrame evmDog
+  have htabIte : ExecStmt fork config digsRetFrame evmDog
       (.ite (.binary .eq (.var "tab") (.intLit 0))
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -1629,7 +1631,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ])
       (.ok digsRetFrame evmLot) := by
     exact ExecStmt.iteFalse (by simpa [digsRetFrame] using htabCond) hstoreBlock
-  have hlotIte : ExecStmt config digsRetFrame evmDog
+  have hlotIte : ExecStmt fork config digsRetFrame evmDog
       (.ite (.binary .eq (.var "lot") (.intLit 0))
         [ .internalCall "_remove" [.var "id"] "_removeRet" ]
         [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -1641,7 +1643,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOkAtCallbackMoveRet
       (.ok digsRetFrame evmLot) := by
     exact ExecStmt.iteFalse (by simpa [digsRetFrame] using hlotCond)
       (ExecBlock.consNormal htabIte ExecBlock.nil)
-  have hunlock : ExecStmt config digsRetFrame evmLot
+  have hunlock : ExecStmt fork config digsRetFrame evmLot
       (.assign .storage lockedRef (.intLit 0))
       (.ok digsRetFrame
         (Stele.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by

@@ -2,20 +2,22 @@ import Benchmarks.UniswapV4PoolManager.PrecompileSmallOutput
 import Benchmarks.UniswapV4PoolManager.PrecompileExpmodGas
 import Benchmarks.UniswapV4PoolManager.PrecompileBls
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
 -- LIBRARY CANDIDATE: the native message-call dispatcher, exposed for reply-shape reasoning.
-def precompileResult (pc : AccountAddress) (σ : AccountMap) (g : UInt256) (A : Substate)
+def precompileResult (fork : Ethereum.Fork) (pc : AccountAddress) (σ : AccountMap) (g : UInt256) (A : Substate)
     (I : ExecutionEnv) : AccountMap × UInt256 × Substate × ByteArray :=
-  Ξ_PRECOMPILE pc σ g A I
+  Ξ_PRECOMPILE fork pc σ g A I
 
 theorem precompileResult_reply (pc : AccountAddress) (σ : AccountMap) (g : UInt256) (A : Substate)
     (I : ExecutionEnv) (hb : 2^132 ≤ nat_of_slice I.calldata 0 32) :
-    (precompileResult pc σ g A I).2.2.2.size ≤ 64 ∨
-      (precompileResult pc σ g A I).2.2.2 = I.calldata := by
+    (precompileResult fork pc σ g A I).2.2.2.size ≤ 64 ∨
+      (precompileResult fork pc σ g A I).2.2.2 = I.calldata := by
   unfold precompileResult
-  apply Ξ_PRECOMPILE_induction (fun r ↦ r.2.2.2.size ≤ 64 ∨ r.2.2.2 = I.calldata)
+  apply Ξ_PRECOMPILE_induction fork (fun r ↦ r.2.2.2.size ≤ 64 ∨ r.2.2.2 = I.calldata)
   · exact .inl precompile_ECREC_output_size_le_64
   · exact .inl precompile_SHA256_output_size_le_64
   · exact .inl precompile_RIP160_output_size_le_64
@@ -57,14 +59,14 @@ theorem thetaPrecompile_reply {fork : Ethereum.Fork}
     | none => σ'₁
     | some acc => σ'₁.insert s {acc with balance := acc.balance-v}
   let I : ExecutionEnv :=
-    { fork := fork, codeOwner := r, sender := o, gasPrice := p.toNat, calldata := d,
+    { codeOwner := r, sender := o, gasPrice := p.toNat, calldata := d,
       source := s, weiValue := v', depth := e, perm := perm, code := default,
       header := H, blobVersionedHashes := blob, blocks := blocks }
   have ho := congrArg (fun result => result.2.2.2.2) h
   unfold Ethereum.EVM.Θ at ho
   simp only at ho
-  change (precompileResult pc σ₁ g A I).2.2.2 = out at ho
-  have hp := precompileResult_reply pc σ₁ g A I hb
+  change (precompileResult fork pc σ₁ g A I).2.2.2 = out at ho
+  have hp := precompileResult_reply (fork := fork) pc σ₁ g A I hb
   simpa only [ho] using hp
 
 end Benchmarks.UniswapV4PoolManager

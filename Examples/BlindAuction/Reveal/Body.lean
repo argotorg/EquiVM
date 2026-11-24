@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.BodyCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -33,12 +35,12 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     (hvaluesLenMax : UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩) :
     ∀ v a L evm,
       RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm → ∀ k C,
-        RD blindAuctionBytecode I g s0
+        RD fork blindAuctionBytecode I g s0
           ⟨1023⟩
           (scratch_revealEvmLoopStack a.idx a.refund loopLen revealEnd biddingEnd
             secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel)
           a.mem a.aw ByteArray.empty a.acc k C →
-        RevealLoopBodyOutcome I g s0 σ₀ A v k C loopLen revealEnd biddingEnd
+        RevealLoopBodyOutcome fork I g s0 σ₀ A v k C loopLen revealEnd biddingEnd
           secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel
           values fakes secrets a L evm := by
   intro v a L evm hInv k C rd1023
@@ -229,7 +231,7 @@ theorem scratch_revealLoop_fromLoopStart_or_revert {I : ExecutionEnv} {g : Sat25
     (hfakesListLen : fakes.length = fakesLenWord.toNat)
     (hsecretsListLen : secrets.length = secretsLenWord.toNat)
     (hvaluesLenMax : UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩) :
-    RevealLoopRunFromStart I g s0 σ₀ A loopLen revealEnd biddingEnd secretsLenWord
+    RevealLoopRunFromStart fork I g s0 σ₀ A loopLen revealEnd biddingEnd secretsLenWord
       secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel values fakes secrets := by
   refine scratch_revealLoop_from_bodyOutcome_or_revert
     (I := I) (g := g) (s0 := s0)

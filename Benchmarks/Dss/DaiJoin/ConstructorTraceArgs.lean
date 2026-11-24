@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.ConstructorTraceBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor argument and guard traces
 -/
@@ -15,10 +17,10 @@ theorem daiJoinInitcodeNonpayableRevert
     (vat dai : AccountAddress)
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (daiJoinCtorCode vat dai) g
+    RDrev fork (daiJoinCtorCode vat dai) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -38,9 +40,9 @@ theorem daiJoinCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
-    (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨18⟩ []
+    (h : RD fork (daiJoinCtorCode vat dai) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
       [(UInt256.ofNat (daiJoinCtorCode vat dai).size).sub ⟨1876⟩, ⟨128⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) rdata acc k' C' := by
   have hcopy : (daiJoinCtorCode vat dai).write 1876 solcFreePtrMem 128 64 =
@@ -71,7 +73,7 @@ theorem daiJoinCtorArgCopyTrace
     dup2, dup2, add, push1 ⟨64⟩,
     raw mstore 0 (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6)
       (by daiJoin_ctor_decode) mem_cost hfree (by decide) (by evm_ov)]
-  have rd38' : RD (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
+  have rd38' : RD fork (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
       [(UInt256.ofNat (daiJoinCtorCode vat dai).size).sub ⟨1876⟩, ⟨128⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
@@ -91,10 +93,10 @@ theorem daiJoinCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
-    (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
+    (h : RD fork (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
       [(UInt256.ofNat (daiJoinCtorCode vat dai).size).sub ⟨1876⟩, ⟨128⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) rdata acc k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g s0 ⟨61⟩
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g s0 ⟨61⟩
       [EVM.word dai.val, EVM.word vat.val, ⟨32⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) rdata acc k' C' := by
   have rdBeforeJump := daiJoin_ctor_run h with [
@@ -111,7 +113,7 @@ theorem daiJoinCtorArgSizeGuardTrace
     raw mload 0 (EVM.word dai.val) (UInt256.ofNat 6)
       (by daiJoin_ctor_decode) mem_cost (daiJoinCtorArgFreeMem_mload160 vat dai)
       (by decide) (by evm_ov)]
-  have rd61' : RD (daiJoinCtorCode vat dai) I g s0 ⟨61⟩
+  have rd61' : RD fork (daiJoinCtorCode vat dai) I g s0 ⟨61⟩
       [EVM.word dai.val, EVM.word vat.val, ⟨32⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
@@ -127,13 +129,13 @@ theorem daiJoinCtorArgsReach
     (vat dai : AccountAddress)
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (daiJoinCtorCode vat dai) I g
+    ∃ k C, RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨61⟩
       [EVM.word dai.val, EVM.word vat.val, ⟨32⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) ByteArray.empty
       σ k C := by
   have rd8 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ 6 26 := by
@@ -146,7 +148,7 @@ theorem daiJoinCtorArgsReach
       (by daiJoin_ctor_decode) (by daiJoin_ctor_decode) (by daiJoin_ctor_decode)
       (by daiJoin_ctor_decode) (by daiJoin_ctor_jd)
   have rd18' :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]

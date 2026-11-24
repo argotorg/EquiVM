@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele Reasoning.Theory
 
 namespace Benchmarks.CompoundIII.Comet
@@ -9,7 +11,7 @@ theorem tuplePairLets_source (cfg : Config) (frame : Frame) (evm : EVM.State)
     (tupleName firstName secondName : Ident) (firstType secondType : Option ABI.ABIType)
     (first second : Value) (hne : firstName ≠ tupleName)
     (ht : frame.locals.get? tupleName = some (.tuple [first, second])) :
-    ExecBlock cfg frame evm
+    ExecBlock fork cfg frame evm
       [.letDecl firstName firstType (.tupleGet (.var tupleName) 0),
         .letDecl secondName secondType (.tupleGet (.var tupleName) 1)]
       (.ok { frame with locals := (frame.locals.insert firstName first).insert secondName second }

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.MultiRevokeExternal
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Attester multiRevoke proof scaffold
 
@@ -24,13 +26,13 @@ theorem attesterMultiRevokeBody (imms : Store) (hfit : immutablesFit contract im
     (hcode : I.code = deployedRuntime attesterBytecode imms)
     (hsize : I.calldata.size < UInt256.size) (hvalue : I.weiValue = ⟨0⟩)
     (hselector : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hc := hcode.trans (deployedRuntime_eq_layout hfit)
   have hdispatch := attesterMultiRevokeDispatch hselector
   have hfour := calldata_size_ge_of_selIs I attesterMultiRevokeSelBytes rfl hselector
   have hsel : I.calldata.extract 0 4 = attesterMultiRevokeSelBytes :=
     (byteArray_eq_of_beq hselector).symm
-  obtain ⟨k, C, rd⟩ := attesterMultiRevokeReachDecode (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := attesterMultiRevokeReachDecode (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hc hvalue hsize hselector
   rcases multiRevokeBodyView rd (by simp) with ⟨hbad, hrev⟩ | ⟨hchecks, k, C, rd⟩
   · exact hrev.reEquivDecodingFailed hc hdispatch
@@ -65,7 +67,7 @@ theorem attesterMultiRevokeBody (imms : Store) (hfit : immutablesFit contract im
     | none => exact hrev.reEquivDecodingFailed hc hdispatch (multiRevokeDecode_none hdecode)
     | some values =>
         obtain ⟨schemas, rows, _, rfl, hslen, hrlen, _⟩ := decodeArrays_first_facts hdecode
-        have hsource := multiRevokeSourceBadShape
+        have hsource := multiRevokeSourceBadShape (fork := fork)
           (schemas := schemas) (rows := rows)
           (imms := restrictImmutables contract imms)
           (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hvalue

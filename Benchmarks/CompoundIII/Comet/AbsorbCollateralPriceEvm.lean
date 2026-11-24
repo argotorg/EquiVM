@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbCollateralMathEvm
 import Benchmarks.CompoundIII.Comet.PriceInternal
 import Benchmarks.CompoundIII.Comet.PriceAssetMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,15 +14,15 @@ set_option maxRecDepth 2000
 
 attribute [local irreducible] absorbCollateralMathDecidable absorbCollateralWordsDecidable
 
-def AbsorbCollateralPricedRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def AbsorbCollateralPricedRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (before : ByteArray) (free delta seized : UInt256)
     (assetOut : ByteArray) (R : List UInt256) : Option (State × UInt256) → Prop
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm, price) => ∃ σ mem free' aw data k C,
       SourceState s0 ee σ evm ∧ free'.toNat = free.toNat + 160 ∧
       memLoad ⟨64⟩ mem = free' ∧ free'.toNat ≤ mem.size ∧
       MemoryPrefix before mem free.toNat ∧
-      RD (deployedRuntime v) ee g s0 ⟨17811⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17811⟩
         (absorbCollateralDelta delta seized price assetOut :: seized ::
           absorbCollateralValue seized price assetOut :: R) mem aw data σ k C
 
@@ -31,10 +33,10 @@ theorem cometAbsorbCollateralPriceMath {v : CometWithExtendedAssetListImmutables
     (hm : AssetMemory mem ptr free assetOut) (hc : AssetCanonical assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17713⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17713⟩
       (delta :: seized :: ptr :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbCollateralPriceTrace assetOut delta seized evm result ∧
-      AbsorbCollateralPricedRun v ee g s0 mem free delta seized assetOut R result := by
+    ∃ result, AbsorbCollateralPriceTrace fork assetOut delta seized evm result ∧
+      AbsorbCollateralPricedRun fork v ee g s0 mem free delta seized assetOut R result := by
   have r1 := cometWithExtendedAssetList_block_17713 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [cometWithExtendedAssetList_block_17713_stack] at r1
@@ -74,16 +76,16 @@ theorem cometAbsorbCollateralPriceMath {v : CometWithExtendedAssetListImmutables
   · rw [if_neg hp] at hr
     exact ⟨none, AbsorbCollateralPriceTrace.priceFailed hcall hh' hp, hr⟩
 
-def AbsorbCollateralPriceRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def AbsorbCollateralPriceRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (before : ByteArray) (free delta seized : UInt256)
     (assetOut : ByteArray) (i assets reserved old principal basePrice account : UInt256)
     (R : List UInt256) : Option (State × UInt256) → Prop
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm, price) => ∃ σ mem free' aw data k C,
       SourceState s0 ee σ evm ∧ free'.toNat = free.toNat + 160 ∧
       memLoad ⟨64⟩ mem = free' ∧ free'.toNat ≤ mem.size ∧
       MemoryPrefix before mem free.toNat ∧
-      RD (deployedRuntime v) ee g s0 ⟨17567⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17567⟩
         (i :: assets :: reserved :: old :: principal :: basePrice :: account ::
           absorbCollateralDelta delta seized price assetOut :: R) mem aw data σ k C
 
@@ -95,11 +97,11 @@ theorem cometAbsorbCollateralPrice {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free assetOut) (hc : AssetCanonical assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17713⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17713⟩
       (delta :: seized :: ptr :: absorber :: account :: i :: assets :: reserved :: old ::
         principal :: basePrice :: account :: asset :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbCollateralPriceTrace assetOut delta seized evm result ∧
-      AbsorbCollateralPriceRun v ee g s0 mem free delta seized assetOut
+    ∃ result, AbsorbCollateralPriceTrace fork assetOut delta seized evm result ∧
+      AbsorbCollateralPriceRun fork v ee g s0 mem free delta seized assetOut
         i assets reserved old principal basePrice account R result := by
   obtain ⟨result, ht, hr⟩ := cometAbsorbCollateralPriceMath (v := v)
     (by change R.length + 10 + 15 ≤ 1024; omega) hn hm hc hgap hbound hs h

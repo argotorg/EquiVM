@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AuthorizationSigFinishSource
 import Benchmarks.Morpho.MorphoBlue.WordComparisons
 import Benchmarks.Morpho.MorphoBlue.LocalBytesGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -33,11 +35,11 @@ theorem morphoAuthorizationSourceSignatory {a cd locals}
     (out : ByteArray) (ho : EcrecoverOutput out)
     (hz : locals.get? "success" = some (.bool true))
     (hout : locals.get? "recovered" = some (.bytes out)) :
-    ABlock config evm { contract := contract, locals := locals, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 19)
       { contract := contract, locals := authorizationSignatoryLocals locals out, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 22) := by
-  have p : ABlock config evm { contract := contract, locals := locals, immutables := imms }
+  have p : ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 19)
       {
         contract := contract, locals := locals.insert "signatory" (.address (AccountAddress.ofNat 0)), immutables := imms }
@@ -56,7 +58,7 @@ theorem morphoAuthorizationSourceSignatory {a cd locals}
     exact ExecStmt.iteFalse (by simpa only [hs, ne_eq, not_true_eq_false, decide_false] using he) .nil
   · simp only [authorizationSignatoryLocals, hs, show (32 : Nat) ≠ 0 by decide, ↓reduceIte]
     apply ExecStmt.iteTrue (by simpa only [hs] using he)
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalWord (store_get_self _ _ _))) .nil
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalWord (store_get_self _ _ _))) .nil
     rw [evalExpr?]
     have he' : evalExpr? config {
         contract := contract, locals := locals.insert "signatory" (.address (AccountAddress.ofNat 0)), immutables := imms }
@@ -70,7 +72,7 @@ theorem morphoAuthorizationSourceSignatory {a cd locals}
 
 theorem morphoAuthorizationSourceRecoveryFailed (locals imms : Store) (evm : EVM.State)
     (hz : locals.get? "success" = some (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (setAuthorizationWithSigTransition.body.drop 19) .reverted :=
   ExecBlock.consRevert (ExecStmt.requireFalse
     (by simp only [evalExpr?, hz, EvalResult.ofOption]))
@@ -81,13 +83,13 @@ theorem morphoAuthorizationSourceVerify {a cd locals}
     (hz : locals.get? "success" = some (.bool true))
     (hout : locals.get? "recovered" = some (.bytes out)) :
     if AuthorizationSignatureValid a out then
-      ABlock config evm { contract := contract, locals := locals, immutables := imms }
+      ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (setAuthorizationWithSigTransition.body.drop 19)
         { contract := contract, locals := authorizationSignatoryLocals locals out, immutables := imms }
         (setAuthorizationWithSigTransition.body.drop 24)
-    else ExecBlock config { contract := contract, locals := locals, immutables := imms }
+    else ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (setAuthorizationWithSigTransition.body.drop 19) .reverted := by
-  have p := morphoAuthorizationSourceSignatory hl imms evm out ho hz hout
+  have p := morphoAuthorizationSourceSignatory (fork := fork) hl imms evm out ho hz hout
   have he : evalExpr? config
       { contract := contract, locals := authorizationSignatoryLocals locals out, immutables := imms }
       evm (.var "signatory") = .ok (.address (AccountAddress.ofNat (ecrecoverWord out).toNat)) := by

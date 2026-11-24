@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ArrayLoopSource
 import Benchmarks.EAS.EAS.ArrayAllocateSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -55,7 +57,7 @@ theorem mergeUIDInnerSource {L imms : Store} {evm : EVM.State} {groups : List (L
     {words values : List UInt256} {heap c i j : Nat}
     (h : MergeUIDInnerLocals L groups words values heap c i j) (hc : c < words.length) (hj : j < values.length)
     (hcb : c+1 < UInt256.size) (hjb : j+1 < UInt256.size) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm mergeUIDInnerIteration
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm mergeUIDInnerIteration
       (.ok {contract := contract,locals := mergeUIDInnerNext L words values[j] c j,immutables := imms} evm) := by
   apply ExecBlock.consNormal (execLocalWordArrayCopy h.outer.words h.current h.outer.cursor h.index hc hj)
   apply ExecBlock.consNormal (execLocalCastIncrement (by simpa (disch := decide) only [store_get_ne] using h.index) hjb)
@@ -66,7 +68,7 @@ theorem mergeUIDOuterInitialSource {L imms : Store} {evm : EVM.State} {groups : 
     {words : List UInt256} {heap c i : Nat}
     (h : MergeUIDLocals L groups words heap c i) (hi : i < groups.length) :
     let next := (L.insert "currentUids" (wordListValue groups[i])).insert "j" (.int 0)
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm mergeUIDOuterInitial
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm mergeUIDOuterInitial
       (.ok {contract := contract,locals := next,immutables := imms} evm) ∧
     MergeUIDInnerLocals next groups words groups[i] heap c i 0 := by
   dsimp only
@@ -101,13 +103,13 @@ theorem mergeUIDPrefixSource {L imms : Store} {evm : EVM.State} {groups : List (
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     let next := allocateNext heap (32+32*n)
     (n ≤ 2^64-1 ∧ (next ≤ 2^64-1 ∧ heap ≤ next) →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm mergeUIDPrefix
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm mergeUIDPrefix
         (.ok {contract := contract,locals := mergeUIDInitialLocals L n next,immutables := imms} evm) ∧
       MergeUIDLocals (mergeUIDInitialLocals L n next) groups (List.replicate n ⟨0⟩) next 0 0) ∧
     (¬ (n ≤ 2^64-1 ∧ (next ≤ 2^64-1 ∧ heap ≤ next)) →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm mergeUIDPrefix .reverted) := by
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm mergeUIDPrefix .reverted) := by
   dsimp only
-  have ha := arrayAllocateExprSource (cfg := config) (imms := imms) (evm := evm) (evalLocalValue hn) hh 32
+  have ha := arrayAllocateExprSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) (evalLocalValue hn) hh 32
   constructor
   · intro hv
     rw [if_pos hv.1,if_pos hv.2] at ha

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawRefine
 import Benchmarks.Morpho.MorphoBlue.MarketTwoWordsTwoAddressesDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `withdraw((address,address,address,address,uint256),uint256,uint256,address,address)`
 
@@ -21,13 +23,13 @@ set_option maxRecDepth 1000
 theorem morphoWithdrawBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 10) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some withdrawTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k0, C0, rd0⟩ := morphoReachWithdrawBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd1 := morphoBlocks.morpho_block_7496_taken (immWords := wordsOf (immStore v))
@@ -66,7 +68,7 @@ theorem morphoWithdrawBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
       ⟨hbad, hrev⟩ | ⟨hg, a3, k3, C3, rd3⟩
     · exact reEquivSelectorRevert hcode hrev hd hdec
         (morphoMarketTransferSourceReject (withdrawTransition.body.drop 11) p assets shares account receiver hc ha hr evm (immStore v) hcv hbound hbad)
-    · have pref := morphoMarketTransferSourceGuards (withdrawTransition.body.drop 11) p assets shares account receiver hc ha hr evm (immStore v) hcv hbound hg
+    · have pref := morphoMarketTransferSourceGuards (fork := fork) (withdrawTransition.body.drop 11) p assets shares account receiver hc ha hr evm (immStore v) hcv hbound hg
       have hl := marketTransferBeforeAccrue_locals p assets shares account receiver evm (immStore v)
       have ht := morphoWithdrawRefine p _ (immStore v) hc ha hr hl SourceState.init
         (by exact store_get_self _ _ _) rd3

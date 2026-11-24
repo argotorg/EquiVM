@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnUpdatedBalanceRuntime
 import Examples.UniswapV2Pair.StackRoutines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,13 +12,13 @@ theorem RD.uniswapBurnUpdatedBalance1Prepared
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr supply fee liquidity balance1 balance0 newBalance0 token1 token0 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd4754 : RD uniswapV2PairBytecode I g s0 ⟨4754⟩
+    (rd4754 : RD fork uniswapV2PairBytecode I g s0 ⟨4754⟩
       (newBalance0 :: supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4815⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4815⟩
       (UInt256.land token1 solcAddrMask :: UInt256.land token1 solcAddrMask ::
         ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord ::
         UInt256.land token1 solcAddrMask ::
@@ -39,10 +41,10 @@ theorem RD.uniswapBurnUpdateEntry
     {acc : AccountMap} {mem rdata : ByteArray}
     {aw newBalance1 supply fee liquidity balance1 newBalance0 token1 token0 reserve1 reserve0 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd4872 : RD uniswapV2PairBytecode I g s0 ⟨4872⟩
+    (rd4872 : RD fork uniswapV2PairBytecode I g s0 ⟨4872⟩
       (newBalance1 :: supply :: fee :: liquidity :: balance1 :: newBalance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
       mem aw rdata acc k C) (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6959⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: newBalance1 :: newBalance0 :: ⟨4885⟩ ::
         supply :: fee :: liquidity :: newBalance1 :: newBalance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
       mem aw rdata acc k' C' := by

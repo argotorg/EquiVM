@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapDeltaTrace
 import Benchmarks.UniswapV4PoolManager.BeforeSwapReplySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,10 +18,10 @@ theorem beforeSwapParseTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hview : BytesObjectView mem ptr out) (hsize : 64 ≤ out.size)
     (hfit : ptr.toNat+64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15491⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15491⟩
       (accountWord hook :: ptr :: ret :: fee :: ⟨0⟩ :: amount :: R) mem aw out evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
-      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
+      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
         (fee :: beforeSwapReplyHook hook out :: beforeSwapReplyAmount hook amount out :: R)
           mem aw' out post.accountMap k' C') (fun _ _ => False)
       (if beforeSwapParse hook then beforeSwapDeltaResult f evm amount out else .ok f evm) := by
@@ -28,8 +30,8 @@ theorem beforeSwapParseTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     have hb := poolManager_block_15491_taken (by simp only [List.length_cons]; omega)
       (by rw [u256_land_comm]; exact hp) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
     simp only [poolManager_block_15491_taken_stack] at hb
-    have hd : blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
-        (C+20)+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+    have hd : blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
+        (C+20)+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
           (fee :: calldataWord out 32 :: (amount+beforeSwapSpecified out) :: R) mem aw' out post.accountMap k' C')
         (fun _ _ => False) (beforeSwapDeltaResult f evm amount out) :=
       beforeSwapDeltaTrace (evm := evm) (amount := amount) (fee := fee) (oldHook := ⟨0⟩)

@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.MintFeeAfterRootsRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -226,17 +228,17 @@ theorem execStmt_sqrtLoopTerminates_runtime
       z.toNat < UInt256.size →
       locals.get? "y" = some (.int y) → locals.get? "x" = some (.int x) →
       locals.get? "z" = some (.int z) →
-      RD uniswapV2PairBytecode ee g s0 ⟨8067⟩
+      RD fork uniswapV2PairBytecode ee g s0 ⟨8067⟩
         (UInt256.ofNat x.toNat :: UInt256.ofNat z.toNat :: UInt256.ofNat y.toNat ::
           ret :: R)
         mem aw rdata acc k C →
       ∃ locals' result k' C',
-        ExecStmt config ({ contract := contract, locals := locals } : Frame) evm
+        ExecStmt fork config ({ contract := contract, locals := locals } : Frame) evm
           (.while sqrtLoopCond sqrtLoopBody)
           (.ok (show Frame from { contract := contract, locals := locals' }) evm) ∧
         locals'.get? "z" = some (.int result) ∧
         0 ≤ result ∧ result.toNat ≤ fuel ∧
-        RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
+        RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
           mem aw rdata acc k' C' := by
   intro hstepInv
   intro fuel
@@ -247,7 +249,7 @@ theorem execStmt_sqrtLoopTerminates_runtime
       by_cases hlt : x < z
       · have hcond := evalExpr_sqrtLoopCond_true evm locals x z hxLocal hzLocal hlt
         have hbody :=
-          execBlock_sqrtLoopBody evm locals y x z hyLocal hxLocal hzLocal (ne_of_gt hxPos)
+          execBlock_sqrtLoopBody (fork := fork) evm locals y x z hyLocal hxLocal hzLocal (ne_of_gt hxPos)
         have hzPos : 0 < z := by omega
         have hmeasure : x.toNat < fuel := by
           rw [← hzFuel]
@@ -273,7 +275,7 @@ theorem execStmt_sqrtLoopTerminates_runtime
         have hstepWord :=
           sqrtLoopNextX_word_step y x (le_of_lt hyPos) hxPos hySize hxSize haddFit
         have rdStep :
-            RD uniswapV2PairBytecode ee g s0 ⟨8067⟩
+            RD fork uniswapV2PairBytecode ee g s0 ⟨8067⟩
               (UInt256.ofNat (sqrtLoopNextX y x).toNat :: UInt256.ofNat x.toNat ::
                 UInt256.ofNat y.toNat :: ret :: R)
               mem aw rdata acc kStep CStep := by
@@ -313,23 +315,23 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
     {k C : ℕ} {y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     (evm : EVM.State)
-    (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
+    (rd8046 : RD fork uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
     (hlarge : 3 < y.toNat)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
     ∃ locals' result k' C',
-      ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
+      ExecFuncBody fork config { contract := contract, locals := sqrtFunctionCallStore y } evm
         sqrtFunction.body
         (.returned { contract := contract, locals := locals' } evm (some [.int result])) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧
       result.toNat ≤ y.toNat ∧
-      RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
+      RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
         mem aw rdata acc k' C' := by
   obtain ⟨kLoop, CLoop, rdLoopRaw⟩ :=
     uniswapSqrtRuntimeLargePrefix rd8046 hlarge (by omega)
   have rdLoop :
-      RD uniswapV2PairBytecode ee g s0 ⟨8067⟩
+      RD fork uniswapV2PairBytecode ee g s0 ⟨8067⟩
         (UInt256.ofNat (sqrtFunctionInitialX y).toNat ::
           UInt256.ofNat (sqrtFunctionYInt y).toNat ::
           UInt256.ofNat (sqrtFunctionYInt y).toNat :: ret :: R)
@@ -370,7 +372,7 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
     lt_of_le_of_lt hresultFuel y.val.isLt
   refine ⟨locals', result, k', C', ?_, hresultNonneg, hresultSize, hresultFuel, rdRet⟩
   refine ExecFuncBody.execBlockRet ?_
-  change ExecBlock config { contract := contract, locals := sqrtFunctionCallStore y } evm
+  change ExecBlock fork config { contract := contract, locals := sqrtFunctionCallStore y } evm
     [ .ite (.binary .gt (.var "y") (.intLit 3))
         [ .letDecl "z" (some uint256) (.var "y"),
           .letDecl "x" (some uint256)
@@ -391,11 +393,11 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)) ?_
   have hwhile' :
-      ExecStmt config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
+      ExecStmt fork config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
         evm (.while sqrtLoopCond sqrtLoopBody)
         (.ok ({ contract := contract, locals := locals' } : Frame) evm) := by
     simpa using hwhile
-  change ExecBlock config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
+  change ExecBlock fork config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
     evm [ .while sqrtLoopCond sqrtLoopBody, .return [(.var "z")] ]
     (.returned { contract := contract, locals := locals' } evm (some [.int result]))
   refine ExecBlock.consNormal hwhile' ?_
@@ -414,28 +416,28 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
     {caller : Frame} {evm : EVM.State} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
-    (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
+    (rd8046 : RD fork uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result k' C',
-      ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+      ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧
-      RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
+      RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
         mem aw rdata acc k' C' := by
   by_cases hsmall : y.toNat ≤ 3
   · obtain ⟨k', C', rdRetRaw⟩ := uniswapSqrtRuntimeSmallReturns rd8046 hsmall hret
       (by omega)
     by_cases hyZero : y = ⟨0⟩
     · have hstmt :
-          ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+          ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
             (.ok (resumeAfterInternalCall caller retVar (some [.int 0])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyZero] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
-          RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 0 :: R)
+          RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 0 :: R)
             mem aw rdata acc k' C' := by
         simpa [hyZero] using rdRetRaw
       refine ⟨0, k', C', hstmt, by omega, ?_, rdRet⟩
@@ -444,12 +446,12 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
         intro hnat
         exact hyZero (uint256_toNat_eq_zero hnat)
       have hstmt :
-          ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+          ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
             (.ok (resumeAfterInternalCall caller retVar (some [.int 1])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyNatNe] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
-          RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 1 :: R)
+          RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 1 :: R)
             mem aw rdata acc k' C' := by
         simpa [hyZero] using rdRetRaw
       refine ⟨1, k', C', hstmt, by omega, ?_, rdRet⟩
@@ -459,7 +461,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
       rdRet⟩ :=
       uniswapSqrtFunctionBodyRuntime_gt3 evm rd8046 hlarge hret hov
     have hstmt :
-        ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+        ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
           (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) := by
       exact internalCallFunctionReturn
         (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
@@ -482,28 +484,28 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
     {caller : Frame} {evm : EVM.State} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
-    (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
+    (rd8046 : RD fork uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result k' C',
-      ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+      ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧ result.toNat ≤ y.toNat ∧
-      RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
+      RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
         mem aw rdata acc k' C' := by
   by_cases hsmall : y.toNat ≤ 3
   · obtain ⟨k', C', rdRetRaw⟩ := uniswapSqrtRuntimeSmallReturns rd8046 hsmall hret
       (by omega)
     by_cases hyZero : y = ⟨0⟩
     · have hstmt :
-          ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+          ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
             (.ok (resumeAfterInternalCall caller retVar (some [.int 0])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyZero] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
-          RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 0 :: R)
+          RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 0 :: R)
             mem aw rdata acc k' C' := by
         simpa [hyZero] using rdRetRaw
       refine ⟨0, k', C', hstmt, by omega, ?_, ?_, rdRet⟩
@@ -514,12 +516,12 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
         intro hnat
         exact hyZero (uint256_toNat_eq_zero hnat)
       have hstmt :
-          ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+          ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
             (.ok (resumeAfterInternalCall caller retVar (some [.int 1])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyNatNe] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
-          RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 1 :: R)
+          RD fork uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat 1 :: R)
             mem aw rdata acc k' C' := by
         simpa [hyZero] using rdRetRaw
       refine ⟨1, k', C', hstmt, by omega, ?_, ?_, rdRet⟩
@@ -530,7 +532,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
       rdRet⟩ :=
       uniswapSqrtFunctionBodyRuntime_gt3 evm rd8046 hlarge hret hov
     have hstmt :
-        ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+        ExecStmt fork config caller evm (.internalCall "sqrt" args retVar)
           (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) := by
       exact internalCallFunctionReturn
         (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
@@ -552,7 +554,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
-    (rd8046 : RD uniswapV2PairBytecode I g
+    (rd8046 : RD fork uniswapV2PairBytecode I g
       s0 ⟨8046⟩
       (UInt256.mul reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeToWord :: ⟨1⟩ :: reserve1 ::
         reserve0 :: ret :: R)
@@ -560,7 +562,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ rootK rootKLast k' C',
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -569,7 +571,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       0 ≤ rootK ∧ rootK.toNat < UInt256.size ∧
       rootK.toNat ≤ (UInt256.mul reserve0 reserve1).toNat ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ⟨7899⟩
         (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -578,7 +580,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       mintFeeReserveProductWord reserve0 reserve1 = UInt256.mul reserve0 reserve1 :=
     mintFeeReserveProductWord_eq_mul reserve0 reserve1 hfit
   have rdFirst :
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ⟨8046⟩
         (mintFeeReserveProductWord reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeToWord :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -598,7 +600,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       rootK.toNat ≤ (UInt256.mul reserve0 reserve1).toNat := by
     simpa [hprodWord] using hrootKInput
   have hrootK' :
-      ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecStmt fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
@@ -606,7 +608,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       hrootK
   obtain ⟨kEntry, CEntry, rdSecondEntry⟩ :
       ∃ kEntry CEntry,
-      RD uniswapV2PairBytecode I g
+      RD fork uniswapV2PairBytecode I g
         s0 ⟨8046⟩
         (kLast :: ⟨7899⟩ :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -626,7 +628,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       rdSecondEntry (by jump_dest)
       (by simp only [List.length_cons]; omega)
   have hrootKLast' :
-      ExecStmt config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
+      ExecStmt fork config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
         (.internalCall "sqrt" [.var "_kLast"] "rootKLast")
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
@@ -645,7 +647,7 @@ theorem mintFeeSqrtPrefixRuntimeBounded
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
-    (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd8046 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -653,7 +655,7 @@ theorem mintFeeSqrtPrefixRuntimeBounded
       mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast k' C',
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -661,7 +663,7 @@ theorem mintFeeSqrtPrefixRuntimeBounded
           evm) ∧
       0 ≤ rootK ∧ rootK.toNat < UInt256.size ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
@@ -681,7 +683,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInput
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
-    (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd8046 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -689,7 +691,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInput
       mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast k' C',
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -698,7 +700,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInput
       0 ≤ rootK ∧ rootK.toNat < UInt256.size ∧
       rootK.toNat ≤ (UInt256.mul reserve0 reserve1).toNat ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
@@ -715,7 +717,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
-    (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd8046 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -724,14 +726,14 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size)
     (hprodZero : UInt256.mul reserve0 reserve1 = ⟨0⟩) :
     ∃ rootKLast k' C',
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast (0 : Int)
           rootKLast) evm) ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
           reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -746,7 +748,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     rw [hyZero]
     native_decide
   have rdFirst :
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨8046⟩
         [mintFeeReserveProductWord reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
@@ -754,12 +756,12 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
         mem aw rdata σFee k C := by
     simpa [hprodWord] using rd8046
   have hrootK :
-      ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecStmt fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast (0 : Int)) evm) := by
     have hstmt :=
-      uniswapSqrtFunctionCallSuccess_le3
+      uniswapSqrtFunctionCallSuccess_le3 (fork := fork)
         (caller := mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast)
         (evm := evm) (y := mintFeeReserveProductWord reserve0 reserve1)
         (retVar := "rootK")
@@ -769,7 +771,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
       sqrtFunctionSmallResultValue, hyZero] using hstmt
   obtain ⟨k7886, C7886, rd7886Raw⟩ := uniswapSqrtRuntimeSmallReturns rdFirst
     hprodSmall (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd7886 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+  have rd7886 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7886⟩
       [⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
@@ -778,7 +780,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     simpa [hyZero] using rd7886Raw
   obtain ⟨kEntry, CEntry, rdSecondEntry⟩ :
       ∃ kEntry CEntry,
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨8046⟩
         [kLast, ⟨7899⟩, ⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩, reserve1,
           reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -800,7 +802,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
       rdSecondEntry (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have hrootKLast' :
-      ExecStmt config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast (0 : Int))
+      ExecStmt fork config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast (0 : Int))
         evm (.internalCall "sqrt" [.var "_kLast"] "rootKLast")
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast (0 : Int)
           rootKLast) evm) := by

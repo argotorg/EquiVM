@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DispatchPrelude
 import Benchmarks.CurveVault.DispatchStele
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 
 namespace Benchmarks.CurveVault
@@ -11,7 +13,7 @@ set_option maxHeartbeats 0
 theorem vaultReachWithdraw_uint256_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 0)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨271668728568389⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨16192718⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨16192718⟩ :=
@@ -21,14 +23,14 @@ theorem vaultReachWithdraw_uint256_addressBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `withdraw(uint256)`: bucket 4, index 4, body pc 4107. -/
 theorem vaultReachWithdraw_uint256Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 1)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨12976974394821413⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨773487949⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨773487949⟩ :=
@@ -38,14 +40,14 @@ theorem vaultReachWithdraw_uint256Body {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `withdraw(uint256,address,address)`: bucket 4, index 7, body pc 4147. -/
 theorem vaultReachWithdraw_uint256_address_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 2)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨50771803027551077⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3026235284⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3026235284⟩ :=
@@ -55,14 +57,14 @@ theorem vaultReachWithdraw_uint256_address_addressBody {σ σ₀ A I} {g : Sat25
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `totalAssets()`: bucket 0, index 5, body pc 1479. -/
 theorem vaultReachTotalAssetsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 3)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨529763077048069⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨31576340⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨31576340⟩ :=
@@ -72,14 +74,14 @@ theorem vaultReachTotalAssetsBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `name()`: bucket 4, index 1, body pc 6437. -/
 theorem vaultReachNameBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 4)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨1967979836810501⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨117300739⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨117300739⟩ :=
@@ -89,14 +91,14 @@ theorem vaultReachNameBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `convertToAssets(uint256)`: bucket 1, index 1, body pc 1859. -/
 theorem vaultReachConvertToAssetsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 5)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨2149344342393637⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨128110906⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨128110906⟩ :=
@@ -106,14 +108,14 @@ theorem vaultReachConvertToAssetsBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `approve(address,uint256)`: bucket 4, index 8, body pc 5947. -/
 theorem vaultReachApproveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 6)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨2637349147589445⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨157198259⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨157198259⟩ :=
@@ -123,14 +125,14 @@ theorem vaultReachApproveBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `previewWithdraw(uint256)`: bucket 3, index 2, body pc 4031. -/
 theorem vaultReachPreviewWithdrawBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 7)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨2859436604374821⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨170435703⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨170435703⟩ :=
@@ -140,14 +142,14 @@ theorem vaultReachPreviewWithdrawBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `totalSupply()`: bucket 0, index 10, body pc 6756. -/
 theorem vaultReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 8)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨6779648240935941⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨404098525⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨404098525⟩ :=
@@ -157,14 +159,14 @@ theorem vaultReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `transferFrom(address,address,uint256)`: bucket 4, index 0, body pc 5688. -/
 theorem vaultReachTransferFromBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 9)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨10054427659876453⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨599290589⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨599290589⟩ :=
@@ -174,14 +176,14 @@ theorem vaultReachTransferFromBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `collateral_token()`: bucket 2, index 4, body pc 110. -/
 theorem vaultReachCollateral_tokenBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 10)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨10733274385116677⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨639753007⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨639753007⟩ :=
@@ -191,14 +193,14 @@ theorem vaultReachCollateral_tokenBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `pricePerShare(bool)`: bucket 3, index 7, body pc 1517. -/
 theorem vaultReachPricePerShare_boolBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 11)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨11470526258474277⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨683696643⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨683696643⟩ :=
@@ -208,14 +210,14 @@ theorem vaultReachPricePerShare_boolBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `pricePerShare()`: bucket 3, index 0, body pc 1506. -/
 theorem vaultReachPricePerShare_Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 12)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨43156978247524869⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2572356358⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2572356358⟩ :=
@@ -225,14 +227,14 @@ theorem vaultReachPricePerShare_Body {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `amm()`: bucket 1, index 3, body pc 122. -/
 theorem vaultReachAmmBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 13)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨11984922713553413⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨714357061⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨714357061⟩ :=
@@ -242,14 +244,14 @@ theorem vaultReachAmmBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `decimals()`: bucket 1, index 4, body pc 6426. -/
 theorem vaultReachDecimalsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 14)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨13859229833697797⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨826074471⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨826074471⟩ :=
@@ -259,14 +261,14 @@ theorem vaultReachDecimalsBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `asset()`: bucket 0, index 9, body pc 1459. -/
 theorem vaultReachAssetBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 15)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨15996992493040389⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨953495055⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨953495055⟩ :=
@@ -276,14 +278,14 @@ theorem vaultReachAssetBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `increaseAllowance(address,uint256)`: bucket 0, index 7, body pc 6012. -/
 theorem vaultReachIncreaseAllowanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 16)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨16132667323415621⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨961581905⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨961581905⟩ :=
@@ -293,14 +295,14 @@ theorem vaultReachIncreaseAllowanceBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `maxDeposit(address)`: bucket 2, index 3, body pc 1936. -/
 theorem vaultReachMaxDepositBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 17)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨18064041839136805⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨1076700797⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1076700797⟩ :=
@@ -310,14 +312,14 @@ theorem vaultReachMaxDepositBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `previewRedeem(uint256)`: bucket 3, index 6, body pc 4932. -/
 theorem vaultReachPreviewRedeemBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 18)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨21632706694824997⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨1289409798⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1289409798⟩ :=
@@ -327,14 +329,14 @@ theorem vaultReachPreviewRedeemBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `deposit(uint256,address)`: bucket 4, index 2, body pc 2143. -/
 theorem vaultReachDeposit_uint256_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 19)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨31055978204520261⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨1851080549⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1851080549⟩ :=
@@ -344,14 +346,14 @@ theorem vaultReachDeposit_uint256_addressBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `deposit(uint256)`: bucket 0, index 8, body pc 2133. -/
 theorem vaultReachDeposit_uint256Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 20)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨51427866009163045⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3065339685⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3065339685⟩ :=
@@ -361,14 +363,14 @@ theorem vaultReachDeposit_uint256Body {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `balanceOf(address)`: bucket 1, index 0, body pc 6718. -/
 theorem vaultReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 21)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨31701678421589541⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨1889567281⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1889567281⟩ :=
@@ -378,14 +380,14 @@ theorem vaultReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `borrowed_token()`: bucket 3, index 4, body pc 99. -/
 theorem vaultReachBorrowed_tokenBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 22)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨33305545993642757⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨1985165238⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1985165238⟩ :=
@@ -395,14 +397,14 @@ theorem vaultReachBorrowed_tokenBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `redeem(uint256,address)`: bucket 2, index 1, body pc 5024. -/
 theorem vaultReachRedeem_uint256_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 23)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨34866076123897925⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2078180082⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2078180082⟩ :=
@@ -412,14 +414,14 @@ theorem vaultReachRedeem_uint256_addressBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `redeem(uint256,address,address)`: bucket 4, index 3, body pc 5049. -/
 theorem vaultReachRedeem_uint256_address_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 24)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨52363649944369509⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3121116754⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3121116754⟩ :=
@@ -429,14 +431,14 @@ theorem vaultReachRedeem_uint256_address_addressBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `redeem(uint256)`: bucket 2, index 9, body pc 5009. -/
 theorem vaultReachRedeem_uint256Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 25)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨61643477130383653⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3674237557⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3674237557⟩ :=
@@ -446,14 +448,14 @@ theorem vaultReachRedeem_uint256Body {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `set_max_supply(uint256)`: bucket 0, index 6, body pc 851. -/
 theorem vaultReachSet_max_supplyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 26)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨39005789964423973⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2324926255⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2324926255⟩ :=
@@ -463,14 +465,14 @@ theorem vaultReachSet_max_supplyBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `mint(uint256,address)`: bucket 4, index 5, body pc 3146. -/
 theorem vaultReachMint_uint256_addressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 27)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨41868854322547269⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2495578189⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2495578189⟩ :=
@@ -480,14 +482,14 @@ theorem vaultReachMint_uint256_addressBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `mint(uint256)`: bucket 2, index 2, body pc 3136. -/
 theorem vaultReachMint_uint256Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 28)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨45160436106805285⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2691771752⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2691771752⟩ :=
@@ -497,14 +499,14 @@ theorem vaultReachMint_uint256Body {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `symbol()`: bucket 0, index 4, body pc 6544. -/
 theorem vaultReachSymbolBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 29)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨42177932853612549⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2514000705⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2514000705⟩ :=
@@ -514,14 +516,14 @@ theorem vaultReachSymbolBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `decreaseAllowance(address,uint256)`: bucket 0, index 2, body pc 6185. -/
 theorem vaultReachDecreaseAllowanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 30)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨46258390524504389⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2757214935⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2757214935⟩ :=
@@ -531,14 +533,14 @@ theorem vaultReachDecreaseAllowanceBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `transfer(address,uint256)`: bucket 2, index 7, body pc 5882. -/
 theorem vaultReachTransferBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 31)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨47575441775983173⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2835717307⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2835717307⟩ :=
@@ -548,14 +550,14 @@ theorem vaultReachTransferBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `lend_apr()`: bucket 1, index 2, body pc 1107. -/
 theorem vaultReachLend_aprBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 32)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨47710324199281413⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨2843756926⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2843756926⟩ :=
@@ -565,14 +567,14 @@ theorem vaultReachLend_aprBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `previewMint(uint256)`: bucket 0, index 0, body pc 3060. -/
 theorem vaultReachPreviewMintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 33)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨50621475497702437⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3017275065⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3017275065⟩ :=
@@ -582,14 +584,14 @@ theorem vaultReachPreviewMintBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `borrow_apr()`: bucket 2, index 5, body pc 1020. -/
 theorem vaultReachBorrow_aprBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 34)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨52570788968266757⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3133463202⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3133463202⟩ :=
@@ -599,14 +601,14 @@ theorem vaultReachBorrow_aprBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `factory()`: bucket 2, index 6, body pc 146. -/
 theorem vaultReachFactoryBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 35)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨55268057202856453⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3294232917⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3294232917⟩ :=
@@ -616,14 +618,14 @@ theorem vaultReachFactoryBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `maxMint(address)`: bucket 3, index 9, body pc 2886. -/
 theorem vaultReachMaxMintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 36)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨55799621163370021⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3325916598⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3325916598⟩ :=
@@ -633,14 +635,14 @@ theorem vaultReachMaxMintBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `convertToShares(uint256)`: bucket 4, index 6, body pc 1782. -/
 theorem vaultReachConvertToSharesBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 37)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨55985987780015653⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3337024914⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3337024914⟩ :=
@@ -650,14 +652,14 @@ theorem vaultReachConvertToSharesBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `maxWithdraw(address)`: bucket 3, index 5, body pc 3890. -/
 theorem vaultReachMaxWithdrawBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 38)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨58149645822407205⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3465988983⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3465988983⟩ :=
@@ -667,14 +669,14 @@ theorem vaultReachMaxWithdrawBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `maxSupply()`: bucket 0, index 3, body pc 6414. -/
 theorem vaultReachMaxSupplyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 39)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨60143195863453189⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3584813825⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3584813825⟩ :=
@@ -684,14 +686,14 @@ theorem vaultReachMaxSupplyBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `maxRedeem(address)`: bucket 2, index 0, body pc 4783. -/
 theorem vaultReachMaxRedeemBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 40)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨61086080720613157⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3641014142⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3641014142⟩ :=
@@ -701,14 +703,14 @@ theorem vaultReachMaxRedeemBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `allowance(address,address)`: bucket 3, index 8, body pc 6651. -/
 theorem vaultReachAllowanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 41)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨62314740941716293⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨3714247998⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3714247998⟩ :=
@@ -718,14 +720,14 @@ theorem vaultReachAllowanceBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `previewDeposit(uint256)`: bucket 3, index 3, body pc 2056. -/
 theorem vaultReachPreviewDepositBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 42)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨67425561853036581⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨4018876663⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4018876663⟩ :=
@@ -735,14 +737,14 @@ theorem vaultReachPreviewDepositBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `controller()`: bucket 2, index 8, body pc 134. -/
 theorem vaultReachControllerBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 43)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨69660966064784901⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨4152117137⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4152117137⟩ :=
@@ -752,14 +754,14 @@ theorem vaultReachControllerBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `admin()`: bucket 2, index 10, body pc 6326. -/
 theorem vaultReachAdminBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 44)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨69895560116090373⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨4166100032⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4166100032⟩ :=
@@ -769,14 +771,14 @@ theorem vaultReachAdminBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 /-- `initialize(address,address,address,address)`: bucket 0, index 1, body pc 158. -/
 theorem vaultReachInitializeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (vaultSelBytes 45)) :
-    ∃ k C, RD vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
+    ∃ k C, RD fork vaultBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 73)
       [⟨70026204933037701⟩, solcSelectorWord I]
       (vaultDispatchMemory ⟨4173887070⟩) (UInt256.ofNat 1) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4173887070⟩ :=
@@ -786,7 +788,7 @@ theorem vaultReachInitializeBody {σ σ₀ A I} {g : Sat256}
   have hmatch : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ = solcSelectorWord I := by
     rw [hword, hentry]
     native_decide
-  obtain ⟨k, C, h⟩ := vaultReachGuard (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
+  obtain ⟨k, C, h⟩ := vaultReachGuard (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode hsz hsize hmatch
   exact ⟨k, C, by simpa only [hword, hentry] using h⟩
 
 def vaultSelectorWords : List UInt256 := [⟨16192718⟩, ⟨773487949⟩, ⟨3026235284⟩, ⟨31576340⟩, ⟨117300739⟩, ⟨128110906⟩, ⟨157198259⟩, ⟨170435703⟩, ⟨404098525⟩, ⟨599290589⟩, ⟨639753007⟩, ⟨683696643⟩, ⟨2572356358⟩, ⟨714357061⟩, ⟨826074471⟩, ⟨953495055⟩, ⟨961581905⟩, ⟨1076700797⟩, ⟨1289409798⟩, ⟨1851080549⟩, ⟨3065339685⟩, ⟨1889567281⟩, ⟨1985165238⟩, ⟨2078180082⟩, ⟨3121116754⟩, ⟨3674237557⟩, ⟨2324926255⟩, ⟨2495578189⟩, ⟨2691771752⟩, ⟨2514000705⟩, ⟨2757214935⟩, ⟨2835717307⟩, ⟨2843756926⟩, ⟨3017275065⟩, ⟨3133463202⟩, ⟨3294232917⟩, ⟨3325916598⟩, ⟨3337024914⟩, ⟨3465988983⟩, ⟨3584813825⟩, ⟨3641014142⟩, ⟨3714247998⟩, ⟨4018876663⟩, ⟨4152117137⟩, ⟨4166100032⟩, ⟨4173887070⟩]
@@ -910,7 +912,7 @@ theorem vaultLookupMember (s : UInt256) :
 
 theorem vaultX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hshort : I.calldata.size < 4) :
-    RDrev vaultBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vaultBytecode g (initState σ σ₀ g A I) := by
   apply vaultRevertMismatch hcode
   have hs : UInt256.gt (UInt256.ofNat I.calldata.size) (UInt256.ofNat 3) = ⟨0⟩ := by
     apply ugt_zero
@@ -924,7 +926,7 @@ theorem vaultX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vaultBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 46 → (vaultSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev vaultBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vaultBytecode g (initState σ σ₀ g A I) := by
   have hn : UInt256.shiftRight (vaultDispatchEntry (solcSelectorWord I)) ⟨24⟩ ≠ solcSelectorWord I := by
     intro he
     have hm := vaultLookupMember (solcSelectorWord I)

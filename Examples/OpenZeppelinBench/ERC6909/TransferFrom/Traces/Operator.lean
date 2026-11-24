@@ -1,5 +1,7 @@
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom.Traces.DebitTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -23,10 +25,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_revert_sender_zero
     (hallowanceMax : UInt256.size - 1 ≤
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hsenderZero : transferFromSenderWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd661⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to661
@@ -51,10 +53,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_revert_receiver_zero
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverZero : transferFromReceiverWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd661⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to661
@@ -81,10 +83,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_insufficient
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (hlt : (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to1323
@@ -114,10 +116,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_overflow
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hover : UInt256.size ≤
       transferFromTailReceiverCreditNat (initState σ σ₀ g A I) I)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to1323
@@ -148,10 +150,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_success
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromTailReceiverCreditNat (initState σ σ₀ g A I) I <
       UInt256.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+    RDret fork erc6909BenchBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
           (transferFromTailSenderDebitWord (initState σ σ₀ g A I) I))
@@ -186,10 +188,10 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
     (hltAllowance :
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
         (transferFromAmountWord I).toNat)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd1193⟩ := erc6909TransferFromX_operatorFalse_afterAllowanceLoad
@@ -281,10 +283,10 @@ theorem erc6909TransferFromX_operatorApproved_revert_sender_zero
     (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
     (hop : transferFromOperatorWord (initState σ σ₀ g A I) I ≠ ⟨0⟩)
     (hsenderZero : transferFromSenderWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -310,10 +312,10 @@ theorem erc6909TransferFromX_operatorApproved_revert_receiver_zero
     (hop : transferFromOperatorWord (initState σ σ₀ g A I) I ≠ ⟨0⟩)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverZero : transferFromReceiverWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -342,10 +344,10 @@ theorem erc6909TransferFromX_operatorApproved_insufficient
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (hlt : (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -381,10 +383,10 @@ theorem erc6909TransferFromX_operatorApproved_overflow
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hover : UInt256.size ≤
       transferFromTailReceiverCreditNat (initState σ σ₀ g A I) I)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -420,10 +422,10 @@ theorem erc6909TransferFromX_operatorApproved_success
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromTailReceiverCreditNat (initState σ σ₀ g A I) I <
       UInt256.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+    RDret fork erc6909BenchBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
           (transferFromTailSenderDebitWord (initState σ σ₀ g A I) I))
@@ -466,10 +468,10 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_static
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDstatic fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hbase := transferFromOperatorAllowanceScratchMem_size I
   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
   obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to1323
@@ -496,10 +498,10 @@ theorem erc6909TransferFromX_operatorApproved_static
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
       (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDstatic fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -522,10 +524,10 @@ theorem erc6909TransferFromX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 132)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt :
       UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨1⟩ := by
     simpa using solcCalldataStaticLenCheckShort (words := 4) hsz4 hshort hsize
@@ -541,10 +543,10 @@ theorem erc6909TransferFromX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt :
       UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨1⟩ := by
     simpa using solcCalldataStaticLenCheckHuge (words := 4) hbig hsize (by norm_num)
@@ -561,10 +563,10 @@ theorem erc6909TransferFromX_noncanon_sender {σ σ₀ A I}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (transferFromSenderWord I)
       (UInt256.land (transferFromSenderWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd⟩ := erc6909TransferFromX_dec1629_sender
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hreach
@@ -578,10 +580,10 @@ theorem erc6909TransferFromX_noncanon_receiver {σ σ₀ A I}
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hnc : UInt256.eq (transferFromReceiverWord I)
       (UInt256.land (transferFromReceiverWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd⟩ := erc6909TransferFromX_dec1629_receiver
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hcanonSender hreach

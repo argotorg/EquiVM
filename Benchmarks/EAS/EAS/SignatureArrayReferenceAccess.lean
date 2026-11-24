@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedAttestationDecode
 import Benchmarks.EAS.EAS.SignatureArrayDecode
 import Benchmarks.EAS.EAS.RuntimeBlocks_024
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,11 +20,11 @@ theorem easSignatureArrayReferenceAccess {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {root ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6105⟩ (root::(root+UInt256.ofNat 64)::ret::R) mem aw rdata σ k C) :
-    (signatureArrayReferenceAccessValid ee.calldata root → ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6105⟩ (root::(root+UInt256.ofNat 64)::ret::R) mem aw rdata σ k C) :
+    (signatureArrayReferenceAccessValid ee.calldata root → ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord ee.calldata (delegatedBatchArray ee.calldata root 64).toNat::
         (delegatedBatchArray ee.calldata root 64+UInt256.ofNat 32)::R) mem aw' rdata σ k' C') ∧
-    (¬signatureArrayReferenceAccessValid ee.calldata root → RDrev (deployedRuntime v) g s0) := by
+    (¬signatureArrayReferenceAccessValid ee.calldata root → RDrev fork (deployedRuntime v) g s0) := by
   have hneg : (UInt256.sub (UInt256.ofNat ee.calldata.size) root)+UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639905 =
       (UInt256.ofNat ee.calldata.size-root)-⟨31⟩ := by rw [word_sub_eq_add_neg (UInt256.ofNat ee.calldata.size-root) ⟨31⟩]; rfl
   by_cases href : delegatedAttestationArrayReferenceValid ee.calldata root 64

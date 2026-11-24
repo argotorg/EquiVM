@@ -3,6 +3,8 @@ import Benchmarks.WETH9.StringLayout
 import Benchmarks.WETH9.Routines
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 dynamic-string getter — config-independent EVM/byte machinery
 
@@ -178,9 +180,9 @@ theorem weth9ReachName839 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨839⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨839⟩
       [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
+  obtain ⟨_, _, h166⟩ := weth9ReachName (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h180⟩ := solcFunctionGuardPeelOk (gt := ⟨178⟩) h166 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -201,12 +203,12 @@ theorem weth9NameRoutineReach897 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨897⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨897⟩
       [weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨160⟩,
        weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9RoutineMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       ByteArray.empty σ k C := by
-  obtain ⟨_, _, h839⟩ := weth9ReachName839 (σ := σ)
+  obtain ⟨_, _, h839⟩ := weth9ReachName839 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, h844⟩ := (evm_run h839 with [jumpdest, push1 ⟨0⟩, dup1]).sload
     (by native_decide) (by evm_ov)
@@ -235,8 +237,8 @@ theorem weth9NameStringEmptyReturns {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hlen0 : weth9StringLen (solcSlotWord σ I ⟨0⟩) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ weth9EmptyStringAbi := by
-  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ weth9EmptyStringAbi := by
+  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [hlen0, weth9RoutineMem_zero hlen0] at h897
   have h187 := evm_run h897 with [
@@ -281,11 +283,11 @@ theorem weth9NameShortLoadReach187 {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (weth9SelBytes 0))
     (hne : weth9StringLen (solcSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9ShortObjMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
       ByteArray.empty σ k C := by
-  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
+  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [weth9RoutineMem_short hne hlt31] at h897
   have h915 := evm_run h897 with [
@@ -506,10 +508,10 @@ theorem weth9ShortMemD_readAbi (H : UInt256) :
 theorem weth9NameShortEncoder {σ σ₀ A I} {g : Sat256} {k C : ℕ} (H : UInt256)
     (hne : weth9StringLen H ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen H) = ⟨0⟩)
-    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+    (h : RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] (weth9ShortObjMem H) (UInt256.ofNat 6)
       ByteArray.empty σ k C) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ (weth9ShortStringAbi H) := by
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ (weth9ShortStringAbi H) := by
   have h196 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
@@ -576,9 +578,9 @@ theorem weth9NameStringShortReturns {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (weth9SelBytes 0))
     (hne : weth9StringLen (solcSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ
       (weth9ShortStringAbi (solcSlotWord σ I ⟨0⟩)) := by
-  obtain ⟨_, _, h187⟩ := weth9NameShortLoadReach187 (σ := σ)
+  obtain ⟨_, _, h187⟩ := weth9NameShortLoadReach187 (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hne hlt31
   exact weth9NameShortEncoder (solcSlotWord σ I ⟨0⟩) hne hlt31 h187
 

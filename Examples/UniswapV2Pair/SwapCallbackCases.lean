@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SwapCallbackPrepare
 import Examples.UniswapV2Pair.SwapCallbackSource
 import Examples.UniswapV2Pair.SwapCallbackBranchRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -15,7 +17,7 @@ theorem uniswapSwapCallbackCases
     {mem rdata : ByteArray} {ptr aw token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} (evm : EVM.State) (recipient : AccountAddress)
-    (rd1904 : RD uniswapV2PairBytecode I g s0 ⟨1904⟩
+    (rd1904 : RD fork uniswapV2PairBytecode I g s0 ⟨1904⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
@@ -29,13 +31,13 @@ theorem uniswapSwapCallbackCases
     (hdata : dataPtr.toNat + dataLen.toNat ≤ I.calldata.size)
     (hfit : ptr.toNat + dataLen.toNat + 227 < UInt256.size) (hsmall : dataLen.toNat + 196 < 2 ^ 64)
     (hperm : I.perm = true) (hov : R.length + 29 ≤ 1024) :
-    (ExecStmt config caller evm swapCallbackStmt .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm swapCallbackStmt .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' out k' C',
-      ExecStmt config caller evm swapCallbackStmt (.ok (swapAfterCallbackFrame caller dataLen) evm') ∧
+      ExecStmt fork config caller evm swapCallbackStmt (.ok (swapAfterCallbackFrame caller dataLen) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       96 ≤ mem'.size ∧ ptr.toNat - mem'.size < USize.size ∧
       aw'.toNat * 32 < UInt256.size ∧ 96 ≤ aw'.toNat * 32 ∧ mem'.readWithPadding 64 32 = ptr.toByteArray ∧
-      RD uniswapV2PairBytecode I g s0 ⟨2091⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨2091⟩
         (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
           toWord :: amount1Out :: amount0Out :: R) mem' aw' out σ' k' C') := by
   have hsize : (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)).size = dataLen.toNat := by
@@ -77,7 +79,7 @@ theorem uniswapSwapCallbackCases
           uniswapSwapCallbackCallMade rd2054 hcode hdepth hcover (by simp only [List.length_cons]; omega)
         obtain ⟨evm', hraw, hpost, hs, he⟩ := rawZeroCall_source_of_theta
           hAccounts henv hσ0 hdepth hperm hΘ
-        have hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0
+        have hcall : typedCallViaEVM fork config evm (EVM.address recipient) "uniswapV2Call" 0
             (swapCallbackArgs I.source amount0Out amount1Out (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)))
             (z, evm', out) true := by
           refine ⟨_, swapCallbackCalldata_encode _ _ _ _, ?_⟩
@@ -98,9 +100,9 @@ theorem uniswapSwapCallbackCases
             hpost, hs, he, by rw [hmemSize]; omega, by rw [hmemSize]; omega,
             hbMem, by omega, hread, rd2091⟩
       · have hd : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
-        have hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0
+        have hcall : typedCallViaEVM fork config evm (EVM.address recipient) "uniswapV2Call" 0
             (swapCallbackArgs I.source amount0Out amount1Out (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)))
-            (false, { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+            (false, { evm with substate := (Ethereum.EVM.callSubstate fork
               evm.accountMap (EVM.address recipient) evm.substate) }, ByteArray.empty) true := by
           refine ⟨_, swapCallbackCalldata_encode _ _ _ _, ?_⟩
           apply callViaEVM.callNotMade rfl rfl

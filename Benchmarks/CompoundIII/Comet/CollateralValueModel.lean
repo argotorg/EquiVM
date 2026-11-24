@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.CollateralMath
 import Benchmarks.CompoundIII.Comet.UserCollateralRead
 import Benchmarks.CompoundIII.Comet.PriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -49,45 +51,45 @@ def collateralValueBlock (borrow : Bool) : List Stmt :=
   .internalCall "getAssetInfo_body" [.var "i"] "asset" :: collateralAfterAssetBlock borrow
 
 /-- The price query uses the balance read before that external call. -/
-inductive CollateralAfterAsset (borrow : Bool) (assetOut : ByteArray) (amount : UInt256) :
+inductive CollateralAfterAsset (fork : Ethereum.Fork) (borrow : Bool) (assetOut : ByteArray) (amount : UInt256) :
     EVM.State → Option (EVM.State × CollateralValueData) → Prop where
   | priceFailed {evm evm' z out}
-      (hc : callViaEVM evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
+      (hc : callViaEVM fork evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
         pricePayload (z, evm', out) false)
       (hh : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
-      CollateralAfterAsset borrow assetOut amount evm none
+      CollateralAfterAsset fork borrow assetOut amount evm none
   | result {evm evm' out}
-      (hc : callViaEVM evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
+      (hc : callViaEVM fork evm (AccountAddress.ofNat (calldataWord assetOut 64).toNat) 0
         pricePayload (true, evm', out) false)
       (hh : out.size < 2^255) (hv : PriceValid out) :
-      CollateralAfterAsset borrow assetOut amount evm
+      CollateralAfterAsset fork borrow assetOut amount evm
         (if CollateralMathValid borrow amount (calldataWord out 32) assetOut then
           some (evm', ⟨assetOut, amount, calldataWord out 32⟩) else none)
 
 /-- One selected collateral asset, including malformed responses and arithmetic reverts. -/
-inductive CollateralValueTrace (v : CometWithExtendedAssetListImmutables)
+inductive CollateralValueTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (borrow : Bool) (account : AccountAddress) (i : UInt256) :
     EVM.State → Option (EVM.State × CollateralValueData) → Prop where
   | assetFailed {evm evm' z out}
-      (hc : callViaEVM evm v.assetList 0 (assetPayload i) (z, evm', out) false)
+      (hc : callViaEVM fork evm v.assetList 0 (assetPayload i) (z, evm', out) false)
       (hh : out.size < 2^255) (hv : ¬ (z = true ∧ AssetValid out)) :
-      CollateralValueTrace v borrow account i evm none
+      CollateralValueTrace fork v borrow account i evm none
   | assetOk {evm evm' out result}
-      (hc : callViaEVM evm v.assetList 0 (assetPayload i) (true, evm', out) false)
+      (hc : callViaEVM fork evm v.assetList 0 (assetPayload i) (true, evm', out) false)
       (hh : out.size < 2^255) (hv : AssetValid out)
-      (ht : CollateralAfterAsset borrow out (collateralBalanceWord evm' account out)
+      (ht : CollateralAfterAsset fork borrow out (collateralBalanceWord evm' account out)
         evm' result) :
-      CollateralValueTrace v borrow account i evm result
+      CollateralValueTrace fork v borrow account i evm result
 
-def CollateralValueSourceResult (frame : Frame) (evm : EVM.State) (borrow : Bool)
+def CollateralValueSourceResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (body : List Stmt) (result : Option (EVM.State × CollateralValueData)) : Prop :=
   match result with
-  | none => ExecBlock config frame evm body .reverted
-  | some (evm', d) => ExecBlock config frame evm body
+  | none => ExecBlock fork config frame evm body .reverted
+  | some (evm', d) => ExecBlock fork config frame evm body
       (.ok (collateralValueFrame frame borrow d) evm')
 
 theorem CollateralAfterAsset.executionEnv_eq {borrow assetOut amount evm result}
-    (ht : CollateralAfterAsset borrow assetOut amount evm result) :
+    (ht : CollateralAfterAsset fork borrow assetOut amount evm result) :
     ∀ evm' d, result = some (evm', d) → evm'.executionEnv = evm.executionEnv := by
   cases ht with
   | priceFailed _ _ _ => intro evm' d he; cases he
@@ -99,7 +101,7 @@ theorem CollateralAfterAsset.executionEnv_eq {borrow assetOut amount evm result}
     · cases he
 
 theorem CollateralValueTrace.executionEnv_eq {v borrow account i evm result}
-    (ht : CollateralValueTrace v borrow account i evm result) :
+    (ht : CollateralValueTrace fork v borrow account i evm result) :
     ∀ evm' d, result = some (evm', d) → evm'.executionEnv = evm.executionEnv := by
   cases ht with
   | assetFailed _ _ _ => intro evm' d he; cases he

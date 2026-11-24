@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.BaseReward
 import Benchmarks.CompoundIII.Comet.CheckedDivEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,12 +16,12 @@ theorem cometBaseReward {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {principal delta ret : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hp : principal.toNat < 2^104) (hd : delta.toNat < 2^64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩
       (principal :: delta :: ⟨11822⟩ :: ⟨11861⟩ :: ⟨8229⟩ :: ret :: R) mem aw rdata σ k C) :
     if BaseRewardValid v principal delta then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (baseRewardWord v principal delta :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, r1⟩ := cometCheckedMul (v := v)
     (by simp only [List.length_cons]; omega) (baseRewardProduct_lt hp hd)
     (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) h

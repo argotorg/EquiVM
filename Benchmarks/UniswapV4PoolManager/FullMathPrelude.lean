@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.FullMathWords
 import Benchmarks.UniswapV4PoolManager.WordLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,20 +18,20 @@ def fullMathPreludeFrame (f : Frame) (a b : UInt256) : Frame :=
 theorem fullMathPrelude {f : Frame} {evm : EVM.State} {a b : UInt256}
     (ha : f.locals.get? "a" = some (.int (Int.ofNat a.toNat)))
     (hb : f.locals.get? "b" = some (.int (Int.ofNat b.toNat))) :
-    ExecBlock config f evm (fullMathFunction.body.take 5) (.ok (fullMathPreludeFrame f a b) evm) := by
+    ExecBlock fork config f evm (fullMathFunction.body.take 5) (.ok (fullMathPreludeFrame f a b) evm) := by
   let f1 := wordLocal f "result" ⟨0⟩
   let f2 := wordLocal f1 "prod0" (fullMathLow a b)
   let f3 := wordLocal f2 "prod1" ⟨0⟩
   let f4 := wordLocal f3 "mm" (fullMathMM a b)
-  have h0 : ExecStmt config f evm fullMathFunction.body[0]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm fullMathFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h1 : ExecStmt config f1 evm fullMathFunction.body[1]! (.ok f2 evm) :=
+  have h1 : ExecStmt fork config f1 evm fullMathFunction.body[1]! (.ok f2 evm) :=
     ExecStmt.letDecl (evalWordMul (x := a) (y := b)
       (evalLocalValue (by simp only [f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, ha]))
       (evalLocalValue (by simp only [f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hb])))
-  have h2 : ExecStmt config f2 evm fullMathFunction.body[2]! (.ok f3 evm) :=
+  have h2 : ExecStmt fork config f2 evm fullMathFunction.body[2]! (.ok f3 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h3 : ExecStmt config f3 evm fullMathFunction.body[3]! (.ok f4 evm) :=
+  have h3 : ExecStmt fork config f3 evm fullMathFunction.body[3]! (.ok f4 evm) :=
     ExecStmt.letDecl (evalWordMulMod (a := a) (b := b) (c := fullMathMax)
       (evalLocalValue (by simp only [f3, f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, ha]))
       (evalLocalValue (by simp only [f3, f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hb]))
@@ -41,7 +43,7 @@ theorem fullMathPrelude {f : Frame} {evm : EVM.State} {a b : UInt256}
     simp only [f4, f3, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte]; rfl
   have he := evalWordSubSub (evalLocalValue (cfg := config) (f := f4) (evm := evm) hmm)
     (evalLocalValue hp0) (evalBoolWord (evalWordLt (evalLocalValue hmm) (evalLocalValue hp0)))
-  have h4 : ExecStmt config f4 evm fullMathFunction.body[4]! (.ok (fullMathPreludeFrame f a b) evm) :=
+  have h4 : ExecStmt fork config f4 evm fullMathFunction.body[4]! (.ok (fullMathPreludeFrame f a b) evm) :=
     ExecStmt.assign (hperm := Or.inl rfl) he (assignLocalValue hp1)
   exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2
     (ExecBlock.consNormal h3 (execBlock_singleton h4))))

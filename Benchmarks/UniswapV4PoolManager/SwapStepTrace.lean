@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepInputTrace
 import Benchmarks.UniswapV4PoolManager.SwapStepOutputTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,17 +14,17 @@ theorem swapStepTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+34 ≤ 1024)
     (hp : price.toNat < 2^160) (ht : target.toNat < 2^160) (hl : liquidity.toNat < 2^128) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 (if swapStepExactInput remaining then ⟨19593⟩ else ⟨20607⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if swapStepExactInput remaining then ⟨19593⟩ else ⟨20607⟩)
       ([price, j, if swapStepDirection price target then ⟨1⟩ else ⟨0⟩, target, fee, liquidity,
         remaining, x1, x2, x3, x4, fee, x6, x7, x8, j] ++ R) mem aw rdata σ k C) :
     (swapStepFits price target liquidity remaining fee → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19714⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19714⟩
         ([(swapStepWord price target liquidity remaining fee).fee, j, ⟨160⟩,
           (swapStepWord price target liquidity remaining fee).amountOut,
           (swapStepWord price target liquidity remaining fee).amountIn,
           (swapStepWord price target liquidity remaining fee).next, solcAddrMask,
           remaining, x1, x2, x3, x4, fee, x6, x7, x8, j] ++ R) mem aw rdata σ k' C') ∧
-    (¬swapStepFits price target liquidity remaining fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepFits price target liquidity remaining fee → RDrev fork (deployedRuntime v) g s0) := by
   cases he : swapStepExactInput remaining with
   | false =>
     simp only [swapStepFits, swapStepWord, he, Bool.false_eq_true, if_false] at h ⊢

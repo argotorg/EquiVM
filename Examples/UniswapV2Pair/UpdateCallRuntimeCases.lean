@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.UpdateDynamicCallRuntimeCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -16,7 +18,7 @@ theorem uniswapMintUpdateCallReturns_conditionFalse_packed_with
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (hskip : syncTimeElapsedInt evm = 0 ∨ reserve0 = ⟨0⟩ ∨ reserve1 = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         [ .var "balance0", .var "balance1", .var "_reserve0", .var "_reserve1" ]
         "_updateResult")
@@ -36,7 +38,7 @@ theorem uniswapUpdateCallRuntimeCases
     {reserve1 reserve0 balance1 balance0 ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     {locals : Store} (evm : EVM.State)
-    (rd6959 : RD uniswapV2PairBytecode I g s0 ⟨6959⟩
+    (rd6959 : RD fork uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hAccounts : Eq σ evm.accountMap)
@@ -52,19 +54,19 @@ theorem uniswapUpdateCallRuntimeCases
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 21 ≤ 1024) :
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         [.var "balance0", .var "balance1", .var "_reserve0", .var "_reserve1"]
-        "_updateResult") .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+        "_updateResult") .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' packed k' C',
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "_update"
           [.var "balance0", .var "balance1", .var "_reserve0", .var "_reserve1"]
           "_updateResult")
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
           "_updateResult" none) evm') ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g s0 ret R (uniswapSyncLogMem packed mem)
+      RD fork uniswapV2PairBytecode I g s0 ret R (uniswapSyncLogMem packed mem)
         feeToStaticcallActiveWords rdata σ' k' C' ∧
       (uniswapSyncLogMem packed mem).size = 192 ∧
       (uniswapSyncLogMem packed mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by

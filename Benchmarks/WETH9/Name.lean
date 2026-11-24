@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.StringEncode
 
+variable {fork : Ethereum.Fork}
+
 /-! # WETH9 `Name` refinement
 
 `name()` is a public non-payable getter returning the dynamic string stored at slot 0.  The EVM
@@ -220,13 +222,13 @@ theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) (hwf : weth9StorageWF σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Stele `.return [.storage nameRef]` body ABI-encodes to the EVM encoder's
     -- output (`StringReturnLong2.lean`); `weth9StorageWF` excludes the ≥2^64-byte regime.
-    have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
+    have hbody := nonpayableReturnExprBodyReturns (fork := fork) (cfg := config) (contract := contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
       (by simp only [initState]; exact hwv) weth9NameEval
     by_cases hlen0 : weth9StringLen (solcSlotWord σ I ⟨0⟩) = ⟨0⟩
@@ -263,7 +265,7 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
             rw [if_neg hge32]
             exact weth9NameEncode_long hge31 (weth9StorageWF_nameReturnSizeBound hwf hsel hwv)))
   · -- non-payable revert: EVM reverts at name's callvalue guard (entry 166, gt 178).
-    obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
+    obtain ⟨_, _, h166⟩ := weth9ReachName (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨178⟩) h166 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

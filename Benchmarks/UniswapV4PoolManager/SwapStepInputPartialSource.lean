@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepPriceSource
 import Benchmarks.UniswapV4PoolManager.SwapStepRemainingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,13 +26,13 @@ theorem swapStepInputPartialSource {f : Frame} {evm : EVM.State} {price liquidit
     (hi : f.locals.get? "amountIn" = some oldIn)
     (hn : f.locals.get? "sqrtPriceNextX96" = some oldNext)
     (hfee : f.locals.get? "feeAmount" = some oldFee) :
-    ExecBlock config f evm swapStepInputPartialStmts
+    ExecBlock fork config f evm swapStepInputPartialStmts
       (if nextPriceFits price liquidity available true zeroForOne then
         .ok (swapStepInputPartialFrame f price liquidity remaining available zeroForOne) evm else .reverted) := by
   let f1 := wordLocal f "amountIn" available
-  have h1 : ExecStmt config f evm (.assign .localVar {base := "amountIn"} (.var "amountRemainingLessFee"))
-      (.ok f1 evm) := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ha) (assignLocalValue hi)
-  have hprice := swapStepPriceSource (f := f1) (evm := evm) true zeroForOne hf hp
+  have h1 : ExecStmt fork config f evm (.assign .localVar {base := "amountIn"} (.var "amountRemainingLessFee"))
+      (.ok f1 evm) := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ha) (assignLocalValue hi)
+  have hprice := swapStepPriceSource (fork := fork) (f := f1) (evm := evm) true zeroForOne hf hp
     ((store_get_ne _ _ (by decide : ("amountIn" == "sqrtPriceCurrentX96") = false)).trans hs)
     ((store_get_ne _ _ (by decide : ("amountIn" == "liquidity") = false)).trans hl)
     (evalLocalValue ((store_get_ne _ _ (by decide : ("amountIn" == "amountRemainingLessFee") = false)).trans ha))
@@ -47,7 +49,7 @@ theorem swapStepInputPartialSource {f : Frame} {evm : EVM.State} {price liquidit
     have hf2 : f2.locals.get? "feeAmount" = some oldFee :=
       (swapStepPriceFrame_get _ _ _ _ _ _ _ (by decide) (by decide)).trans
         ((store_get_ne _ _ (by decide : ("amountIn" == "feeAmount") = false)).trans hfee)
-    have h2 : ExecStmt config f2 evm (.assign .localVar {base := "feeAmount"} swapStepRemainingFeeExpr)
+    have h2 : ExecStmt fork config f2 evm (.assign .localVar {base := "feeAmount"} swapStepRemainingFeeExpr)
         (.ok (wordLocal f2 "feeAmount" (swapStepRemainingFeeWord remaining available)) evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (swapStepRemainingFeeSource hr2 hi2) (assignLocalValue hf2)
     exact ExecBlock.consNormal h1 (execBlock_append hprice (execBlock_singleton h2))

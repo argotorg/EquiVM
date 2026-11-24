@@ -7,6 +7,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_049
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_050
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -24,14 +26,14 @@ theorem cometCollateralScale {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (out : ByteArray) (hstack : R.length + 12 ≤ 1024)
     (hs : (calldataWord out 96).toNat < 2^64)
     (hm : memLoad (ptr + UInt256.ofNat 96) mem = calldataWord out 96)
-    (h : RD (deployedRuntime v) ee g s0 (collateralMathPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralMathPc borrow)
       (price :: amount :: ⟨10579⟩ :: UInt256.ofNat (collateralFactorOffset borrow) ::
         ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (collateralScalePc borrow)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (collateralScalePc borrow)
       (calldataWord out 96 :: price :: amount :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R)
       mem aw' rdata σ k' C' := by
-  have hstep : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2959⟩
+  have hstep : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2959⟩
       (calldataWord out 96 :: collateralScalePc borrow :: price :: amount :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ :: ptr :: R)
       mem aw' rdata σ k' C' := by
@@ -63,15 +65,15 @@ theorem cometCollateralMath {v : CometWithExtendedAssetListImmutables}
     {R : List UInt256} (borrow : Bool) (out : ByteArray) (hstack : R.length + 17 ≤ 1024)
     (hn : amount.toNat < 2^128) (hc : AssetCanonical out) (hm : AssetMemory mem ptr free out)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (collateralMathPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralMathPc borrow)
       (price :: amount :: ⟨10579⟩ :: UInt256.ofNat (collateralFactorOffset borrow) ::
         ⟨10587⟩ :: ⟨10592⟩ :: ptr :: ⟨10598⟩ :: ret :: a :: b :: ⟨1⟩ :: R)
       mem aw rdata σ k C) :
     (CollateralMathValid borrow amount price out ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         (collateralValueWord borrow amount price out :: a :: b :: ⟨1⟩ :: R)
         mem aw' rdata σ k' C') ∨
-      (¬ CollateralMathValid borrow amount price out ∧ RDrev (deployedRuntime v) g s0) := by
+      (¬ CollateralMathValid borrow amount price out ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hs := hc.2.2.2.1
   have hf : (calldataWord out (collateralFactorOffset borrow)).toNat < 2^64 := by
     cases borrow
@@ -88,7 +90,7 @@ theorem cometCollateralMath {v : CometWithExtendedAssetListImmutables}
       (UInt256.sub (UInt256.shiftLeft ⟨1⟩ (UInt256.ofNat 128)) ⟨1⟩) amount = amount := by
     rw [u256_land_comm]
     exact u256LandMaskCleanOfToNat _ _ (bits := 128) rfl hn
-  have hmul : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11194⟩
+  have hmul : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11194⟩
       (amount :: price :: calldataWord out 96 :: ⟨10579⟩ ::
         UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ :: ptr ::
         ⟨10598⟩ :: ret :: a :: b :: ⟨1⟩ :: R) mem aw1 rdata σ k' C' := by
@@ -97,7 +99,7 @@ theorem cometCollateralMath {v : CometWithExtendedAssetListImmutables}
         have r2 := cometWithExtendedAssetList_block_11046 (immWords := wordsOf (immStore v))
           (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
         dsimp only [cometWithExtendedAssetList_block_11046_stack] at r2
-        change RD _ _ _ _ _ (UInt256.land _ amount :: _) _ _ _ _ _ _ at r2
+        change RD fork _ _ _ _ _ (UInt256.land _ amount :: _) _ _ _ _ _ _ at r2
         rw [hmask] at r2
         exact ⟨_, _, r2⟩
     | true =>
@@ -105,7 +107,7 @@ theorem cometCollateralMath {v : CometWithExtendedAssetListImmutables}
           (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
         dsimp only [cometWithExtendedAssetList_block_10567_stack] at r2
         simp only [collateralFactorOffset, if_true] at r2
-        change RD _ _ _ _ _ (UInt256.land _ amount :: _) _ _ _ _ _ _ at r2
+        change RD fork _ _ _ _ _ (UInt256.land _ amount :: _) _ _ _ _ _ _ at r2
         rw [hmask] at r2
         exact ⟨_, _, r2⟩
   obtain ⟨k2, C2, r2⟩ := hmul

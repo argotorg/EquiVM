@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.AttestCall
 import Benchmarks.EAS.EAS.AttestPublicSource
 import Benchmarks.EAS.EAS.AttestPublicMemory
 import Benchmarks.EAS.EAS.AttestControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,18 +18,18 @@ theorem attestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
     (hsize : ee.calldata.size < 2^255+4) (hd : requestDataValid ee.calldata (attestRequestData ee.calldata root))
     (hreq : L.get? "request" = some (attestRequestValue ee.calldata root))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat 480)))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5344⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
       (attestRequestData ee.calldata root::UInt256.ofNat ee.calldata.size::UInt256.ofNat 557::root::UInt256.ofNat 224::
         UInt256.ofNat 587::UInt256.ofNat 32::UInt256.ofNat 594::UInt256.ofNat 32::R)
       attestPublicArrayMemory aw rdata σ k C) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (uid : UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail
         (.returned {contract := contract,locals := L',immutables := immStore v} evm' (some [wordBytes32Value uid])) ∧
-      SourceState s0 ee σ' evm' ∧ RDret (deployedRuntime v) g s0 σ' uid.toByteArray) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      SourceState s0 ee σ' evm' ∧ RDret fork (deployedRuntime v) g s0 σ' uid.toByteArray) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestPublicTail .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   let r := requestDataRecord ee.calldata (attestRequestData ee.calldata root)
   let schema := calldataWord ee.calldata root.toNat
   let next := copyRequestNext 480 r.data.size
@@ -37,7 +39,7 @@ theorem attestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
       .ok [r.tuple,.int (Int.ofNat 480)] := by
     simp only [attestPublicCopyArgs,evalExprs?,evalExpr?,hreq,hh,attestRequestValue,EvalResult.ofOption,bind,EvalResult.bind,pure]
     rfl
-  have hs := copyRequestCall_branches (retVar := "allocation$allocation") he
+  have hs := copyRequestCall_branches (fork := fork) (retVar := "allocation$allocation") he
   have hr := easCopyRequest_branches (heap := UInt256.ofNat 480) v
     (by simp only [List.length_cons]; omega) (by decide) (by decide) attestPublicArrayMemory_facts.2.2.1
     (by rw [easPatchedValidJumps v]; jump_dest) rd
@@ -57,11 +59,11 @@ theorem attestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
     obtain ⟨a2,k2,C2,r2⟩ := easAttestArraySet (array := UInt256.ofNat 224) (ptr := UInt256.ofNat 480) (root := root)
       (mem := attestPublicCopiedMemory ee.calldata root) v (by simp only [List.length_cons]; omega) (by decide) hcover
       (by rw [hlen]; decide) r1
-    have hu : ExecBlock config
+    have hu : ExecBlock fork config
         (resumeAfterInternalCall {contract := contract,locals := L,immutables := immStore v}
           "allocation$allocation" (some [.tuple [],.int (Int.ofNat next)])) evm attestPublicCopyUnpack
         (.ok {contract := contract,locals := L1,immutables := immStore v} evm) := by
-      change ExecBlock config
+      change ExecBlock fork config
         {contract := contract,locals := L.insert "allocation$allocation" (.tuple [.tuple [],.int (Int.ofNat next)]),immutables := immStore v}
         evm attestPublicCopyUnpack (.ok {contract := contract,locals := L1,immutables := immStore v} evm)
       apply unpackHeapResult (store_get_self _ _ _)
@@ -90,7 +92,7 @@ theorem attestPublicRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
       ⟨hcall,hrev⟩ | ⟨hcall,hstatic⟩
     · obtain ⟨uid,rfl⟩ := List.length_eq_one_iff.mp hlen'
       have hret := easAttestPublicReturn v (by omega) hview r3
-      have hfinish := attestPublicFinishSource (evm := evm') (imms := immStore v)
+      have hfinish := attestPublicFinishSource (fork := fork) (evm := evm') (imms := immStore v)
         (L := L2.insert "__c0$allocation" (.tuple [attestationsResultValue [uid] used,.int (Int.ofNat heap')]))
         (store_get_self _ _ _) (by simpa only [store_get_ne _ _ (by decide : ("__c0$allocation" == "$EAS.freeMemory") = false)] using hheap2)
       let Lfinal := unpackHeapLocals

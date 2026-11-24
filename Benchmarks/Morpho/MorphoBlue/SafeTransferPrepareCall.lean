@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferEntry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,10 +16,10 @@ theorem morphoTransferPrepareCall {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hc : extCodeSizeWord σ (UInt256.ofNat token.val) ≠ UInt256.ofNat 0)
     (hfit : ptr.toNat + safeTransferInputAllocation isFrom < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient value ++ ret :: R) mem aw out σ k C) :
     ∃ ptr' inOffset mem' gasArg a k C,
-      RD (deployedRuntime v) ee g s0 (safeTransferCallPC isFrom)
+      RD fork (deployedRuntime v) ee g s0 (safeTransferCallPC isFrom)
         ([gasArg, UInt256.ofNat token.val, UInt256.ofNat 0, inOffset,
           UInt256.ofNat (safeTransferCallSize isFrom), UInt256.ofNat 0, UInt256.ofNat 0,
           UInt256.ofNat 15005, ret] ++ R) mem' a out σ k C ∧

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipWriteSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -40,11 +42,11 @@ theorem assetMembershipCond_eval (evm : EVM.State) (imms : Store)
 theorem assetMembership_source (evm : EVM.State) (imms : Store)
     (account : AccountAddress) (out : ByteArray) (initial final : UInt256)
     (ho : (calldataWord out 0).toNat < 2^8) :
-    internalSourceResult config (assetMembershipEntry imms account out initial final) evm
+    internalSourceResult fork config (assetMembershipEntry imms account out initial final) evm
       assetMembershipCallable.body
       (assetMembershipResult evm account (calldataWord out 0) initial final) := by
   let frame := assetMembershipEntry imms account out initial final
-  have hwrite (add : Bool) := assetMembershipWrite_source frame evm account
+  have hwrite (add : Bool) := assetMembershipWrite_source (fork := fork) frame evm account
     (calldataWord out 0) add rfl (by simp [frame, assetMembershipEntry])
     (by simp only [evalExpr?, frame, assetMembershipEntry, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl) ho
@@ -85,7 +87,7 @@ theorem assetMembership_call (frame : Frame) (evm : EVM.State) (account : Accoun
     (hs : evalExpr? config frame evm assetExpr = .ok (assetValue out))
     (hi : evalExpr? config frame evm initialExpr = .ok (.int initial.toNat))
     (hf : evalExpr? config frame evm finalExpr = .ok (.int final.toNat)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "updateAssetsIn" [accountExpr, assetExpr, initialExpr, finalExpr] ret)
       (internalStmtResult frame ret
         (assetMembershipResult evm account (calldataWord out 0) initial final)) := by

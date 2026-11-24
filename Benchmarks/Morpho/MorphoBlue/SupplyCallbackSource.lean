@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.LocalBytesGuard
 import Benchmarks.Morpho.MorphoBlue.CallerCallbackSource
 import Benchmarks.Morpho.MorphoBlue.SupplyCallbackABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -27,24 +29,24 @@ theorem supplyCallback_args {p assets shares account data locals}
 
 theorem supplyCallback_noCode (frame : Frame) (evm : EVM.State)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) = UInt256.ofNat 0) :
-    ExecBlock config frame evm supplyCallbackBody .reverted := by
+    ExecBlock fork config frame evm supplyCallbackBody .reverted := by
   exact callerCallbackSourceNoCode config frame evm "onMorphoSupply" [.var "assets", .var "data"] "__c7" [] hc
 
 theorem supplyCallback_failure {p assets shares account data locals}
     (hl : SupplyLocals p assets shares account data locals) (imms : Store) (evm evm' : EVM.State) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
-    (hcall : typedCallViaEVM config evm evm.executionEnv.source "onMorphoSupply" 0
+    (hcall : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoSupply" 0
       [.int (Int.ofNat assets.toNat), .bytes data] (false, evm', out)) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm supplyCallbackBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm supplyCallbackBody .reverted := by
   exact callerCallbackSourceFailure config _ evm evm' "onMorphoSupply" [.var "assets", .var "data"] "__c7"
     [] _ out hc (supplyCallback_args hl imms evm) hcall
 
 theorem supplyCallback_success {p assets shares account data locals}
     (hl : SupplyLocals p assets shares account data locals) (imms : Store) (evm evm' : EVM.State) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
-    (hcall : typedCallViaEVM config evm evm.executionEnv.source "onMorphoSupply" 0
+    (hcall : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoSupply" 0
       [.int (Int.ofNat assets.toNat), .bytes data] (true, evm', out)) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm supplyCallbackBody
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm supplyCallbackBody
       (.ok (callerCallbackCalledFrame { contract := contract, locals := locals, immutables := imms }
         evm.executionEnv.source "__c7") evm') := by
   exact callerCallbackSourceSuccess config _ evm evm' "onMorphoSupply" [.var "assets", .var "data"] "__c7"

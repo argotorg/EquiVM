@@ -1,5 +1,7 @@
 import Benchmarks.Auction.SettleChecks
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -7,7 +9,7 @@ namespace Auction
 /-- Full refinement of `_settleAuction`: snapshot, guards, storage flag, noun call, payment,
 event, and internal return. Calls retain their actual success/failure outcomes. -/
 theorem settleRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 142 ≤ 2 ^ 200)
     (hp : locals.get? "_freePtr" = some (.int (Int.ofNat ptr.toNat)))
@@ -16,16 +18,16 @@ theorem settleRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleAuctionFn.body
         (.returned { contract := auctionContract, locals := locals' } evm'
           (some [.int (Int.ofNat ptr'.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' ptr' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 141 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
-      settleAuctionFn.body .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settleAuctionFn.body .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have hb192 : ptr.toNat + 192 ≤ 2 ^ 200 := by omega
   obtain ⟨_, _, rd4162⟩ := settleSnapshotPrefix h hm hb192 (by omega)
   have hptr : (ptr + ⟨192⟩).toNat = ptr.toNat + 192 :=

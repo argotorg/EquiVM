@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateBadBodyRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,7 +12,7 @@ def liquidateBadInitLocals (locals : Store) : Store :=
   (locals.insert "badDebtShares" (.int 0)).insert "badDebtAssets" (.int 0)
 
 theorem liquidateBadInit (locals imms : Store) (evm : EVM.State) :
-    ABlock config evm { contract := contract, locals := locals, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
       (liquidateTransition.body.drop 28)
       { contract := contract, locals := liquidateBadInitLocals locals, immutables := imms }
       (liquidateTransition.body.drop 30) := by
@@ -35,22 +37,22 @@ theorem liquidateBadInit_memory (locals : Store) :
   dsimp only [liquidateBadInitLocals]
   rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
 
-inductive LiquidateBadDebtRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateBadDebtRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets seized shares account srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 28) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateBadDebtRefines v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 28) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateBadDebtRefines fork v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R
   | ok {trash badAssets badShares locals' evm' σ' mem' fp' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (liquidateTransition.body.drop 28) { contract := contract, locals := locals', immutables := imms }
         evm' (liquidateTransition.body.drop 31) →
       LiquidateEventLocals p account seized shares data assets badAssets badShares locals' →
       locals'.get? "__memory" = some (.int (Int.ofNat fp'.toNat)) →
       SourceState s0 ee σ' evm' → MorphoHeap mem' fp' 384 → MemoryPrefix mem mem' fp.toNat → fp.toNat ≤ fp'.toNat →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
         (liquidateEventTail trash p.id assets seized shares badAssets badShares srcOff len R) mem' aw' out' σ' k' C' →
-      LiquidateBadDebtRefines v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R
+      LiquidateBadDebtRefines fork v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R
 
 theorem morphoLiquidateBadDebtRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets seized shares account srcOff len : UInt256} {out mem data : ByteArray}
@@ -61,10 +63,10 @@ theorem morphoLiquidateBadDebtRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
     (hassets : locals.get? "repaidAssets" = some (.int (Int.ofNat assets.toNat)))
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp 576)
     (hget : locals.get? "__memory" = some (.int (Int.ofNat fp.toNat)))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2509)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2509)
       (liquidateMarketTail p.id assets seized shares srcOff len R) mem aw out σ k C) :
-    LiquidateBadDebtRefines v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R := by
-  have ab := liquidateBadInit locals imms evm
+    LiquidateBadDebtRefines fork v ee g s0 p assets seized shares account srcOff len data locals imms evm mem fp R := by
+  have ab := liquidateBadInit (fork := fork) locals imms evm
   have hl0 := liquidateBadInit_locals hl hassets
   have hg0 : (liquidateBadInitLocals locals).get? "__memory" = some (.int (Int.ofNat fp.toNat)) :=
     (liquidateBadInit_memory locals).trans hget
@@ -80,7 +82,7 @@ theorem morphoLiquidateBadDebtRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
     rw [decide_eq_true hz] at he
     obtain hre | ⟨he1, hl1, hg1, hs1, hm1, ad1, rd1⟩ :=
       morphoLiquidateBadBodyRefine (v := v) p _ imms hstack hperm ha haccount hl0 hs hm0 hg0 rd0
-    · exact .reverted (ab.run (ExecBlock.consRevert (ExecStmt.iteTrue he hre))) ‹RDrev _ _ _›
+    · exact .reverted (ab.run (ExecBlock.consRevert (ExecStmt.iteTrue he hre))) ‹RDrev fork _ _ _›
     exact .ok ⟨fun tail ↦ ab.run (ExecBlock.consNormal (ExecStmt.iteTrue he he1) tail)⟩
       hl1 hg1 hs1 hm1 (ad0.trans ad1).preserves (by have hh := ad1.cursor; omega) rd1
   · rw [if_neg hz] at rd0

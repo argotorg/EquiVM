@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.FlashLoanDecode
 import Benchmarks.Morpho.MorphoBlue.FlashLoanMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ def flashLoanGuardStack (cd : ByteArray) (R : List UInt256) : List UInt256 :=
 theorem morphoFlashLoanPrepareGuard {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
       (flashLoanDecodeStack ee.calldata R) solcFreePtrMem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 36)) :: UInt256.ofNat 128 ::
         UInt256.ofNat 1055 :: flashLoanGuardStack ee.calldata R) flashLoanGuardMem aw' out σ k' C' := by
   have rd0 := morphoBlocks.morpho_block_1033 (immWords := wordsOf (immStore v))
@@ -36,9 +38,9 @@ theorem morphoFlashLoanGuardZero {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hz : calldataWord ee.calldata 36 = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
       (flashLoanDecodeStack ee.calldata R) solcFreePtrMem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoFlashLoanPrepareGuard hstack h
   refine morphoRequireFalseShort (by change R.length + 7 + 11 ≤ 1024; omega)
     (by rw [hz]; rfl) ?_ ?_ rd1
@@ -49,9 +51,9 @@ theorem morphoFlashLoanGuardOk {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hz : calldataWord ee.calldata 36 ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
       (flashLoanDecodeStack ee.calldata R) solcFreePtrMem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1055)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1055)
       (flashLoanGuardStack ee.calldata R) flashLoanGuardMem aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoFlashLoanPrepareGuard hstack h
   obtain ⟨k2, C2, rd2⟩ := morphoRequireTrue (by change R.length + 7 + 4 ≤ 1024; omega)
@@ -68,16 +70,16 @@ theorem morphoFlashLoanEnter {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (ha : (calldataWord ee.calldata 4).toNat < EVM.addressModulus) (hperm : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1055)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1055)
       (flashLoanGuardStack ee.calldata R) flashLoanGuardMem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
       ([calldataWord ee.calldata 4, UInt256.ofNat ee.source.val, calldataWord ee.calldata 36, UInt256.ofNat 1113] ++
         flashLoanCallTail ee.calldata R) (flashLoanEnterMem (calldataWord ee.calldata 36)) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_1055_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 10 ≤ 1024; omega) hperm
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [morphoBlocks.morpho_block_1055_stack, morphoBlocks.morpho_block_1055_memory] at rd1
-  change RD _ _ _ _ _ ([_ , _, _, _, _, _, _, _, _, _] ++ R) _ _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ ([_ , _, _, _, _, _, _, _, _, _] ++ R) _ _ _ _ _ _ at rd1
   rw [solcAddrMask_clean ha, flashLoanGuardMem_facts.2.1] at rd1
   exact ⟨a1, k1, C1, rd1⟩
 

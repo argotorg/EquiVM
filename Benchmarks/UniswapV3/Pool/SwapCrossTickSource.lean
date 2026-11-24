@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapPriceChangedSource
 import Benchmarks.UniswapV3.Pool.SwapIterationMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -19,7 +21,7 @@ theorem swapCrossTickSource {frame : Frame} {evm : EVM.State}
     (hz : frame.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (hs : frame.locals.get? "state" = some s.value)
     (hd : frame.locals.get? "step" = some d.value) :
-    ExecStmt config frame evm swapCrossBody[1]!
+    ExecStmt fork config frame evm swapCrossBody[1]!
       (.ok (swapCrossTickFrame frame zeroForOne s d) evm) := by
   have hez := evalExpr_var_get (cfg := config) (evm := evm) hz
   have het := evalExpr_structField (name := "tickNext")

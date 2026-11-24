@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ExecTransactionDecodeSteps
 import Benchmarks.Safe.ViaIR.CheckedIncrement
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -24,11 +26,11 @@ set_option maxRecDepth 2000
 
 theorem safeExecNonceStart (evm : EVM.State) {I g s0 σ k C aw mem rdata len}
     {ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4469⟩ (execTransactionDecodedStack I.calldata len ptr R)
+    (h : RD fork safeBytecode I g s0 ⟨4469⟩ (execTransactionDecodedStack I.calldata len ptr R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hov : R.length + 36 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7497⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7497⟩
       (execNonce evm :: ⟨4485⟩ :: execNonce evm :: ⟨4522⟩ ::
         execHashSaved I.calldata len ptr R) mem aw rdata σ k' C' := by
   have hload : (σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -42,27 +44,27 @@ theorem safeExecNonceStart (evm : EVM.State) {I g s0 σ k C aw mem rdata len}
 
 theorem safeExecNonceStore (evm : EVM.State) {I g s0 σ k C aw mem rdata len}
     {ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4485⟩
+    (h : RD fork safeBytecode I g s0 ⟨4485⟩
       ((execNonce evm + ⟨1⟩) :: execNonce evm :: ⟨4522⟩ ::
         execHashSaved I.calldata len ptr R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hp : I.perm = true) (hc : (calldataWord I.calldata 260).toNat < EVM.addressModulus)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9040⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9040⟩
       (execHashStack I.calldata len ptr (execNonce evm) R)
       mem aw rdata (execNonceState evm).accountMap k' C' := by
   obtain ⟨k', C', h₁⟩ := safeRuntime_block_4485 (by simp; omega) hp (by jump_dest) h
   simp only [safeRuntime_block_4485_stack, safeAddressMask] at h₁
   simpa only [execNonceState, storageStore_accountMap, hee, hacc, solcAddrMask_clean hc] using
-    (show ∃ k' C', RD safeBytecode I g s0 ⟨9040⟩
+    (show ∃ k' C', RD fork safeBytecode I g s0 ⟨9040⟩
       (execHashStack I.calldata len ptr (execNonce evm) R)
       mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨5⟩ (execNonce evm + ⟨1⟩)) k' C' from
         ⟨k', C', by simpa only [solcAddrMask_clean hc] using h₁⟩)
 
 theorem safeExecNonceStatic {I g s0 σ k C aw mem rdata} {value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4485⟩ (value :: R) mem aw rdata σ k C)
-    (hp : I.perm = false) (hov : R.length + 2 ≤ 1024) : RDstatic safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨4485⟩ (value :: R) mem aw rdata σ k C)
+    (hp : I.perm = false) (hov : R.length + 2 ≤ 1024) : RDstatic fork safeBytecode g s0 := by
   have h₁ := h.jumpdest (by native_decide) (by simp; omega)
   have h₂ := h₁.push1 ⟨5⟩ (by native_decide) (by simp; omega)
   exact h₂.sstoreStatic hp (by native_decide) (by omega)

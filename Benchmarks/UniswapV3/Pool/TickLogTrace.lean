@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogTailTrace
 import Benchmarks.UniswapV3.Pool.TickLogMsbTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -9,12 +11,12 @@ set_option maxRecDepth 10000
 theorem tickLogX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 22 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ (tickLogValid (tickLogPrice price) ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ (tickLogValid (tickLogPrice price) ∧
       tickLogSafe (tickLogResult (tickLogPrice price)))) ∨
     (tickLogValid (tickLogPrice price) ∧ tickLogSafe (tickLogResult (tickLogPrice price)) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (tickLogChoiceRaw (tickLogResult (tickLogPrice price)) (tickLogPrice price) :: R)
         mem aw rdata σ k' C') := by
   rcases tickLogStartX rd (by simp only [List.length_cons]; omega) with
@@ -31,7 +33,7 @@ theorem tickLogX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   dsimp only at hbounds
   rw [hlog] at hbounds
   rcases hbounds with ⟨he, k3, C3, rready⟩ | ⟨he, k3, C3, rready⟩
-  · have rc : RD (deployedRuntime v) ee g s0 ⟨14788⟩
+  · have rc : RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
         (tickLogChoiceRaw (tickLogResult (tickLogPrice price)) (tickLogPrice price) ::
           tickLogBoundsStack (tickLogResult (tickLogPrice price))
             (UInt256.ofNat msb :: tickLogScaled (tickLogRun r 13) :: ratio :: ⟨0⟩ :: price :: ret :: R))

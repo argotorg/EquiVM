@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestArraysRun
 import Benchmarks.EAS.EAS.AttestLoopRun
 import Benchmarks.EAS.EAS.AttestFinishRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -24,7 +26,7 @@ theorem attestAfterSchemaRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
     (hav : attestAvailableWord site = available) (hlast : attestLastWord site = last.toUInt256)
     (hresult : 160 ≤ (recordResultPtr site mem).toNat)
     (hret : (D_J (deployedRuntime v) 0).contains (attestReturnPC site) = true)
-    (rd : RD (deployedRuntime v) ee g s0 (attestArraysStartPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestArraysStartPC site)
       (attestArraysStartStack site schema R) mem aw rdata σ k C) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256)
         (k' C' heap' : Nat) (uids : List UInt256) (used : UInt256),
@@ -32,14 +34,14 @@ theorem attestAfterSchemaRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
       MemoryPrefix mem mem' (recordResultPtr site mem).toNat ∧
       AttestResultMemoryView mem' (recordResultPtr site mem) uidPtr uids used heap' ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat heap' ∧
-      ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody
         (.returned {contract := contract,locals := L',immutables := immStore v} evm'
           (some [attestationsResultValue uids used,.int (Int.ofNat heap')])) ∧
-      RD (deployedRuntime v) ee g s0 (attestReturnPC site) (recordResultPtr site mem::R) mem' aw' out σ' k' C') ∨
-    (ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecFuncBody config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 (attestReturnPC site) (recordResultPtr site mem::R) mem' aw' out σ' k' C') ∨
+    (ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecFuncBody fork config {contract := contract,locals := L,immutables := immStore v} evm attestAfterSchemaBody .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   have hu := hm.uidLow
   have hus := hm.uidArray.span
   have huc := hm.uidArray.covered

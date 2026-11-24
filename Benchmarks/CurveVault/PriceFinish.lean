@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.PriceFinishSource
 import Benchmarks.CurveVault.RuntimeBlocks_009
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -10,8 +12,8 @@ theorem vaultPriceRoundReach {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : 448 ≤ mem.size) (hx : memLoad (UInt256.ofNat 416) mem = x)
     (hf : memLoad (UInt256.ofNat 320) mem = if isFloor then ⟨1⟩ else ⟨0⟩)
     (hy0 : y ≠ ⟨0⟩) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1689) (y :: unused :: R) mem aw rdata σ k C) :
-    ∃ scratch aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 1765) R
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1689) (y :: unused :: R) mem aw rdata σ k C) :
+    ∃ scratch aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 1765) R
       ((vaultConversionResult isFloor x y).toByteArray.write 0 scratch 480 32) aw' rdata σ k' C' := by
   let mem1 := y.toByteArray.write 0 mem 448 32
   let mem2 := (⟨0⟩ : UInt256).toByteArray.write 0 mem1 480 32
@@ -35,7 +37,7 @@ theorem vaultPriceRoundReach {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd1754 := vaultBlocks.vault_block_1739_fallthrough (by simp only [vaultBlocks.vault_block_1689_taken_stack]; omega)
       (by change UInt256.isZero (memLoad (UInt256.ofNat 448) mem2) = _
           rw [hy2]; exact isZero_eq_zero_of_ne hy0) rd1739
-    change RD vaultBytecode I g s0 (UInt256.ofNat 1754)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 1754)
       (memLoad (UInt256.ofNat 448) mem2 :: memLoad (UInt256.ofNat 416) mem2 :: R) mem2 _ rdata σ _ _ at rd1754
     rw [hx2, hy2] at rd1754
     have rd1765 := vaultBlocks.vault_block_1754 (by omega) rd1754
@@ -56,7 +58,7 @@ theorem vaultPriceRoundReach {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have hv : memLoad (UInt256.ofNat 512) scratch = vaultCeilDivWord x y :=
       memLoad_write_back _ _ 512 (by decide +kernel) (hgap _ (by omega) _)
     have rd1765 := vaultBlocks.vault_block_1726 (by omega) (by native_decide) rd1726
-    change RD vaultBytecode I g s0 (UInt256.ofNat 1765) R
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 1765) R
       ((memLoad (UInt256.ofNat 512) scratch).toByteArray.write 0 scratch 480 32) _ rdata σ _ _ at rd1765
     rw [hv] at rd1765
     exact ⟨scratch, _, _, _, rd1765⟩
@@ -67,10 +69,10 @@ theorem vaultPriceFinish {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : 448 ≤ mem.size) (hx : memLoad (UInt256.ofNat 416) mem = x)
     (hf : memLoad (UInt256.ofNat 320) mem = if isFloor then ⟨1⟩ else ⟨0⟩)
     (hy0 : y ≠ ⟨0⟩) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1689) (y :: unused :: R) mem aw rdata σ k C) :
-    (vaultConversionResult isFloor x y = ⟨0⟩ ∧ RDrev vaultBytecode g s0) ∨
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1689) (y :: unused :: R) mem aw rdata σ k C) :
+    (vaultConversionResult isFloor x y = ⟨0⟩ ∧ RDrev fork vaultBytecode g s0) ∨
     (vaultConversionResult isFloor x y ≠ ⟨0⟩ ∧
-      RDret vaultBytecode g s0 σ (vaultConversionResult isFloor x y).toByteArray) := by
+      RDret fork vaultBytecode g s0 σ (vaultConversionResult isFloor x y).toByteArray) := by
   obtain ⟨scratch, aw', k', C', rd1765⟩ := vaultPriceRoundReach hsize hx hf hy0 hstack h
   have hgap : 480 - scratch.size < USize.size := lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 480 (by norm_num))
   have hvalue := memLoad_write_back (vaultConversionResult isFloor x y) scratch 480 (by decide +kernel) hgap
@@ -82,7 +84,7 @@ theorem vaultPriceFinish {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (by rw [hvalue]; exact isZero_eq_zero_of_ne hz) rd1765
     have rd1780 := vaultBlocks.vault_block_1775 (by omega) rd1775
     have hret := vaultBlocks.vault_block_1780 (by omega) rd1780
-    change RDret vaultBytecode g s0 σ
+    change RDret fork vaultBytecode g s0 σ
       (((vaultConversionResult isFloor x y).toByteArray.write 0 scratch 480 32).readWithPadding 480 32) at hret
     rw [toByteArray_write_read_back_of_gap _ _ _ hgap] at hret
     exact Or.inr ⟨hz, hret⟩

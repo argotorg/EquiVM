@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.AttestReturnTrace
 import Benchmarks.EAS.Attester.AttestSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Attester attest proof scaffold
 
@@ -26,11 +28,11 @@ theorem attesterAttestBody (imms : Store) (hfit : immutablesFit contract imms)
     (hcode : I.code = deployedRuntime attesterBytecode imms)
     (hsize : I.calldata.size < UInt256.size) (hvalue : I.weiValue = ⟨0⟩)
     (hselector : (attesterAttestSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hc := hcode.trans (deployedRuntime_eq_layout hfit)
   have hd := attesterAttestDispatch hselector
   have hsz := calldata_size_ge_of_selIs I attesterAttestSelBytes rfl hselector
-  obtain ⟨k, C, rd⟩ := attesterAttestReachDecode (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := attesterAttestReachDecode (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hc hvalue hsize hselector
   by_cases hshort : I.calldata.size < 68
   · exact (attesterDecodeTwoWordsRevert rd (by simp) hsz hsize (.inl hshort))
@@ -55,8 +57,8 @@ theorem attesterAttestBody (imms : Store) (hfit : immutablesFit contract imms)
   have hencode := attestRequest_encoding (calldataWord I.calldata 4) (calldataWord I.calldata 36)
   by_cases hdepth : I.depth = 1024
   · obtain ⟨k', C', rd'⟩ := RD.callDepthLimit rd hcallDec hdepth (by simp)
-    have hbody := attestSourceFailure hvalue heas'
-      (callNotMade_depthLimit (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hencode hdepth)
+    have hbody := attestSourceFailure (fork := fork) hvalue heas'
+      (callNotMade_depthLimit (fork := fork) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hencode hdepth)
     exact (attestAfterCallFailure rd' (by simp)).reEquivExecutionRevert hc hd hdec hbody
   have hdepthlt : I.depth.val < 1024 := by
     have hbound := I.depth.isLt

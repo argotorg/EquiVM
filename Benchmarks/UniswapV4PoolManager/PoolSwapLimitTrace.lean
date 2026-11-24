@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapLimitBranchTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -10,15 +12,15 @@ theorem poolSwapLimitTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+14 ≤ 1024)
     (hl : limit.toNat < 2^160) (hm : memLoad (params+UInt256.ofNat 96) mem = limit)
-    (h : RD (deployedRuntime v) I g s0 ⟨18978⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18978⟩
       ([x0, x1, slot0SqrtPriceWord packed, ret, params, remaining, calculated, fee, protocol, amount,
         UInt256.fromBool (!zeroForOne)]++R) mem aw rdata σ k C) :
     if poolSwapLimitValid packed limit zeroForOne then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19061⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19061⟩
         ([ret, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne)]++R)
         mem (poolSwapLimitAW aw params) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
-  have hstart : RD (deployedRuntime v) I g s0 (if zeroForOne then ⟨18985⟩ else ⟨22052⟩)
+    else RDrev fork (deployedRuntime v) g s0 := by
+  have hstart : RD fork (deployedRuntime v) I g s0 (if zeroForOne then ⟨18985⟩ else ⟨22052⟩)
       ([slot0SqrtPriceWord packed, ret, params, remaining, calculated, fee, protocol, amount,
         UInt256.fromBool (!zeroForOne)]++R) mem aw rdata σ (k+5) (C+20) := by
     cases zeroForOne

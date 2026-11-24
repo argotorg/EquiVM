@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.FlashGrowthSource
 import Benchmarks.UniswapV3.Pool.FullMathTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,10 +22,10 @@ theorem flashGrowthBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat}
     {aw fees divisor paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashGrowthEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashGrowthEntry second)
       (fees :: divisor :: flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
       mem aw rdata σ k C) (hliquidity : liquidity.toNat < 2 ^ 128) (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨13017⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨13017⟩
       (liquidity :: UInt256.ofNat (2 ^ 128) :: UInt256.sub (if second then paid1 else paid0) fees ::
         flashGrowthReturn second :: fees :: divisor ::
         flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
@@ -43,10 +45,10 @@ theorem flashGrowthBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem flashGrowthStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw amount fees divisor : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashGrowthReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashGrowthReturn second)
       (amount :: fees :: divisor :: R) mem aw rdata σ k C)
     (hperm : ee.perm = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (flashUpdateExit second) R mem aw rdata
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (flashUpdateExit second) R mem aw rdata
       (addFeeGrowthMap σ ee second amount) k' C' := by
   cases second
   · obtain ⟨k', C', rdDone⟩ := uniswapV3Pool_block_7270 (immWords := wordsOf (immStore v))
@@ -65,7 +67,7 @@ theorem flashGrowthX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw fees divisor paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (locals : Store) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashGrowthEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashGrowthEntry second)
       (fees :: divisor :: flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
       mem aw rdata σ k C) (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hp : locals.get? (flashPaidName second) =
@@ -74,16 +76,16 @@ theorem flashGrowthX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hl : locals.get? "_liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hbase : locals.get? (feeGrowthName second) = none)
     (hliquidity : liquidity.toNat < 2 ^ 128) (hov : R.length + 27 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashGrowthStmts second) .reverted) ∨
     let amount := flashGrowthResult (if second then paid1 else paid0) fees liquidity
     SourceState s0 ee (addFeeGrowthMap σ ee second amount) (addFeeGrowth evm second amount) ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashGrowthStmts second)
         (.ok (flashGrowthFrame locals (immStore v) second
           (if second then paid1 else paid0) fees liquidity) (addFeeGrowth evm second amount)) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 (flashUpdateExit second)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 (flashUpdateExit second)
         (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
         mem aw rdata (addFeeGrowthMap σ ee second amount) k' C' := by
   obtain ⟨_, _, rdCall⟩ := flashGrowthBuildX (v := v) second rd hliquidity (by omega)

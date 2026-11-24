@@ -1,6 +1,8 @@
 import Examples.Ballot.WinningProposal
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -151,13 +153,13 @@ theorem ballotWinnerNameBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbound :
       (winningProposalResultCurrent evm).toNat < (winningProposalLengthCurrent evm).toNat) :
-    ∃ locals', ExecTransitionBody ballotConfig ballotContract evm ∅ winnerNameTransition.body
+    ∃ locals', ExecTransitionBody fork ballotConfig ballotContract evm ∅ winnerNameTransition.body
       (.returned { contract := ballotContract, locals := locals' } evm
         (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (winnerNameNameCurrent evm)))])) := by
   let w := winningProposalResultCurrent evm
   let Lw := winnerNameStoreAfterWinningProposal w
   obtain ⟨calleeLocals, hcallee⟩ := ballotWinningProposalBodyReturns evm ∅ h (by simp)
-  have hcall : ExecStmt ballotConfig { contract := ballotContract, locals := ∅ } evm
+  have hcall : ExecStmt fork ballotConfig { contract := ballotContract, locals := ∅ } evm
       (.internalCall "winningProposal" [] "w")
       (.ok { contract := ballotContract, locals := Lw } evm) := by
     simpa [Lw, winnerNameStoreAfterWinningProposal, w] using
@@ -187,11 +189,11 @@ theorem ballotWinnerNameBodyReverts_oob (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbound :
       ¬ (winningProposalResultCurrent evm).toNat < (winningProposalLengthCurrent evm).toNat) :
-    ExecTransitionBody ballotConfig ballotContract evm ∅ winnerNameTransition.body .reverted := by
+    ExecTransitionBody fork ballotConfig ballotContract evm ∅ winnerNameTransition.body .reverted := by
   let w := winningProposalResultCurrent evm
   let Lw := winnerNameStoreAfterWinningProposal w
   obtain ⟨calleeLocals, hcallee⟩ := ballotWinningProposalBodyReturns evm ∅ h (by simp)
-  have hcall : ExecStmt ballotConfig { contract := ballotContract, locals := ∅ } evm
+  have hcall : ExecStmt fork ballotConfig { contract := ballotContract, locals := ∅ } evm
       (.internalCall "winningProposal" [] "w")
       (.ok { contract := ballotContract, locals := Lw } evm) := by
     simpa [Lw, winnerNameStoreAfterWinningProposal, w] using
@@ -227,10 +229,10 @@ theorem winnerNameNameSlot_evm (w : UInt256) :
 
 theorem ballotX_winnerName_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hbound : (winningProposalResultWord σ I).toNat < (winningProposalLengthWord σ I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨417⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ballotBytecode g (initState σ σ₀ g A I) σ
+    RDret fork ballotBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (winnerNameNameWord σ I)) := by
   obtain ⟨_, _, rd417⟩ := hreach
   have rd1700 := evm_run rd417 with [
@@ -274,7 +276,7 @@ theorem ballotX_winnerName_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     swap1, push1 ⟨2⟩, mul, add, push0, add]
   obtain ⟨_, _, rd1743⟩ := rd1742pre.sload (by decide) (by evm_ov)
   have rd272raw := evm_run rd1743 with [swap1, pop, swap1, jump (by jump_dest)]
-  have hrd272 : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨272⟩
+  have hrd272 : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨272⟩
       [winnerNameNameWord σ I, sel] nameBaseMem (UInt256.ofNat 3)
       ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [winnerNameNameWord, winnerNameNameSlot_evm] using rd272raw⟩
@@ -308,10 +310,10 @@ theorem ballotX_winnerName_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem ballotX_winnerName_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hbound : ¬ (winningProposalResultWord σ I).toNat < (winningProposalLengthWord σ I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨417⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd417⟩ := hreach
   have rd1700 := evm_run rd417 with [
     jumpdest, push2 ⟨272⟩, push2 ⟨1700⟩, jump (by jump_dest)]
@@ -380,10 +382,10 @@ theorem ballotWinnerNameBodyCore
     (hcode : I.code = ballotBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xe2, 0xba, 0x53, 0xf0]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotWinnerNameSelector_size hsel
   have hd := ballotDispatch_winnerName (cd := I.calldata) hsel
@@ -419,7 +421,7 @@ theorem ballotWinnerNameBodyCore
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)).toNat := by
       simpa [winningProposalResultCurrent_init,
         winningProposalLengthWord_eq_current_init] using hbound
-    have hbody := ballotWinnerNameBodyReverts_oob
+    have hbody := ballotWinnerNameBodyReverts_oob (fork := fork)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv) hboundCurrent
     exact (ballotX_winnerName_oob (g := Sat256.ofUInt256 g) hbound hreach)

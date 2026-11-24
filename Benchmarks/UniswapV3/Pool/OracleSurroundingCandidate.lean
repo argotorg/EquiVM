@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingFirst
 import Benchmarks.UniswapV3.Pool.OracleSurroundingOldest
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem oracleSurroundingCandidateX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18832⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18832⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hn : card.toNat ≠ 0) (hc : card.toNat < 2 ^ 16)
@@ -19,7 +21,7 @@ theorem oracleSurroundingCandidateX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     (hov : R.length + 26 ≤ 1024) :
     let candidate := oracleSurroundingCandidate index card σ ee
     ∃ k' C', C + 1 + (Cₘ (oracleReadFullAw mem aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if candidate.initialized then ⟨19052⟩ else ⟨18966⟩)
+      RD fork (deployedRuntime v) ee g s0 (if candidate.initialized then ⟨19052⟩ else ⟨18966⟩)
         (oracleSurroundingStack afterPtr p card liquidity index tickRaw targetRaw timeRaw ret R)
         (wordArrayAllocMem mem p candidate.words) (oracleReadFullAw mem aw p) rdata σ k' C' := by
   dsimp only
@@ -45,11 +47,11 @@ theorem oracleSurroundingCandidateX {σ : AccountMap} {ee : ExecutionEnv} {g : S
         rw [hleft, ult_one hbound]; decide)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
   simp only [uniswapV3Pool_block_18853_taken_stack] at r2
-  change RD _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535) (oracleSearchLeft index card) :: _) _ _ _ _ _ _ at r2
+  change RD fork _ _ _ _ _ (UInt256.land (UInt256.ofNat 65535) (oracleSearchLeft index card) :: _) _ _ _ _ _ _ at r2
   rw [hleft] at r2
   obtain ⟨k3, C3, hC3, r3⟩ := oracleReadHeadAtX (v := v) 18869 (Or.inr (Or.inr rfl))
     r2 hm hb (by evm_ov)
-  change RD _ _ _ _ ⟨18955⟩
+  change RD fork _ _ _ _ ⟨18955⟩
     (p :: UInt256.ofNat 96 ::
       (if (oracleSurroundingCandidate index card σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
       p :: oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)

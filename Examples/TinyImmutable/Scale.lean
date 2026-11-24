@@ -1,6 +1,8 @@
 import Examples.TinyImmutable.BlocksProof
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
 open Reasoning.Immutables (wordsOf)
@@ -18,7 +20,7 @@ theorem tinyScaleDecode_empty {v : TinyImmutables} {I : ExecutionEnv}
 
 theorem tinyScaleBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals scaleTransition.body
+    ExecTransitionBody fork config contract evm locals scaleTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (Int.ofNat v.scale.toNat)])) (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
@@ -26,13 +28,13 @@ theorem tinyScaleBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
       simp [evalExprs?, evalImmutable_scale, pure])
 
 theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hreach : ∃ k C, RD (deployedRuntime v) I g
+    (hreach : ∃ k C, RD fork (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨181⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray v.scale) := by
   obtain ⟨k, C, rd181⟩ := hreach
-  have rd167 : RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
+  have rd167 : RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
       [EVM.wordOfInt (Int.ofNat v.scale.toNat), ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
     have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -54,15 +56,15 @@ theorem tinyScaleBodyCore
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hsel : (scaleSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz := tinyScaleSelector_size hsel
   have hd := tinyDispatch_scale v howner hquote hsel
-  have hreach := tinyBlocksReachScaleBody (σ := σ)
+  have hreach := tinyBlocksReachScaleBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize
     howner hquote hsel
   have hdec := tinyScaleDecode_empty (v := v) (I := I) hsz
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         scaleTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }

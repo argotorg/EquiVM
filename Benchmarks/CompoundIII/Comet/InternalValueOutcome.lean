@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.InternalOutcome
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -28,14 +30,14 @@ def internalValueFrameResult {α : Type} (frame : α → Frame) :
   | .staticViolation => .staticViolation
 
 -- GENERALIZES internalPreservingRun with return data, exact allocation growth, and a memory prefix.
-def internalValuePreservingRun {α : Type} (code : ByteArray) (ee : ExecutionEnv) (g : Sat256)
+def internalValuePreservingRun (fork : Ethereum.Fork) {α : Type} (code : ByteArray) (ee : ExecutionEnv) (g : Sat256)
     (s0 : State) (before : ByteArray) (free : UInt256) (growth : Nat) (ret : UInt256)
     (stack : α → List UInt256) : InternalValueOutcome α → Prop
   | .ok evm value => ∃ σ mem free' aw data k C,
       SourceState s0 ee σ evm ∧ free'.toNat = free.toNat + growth ∧
       memLoad ⟨64⟩ mem = free' ∧ free'.toNat ≤ mem.size ∧
-      MemoryPrefix before mem free.toNat ∧ RD code ee g s0 ret (stack value) mem aw data σ k C
-  | .reverted => RDrev code g s0
-  | .staticViolation => RDstatic code g s0
+      MemoryPrefix before mem free.toNat ∧ RD fork code ee g s0 ret (stack value) mem aw data σ k C
+  | .reverted => RDrev fork code g s0
+  | .staticViolation => RDstatic fork code g s0
 
 end Benchmarks.CompoundIII.Comet

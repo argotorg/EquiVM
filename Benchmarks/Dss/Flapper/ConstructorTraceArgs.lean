@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flapper.ConstructorTraceDefaults
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flapper constructor argument-copy trace
 -/
@@ -15,9 +17,9 @@ theorem flapperCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
-    (h : RD (flapperCtorCode vat gem) I g s0 ⟨79⟩ []
+    (h : RD fork (flapperCtorCode vat gem) I g s0 ⟨79⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (flapperCtorCode vat gem) I g s0 ⟨99⟩
+    ∃ k' C', RD fork (flapperCtorCode vat gem) I g s0 ⟨99⟩
       [(UInt256.ofNat (flapperCtorCode vat gem).size).sub ⟨5216⟩, ⟨128⟩]
       (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) rdata acc k' C' := by
   have hcopy : (flapperCtorCode vat gem).write 5216 solcFreePtrMem 128 64 =
@@ -60,10 +62,10 @@ theorem flapperCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
-    (h : RD (flapperCtorCode vat gem) I g s0 ⟨99⟩
+    (h : RD fork (flapperCtorCode vat gem) I g s0 ⟨99⟩
       [(UInt256.ofNat (flapperCtorCode vat gem).size).sub ⟨5216⟩, ⟨128⟩]
       (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) rdata acc k C) :
-    ∃ k' C', RD (flapperCtorCode vat gem) I g s0 ⟨122⟩
+    ∃ k' C', RD fork (flapperCtorCode vat gem) I g s0 ⟨122⟩
       [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
       (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) rdata acc k' C' := by
   have rdBeforeJump := flapper_ctor_run h with [
@@ -91,7 +93,7 @@ theorem flapperCtorArgsReach
     (hcode : I.code = flapperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (flapperCtorCode vat gem) I g
+    ∃ k C, RD fork (flapperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨122⟩
       [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
       (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty

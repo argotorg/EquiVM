@@ -7,6 +7,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_064
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_076
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,15 +22,15 @@ theorem cometAbsorbPointsSpend {v : CometWithExtendedAssetListImmutables}
     {p : LiquidatorPointsData} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024) (hm : LiquidatorPointsMemory mem ptr p)
     (hp : p.spend.toNat < 2^128)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16812⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16812⟩
       (gasUsed :: ⟨13846⟩ :: ⟨16819⟩ :: ⟨16850⟩ :: absorber :: ⟨16857⟩ :: ptr ::
         ⟨3121⟩ :: ret :: R) mem aw rdata σ k C) :
     if AbsorbPointsSpendValid p gasUsed (UInt256.ofNat ee.header.baseFeePerGas) then
       ∃ mem' aw' k' C', LiquidatorPointsMemory mem' ptr
           (absorbPointsSpend p gasUsed (UInt256.ofNat ee.header.baseFeePerGas)) ∧
-        RD (deployedRuntime v) ee g s0 ⟨16850⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨16850⟩
           (absorber :: ⟨16857⟩ :: ptr :: ⟨3121⟩ :: ret :: R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let fee := UInt256.ofNat ee.header.baseFeePerGas
   let cost := absorbPointsCost gasUsed fee
   have r1 := cometWithExtendedAssetList_block_16812
@@ -68,7 +70,7 @@ theorem cometAbsorbPointsSpend {v : CometWithExtendedAssetListImmutables}
           (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r8
         have hmask := mask128Clean (p.spend + cost) hs
         simp only [cometWithExtendedAssetList_block_16837_memory] at r9
-        change RD _ _ _ _ _ _
+        change RD fork _ _ _ _ _ _
           ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
               (UInt256.ofNat 1)) (p.spend + cost)).toByteArray.write 0 mem
               (ptr + UInt256.ofNat 64).toNat 32) _ _ _ _ _ at r9

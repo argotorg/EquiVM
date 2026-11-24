@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.WordPairDecoder
 import Benchmarks.Safe.ViaIR.StorageAtLoop
 import Benchmarks.Safe.ViaIR.StorageAtReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,10 +19,10 @@ theorem safeGetstorageatBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getstorageatTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x56 0x24 0xb2 0x5b ⟨0x5624b25b⟩
     hdispatch getstorageatSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x5624b25b⟩ 7 ⟨6090⟩ hcode hsize hlong hword (by native_decide)
   have hlenWord := safeIRArgumentSizeSub hlong hsize
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -36,7 +38,7 @@ theorem safeGetstorageatBodyCore
             (getstorageatTransition.params.map Param.name)
             (transitionSignature getstorageatTransition).paramTypes I.calldata =
             some (storageAtArgs offset len) := decodeWordPair hlen hbig
-        change RD safeBytecode I (.ofUInt256 g) evm ⟨7181⟩
+        change RD fork safeBytecode I (.ofUInt256 g) evm ⟨7181⟩
           [UInt256.shiftLeft len (UInt256.ofNat 5), ⟨6127⟩, offset, len,
             UInt256.shiftLeft len (UInt256.ofNat 5), selWord I, ⟨0⟩] _ _ _ σ _ _ at h₃
         have ha := safeStorageAtShiftAligned len
@@ -61,7 +63,7 @@ theorem safeGetstorageatBodyCore
                 (by simpa only [u256_ofNat_toNat] using safeStorageAtInitialLocals offset len)
                 hn (by simp)
             have hret := safeStorageAtReturnTrace hrd (by simp) hms hn
-            have hbody : ExecTransitionBody config contract evm (storageAtArgs offset len)
+            have hbody : ExecTransitionBody fork config contract evm (storageAtArgs offset len)
                 getstorageatTransition.body
                 (.returned { contract := contract, locals := ls } evm
                   (some [.bytes (wordBytes ws)])) :=
@@ -75,7 +77,7 @@ theorem safeGetstorageatBodyCore
             exact reEquiv_outOfGas (xi_error_of_X_sat_local
               (by rw [← hcode] at hoog; exact hoog))
         · have hrev := safeStorageAtLengthFail h₃ (by simp) ha hg
-          have hbody := safeStorageAtLengthRevert evm offset len hvalue hg
+          have hbody := safeStorageAtLengthRevert (fork := fork) evm offset len hvalue hg
           exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
             reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
       · have hrev := safeDecodeWordPairRevert hdecode (by simp)
@@ -95,7 +97,7 @@ theorem safeGetstorageatRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getstorageatTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeGetstorageatBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

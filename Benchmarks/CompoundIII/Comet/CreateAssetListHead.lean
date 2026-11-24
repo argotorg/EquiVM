@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListMemory
 import Benchmarks.CompoundIII.Comet.CreationBlocks_004
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -62,10 +64,10 @@ theorem cometCreateAssetListHead {tail : ByteArray} {ee : ExecutionEnv} {g : Sat
     (hstack : R.length + 8 ≤ 1024) (hm : ConstructorDataMemory c mem)
     (hn : c.assetConfigs.length ≤ 24) (hlo : constructorAssetFree c c.assetConfigs.length ≤ ptr)
     (hp : ptr + 68 < 2^64) (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1308⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1308⟩
       (UInt256.ofNat 640 :: UInt256.ofNat (constructorRecordBase c) :: factory :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
       (createAssetListEvmStack c ptr factory 0 R) (createAssetListEvmMemory c mem ptr 0)
       aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', h'⟩ := cometWithExtendedAssetListCreation_block_1308_packed hstack h

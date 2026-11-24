@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V2_0e91d99.SignatureInput
 import Benchmarks.Safe.V2_0e91d99.ByteAtMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -81,7 +83,7 @@ def signatureVFrame (f : Frame) (bytes : ByteArray) (i : Nat) : Frame :=
 theorem signatureSplitSource {p : SignatureInput} {f : Frame} {evm : EVM.State} {i : Nat}
     (hc : SignatureCore p f) (hi : f.locals["i"]? = some (.int (Int.ofNat i)))
     (hin : 65 * i + 65 ≤ p.signatures.size) :
-    ExecBlock config f evm (signatureLoopBody.take 4)
+    ExecBlock fork config f evm (signatureLoopBody.take 4)
       (.ok (signatureVFrame f p.signatures i) evm) := by
   have hoff : evalExpr? config f evm signatureOffsetExpr =
       .ok (.int (Int.ofNat (65 * i))) := by

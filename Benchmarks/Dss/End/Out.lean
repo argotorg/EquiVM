@@ -1,5 +1,7 @@
 import Benchmarks.Dss.End.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -75,7 +77,7 @@ theorem endReachOutBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endOutConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork endBytecode I g (initState σ σ₀ g A I)
         endOutEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0xc939ebfc⟩ :=
@@ -109,10 +111,10 @@ theorem endOutBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (outTransition.params.map Param.name)
         (transitionSignature outTransition).paramTypes I.calldata = some (endOutLocals I))
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endOutEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let owner := endBytes32ArgWord I
   let spender := endOutUsrKey I
   let slot := solcMappingSlot (solcMappingSlot ⟨17⟩ owner) spender
@@ -120,7 +122,7 @@ theorem endOutBodyCoreOk
   have hslot : endOutSlotFor I = slot := by
     simp [slot, owner, spender, endOutSlotFor_eq hsz68]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals outTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -157,7 +159,7 @@ theorem endOutBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by jump_dest) hlt
   obtain ⟨_, _, hroutine⟩ :
-      ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+      ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) endOutRoutinePc
         [spender, owner, endWordReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
@@ -193,7 +195,7 @@ theorem endOutBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret endBytecode (Sat256.ofUInt256 g)
+      RDret fork endBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -235,10 +237,10 @@ theorem endOutBodyCoreDecodeFailed_short
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some outTransition)
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endOutEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -259,14 +261,14 @@ theorem endOutBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf outTransition)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsel' : selIs I endOutConcreteSelector := by
     simpa [endOutSelectorBytes, endOutConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endOutConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some outTransition :=
     endDispatchOut hsel
-  have hreach := endReachOutBody (σ := σ)
+  have hreach := endReachOutBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz68 : 68 ≤ I.calldata.size

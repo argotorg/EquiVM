@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.TransferCollateralSource
 import Benchmarks.CompoundIII.Comet.SafeUintSource
 import Benchmarks.CompoundIII.Comet.AssetDispatchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -12,9 +14,9 @@ namespace Benchmarks.CompoundIII.Comet
 set_option maxRecDepth 2000
 
 theorem transferAsset_source {v src dst asset amount evm result}
-    (ht : TransferAssetTrace v src dst asset amount evm result) (frame : Frame)
+    (ht : TransferAssetTrace fork v src dst asset amount evm result) (frame : Frame)
     (hf : TransferAssetArgs frame v src dst asset amount) :
-    ExecStmt config frame evm transferAssetStmt
+    ExecStmt fork config frame evm transferAssetStmt
       (internalStmtResult (transferAssetReady frame v evm src asset amount)
         (transferAssetReturn v asset) result) := by
   have hs : evalExpr? config frame evm (.var "src") = .ok (.address src) := by
@@ -48,13 +50,13 @@ theorem transferAsset_source {v src dst asset amount evm result}
     let val := withdrawBalanceWord v evm src
     let read : Frame := { frame with locals := frame.locals.insert "__c3" (.int val.toNat) }
     let ready : Frame := { read with locals := read.locals.insert "amount" (.int val.toNat) }
-    have hread := balance_call_ok v frame evm src (.var "src") "__c3"
+    have hread := balance_call_ok (fork := fork) v frame evm src (.var "src") "__c3"
       hf.contract hf.immutables hs hv
     have he : evalExpr? config read evm (.var "__c3") = .ok (.int val.toNat) := by
       simp only [evalExpr?, read, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
         EvalResult.ofOption]; rfl
-    have hassign : ExecStmt config read evm (.assign .localVar ⟨"amount", []⟩ (.var "__c3"))
-        (.ok ready evm) := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalFrame (by
+    have hassign : ExecStmt fork config read evm (.assign .localVar ⟨"amount", []⟩ (.var "__c3"))
+        (.ok ready evm) := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalFrame (by
       simpa only [read, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hf.amount))
     have hcall := transferBase_call ht ready (.var "src") (.var "dst") (.var "amount") "__c4"
       hf.contract hf.immutables
@@ -70,14 +72,14 @@ theorem transferAsset_source {v src dst asset amount evm result}
       (ExecBlock.consNormal (ExecStmt.iteTrue (hm.trans (by rw [decide_eq_true hm']))
         (ExecBlock.consNormal hread (execBlock_singleton hassign))) (execBlock_singleton hcall))
   | tooLarge hb' hw =>
-    have hc := safeUint_call ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
+    have hc := safeUint_call (fork := fork) ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
       (.var "amount") "__c5" hf.contract ham
     simp only [if_neg hw] at hc
     exact ExecStmt.iteFalse (hb.trans (by rw [decide_eq_false hb'])) (ExecBlock.consRevert hc)
   | collateral hb' hw ht =>
     simp only [transferAssetReady, transferAssetReturn, if_neg hb']
     let ready : Frame := { frame with locals := frame.locals.insert "__c5" (.int amount.toNat) }
-    have hc := safeUint_call ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
+    have hc := safeUint_call (fork := fork) ⟨128, by decide⟩ "safe128" safe128Callable_lookup frame evm amount
       (.var "amount") "__c5" hf.contract ham
     simp only [if_pos hw] at hc
     have hcall := transferCollateral_call ht ready (.var "src") (.var "dst") (.var "asset")

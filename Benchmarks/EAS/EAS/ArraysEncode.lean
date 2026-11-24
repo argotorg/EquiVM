@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ArraysTailViews
 import Benchmarks.EAS.EAS.RecordArrayStart
 import Benchmarks.EAS.EAS.ValuesEncodeEVM
 import Benchmarks.EAS.EAS.WordArrayMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,9 +18,9 @@ theorem easEncodeResolverArraysTail {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+(resolverArraysBody ats values).size < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14300⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14300⟩
       (recordArrayStack base array ats ats.length (valuesPtr::ret::R)) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (base.toNat+(resolverArraysBody ats values).size)::R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (base.toNat+(resolverArraysBody ats values).size)::R)
       (resolverArraysTailMemory mem base ats values) aw' rdata σ k' C' := by
   have hb : base.toNat+64+(attestationArrayEncoding ats).size+32+32*values.length < UInt256.size := by
     rw [resolverArraysBody_size] at hbound
@@ -42,7 +44,7 @@ theorem easEncodeResolverArraysTail {ee : ExecutionEnv} {g : Sat256} {s0 : State
     omega
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_14300_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) rd
-  change RD (deployedRuntime v) ee g s0 ⟨14327⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨14327⟩
     (⟨0⟩::memLoad valuesPtr ((UInt256.sub tail base).toByteArray.write 0 mem (base+UInt256.ofNat 32).toNat 32)::
       (valuesPtr+UInt256.ofNat 32)::(tail+UInt256.ofNat 32)::ret::R)
     ((memLoad valuesPtr ((UInt256.sub tail base).toByteArray.write 0 mem (base+UInt256.ofNat 32).toNat 32)).toByteArray.write 0
@@ -76,8 +78,8 @@ theorem easEncodeResolverArrays {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbase : limit ≤ base.toNat)
     (hbound : base.toNat+(resolverArraysBody ats values).size < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::valuesPtr::ret::R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (base.toNat+(resolverArraysBody ats values).size)::R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14256⟩ (base::array::valuesPtr::ret::R) mem aw rdata σ k C) :
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (base.toNat+(resolverArraysBody ats values).size)::R)
       mem' aw' rdata σ k' C' ∧ MemoryPrefix mem mem' limit ∧
       mem'.readWithPadding base.toNat (resolverArraysBody ats values).size = resolverArraysBody ats values ∧
       base.toNat+(resolverArraysBody ats values).size ≤ mem'.size := by

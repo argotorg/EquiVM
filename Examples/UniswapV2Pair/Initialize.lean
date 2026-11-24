@@ -3,6 +3,8 @@ import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.TransferRoutines
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -288,7 +290,7 @@ theorem uniswapInitializeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩) solcAddrMask =
         uniswapSourceWord evm.executionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (initializeStore I) initializeTransition.body
+    ExecTransitionBody fork config contract evm (initializeStore I) initializeTransition.body
       (.returned { contract := contract, locals := initializeStore I }
         (initializePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -311,7 +313,7 @@ theorem uniswapInitializeBodyReverts_forbidden (evm : EVM.State) (I : ExecutionE
     (hfactory :
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩) solcAddrMask ≠
         uniswapSourceWord evm.executionEnv) :
-    ExecTransitionBody config contract evm (initializeStore I) initializeTransition.body
+    ExecTransitionBody fork config contract evm (initializeStore I) initializeTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -324,7 +326,7 @@ theorem uniswapInitializeBodyStatic (evm : EVM.State) (I : ExecutionEnv)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩) solcAddrMask =
         uniswapSourceWord evm.executionEnv)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (initializeStore I) initializeTransition.body
+    ExecTransitionBody fork config contract evm (initializeStore I) initializeTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -344,10 +346,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3158⟩ R
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3158⟩ R
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd3162 := evm_run h with [
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -391,10 +393,10 @@ theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : Exec
     jumps to the initialize routine at pc 3139 with continuation pc 570. -/
 theorem uniswapInitializeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3139⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3139⟩
       [initializeToken1MaskedWord I, initializeToken0MaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1001⟩ := RD.uniswapTwoAddressExternalLenOk
@@ -416,10 +418,10 @@ This covers calldata with a selector present but fewer than two ABI words. The d
 theorem uniswapInitializeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.uniswapTwoAddressExternalShort
     (entry := ⟨979⟩) (ret := ⟨570⟩) (routine := ⟨3139⟩)
     hreach uniswap_two_address_external_entry_wf hsz4 hsize hshort
@@ -428,18 +430,18 @@ theorem uniswapX_initialize_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (initializePostMap σ I) ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd3139⟩ := uniswapInitializeX_decoded (g := g)
     hsz68 hsize hreach
   have rd3142 := evm_run rd3139 with [jumpdest, push1 ⟨5⟩]
   obtain ⟨_, _, rd3143₀⟩ := rd3142.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3143⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3143⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3143⟩
       [initializeFactoryWord σ I, initializeToken1MaskedWord I, initializeToken0MaskedWord I,
         ⟨570⟩, sel]
@@ -466,7 +468,7 @@ theorem uniswapX_initialize_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd3225 := rd3154.jumpiT (by decide) hcallerEq (by jump_dest) (by evm_ov)
   have rd3229 := evm_run rd3225 with [jumpdest, push1 ⟨6⟩, dup1]
   obtain ⟨_, _, rd3230₀⟩ := rd3229.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3230⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3230⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3230⟩
       [initializeToken0OldWord σ I, ⟨6⟩, initializeToken1MaskedWord I,
         initializeToken0MaskedWord I, ⟨570⟩, sel]
@@ -495,14 +497,14 @@ theorem uniswapX_initialize_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       rd3256.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd3257₀⟩ := rd3256.sstore hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3257⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3257⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3257⟩
       [UInt256.lnot solcAddrMask, initializeToken1MaskedWord I, solcAddrMask, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (initializeToken0Map σ I) k C := by
     exact ⟨_, _, by simpa [initializeToken0Map] using rd3257₀⟩
   have rd3260 := evm_run rd3257 with [push1 ⟨7⟩, dup1]
   obtain ⟨_, _, rd3261₀⟩ := rd3260.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3261⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3261⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3261⟩
       [initializeToken1OldWord σ I, ⟨7⟩, UInt256.lnot solcAddrMask,
         initializeToken1MaskedWord I, solcAddrMask, ⟨570⟩, sel]
@@ -521,7 +523,7 @@ theorem uniswapX_initialize_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd3269 := rd3268₀
   rw [hset1] at rd3269
   obtain ⟨_, _, rd3270₀⟩ := rd3269.sstore hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3270⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3270⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3270⟩ [⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (initializePostMap σ I) k C := by
     exact ⟨_, _, by simpa [initializePostMap] using rd3270₀⟩
@@ -538,10 +540,10 @@ theorem uniswapX_initialize_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (initializePostMap σ I) ByteArray.empty :=
   permSplit_true hperm (uniswapX_initialize_split hsz68 hsize hfactory hreach)
 
@@ -552,25 +554,25 @@ theorem uniswapX_initialize_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
+    RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
   permSplit_false hperm (uniswapX_initialize_split hsz68 hsize hfactory hreach)
 
 theorem uniswapX_initialize_forbidden {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask ≠ uniswapSourceWord I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3139⟩ := uniswapInitializeX_decoded (g := g)
     hsz68 hsize hreach
   have rd3142 := evm_run rd3139 with [jumpdest, push1 ⟨5⟩]
   obtain ⟨_, _, rd3143₀⟩ := rd3142.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3143⟩ : ∃ k C, RD uniswapV2PairBytecode I g
+  obtain ⟨_, _, rd3143⟩ : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3143⟩
       [initializeFactoryWord σ I, initializeToken1MaskedWord I, initializeToken0MaskedWord I,
         ⟨570⟩, sel]
@@ -617,10 +619,10 @@ theorem uniswapInitializeBodyCoreOk
       config.externalABI.decodeCalldata? (initializeTransition.params.map Param.name)
         (transitionSignature initializeTransition).paramTypes I.calldata =
           some (initializeStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -628,7 +630,7 @@ theorem uniswapInitializeBodyCoreOk
         uniswapSourceWord evmS.executionEnv := by
     simpa [evmS, initState, initializeFactoryWord, solcSlotWordAt, solcSlotWord] using hfactory
   have hbody :
-      ExecTransitionBody config contract evmS (initializeStore I) initializeTransition.body
+      ExecTransitionBody fork config contract evmS (initializeStore I) initializeTransition.body
         (.returned { contract := contract, locals := initializeStore I }
           (initializePostState evmS I) none) := by
     exact uniswapInitializeBodyReturns (hperm := by assumption) evmS I
@@ -657,10 +659,10 @@ theorem uniswapInitializeBodyCoreRevert_forbidden
       config.externalABI.decodeCalldata? (initializeTransition.params.map Param.name)
         (transitionSignature initializeTransition).paramTypes I.calldata =
           some (initializeStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -668,7 +670,7 @@ theorem uniswapInitializeBodyCoreRevert_forbidden
         uniswapSourceWord evmS.executionEnv := by
     simpa [evmS, initState, initializeFactoryWord, solcSlotWordAt, solcSlotWord] using hfactory
   have hbody :
-      ExecTransitionBody config contract evmS (initializeStore I) initializeTransition.body
+      ExecTransitionBody fork config contract evmS (initializeStore I) initializeTransition.body
         .reverted := by
     exact uniswapInitializeBodyReverts_forbidden evmS I
       (by simp only [evmS, initState]; exact hwv) hfactoryS
@@ -687,10 +689,10 @@ theorem uniswapInitializeBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_initialize_none_short (I := I) hsz4 hshort
   exact (uniswapInitializeX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -707,7 +709,7 @@ theorem uniswapInitializeBodyOk
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreOk hcode hsize hperm hwv hsz68
@@ -723,7 +725,7 @@ theorem uniswapInitializeBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -735,7 +737,7 @@ theorem uniswapInitializeBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I
@@ -755,12 +757,12 @@ theorem uniswapInitializeBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapInitializeBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · have hreach := uniswapReachInitializeBody (σ := σ) (σ₀ := σ₀) (A := A)
+  · have hreach := uniswapReachInitializeBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode hwv
       (calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel) hsize hsel
     by_cases hfactory :

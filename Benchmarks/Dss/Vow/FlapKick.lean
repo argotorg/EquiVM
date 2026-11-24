@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.FlapSin1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -185,7 +187,7 @@ theorem RD.vowFlapToKickExtcodesizeGuard
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -193,7 +195,7 @@ theorem RD.vowFlapToKickExtcodesizeGuard
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     let target := solcAddressSlotWord ⟨2⟩ acc I
     let bump := solcSlotWordAt ⟨10⟩ acc I
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1482⟩
       (target :: target :: ⟨0⟩ :: flapKickOutPtr :: flapKickInSize ::
         flapKickOutPtr :: flapKickOutSize :: flapKickEndPtr ::
@@ -224,14 +226,14 @@ theorem RD.vowFlapToKickExtcodesizeGuard
   have rd1404 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1406 := rd1404.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1407, C1407, rd1407Raw⟩ := rd1406.sload (by native_decide) (by evm_ov)
-  have rd1407 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd1407 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1407⟩
       (solcSlotWordAt ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1407 C1407 := by
     simpa [solcSlotWordAt, solcSlotWord] using rd1407Raw
   have rd1409 := rd1407.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1410, C1410, rd1410Raw⟩ := rd1409.sload (by native_decide) (by evm_ov)
-  have rd1410 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd1410 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1410⟩
       (bump :: solcSlotWordAt ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1410 C1410 := by
@@ -308,7 +310,7 @@ theorem RD.vowFlapKickNoCode
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -317,7 +319,7 @@ theorem RD.vowFlapKickNoCode
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
         (solcAddressSlotWord ⟨2⟩ acc I) = ⟨0⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let target := solcAddressSlotWord ⟨2⟩ acc I
   let bump := solcSlotWordAt ⟨10⟩ acc I
@@ -333,7 +335,7 @@ theorem RD.vowFlapKickCall
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -344,7 +346,7 @@ theorem RD.vowFlapKickCall
         (solcAddressSlotWord ⟨2⟩ acc I) ≠ ⟨0⟩) :
     let target := solcAddressSlotWord ⟨2⟩ acc I
     let bump := solcSlotWordAt ⟨10⟩ acc I
-    ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1497⟩
       (gasWord :: target :: ⟨0⟩ :: flapKickOutPtr :: flapKickInSize ::
         flapKickOutPtr :: flapKickOutSize :: flapKickEndPtr ::
@@ -366,7 +368,7 @@ theorem RD.vowFlapKickPostCall
     {σ σ₀ A I} {g sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -380,14 +382,14 @@ theorem RD.vowFlapKickPostCall
     let bump := solcSlotWordAt ⟨10⟩ acc I
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: flapKickEndPtr :: flapKickSelectorWord ::
           target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (out.write 0 (flapKickCalldataMem bump mem) flapKickOutPtr.toNat
           (min flapKickOutSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat 7) out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := acc }
         (EVM.address (AccountAddress.ofNat target.toNat)) "kick" 0
@@ -458,12 +460,12 @@ theorem RD.vowFlapKickCallFailure
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
       (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
@@ -476,11 +478,11 @@ theorem RD.vowFlapKickCallSuccessToDecode
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
@@ -493,7 +495,7 @@ theorem RD.vowFlapKickReturnDecodeShortReverts
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 7) o acc k C)
@@ -504,7 +506,7 @@ theorem RD.vowFlapKickReturnDecodeShortReverts
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1516⟩) (okPc := ⟨1536⟩) rd
     hshort hhi
@@ -518,7 +520,7 @@ theorem RD.vowFlapKickReturnDecodeOk
     {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 7) o acc k C)
@@ -534,7 +536,7 @@ theorem RD.vowFlapKickReturnDecodeOk
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1539⟩
       (retWord :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 7) o acc k' C' := by
@@ -550,11 +552,11 @@ theorem RD.vowFlapKickDecodedToPublicReturn
     {σ σ₀ A I} {g sel id : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1539⟩
       (id :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 7) o acc k C) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨357⟩
       (id :: sel :: []) mem (UInt256.ofNat 7) o acc k' C' := by
   have rd1540 := rd.swap2 (by native_decide) (by evm_ov)
@@ -566,7 +568,7 @@ theorem RD.vowFlapKickPublicReturn
     {σ σ₀ A I} {g sel id : UInt256}
     {acc : AccountMap}
     {mem memout o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨357⟩
       (id :: sel :: []) mem (UInt256.ofNat 7) o acc k C)
     (hmload64 :
@@ -581,7 +583,7 @@ theorem RD.vowFlapKickPublicReturn
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray id) :
-    RDret vowBytecode (Sat256.ofUInt256 g)
+    RDret fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc
       (UInt256.toByteArray id) := by
   exact evm_run rd with [
@@ -616,7 +618,7 @@ theorem RD.vowFlapKickSuccess
     {σ σ₀ A I} {g sel target bump id : UInt256}
     {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
       (⟨1⟩ :: flapKickEndPtr :: flapKickSelectorWord ::
         target :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -628,7 +630,7 @@ theorem RD.vowFlapKickSuccess
     (ho32 : 32 ≤ out.size)
     (hosz : out.size < UInt256.size)
     (hid : id = UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) :
-    RDret vowBytecode (Sat256.ofUInt256 g)
+    RDret fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc
       (UInt256.toByteArray id) := by
   have hmin : (min flapKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by

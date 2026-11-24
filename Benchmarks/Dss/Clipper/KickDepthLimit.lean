@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickPostFeed
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -20,7 +22,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksDepthLimit {code : ByteArray}
     {σ : AccountMap}
     {id sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (hrd : RD code ee g s0 ⟨8728⟩
+    (hrd : RD fork code ee g s0 ⟨8728⟩
       (⟨6061⟩ :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: id ::
         clipperKickKprMaskedWord ee :: clipperKickUsrMaskedWord ee ::
         clipperKickLotWord ee :: clipperKickTabWord ee :: ⟨476⟩ :: sel :: R)
@@ -30,7 +32,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksDepthLimit {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8840⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8840⟩
       (⟨0⟩ :: ⟨164⟩ :: clipperSpotterIlksSelectorWord ::
         clipperSpotterTarget σ ee :: ⟨0⟩ :: ⟨0⟩ :: ⟨6061⟩ :: ⟨6069⟩ ::
         ⟨0⟩ :: ⟨1⟩ :: id :: clipperKickKprMaskedWord ee ::
@@ -79,7 +81,7 @@ theorem clipperKickDepthLimitReverts
     (halign : ClipperKickCallAligned
       (initState σStart σ₀ (Sat256.ofUInt256 g) A I)
       σ I sourceInit)
-    (hrd : RD code I (Sat256.ofUInt256 g)
+    (hrd : RD fork code I (Sat256.ofUInt256 g)
       (initState σStart σ₀ (Sat256.ofUInt256 g) A I) ⟨8728⟩
       (⟨6061⟩ :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: id ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
@@ -88,7 +90,7 @@ theorem clipperKickDepthLimitReverts
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 101 ≤ 1024) :
-    ClipperKickTailOutcome v code g
+    ClipperKickTailOutcome fork v code g
       (initState σStart σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id := by
   obtain ⟨k8840, C8840, rd8840⟩ :=
@@ -103,10 +105,10 @@ theorem clipperKickDepthLimitReverts
     exact hdepth
   let sourceAfter : EVM.State :=
     { sourceInit with
-      substate := (Ethereum.EVM.callSubstate sourceInit.executionEnv.fork sourceInit.accountMap
+      substate := (Ethereum.EVM.callSubstate fork sourceInit.accountMap
         (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit)) sourceInit.substate) }
   have hcalldata := clipperKickSpotterIlksEncode_eq v hmem
-  have hcall : typedCallViaEVM config sourceInit
+  have hcall : typedCallViaEVM fork config sourceInit
       (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))
       "spotterIlks" 0 [v.ilk] (false, sourceAfter, ByteArray.empty) true := by
     simpa [sourceAfter] using

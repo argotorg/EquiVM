@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossFlags
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -42,13 +44,13 @@ theorem swapLiquidityNegSource {frame : Frame} {evm : EVM.State}
     (zeroForOne : Bool) (net : Int)
     (hz : frame.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (hn : frame.locals.get? "liquidityNet" = some (.int net)) :
-    ExecStmt config frame evm swapInitializedBody[2]!
+    ExecStmt fork config frame evm swapInitializedBody[2]!
       (.ok (swapLiquidityNegFrame frame zeroForOne net) evm) := by
   have ez := evalExpr_var_get (cfg := config) (evm := evm) hz
   cases zeroForOne
   · exact ExecStmt.iteFalse ez .nil
   · apply ExecStmt.iteTrue ez
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) _ (assignLocalVarBase_frame hn)) .nil
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) _ (assignLocalVarBase_frame hn)) .nil
     have en := evalExpr_var_get (cfg := config) (evm := evm) hn
     simp only [evalExpr?, en, evalBinaryOp?, castValue?, EvalResult.ofOption,
       bind, EvalResult.bind, pure]
@@ -79,7 +81,7 @@ theorem swapLiquidityAssignValueSource {frame : Frame} {evm : EVM.State}
     (s : SwapStateData) (value : UInt256)
     (hs : frame.locals.get? "state" = some s.value)
     (hr : frame.locals.get? "__c14" = some (.int (Int.ofNat value.toNat))) :
-    ExecStmt config frame evm swapInitializedBody[4]!
+    ExecStmt fork config frame evm swapInitializedBody[4]!
       (.ok (swapStateFrame frame {s with liquidity := value}) evm) :=
   ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get hr) (assignLocalField_frame hs rfl rfl)
 
@@ -127,7 +129,7 @@ theorem swapLiquidityNegFrame_net (frame : Frame) (zeroForOne : Bool) (net : Int
 theorem swapLiquidityAssignSource {frame : Frame} {evm : EVM.State}
     (s : SwapStateData) (zeroForOne : Bool) (net : Int)
     (hs : frame.locals.get? "state" = some s.value) :
-    ExecStmt config (swapLiquidityCallFrame frame s zeroForOne net) evm swapInitializedBody[4]!
+    ExecStmt fork config (swapLiquidityCallFrame frame s zeroForOne net) evm swapInitializedBody[4]!
       (.ok (swapLiquidityFrame frame s zeroForOne net) evm) := by
   have hs' := (resumeAfterInternalCall_get (swapLiquidityNegFrame frame zeroForOne net)
     "__c14" "state" (some [.int (swapLiquidityValue s zeroForOne net)]) (by decide)).trans

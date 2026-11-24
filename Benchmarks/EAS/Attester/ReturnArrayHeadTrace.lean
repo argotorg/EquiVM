@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.ReturnArrayMemory
 import Benchmarks.EAS.Attester.ReturnArrayABI
 import Benchmarks.EAS.Attester.NestedBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -16,14 +18,14 @@ theorem ReturnArrayChecks.header {out : ByteArray} (h : ReturnArrayChecks out) :
 
 theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out aw k C R}
     {base : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3547⟩
       (UInt256.ofNat base :: UInt256.ofNat (base + out.size) :: R)
       (returnArrayInputMemory mem base out) aw out σ k C)
     (hstack : R.length + 10 ≤ 1024) (hlo : 96 ≤ base) (hb : base ≤ mem.size)
     (hbound : base + out.size + 31 ≤ 2 ^ 200) :
-    (¬ ReturnArrayHeaderChecks out ∧ RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+    (¬ ReturnArrayHeaderChecks out ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
     (ReturnArrayHeaderChecks out ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3631⟩
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3631⟩
         ([UInt256.ofNat (returnArrayCount out), UInt256.ofNat (base + returnArrayOffset out),
           ⟨0⟩, UInt256.ofNat base, UInt256.ofNat (base + out.size)] ++ R)
         (returnArrayInputMemory mem base out) aw' out σ k' C') := by

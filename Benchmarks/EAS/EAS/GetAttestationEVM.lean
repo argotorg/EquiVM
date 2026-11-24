@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.GetAttestationReturn
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,11 +22,11 @@ theorem getAttestationEVM {evm : EVM.State} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {k C : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+17 ≤ 1024) (hh : memLoad ⟨64⟩ mem = ⟨224⟩)
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨2593⟩ R mem aw rdata evm.accountMap k C) :
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨2593⟩ R mem aw rdata evm.accountMap k C) :
     if copyStoredValid evm (calldataWord evm.executionEnv.calldata 4) 544 then
-      RDret (deployedRuntime v) g s0 evm.accountMap
+      RDret fork (deployedRuntime v) g s0 evm.accountMap
         (attestationReturnBytes evm (calldataWord evm.executionEnv.calldata 4))
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let word := calldataWord evm.executionEnv.calldata 4
   let m := defaultAttestationMemory mem ⟨224⟩
   have rd1 := easBlocks.eas_block_2593 (immWords := wordsOf (immStore v)) (by omega)
@@ -45,7 +47,7 @@ theorem getAttestationEVM {evm : EVM.State} {g : Sat256} {s0 : State}
     change UInt256.ofNat (fromByteArrayBigEndian (KEC ((twoWordHashMem word ⟨1⟩ m).readWithPadding 0 64))) :: _ = _
     rw [twoWordHashMem_solcMappingSlot_any]
     rfl
-  change RD (deployedRuntime v) evm.executionEnv g s0 (UInt256.ofNat 6501)
+  change RD fork (deployedRuntime v) evm.executionEnv g s0 (UInt256.ofNat 6501)
     (easBlocks.eas_block_2600_stack (ee := evm.executionEnv) (mem := m) (R := R))
     (easBlocks.eas_block_2600_memory (ee := evm.executionEnv) (mem := m)) aw2 rdata evm.accountMap k2 C2 at rd3
   rw [hmem, hs] at rd3

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyLimitsTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyBitmapsTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyTickFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -23,11 +25,11 @@ theorem poolModifyTickFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hgl : memLoad (ptr+UInt256.ofNat 32) mem = gl)
     (hgu : memLoad (ptr+UInt256.ofNat 96) mem = gu)
     (hbgl : gl.toNat < 2^128) (hbgu : gu.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if 0 ≤ p.delta then ⟨7329⟩ else ⟨7256⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyBitmapsNormal v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyBitmapsNormal fork v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu)
       (fun _ _ => False) (poolModifyTickFinishResult f evm id p fl gl fu gu) := by
   have hr := poolModifyLimitsTrace f v (by omega) hc hs hgl hgu hbgl hbgu h
   apply blockResultTrace_continueBlock hr

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TryRecoverExpr
 import Benchmarks.EAS.EAS.EcrecoverOutput
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -32,7 +34,7 @@ theorem tryRecoverReturnSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     {expr : Expr} {a : AccountAddress} {error heap : Nat}
     (he : evalExpr? cfg frame evm expr = .ok (.address a))
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecStmt cfg frame evm (tryRecoverReturn expr error)
+    ExecStmt fork cfg frame evm (tryRecoverReturn expr error)
       (.returned frame evm (some [.tuple [.address a,.int (Int.ofNat error)],.int (Int.ofNat heap)])) := by
   apply ExecStmt.return
   simp only [evalExprs?,evalExpr?,evalExprList?,he,hh,EvalResult.ofOption,EvalResult.bind,bind,pure]
@@ -41,7 +43,7 @@ theorem tryRecoverHighSource {cfg : Config} {frame : Frame} {evm : EVM.State} {s
     (hs : frame.locals.get? "s" = some (wordBytes32Value s))
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hi : ecdsaHalfOrder < s.toNat) :
-    ExecFuncBody cfg frame evm tryRecoverFunction.body
+    ExecFuncBody fork cfg frame evm tryRecoverFunction.body
       (.returned frame evm (some [.tuple [.address 0,.int 3],.int (Int.ofNat heap)])) := by
   rw [tryRecover_body]
   apply ExecFuncBody.execBlockRet
@@ -58,7 +60,7 @@ theorem tryRecoverInitSource {cfg : Config} {L imms : Store} {evm : EVM.State} {
     (hv : L.get? "v" = some (.int (Int.ofNat v.toNat)))
     (hr : L.get? "r" = some (wordBytes32Value r))
     (hs : L.get? "s" = some (wordBytes32Value s)) :
-    ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm tryRecoverInit
+    ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm tryRecoverInit
       (.ok {contract := contract,locals := tryRecoverInputLocals L hash v r s,immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .address 1)
     (by simp only [evalExpr?,pure,EvalResult.bind,bind,castValue?,EvalResult.ofOption]; rfl))
@@ -70,7 +72,7 @@ theorem tryRecoverDecodeSource {L imms : Store} {evm : EVM.State} {out : ByteArr
     (hr : L.get? "result" = some (.bytes out)) (hz : L.get? "signer" = some (.address 0))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hout : (out = ByteArray.empty ∧ a = 0) ∨ out = (UInt256.ofNat a.val).toByteArray) :
-    ∃ L', ExecStmt config {contract := contract,locals := L,immutables := imms} evm tryRecoverDecode
+    ∃ L', ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm tryRecoverDecode
       (.ok {contract := contract,locals := L',immutables := imms} evm) ∧
       L'.get? "signer" = some (.address a) ∧ L'.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) := by
   rcases hout with ⟨rfl,rfl⟩ | rfl
@@ -83,7 +85,7 @@ theorem tryRecoverDecodeSource {L imms : Store} {evm : EVM.State} {out : ByteArr
     · apply ExecStmt.iteTrue
       · simp only [tryRecoverDecode,evalExpr?,readLocalPath?,hr,toByteArray_size,EvalResult.ofOption,EvalResult.bind,bind,pure,evalBinaryOp?]
         rfl
-      apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalBase_ok hz)) ExecBlock.nil
+      apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalBase_ok hz)) ExecBlock.nil
       simp only [evalExpr?,hr,EvalResult.ofOption,EvalResult.bind,bind]
       have hd := decodeReturnSolc08Address_word easPlanTable a
       change config.externalABI.decodeValue? (.elem .address) _ = _ at hd
@@ -107,10 +109,10 @@ theorem tryRecoverTailSource {L imms : Store} {evm : EVM.State} {out : ByteArray
     (ho : L.get? "ok" = some (.bool success)) (hr : L.get? "result" = some (.bytes out))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hout : (out = ByteArray.empty ∧ a = 0) ∨ out = (UInt256.ofNat a.val).toByteArray) :
-    if success then ∃ L', ExecBlock config {contract := contract,locals := L,immutables := imms} evm tryRecoverTail
+    if success then ∃ L', ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm tryRecoverTail
       (.returned {contract := contract,locals := L',immutables := imms} evm
         (some [.tuple [.address a,.int (Int.ofNat (recoveryError a))],.int (Int.ofNat heap)]))
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm tryRecoverTail .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm tryRecoverTail .reverted := by
   cases success with
   | false =>
     exact ExecBlock.consRevert (ExecStmt.requireFalse (by simp only [evalExpr?,ho,EvalResult.ofOption]))

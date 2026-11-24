@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Kiss
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -203,7 +205,7 @@ theorem vowReachHealBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨818⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨4084909596⟩ :=
@@ -233,9 +235,9 @@ theorem vowHealShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachHealBody (σ := σ)
+    vowReachHealBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -256,12 +258,12 @@ theorem vowHealShort {σ σ₀ A I} {g : UInt256}
 
 theorem RD.vowHealDecodeToDaiRoutine
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4640⟩
       [healRad I, ⟨412⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
@@ -283,12 +285,12 @@ theorem RD.vowHealDecodeToDaiRoutine
 
 theorem RD.vowHealToDaiExtcodesizeGuard
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4703⟩
       (kissDaiTargetWord σ I :: kissDaiTargetWord σ I :: kissDaiOutPtr I ::
         kissDaiInSize I :: kissDaiOutPtr I :: ⟨32⟩ :: kissDaiEndPtr I ::
@@ -299,7 +301,7 @@ theorem RD.vowHealToDaiExtcodesizeGuard
   have rd4641 := rd4640.jumpdest (by native_decide) (by evm_ov)
   have rd4643 := rd4641.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4644⟩ := rd4643.sload (by native_decide) (by evm_ov)
-  obtain ⟨k4703, C4703, rd4703⟩ : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+  obtain ⟨k4703, C4703, rd4703⟩ : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4703⟩
       (target :: target :: kissDaiOutPtr I :: kissDaiInSize I ::
         kissDaiOutPtr I :: ⟨32⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
@@ -361,14 +363,14 @@ theorem RD.vowHealToDaiExtcodesizeGuard
 
 theorem RD.vowHealDaiNoCode
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let target := kissDaiTargetWord σ I
   obtain ⟨_, _, rd4703⟩ := RD.vowHealToDaiExtcodesizeGuard hreach hsz36 hsize
@@ -380,14 +382,14 @@ theorem RD.vowHealDaiNoCode
 
 theorem RD.vowHealToDaiStaticcall
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4718⟩
       (gasWord :: kissDaiTargetWord σ I :: kissDaiOutPtr I :: kissDaiInSize I ::
         kissDaiOutPtr I :: ⟨32⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
@@ -405,7 +407,7 @@ theorem RD.vowHealToDaiStaticcall
 
 theorem RD.vowHealDaiPostCall
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -415,14 +417,14 @@ theorem RD.vowHealDaiPostCall
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k C : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
           kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
         (o.write 0 (kissDaiCalldataMem I) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
         (UInt256.ofNat 6) o σ' k C
-    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    ∧ typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A' }, o) false
@@ -442,7 +444,7 @@ theorem RD.vowHealDaiPostCall
     have hoff : (kissDaiOutPtr I).toNat = 128 := by
       rw [kissDaiOutPtr_eq]
       native_decide
-    have rd4719 : RD vowBytecode I (Sat256.ofUInt256 g)
+    have rd4719 : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
           kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -462,7 +464,7 @@ theorem RD.vowHealDaiPostCall
 
 theorem RD.vowHealDaiCallDepthLimit
     {σ σ₀ A I} {g sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -470,7 +472,7 @@ theorem RD.vowHealDaiCallDepthLimit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨0⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
         kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -487,7 +489,7 @@ theorem RD.vowHealDaiCallDepthLimit
     native_decide
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
-  have rd4719 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd4719 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨0⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
         kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -502,12 +504,12 @@ theorem RD.vowHealDaiCallFailure
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4719⟩) (okPc := ⟨4735⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
@@ -520,11 +522,11 @@ theorem RD.vowHealDaiCallSuccessToDecode
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4737⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨4719⟩) (okPc := ⟨4735⟩) rd
@@ -537,7 +539,7 @@ theorem RD.vowHealDaiReturnDecodeShortReverts
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4737⟩
       (d0 :: d1 :: d2 :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -548,7 +550,7 @@ theorem RD.vowHealDaiReturnDecodeShortReverts
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨4737⟩) (okPc := ⟨4757⟩) rd
     hshort hhi
@@ -562,7 +564,7 @@ theorem RD.vowHealDaiReturnDecodeOk
     {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4737⟩
       (d0 :: d1 :: d2 :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -578,7 +580,7 @@ theorem RD.vowHealDaiReturnDecodeOk
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4760⟩
       (retWord :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
@@ -595,14 +597,14 @@ theorem RD.vowHealInsufficientSurplus
     {σ σ₀ A I} {g : UInt256} {sel vatDai : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4760⟩
       (vatDai :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hinsuff : vatDai.toNat < (healRad I).toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rd4761 := rd.dup2 (by native_decide) (by evm_ov)
   have rd4762₀ := rd4761.gt (by native_decide) (by evm_ov)
@@ -678,12 +680,12 @@ theorem RD.vowHealDaiEnough
     {σ σ₀ A I} {g : UInt256} {sel vatDai : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4760⟩
       (vatDai :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (henough : (healRad I).toNat ≤ vatDai.toNat) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel]
       mem (UInt256.ofNat 6) o acc k' C' := by
@@ -705,12 +707,12 @@ theorem RD.vowHealToSinExtcodesizeGuard
     {σ σ₀ A I} {g sel : UInt256}
     {σ' : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o σ' k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4909⟩
       (kissDaiTargetWord σ' I :: kissDaiTargetWord σ' I :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
@@ -721,7 +723,7 @@ theorem RD.vowHealToSinExtcodesizeGuard
   have rd4839 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd4841 := rd4839.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4842, C4842, rd4842₀⟩ := rd4841.sload (by native_decide) (by evm_ov)
-  have rd4842 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd4842 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4842⟩
       (rawTarget :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o σ' k4842 C4842 := by
@@ -805,14 +807,14 @@ theorem RD.vowHealSinNoCode
     {σ σ₀ A I} {g sel : UInt256}
     {σ' : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o σ' k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) = ⟨0⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd4909⟩ := RD.vowHealToSinExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4909⟩) (okPc := ⟨1273⟩) rd4909
@@ -825,14 +827,14 @@ theorem RD.vowHealToSinStaticcall
     {σ σ₀ A I} {g sel : UInt256}
     {σ' : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o σ' k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
       (gasWord :: kissDaiTargetWord σ' I :: healSinOutPtr :: healSinInSize ::
         healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
@@ -851,7 +853,7 @@ theorem RD.vowHealSinPostCall
     {σ σ₀ A I} {g sel : UInt256}
     {σ' : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o σ' k C)
     (hmem : mem.size = 164)
@@ -861,14 +863,14 @@ theorem RD.vowHealSinPostCall
     (hdepth : I.depth.val < 1024) :
     ∃ (σ'' : AccountMap) (z : Bool)
       (out : ByteArray) (A'' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σ' I :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
         (out.write 0 (healSinCalldataMem I mem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat 6) out σ'' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σ' }
         (EVM.address (kissVatAddress σ' I)) "sin" 0 [.address I.codeOwner]
@@ -891,7 +893,7 @@ theorem RD.vowHealSinPostCall
     have hoff : healSinOutPtr.toNat = 128 := by
       unfold healSinOutPtr
       native_decide
-    have rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
+    have rd1277 : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σ' I :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -913,12 +915,12 @@ theorem RD.vowHealSinCallFailure
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
@@ -935,7 +937,7 @@ theorem vowHealSourceDaiNoCode
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
@@ -948,7 +950,7 @@ theorem vowHealSourceDaiNoCode
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_kissVatCodeGuard_false hvat (by simpa [evm0] using hvatNoCode)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -964,13 +966,13 @@ theorem vowHealSourceDaiDecodeRevert
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, out) false)
     (hdecDai : config.externalABI.decode? "dai" out = none) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
@@ -987,14 +989,14 @@ theorem vowHealSourceDaiDecodeRevert
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         .reverted := by
     exact ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvat (by simp [evalExpr?, pure])
       hargs hcallDai hdecDai
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1011,12 +1013,12 @@ theorem vowHealSourceDaiCallFailure
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (false, evmDai, out) false) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
@@ -1033,13 +1035,13 @@ theorem vowHealSourceDaiCallFailure
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvat (by simp [evalExpr?, pure]) hargs hcallDai
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1057,7 +1059,7 @@ theorem vowHealSourceInsufficientSurplus
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, out) false)
     (hdecDai :
@@ -1066,7 +1068,7 @@ theorem vowHealSourceInsufficientSurplus
     (hinsuff : vatDai.toNat < (healRad I).toNat) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
@@ -1083,7 +1085,7 @@ theorem vowHealSourceInsufficientSurplus
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := healLocalsVatDai I vatDai } evmDai) := by
@@ -1104,7 +1106,7 @@ theorem vowHealSourceInsufficientSurplus
         (.binary .le (.var "rad") (.var "vatDai")) = .ok (.bool false) :=
     evalExpr_le_uint256_false hradDai hvatDai hinsuff
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1123,7 +1125,7 @@ theorem vowHealSourceSinNoCode
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -1139,7 +1141,7 @@ theorem vowHealSourceSinNoCode
           0) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
   have hvat :
@@ -1157,7 +1159,7 @@ theorem vowHealSourceSinNoCode
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmDai) := by
@@ -1190,7 +1192,7 @@ theorem vowHealSourceSinNoCode
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_kissVatCodeGuard_false hvatSin hvatNoCodeSin
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1210,7 +1212,7 @@ theorem vowHealSourceSinCallFailure
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -1224,11 +1226,11 @@ theorem vowHealSourceSinCallFailure
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (false, evmSin, outSin) false) :
     let locals := healLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
   have hvat :
@@ -1246,7 +1248,7 @@ theorem vowHealSourceSinCallFailure
         .ok [.address I.codeOwner] := by
     simpa [evm0, initState] using evalExprs_kissThis evm0 locals
   have hcallDaiStmt :
-      ExecStmt config { contract := contract, locals := locals } evm0
+      ExecStmt fork config { contract := contract, locals := locals } evm0
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := locals1 } evmDai) := by
@@ -1285,13 +1287,13 @@ theorem vowHealSourceSinCallFailure
       simpa [evm0] using typedCallViaEVM_executionEnv_eq hcallDai
     simpa [locals1, henvDai, evm0, initState] using evalExprs_kissThis evmDai locals1
   have hcallSinStmt :
-      ExecStmt config { contract := contract, locals := locals1 } evmDai
+      ExecStmt fork config { contract := contract, locals := locals1 } evmDai
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvatSin (by simp [evalExpr?, pure]) hargsSin hcallSin
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 healTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 healTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1311,12 +1313,12 @@ theorem vowHealDaiNoCodeBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hnoCodeStele :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩ := hnoCode
   have hvatAddr :
@@ -1338,7 +1340,7 @@ theorem vowHealDaiNoCodeBodyCore
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeStele
         simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc] using hword
-  have hbody := vowHealSourceDaiNoCode
+  have hbody := vowHealSourceDaiNoCode (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hvatNoCode
   have hrev := RD.vowHealDaiNoCode hreach hsz36 hsize hnoCode
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -1352,13 +1354,13 @@ theorem vowHealDaiCallFailureBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd4719 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4719 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨0⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
         kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
       mem aw o σ'_evm k C)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (false,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1370,7 +1372,7 @@ theorem vowHealDaiCallFailureBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDaiCallFailure rd4719 hosz (by simp)
   have hbody := vowHealSourceDaiCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1391,12 +1393,12 @@ theorem vowHealDaiDecodeShortBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd4737 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4737 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4737⟩
       (d0 :: d1 :: d2 :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o σ'_evm k C)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1414,7 +1416,7 @@ theorem vowHealDaiDecodeShortBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDaiReturnDecodeShortReverts rd4737 hshort hosz hMload64Value
   have hbody := vowHealSourceDaiDecodeRevert
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1434,7 +1436,7 @@ theorem vowHealDaiSuccessInsufficientSurplusBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd4719 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4719 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
       (⟨1⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
         kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -1442,7 +1444,7 @@ theorem vowHealDaiSuccessInsufficientSurplusBodyCore
         (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
       (UInt256.ofNat 6) o σ'_evm k C)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1457,7 +1459,7 @@ theorem vowHealDaiSuccessInsufficientSurplusBodyCore
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hinsuff :
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat < (healRad I).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let vatDai : UInt256 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
     ctorMin32_toNat_of_ge ho32 hosz
@@ -1518,7 +1520,7 @@ theorem vowHealSinNoCodeBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd4838 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd4838 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4838⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) outDai
       σ'_evm k C)
@@ -1532,7 +1534,7 @@ theorem vowHealSinNoCodeBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -1546,7 +1548,7 @@ theorem vowHealSinNoCodeBodyCore
       (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowHealSinNoCode rd4838 hmem hread64 hcodeSizeEvm
   have hbody := vowHealSourceSinNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1564,7 +1566,7 @@ theorem vowHealSinCallFailureBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1277 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -1575,7 +1577,7 @@ theorem vowHealSinCallFailureBodyCore
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -1590,9 +1592,9 @@ theorem vowHealSinCallFailureBodyCore
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+      typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (false, evmSin, outSin) false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.vowHealSinCallFailure rd1277 hrdataSize (by simp)
   have hbody := vowHealSourceSinCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

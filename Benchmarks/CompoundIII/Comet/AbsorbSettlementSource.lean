@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbRepayResult
 import Benchmarks.CompoundIII.Comet.AbsorbDebtTailSource
 import Benchmarks.CompoundIII.Comet.InternalBlockComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -30,16 +32,16 @@ theorem absorbSettlement_source (frame : Frame) (v : CometWithExtendedAssetListI
     (hI : frame.locals.get? "baseSupplyIndex" = none)
     (hnext : next.toNat < 2^255) (hprincipal : principal.toNat < 2^103)
     (hperm : evm.executionEnv.perm = true) :
-    internalBlockResult config frame evm absorbSettlementBlock result := by
-  have hclear := absorbClear_source (hperm := by assumption) frame evm account hc hU hb
-  have hrepay := absorbRepay_source frame (absorbClearState evm account) oldPrincipal principal
+    internalBlockResult fork config frame evm absorbSettlementBlock result := by
+  have hclear := absorbClear_source (fork := fork) (hperm := by assumption) frame evm account hc hU hb
+  have hrepay := absorbRepay_source (fork := fork) frame (absorbClearState evm account) oldPrincipal principal
     hc hop hnp hS hB
   let repaid := absorbRepayFrame frame oldPrincipal principal
   have hget (key : String) (ht : "__c12" ≠ key) (hr : "repayAmount" ≠ key)
       (hs : "supplyAmount" ≠ key) : repaid.locals.get? key = frame.locals.get? key := by
     simp only [repaid, absorbRepayFrame, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert, beq_iff_eq, if_neg ht, if_neg hr, if_neg hs]
-  have htail (totaled : State) (hpermTotal : totaled.executionEnv.perm = true) := absorbDebtTail_source (hperm := hpermTotal) repaid totaled v absorber account
+  have htail (totaled : State) (hpermTotal : totaled.executionEnv.perm = true) := absorbDebtTail_source (fork := fork) (hperm := hpermTotal) repaid totaled v absorber account
     old next price principal hc hi
     ((hget _ (by decide) (by decide) (by decide)).trans ha)
     ((hget _ (by decide) (by decide) (by decide)).trans hb)
@@ -49,7 +51,7 @@ theorem absorbSettlement_source (frame : Frame) (v : CometWithExtendedAssetListI
     (by rw [hget _ (by decide) (by decide) (by decide), hnp, signed104_low hprincipal]; rfl)
     ((hget _ (by decide) (by decide) (by decide)).trans hI)
     hnext (lt_trans hprincipal (by decide))
-  change internalBlockResult config frame evm
+  change internalBlockResult fork config frame evm
     (absorbClearBlock ++ (absorbRepayBlock ++ (absorbDebtArithmeticBlock ++ absorbEventsBlock))) result
   refine internalBlockResult.prependBlock ?_ hclear
   cases ht with

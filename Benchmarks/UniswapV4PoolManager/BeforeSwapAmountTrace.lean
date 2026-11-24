@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.SignedComparison
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,13 +18,13 @@ theorem beforeSwapDirectionTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw amount adjusted ret fee hookReturn : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨15541⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15541⟩
       (adjusted :: ret :: fee :: hookReturn :: UInt256.slt amount ⟨0⟩ :: R) mem aw rdata σ k C) :
     if beforeSwapDirectionValid amount adjusted then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨15556⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨15556⟩
         (ret :: fee :: hookReturn :: adjusted :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
-  have hcheck : ∃ k1 C1, C ≤ C1 ∧ RD (deployedRuntime v) I g s0 ⟨15551⟩
+    else RDrev fork (deployedRuntime v) g s0 := by
+  have hcheck : ∃ k1 C1, C ≤ C1 ∧ RD fork (deployedRuntime v) I g s0 ⟨15551⟩
       (UInt256.fromBool (decide (¬beforeSwapDirectionValid amount adjusted)) ::
         ret :: fee :: hookReturn :: adjusted :: R) mem aw rdata σ k1 C1 := by
     by_cases hn : EVM.signed amount < 0
@@ -64,14 +66,14 @@ theorem beforeSwapAmountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15529⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15529⟩
       (delta :: ret :: fee :: hookReturn :: amount :: R) mem aw rdata σ k C) :
     if int256Fits (EVM.signed amount+EVM.signed delta) then
       if beforeSwapDirectionValid amount (amount+delta) then
-        ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret
+        ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret
           (fee :: hookReturn :: (amount+delta) :: R) mem aw rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hstart := poolManager_block_15529 (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManager_block_15529_stack] at hstart

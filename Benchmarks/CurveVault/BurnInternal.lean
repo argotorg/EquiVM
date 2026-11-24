@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_030
 import Benchmarks.CurveVault.RuntimeBlocks_031
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -23,14 +25,14 @@ theorem vaultBurnRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hv : locals.get? "_value" = some (.int (Int.ofNat value.toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 8024) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 8024) (returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultBurnFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBurnFunction.body
         (.returned {contract := contract, locals := locals} evm' none) ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem sender value) aw' rdata σ' k' C') ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultBurnFunction.body
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem sender value) aw' rdata σ' k' C') ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBurnFunction.body
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let slot := vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat sender.toNat))
   let old := codeOwnerStorageWord I σ slot
   let mem0 := wordAt0Mem ⟨13⟩ (wordAt32Mem sender mem)
@@ -62,7 +64,7 @@ theorem vaultBurnRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨aw0, k0, C0, rd8054⟩ := vaultBlocks.vault_block_8024_fallthrough_packed
     (by simp only [List.length_cons]; omega)
     (hcondition.trans (ugt_zero (by rw [usub_toNat hsub]; omega))) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8054)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8054)
     ((codeOwnerStorageWord I σ
       (keccakWord ⟨0⟩ (UInt256.ofNat 64) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) mem) mem))) -
       memLoad (UInt256.ofNat 96) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) mem) mem))) ::
@@ -76,7 +78,7 @@ theorem vaultBurnRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   let σ1 := sstoreAccountMap I.codeOwner σ slot (UInt256.sub old value)
   let evm1 := Stele.EVM.storageStore evm I.codeOwner slot (UInt256.sub old value)
   have hs1 : SourceState s0 I σ1 evm1 := hs.storageWrite _ _
-  have hdebit : ExecStmt config {contract := contract, locals := locals} evm
+  have hdebit : ExecStmt fork config {contract := contract, locals := locals} evm
       vaultBurnFunction.body[0]! (.ok {contract := contract, locals := locals} evm1) := by
     apply ExecStmt.assign (hperm := Or.inr (by simpa only [hs.env] using hperm)) (evalExpr_checkedSub256_ok hread (hvEval evm) rfl hsub)
     simpa only [hs.env] using vaultBalanceAssign evm locals "_from" _ (UInt256.sub old value) hbase ht
@@ -100,12 +102,12 @@ theorem vaultBurnRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨aw1, k1, C1, rd8077⟩ := vaultBlocks.vault_block_8054_fallthrough_packed
     (by simp only [List.length_cons]; omega) hperm
     (hcondition1.trans (ugt_zero (by rw [usub_toNat hsubSupply]; omega))) rd8054
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8077)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8077)
     ((supply - memLoad (UInt256.ofNat 96) mem0) :: memLoad (UInt256.ofNat 96) mem0 :: supply :: returnPc :: R)
     mem0 aw1 rdata σ1 k1 C1 at rd8077
   rw [hv0] at rd8077
   obtain ⟨aw2, k2, C2, rdReturn⟩ := vaultBlocks.vault_block_8077_packed (by omega) hperm hvalid rd8077
-  change RD vaultBytecode I g s0 returnPc R ((memLoad (UInt256.ofNat 96) mem0).toByteArray.write 0 mem0 128 32)
+  change RD fork vaultBytecode I g s0 returnPc R ((memLoad (UInt256.ofNat 96) mem0).toByteArray.write 0 mem0 128 32)
     aw2 rdata (sstoreAccountMap I.codeOwner σ1 (UInt256.ofNat 14) (UInt256.sub supply value)) k2 C2 at rdReturn
   rw [hv0] at rdReturn
   let evm2 := Stele.EVM.storageStore evm1 I.codeOwner (UInt256.ofNat 14) (UInt256.sub supply value)
@@ -113,13 +115,13 @@ theorem vaultBurnRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   refine Or.inl ⟨evm2, _, aw2, k2, C2, ?_, hs2, rdReturn⟩
   apply ExecFuncBody.execBlockOK
   apply ExecBlock.consNormal hdebit
-  have hwrite : ExecStmt config {contract := contract, locals := locals} evm1
+  have hwrite : ExecStmt fork config {contract := contract, locals := locals} evm1
       vaultBurnFunction.body[1]! (.ok {contract := contract, locals := locals} evm2) := by
     apply ExecStmt.assign (hperm := Or.inr (by simpa only [hs1.env] using hperm)) (evalExpr_checkedSub256_ok hreadSupply (hvEval evm1) rfl hsubSupply)
     simpa only [hs1.env] using vaultAssignScalarUint256 evm1 locals "totalSupply" (UInt256.ofNat 14)
       (UInt256.sub supply value) hsupply rfl rfl (by decide +kernel)
   apply ExecBlock.consNormal hwrite
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [hs2.env] using hperm) (vals := [.address (AccountAddress.ofNat sender.toNat),
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [hs2.env] using hperm) (vals := [.address (AccountAddress.ofNat sender.toNat),
     .address 0, .int (Int.ofNat value.toNat)]) ?_) ExecBlock.nil
   change evalExprs? config {contract := contract, locals := locals} evm2
     [.var "_from", .cast (.intLit 0) (.elem .address), .var "_value"] = _

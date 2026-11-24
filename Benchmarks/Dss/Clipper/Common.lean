@@ -13,6 +13,8 @@ import Reasoning.SteleBody
 import Reasoning.Storage
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper shared proof foundation
 
@@ -269,7 +271,7 @@ theorem clipperUint256GetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -279,12 +281,12 @@ theorem clipperUint256GetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hreturnWf : solcReturnWordFromMemWf code returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWord σ I slot).toNat))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hword : solcSlotWord σ I slot = solcSlotWord σ I slot := rfl
   have hval :
       some [Value.int (Int.ofNat (solcSlotWord σ I slot).toNat)] =
@@ -310,7 +312,7 @@ theorem clipperAddressGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -320,13 +322,13 @@ theorem clipperAddressGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hreturnWf : solcReturnAddressFromMemWf code returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (UInt256.land (solcSlotWord σ I slot) solcAddrMask).toNat))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hword : solcSlotWord σ I slot = solcSlotWord σ I slot := rfl
   have hval :
       some [Value.address (AccountAddress.ofNat
@@ -357,7 +359,7 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -367,12 +369,12 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hreturnWf : solcReturnAddressFromMemWf code returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat val.toNat))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have henc :
       returnEquiv (UInt256.toByteArray (UInt256.land val solcAddrMask))
         (some [(.address (AccountAddress.ofNat val.toNat))]) transition.returnType := by
@@ -398,7 +400,7 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
@@ -408,12 +410,12 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hreturnWf : solcReturnWordFromMemWf code returnPc)
     (hreturn : transition.returnType = [bytes32])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE val))])) (immStore v)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have henc :
       returnEquiv (UInt256.toByteArray val)
         (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE val))])

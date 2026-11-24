@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -15,8 +17,8 @@ theorem readWithPadding_size (mem : ByteArray) (offset length : Nat) :
 theorem rdret_outOfGas_of_large_output {code : ByteArray} {g : Sat256} {s0 : State}
     {σ : AccountMap} {out : ByteArray}
     (hpaid : memoryPaidByGas s0) (hlarge : maxReturnDataSizeByGas < out.size)
-    (h : RDret code g s0 σ out) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+    (h : RDret fork code g s0 σ out) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   rcases h with hoog | ⟨state, hsuccess, _⟩
   · exact hoog
   · have hbound := X_success_output_size_le_maxReturnDataSizeByGas hpaid hsuccess

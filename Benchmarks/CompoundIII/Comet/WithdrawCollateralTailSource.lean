@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -46,10 +48,10 @@ def withdrawCollateralMemberTail : List Stmt :=
     withdrawCollateralCheckTail
 
 theorem withdrawCollateralTransfer_source {v src recipient asset amount evm result}
-    (ht : WithdrawCollateralTransfer asset recipient amount evm result) (frame : Frame)
+    (ht : WithdrawCollateralTransfer fork asset recipient amount evm result) (frame : Frame)
     (hf : WithdrawCollateralArgs frame v src recipient asset amount) :
-    internalBlockResult config frame evm withdrawCollateralTransferTail result := by
-  have hcall {r} (hc : TransferOutTrace asset recipient amount evm r) :=
+    internalBlockResult fork config frame evm withdrawCollateralTransferTail result := by
+  have hcall {r} (hc : TransferOutTrace fork asset recipient amount evm r) :=
     transferOut_call hc frame (.var "asset") (.var "to") (.var "amount") "__c3"
       hf.contract (by simp only [evalExpr?, hf.asset, EvalResult.ofOption])
       (by simp only [evalExpr?, hf.recipient, EvalResult.ofOption])
@@ -72,10 +74,10 @@ theorem withdrawCollateralTransfer_source {v src recipient asset amount evm resu
         (ExecBlock.consNormal (ExecStmt.emit (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he) .nil)⟩
 
 theorem withdrawCollateralCheck_source {v src recipient asset amount evm result}
-    (ht : WithdrawCollateralCheck v src recipient asset amount evm result) (frame : Frame)
+    (ht : WithdrawCollateralCheck fork v src recipient asset amount evm result) (frame : Frame)
     (hf : WithdrawCollateralArgs frame v src recipient asset amount) :
-    internalBlockResult config frame evm withdrawCollateralCheckTail result := by
-  have hcall {r} (hc : CollateralCheckTrace v true src evm r) :=
+    internalBlockResult fork config frame evm withdrawCollateralCheckTail result := by
+  have hcall {r} (hc : CollateralCheckTrace fork v true src evm r) :=
     collateralCheck_call hc frame (.var "src") "__c2" hf.contract hf.immutables
       (by simp only [evalExpr?, hf.src, EvalResult.ofOption])
   have he (value : Bool) (evm' : EVM.State) : evalExpr? config
@@ -93,14 +95,14 @@ theorem withdrawCollateralCheck_source {v src recipient asset amount evm result}
         (ExecStmt.requireTrue (he _ _))).prepend (hcall ht)
 
 theorem withdrawCollateralMember_source {v src recipient asset amount balance next evm out result}
-    (ht : WithdrawCollateralMember v src recipient asset amount balance next evm out result)
+    (ht : WithdrawCollateralMember fork v src recipient asset amount balance next evm out result)
     (frame : Frame) (hf : WithdrawCollateralArgs frame v src recipient asset amount)
     (ho : (calldataWord out 0).toNat < 256)
     (ha : frame.locals.get? "assetInfo" = some (assetValue out))
     (hb : frame.locals.get? "srcCollateral" = some (.int balance.toNat))
     (hn : frame.locals.get? "srcCollateralNew" = some (.int next.toNat)) :
-    internalBlockResult config frame evm withdrawCollateralMemberTail result := by
-  have hc := assetMembership_call frame evm src out balance next (.var "src")
+    internalBlockResult fork config frame evm withdrawCollateralMemberTail result := by
+  have hc := assetMembership_call (fork := fork) frame evm src out balance next (.var "src")
     (.var "assetInfo") (.var "srcCollateral") (.var "srcCollateralNew") "__c1" hf.contract ho
     (by simp only [evalExpr?, hf.src, EvalResult.ofOption])
     (by simp only [evalExpr?, ha, EvalResult.ofOption])
@@ -114,12 +116,12 @@ theorem withdrawCollateralMember_source {v src recipient asset amount balance ne
     exact (withdrawCollateralCheck_source tail _ (hf.insert "__c1" .unit (by decide))).prepend hc
 
 theorem withdrawCollateralTail_source {v src recipient asset amount balance next evm result}
-    (ht : WithdrawCollateralTailTrace v src recipient asset amount balance next evm result)
+    (ht : WithdrawCollateralTailTrace fork v src recipient asset amount balance next evm result)
     (frame : Frame) (hf : WithdrawCollateralArgs frame v src recipient asset amount)
     (hb : frame.locals.get? "srcCollateral" = some (.int balance.toNat))
     (hn : frame.locals.get? "srcCollateralNew" = some (.int next.toNat)) :
-    internalBlockResult config frame evm withdrawCollateralTail result := by
-  have hcall {r} (hc : AssetSearch v asset 0 evm r) :=
+    internalBlockResult fork config frame evm withdrawCollateralTail result := by
+  have hcall {r} (hc : AssetSearch fork v asset 0 evm r) :=
     assetSearch_call hc frame (.var "asset") "assetInfo" hf.contract hf.immutables
       (by simp only [evalExpr?, hf.asset, EvalResult.ofOption])
   cases ht with

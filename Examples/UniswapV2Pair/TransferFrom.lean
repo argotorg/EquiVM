@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.TransferRoutines
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -148,10 +150,10 @@ theorem uniswapTransferFromX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2938⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2938⟩
       [transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨797⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd901⟩ := RD.addressAddressUint256ExternalLenOk
@@ -173,10 +175,10 @@ theorem uniswapTransferFromX_allowanceMaxBranch {σ σ₀ A I} {g : Sat256}
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3071⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3071⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I))
@@ -201,10 +203,10 @@ theorem uniswapTransferFromX_allowanceMaxToInternal {σ σ₀ A I} {g : Sat256}
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
@@ -226,10 +228,10 @@ theorem uniswapTransferFromX_allowanceFiniteToInternal {σ σ₀ A I} {g : Sat25
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
@@ -306,10 +308,10 @@ theorem uniswapTransferFromX_allowanceFiniteAfterDebit {σ σ₀ A I} {g : Sat25
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
         (initState σ σ₀ g A I) I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
       (transferFromBalanceDebitWord (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -399,10 +401,10 @@ theorem uniswapTransferFromX_allowanceFiniteAfterSenderStore {σ σ₀ A I} {g :
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
         (initState σ σ₀ g A I) I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨797⟩ :: [sel])
@@ -723,10 +725,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterDebit {σ σ₀ A I} {g : Sat256}
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
       (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -782,10 +784,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterSenderStore {σ σ₀ A I} {g : Sa
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨797⟩ :: [sel])
@@ -854,10 +856,10 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {σ σ₀ A I} {g : 
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
         (initState σ σ₀ g A I) I) I).toNat)
     (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
       (transferFromNewToWord (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -954,10 +956,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {σ σ₀ A I} {g : Sat
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
       (transferFromNewToWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -1027,10 +1029,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditStore {σ σ₀ A I} {g : Sa
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
       (⟨64⟩ :: transferFromToWord I :: solcAddrMask :: ⟨32⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -1068,10 +1070,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterTransferEvent {σ σ₀ A I} {g : 
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferLogMemOf (transferFromFromWord I) (transferFromToWord I)
@@ -1107,10 +1109,10 @@ theorem uniswapX_transferFrom_maxAllowance {σ σ₀ A I} {g : Sat256} {sel : UI
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
           (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I))
@@ -1679,11 +1681,11 @@ theorem uniswapTransferFromAllowanceFinitePrefix (evm : EVM.State) (I : Executio
     (henough : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord evm I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := transferFromStore I } evm
+    ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
       transferFromAllowancePrefixBody
       (.ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
         (transferFromAfterAllowanceState evm I)) := by
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
@@ -1709,10 +1711,10 @@ theorem uniswapTransferFromAllowanceFinitePrefix (evm : EVM.State) (I : Executio
 theorem uniswapTransferFromAllowanceMaxPrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hmax : (transferFromCurrentAllowanceWord evm I).toNat = UInt256.size - 1) :
-    ExecBlock config { contract := contract, locals := transferFromStore I } evm
+    ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
       transferFromAllowancePrefixBody
       (.ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm) := by
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
@@ -1732,14 +1734,14 @@ theorem uniswapTransferFromAllowanceFailurePrefix (evm : EVM.State) (I : Executi
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlt : (transferFromCurrentAllowanceWord evm I).toNat <
       (transferFromValueWord I).toNat) :
-    ExecBlock config { contract := contract, locals := transferFromStore I } evm
+    ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
       transferFromAllowancePrefixBody .reverted := by
   have hnotMax : (transferFromCurrentAllowanceWord evm I).toNat ≠ UInt256.size - 1 := by
     intro hmax
     have hvalueLt : (transferFromValueWord I).toNat < UInt256.size :=
       (transferFromValueWord I).val.isLt
     omega
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
@@ -1758,10 +1760,10 @@ theorem uniswapTransferFromAllowanceFailurePrefix (evm : EVM.State) (I : Executi
 
 theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1772,7 +1774,7 @@ theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : Executi
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
@@ -1800,11 +1802,11 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
       (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat)
     (hfit : transferFromNewToNat evm I < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
         (transferFromPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1817,7 +1819,7 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
     (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
       (transferFromPostState evm I) (some [(.bool true)]))
   refine execBlock_append
-    (uniswapTransferFromAllowanceFinitePrefix (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
+    (uniswapTransferFromAllowanceFinitePrefix (fork := fork) (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
@@ -1840,11 +1842,11 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
     (hbalance : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat)
     (hfit : transferFromNewToNatMax evm I < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       (.returned { contract := contract, locals := transferFromStoreToBalanceMax evm I }
         (transferFromPostStateMax evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1879,10 +1881,10 @@ theorem uniswapTransferFromBodyStatic_finiteAllowance (evm : EVM.State) (I : Exe
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord evm I).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
@@ -1914,10 +1916,10 @@ theorem uniswapTransferFromBodyStatic_maxAllowance (evm : EVM.State) (I : Execut
     (hmax : (transferFromCurrentAllowanceWord evm I).toNat = UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1940,10 +1942,10 @@ theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : Executio
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlt : (transferFromCurrentAllowanceWord evm I).toNat <
       (transferFromValueWord I).toNat) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1975,10 +1977,10 @@ theorem uniswapTransferFromBodyReverts_balance_finiteAllowance
     (hlt : (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat <
       (transferFromValueWord I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -1990,7 +1992,7 @@ theorem uniswapTransferFromBodyReverts_balance_finiteAllowance
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
-    (uniswapTransferFromAllowanceFinitePrefix (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
+    (uniswapTransferFromAllowanceFinitePrefix (fork := fork) (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_require_from_false evm I hlt))
@@ -2000,10 +2002,10 @@ theorem uniswapTransferFromBodyReverts_balance_maxAllowance
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hmax : (transferFromCurrentAllowanceWord evm I).toNat = UInt256.size - 1)
     (hlt : (transferFromFromBalanceWord evm I).toNat < (transferFromValueWord I).toNat) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -2029,10 +2031,10 @@ theorem uniswapTransferFromBodyReverts_overflow_finiteAllowance
       (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat)
     (hover : UInt256.size ≤ transferFromNewToNat evm I)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -2044,7 +2046,7 @@ theorem uniswapTransferFromBodyReverts_overflow_finiteAllowance
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
-    (uniswapTransferFromAllowanceFinitePrefix (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
+    (uniswapTransferFromAllowanceFinitePrefix (fork := fork) (hperm := by assumption) evm I hwv hnotMax hallowance) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
@@ -2064,10 +2066,10 @@ theorem uniswapTransferFromBodyReverts_overflow_maxAllowance
     (hbalance : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat)
     (hover : UInt256.size ≤ transferFromNewToNatMax evm I)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+    ExecTransitionBody fork config contract evm (transferFromStore I) transferFromTransition.body
       .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+  change ExecBlock fork config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),

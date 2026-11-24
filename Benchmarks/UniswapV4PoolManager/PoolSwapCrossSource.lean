@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapTickSyntax
 import Benchmarks.UniswapV4PoolManager.TickCrossSource
 import Benchmarks.UniswapV4PoolManager.WordSignedCast
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,7 +35,7 @@ def poolSwapCrossResult (f : Frame) (evm : State) (id : UInt256) (s : PoolSwapSt
 
 theorem poolSwapCrossNegate {f : Frame} {evm : State} {net : UInt256} {zeroForOne : Bool}
     (hz : f.locals.get? "zeroForOne" = some (.bool zeroForOne)) :
-    ExecStmt config (valueLocal f "liquidityNet" (.int (EVM.signed net))) evm poolSwapCrossStmts[4]!
+    ExecStmt fork config (valueLocal f "liquidityNet" (.int (EVM.signed net))) evm poolSwapCrossStmts[4]!
       (.ok (poolSwapCrossNetFrame f zeroForOne net) evm) := by
   let f1 := valueLocal f "liquidityNet" (.int (EVM.signed net))
   have hz1 : f1.locals.get? "zeroForOne" = some (.bool zeroForOne) :=
@@ -51,7 +53,7 @@ theorem poolSwapCrossNegate {f : Frame} {evm : State} {net : UInt256} {zeroForOn
         EVM.signed (poolSwapCrossDelta true net) := by
       rw [← normalizeSignedEncoded ⟨128, by decide⟩ _, normalizeSigned128Word, wordOfInt_signed_sub]
       rfl
-    exact execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by
+    exact execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by
       simpa only [hn] using evalExpr_cast_int (intType := .sint ⟨128, by decide⟩) he)
       (assignLocalValue (store_get_self _ _ _)))
 
@@ -62,7 +64,7 @@ theorem poolSwapCrossSource {f : Frame} {evm : State} {id : UInt256}
     (hr : f.locals.get? "result" = some (poolSwapResultValue r))
     (hself : f.locals.get? "self" = some (poolRefValue id))
     (hz : f.locals.get? "zeroForOne" = some (.bool zeroForOne)) :
-    ExecBlock config f evm poolSwapCrossStmts (poolSwapCrossResult f evm id s r zeroForOne) := by
+    ExecBlock fork config f evm poolSwapCrossStmts (poolSwapCrossResult f evm id s r zeroForOne) := by
   let g0 := poolSwapCrossGrowth0 evm id s zeroForOne
   let g1 := poolSwapCrossGrowth1 evm id s zeroForOne
   let f1 := wordLocal f "feeGrowthGlobal0X128" g0
@@ -93,7 +95,7 @@ theorem poolSwapCrossSource {f : Frame} {evm : State} {id : UInt256}
     · exact poolFeeGrowth_read hself1 true
   have hself2 : f2.locals.get? "self" = some (poolRefValue id) :=
     (store_get_ne _ _ (by decide : ("feeGrowthGlobal1X128" == "self") = false)).trans hself1
-  have hpre : ExecBlock config f evm (poolSwapCrossStmts.take 3) (.ok f3 evm) :=
+  have hpre : ExecBlock fork config f evm (poolSwapCrossStmts.take 3) (.ok f3 evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl he0) (ExecBlock.consNormal (ExecStmt.letDecl he1)
       (execBlock_singleton (ExecStmt.letStorage (resolveStorageAlias hself2))))
   have hs3 : f3.locals.get? "step" = some (poolSwapStepValue s) :=
@@ -109,7 +111,7 @@ theorem poolSwapCrossSource {f : Frame} {evm : State} {id : UInt256}
     (store_get_ne _ _ (by decide : (poolSwapCrossAlias == "feeGrowthGlobal1X128") = false)).trans (store_get_self _ _ _)
   have hf3 : f3.contract = contract := by
     simp only [f3, poolSwapCrossCallFrame, valueLocal_contract, wordLocal_contract, hf]
-  have hcall := tickCrossCall (f := f3) (evm := evm) hf3 (evalLocalValue (name := poolSwapCrossAlias) (store_get_self _ _ _))
+  have hcall := tickCrossCall (fork := fork) (f := f3) (evm := evm) hf3 (evalLocalValue (name := poolSwapCrossAlias) (store_get_self _ _ _))
     (poolSwapStep_tick_eval hs3) (evalLocalValue hg03) (evalLocalValue hg13) "liquidityNet"
   simp only [tickCrossResult, resumeCallResult_ite, resumeCallResult_static, resumeCallResult_returned] at hcall
   unfold poolSwapCrossResult
@@ -117,7 +119,7 @@ theorem poolSwapCrossSource {f : Frame} {evm : State} {id : UInt256}
   · rw [if_pos hp] at hcall ⊢
     exact execBlock_append hpre (ExecBlock.consStatic hcall)
   · rw [if_neg hp] at hcall ⊢
-    have hneg := poolSwapCrossNegate (evm := post) (net := net) hz3
+    have hneg := poolSwapCrossNegate (fork := fork) (evm := post) (net := net) hz3
     have hr3 : f3.locals.get? "result" = some (poolSwapResultValue r) :=
       (store_get_ne3 _ _ _ _ (by decide : ("feeGrowthGlobal0X128" == "result") = false)
         (by decide : ("feeGrowthGlobal1X128" == "result") = false)
@@ -132,12 +134,12 @@ theorem poolSwapCrossSource {f : Frame} {evm : State} {id : UInt256}
     have hf5 : f5.contract = contract := by
       unfold f5 poolSwapCrossNetFrame
       split <;> simpa only [valueLocal_contract] using hf3
-    have hadd := liquidityAddCall hf5 (evalStructField (field := "liquidity") (evalLocalValue (evm := post) hr5) rfl)
+    have hadd := liquidityAddCall (fork := fork) hf5 (evalStructField (field := "liquidity") (evalLocalValue (evm := post) hr5) rfl)
       (evalLocalValue hn5) "__c22"
     by_cases hfit : liquidityAddFits r.liquidity (EVM.signed (poolSwapCrossDelta zeroForOne net))
     · rw [if_pos hfit] at hadd ⊢
       rw [← liquidityAddResultWord_value hfit] at hadd
-      have hstore : ExecStmt config
+      have hstore : ExecStmt fork config
           (wordLocal f5 "__c22" (poolSwapCrossLiquidity evm id s zeroForOne r.liquidity)) post poolSwapCrossStmts[6]!
           (.ok (poolSwapCrossFrame f evm id s r zeroForOne) post) :=
         ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalField

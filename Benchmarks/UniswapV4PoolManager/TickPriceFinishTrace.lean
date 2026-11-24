@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.TickPriceSelectTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,11 +12,11 @@ theorem tickPriceFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret sqrtPrice log2 : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 12 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : sqrtPrice.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨18536⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18536⟩
       (UInt256.ofNat 2 :: tickPriceLowRaw log2 :: tickPriceScaled log2 :: sqrtPrice :: ret :: R) mem aw rdata σ k C) :
-    (tickPriceFinish sqrtPrice log2 = none ∧ RDrev (deployedRuntime v) g s0) ∨
+    (tickPriceFinish sqrtPrice log2 = none ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ tick k' C', tickPriceFinish sqrtPrice log2 = some tick ∧
-      RD (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
+      RD fork (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
   have hhigh : UInt256.signextend (UInt256.ofNat 2)
       (UInt256.sar (UInt256.ofNat 128) (UInt256.ofNat 291339464771989622907027621153398088495 + tickPriceScaled log2)) =
         tickPriceHigh log2 := by rw [u256_add_comm]; rfl

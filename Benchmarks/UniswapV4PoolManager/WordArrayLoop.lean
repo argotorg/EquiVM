@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.LocalArray
 import Benchmarks.UniswapV4PoolManager.WordArrayDecode
 import Benchmarks.UniswapV4PoolManager.WordArrayFillLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source loop for storage and transient word arrays. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -54,7 +56,7 @@ structure WordArrayLocals (slots res : List Value) (i : Nat) (locals : Store) : 
 theorem wordArrayLoopStep (transient : Bool) (evm : EVM.State) (locals imms : Store) (slots res : List Value) (i : Nat)
     (hl : WordArrayLocals slots res i locals) (hi : i < slots.length)
     (hres : res.length = slots.length) (hd : WordArrayDecoded evm.executionEnv.calldata slots) :
-    ∃ locals', ExecBlock config {contract := contract, locals := locals, immutables := imms}
+    ∃ locals', ExecBlock fork config {contract := contract, locals := locals, immutables := imms}
       evm (wordArrayLoopBody transient) (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       WordArrayLocals slots (res.set i (wordBytes32Value (wordArrayValue transient evm i))) (i+1) locals' := by
   let l1 := locals.insert "result" (.array (res.set i (wordBytes32Value (wordArrayValue transient evm i))))
@@ -64,8 +66,8 @@ theorem wordArrayLoopStep (transient : Bool) (evm : EVM.State) (locals imms : St
   have hlookup : slots[i]? = some (wordBytes32Value (wordArraySlot evm.executionEnv i)) := by
     simpa only [← lookupNth_eq_getElem, wordArraySlot] using hd.lookup hi
   refine ⟨l2, ?_, ?_⟩
-  · refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalArrayIndex hl.result_eq hl.index_eq
-      (by omega))) (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  · refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalArrayIndex hl.result_eq hl.index_eq
+      (by omega))) (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (naturalAddSource (evalLocalValue hi1) (by simp only [evalExpr?, pure]; rfl))
         (assignLocalValue hi1)) ExecBlock.nil)
     exact evalCastValue (wordArrayRead_eval transient rfl hl.raw_eq (evalCastValue
@@ -82,7 +84,7 @@ theorem wordArraySourceLoop (transient : Bool) (evm : EVM.State) (imms : Store) 
     ∀ locals res i, WordArrayLocals slots res i locals → i + remaining = slots.length →
       res.length = slots.length →
       (∀ j, j < i → res[j]? = some (wordBytes32Value (wordArrayValue transient evm j))) →
-      ∃ locals', ExecStmt config {contract := contract, locals := locals, immutables := imms}
+      ∃ locals', ExecStmt fork config {contract := contract, locals := locals, immutables := imms}
         evm (.while wordArrayCond (wordArrayLoopBody transient))
         (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
         locals'.get? "result" = some (.array (wordArrayValues (wordArrayValue transient evm) 0 slots.length)) := by

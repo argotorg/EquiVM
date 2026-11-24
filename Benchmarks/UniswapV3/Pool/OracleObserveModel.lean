@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleSource
 import Benchmarks.UniswapV3.Pool.SourceArrays
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -67,7 +69,7 @@ theorem oracleObserveFor : oracleObserveFunction.body[7]! =
 
 theorem oracleObserveZeroPrefix (imms : Store) (evm : EVM.State) (time : UInt256)
     (secondsAgos : List UInt256) (tick : Int) (index liquidity card : UInt256) :
-    ExecBlock config (oracleObserveFrame imms time secondsAgos tick index liquidity card) evm
+    ExecBlock fork config (oracleObserveFrame imms time secondsAgos tick index liquidity card) evm
       (oracleObserveFunction.body.take 2)
       (.ok (oracleObserveZeroFrame imms time secondsAgos tick index liquidity card) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .array []) ?_)

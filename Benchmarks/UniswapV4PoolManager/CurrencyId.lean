@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.TransientSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Conversion between currency addresses and ERC6909 token ids. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -41,7 +43,7 @@ theorem evalIdAddress {cfg : Config} {f : Frame} {evm : EVM.State} {e : Expr} {i
 
 theorem currencyFromIdBodyExec {f : Frame} {evm : EVM.State} {id : UInt256}
     (hi : f.locals.get? "id" = some (.int (Int.ofNat id.toNat))) :
-    ExecFuncBody config f evm currencyFromIdFunction.body
+    ExecFuncBody fork config f evm currencyFromIdFunction.body
       (.returned {f with locals := f.locals.insert "__c0" (.address (AccountAddress.ofNat id.toNat))}
         evm (some [.address (AccountAddress.ofNat id.toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -50,7 +52,7 @@ theorem currencyFromIdBodyExec {f : Frame} {evm : EVM.State} {id : UInt256}
 
 theorem currencyFromIdCall {f : Frame} {evm : EVM.State} {e : Expr} {id : UInt256}
     (hf : f.contract = contract) (hi : evalExpr? config f evm e = .ok (.int (Int.ofNat id.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyLibrary_fromId" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyLibrary_fromId" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.address (AccountAddress.ofNat id.toNat))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat id.toNat)])
     (value := some [.address (AccountAddress.ofNat id.toNat)])
@@ -59,7 +61,7 @@ theorem currencyFromIdCall {f : Frame} {evm : EVM.State} {e : Expr} {id : UInt25
 
 theorem currencyToIdBodyExec {f : Frame} {evm : EVM.State} {currency : AccountAddress}
     (hc : f.locals.get? "currency" = some (.address currency)) :
-    ExecFuncBody config f evm currencyToIdFunction.body
+    ExecFuncBody fork config f evm currencyToIdFunction.body
       (.returned {f with locals := f.locals.insert "__c0" (.address currency)}
         evm (some [.int (Int.ofNat (accountWord currency).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -68,7 +70,7 @@ theorem currencyToIdBodyExec {f : Frame} {evm : EVM.State} {currency : AccountAd
 
 theorem currencyToIdCall {f : Frame} {evm : EVM.State} {e : Expr} {currency : AccountAddress}
     (hf : f.contract = contract) (hc : evalExpr? config f evm e = .ok (.address currency)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyLibrary_toId" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyLibrary_toId" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (accountWord currency).toNat))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address currency])
     (value := some [.int (Int.ofNat (accountWord currency).toNat)])

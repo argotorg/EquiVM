@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionClearTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -25,15 +27,15 @@ theorem updatePositionTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (updatePositionPositionState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
       mem aw rdata σ k C) (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 18 ≤ 1024) :
-    (ExecStmt config (updatePositionPositionFrame v a evm) (updatePositionPositionState v a evm)
-      updatePositionFunction.body[12]! .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config (updatePositionPositionFrame v a evm) (updatePositionPositionState v a evm)
+    (ExecStmt fork config (updatePositionPositionFrame v a evm) (updatePositionPositionState v a evm)
+      updatePositionFunction.body[12]! .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (updatePositionPositionFrame v a evm) (updatePositionPositionState v a evm)
       updatePositionFunction.body[12]!
       (.ok (updatePositionFinalFrame v a evm) (updatePositionFinalState v a evm)) ∧
       ∃ σ' k' C', SourceState s0 ee σ' (updatePositionFinalState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨19573⟩ (updatePositionPositionWords v a evm ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨19573⟩ (updatePositionPositionWords v a evm ++ R)
         (updatePositionTailMemory mem v a evm) aw rdata σ' k' C' ∧
       HeapMemory (updatePositionTailMemory mem v a evm) aw p) := by
   obtain ⟨k1, C1, r1⟩ := updatePositionNegativeX (v := v) a evm rd ha (by omega)
@@ -60,7 +62,7 @@ theorem updatePositionTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 
 theorem updatePositionReturnSource (v : UniswapV3PoolImmutables) (a : UpdatePositionArgs)
     (evm evm' : EVM.State) :
-    ExecStmt config (updatePositionFinalFrame v a evm) evm' (.return [.var "position"])
+    ExecStmt fork config (updatePositionFinalFrame v a evm) evm' (.return [.var "position"])
       (.returned (updatePositionFinalFrame v a evm) evm' (some [updatePositionKeyValue a])) := by
   have hk : evalExpr? config (updatePositionFinalFrame v a evm) evm' (.var "position") =
       .ok (updatePositionKeyValue a) := by

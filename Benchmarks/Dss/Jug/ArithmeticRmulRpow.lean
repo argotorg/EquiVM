@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Jug.ArithmeticAddDiff
 import Benchmarks.Dss.Jug.ArithmeticRpowLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ namespace Benchmarks.Dss.Jug
 theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size)
     (hq : q = UInt256.div prod jugRay) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       rmulFunction.body
       (.returned { contract := contract, locals := uintBinaryLocalsZAssigned x y prod q } evm
         (some [.int (Int.ofNat q.toNat)])) := by
@@ -115,7 +117,7 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       (locals := localsQ) (name := "z") (value := q)
       (uintBinaryLocalsZAssigned_get_z x y prod q)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -127,14 +129,14 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
           (some [.int (Int.ofNat q.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hMul) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hDivRay hAssign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hDivRay hAssign) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzQ))
   simpa [rmulFunction, checkedMulUintInto, locals, localsZ, localsQ]
     using ExecFuncBody.execBlockRet hblock
 
 theorem execRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := uintBinaryLocals x y } evm
       rmulFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
@@ -152,7 +154,7 @@ theorem execRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -166,7 +168,7 @@ theorem execRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
 
 theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
     (hxz : x ≠ ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals x ⟨0⟩ b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x ⟨0⟩ b } evm
       rpowFunction.body
       (.returned
         { contract := contract,
@@ -282,7 +284,7 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
       (locals := localsDone) (name := "z") (value := b)
       (rpowLocalsZHN_get_z x ⟨0⟩ b b half ⟨0⟩)
   have hElseBlock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite
               (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
@@ -296,11 +298,11 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
           (some [.int (Int.ofNat b.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hZExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hHalfExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hDivN hAssignN) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hDivN hAssignN) ?_
     refine ExecBlock.consNormal (ExecStmt.whileFalse hWhileCond) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzDone))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := localsDone } evm
           (some [.int (Int.ofNat b.toNat)])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteFalse hxZero hElseBlock)
@@ -308,7 +310,7 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
 
 theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
     (hxz : x ≠ ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals x ⟨1⟩ b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x ⟨1⟩ b } evm
       rpowFunction.body
       (.returned
         { contract := contract,
@@ -425,7 +427,7 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
       (locals := localsDone) (name := "z") (value := x)
       (rpowLocalsZHN_get_z x ⟨1⟩ b x half ⟨0⟩)
   have hElseBlock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite
               (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
@@ -439,18 +441,18 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
           (some [.int (Int.ofNat x.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hZExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hHalfExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hDivN hAssignN) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hDivN hAssignN) ?_
     refine ExecBlock.consNormal (ExecStmt.whileFalse hWhileCond) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzDone))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := localsDone } evm
           (some [.int (Int.ofNat x.toNat)])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteFalse hxZero hElseBlock)
   simpa [locals, localsDone, half] using ExecFuncBody.execBlockRet hblock
 
 theorem execRpowFunctionReturnXZeroNZero (evm : EVM.State) {b : UInt256} :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals ⟨0⟩ ⟨0⟩ b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals ⟨0⟩ ⟨0⟩ b } evm
       rpowFunction.body
       (.returned { contract := contract, locals := uintTernaryLocals ⟨0⟩ ⟨0⟩ b } evm
         (some [.int (Int.ofNat b.toNat)])) := by
@@ -486,7 +488,7 @@ theorem execRpowFunctionReturnXZeroNZero (evm : EVM.State) {b : UInt256} :
         (.binary .eq (.var "n") (.intLit 0)) = .ok (.bool true) :=
     evalExpr_eq_int_true hn hzeroLit rfl
   have hinner :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .ite (.binary .eq (.var "n") (.intLit 0))
             [ .return [.var "b"] ]
             [ .return [.intLit 0] ] ]
@@ -495,7 +497,7 @@ theorem execRpowFunctionReturnXZeroNZero (evm : EVM.State) {b : UInt256} :
     exact ExecBlock.consReturn (ExecStmt.iteTrue hnZero
       (ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hb))))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := locals } evm
           (some [.int (Int.ofNat b.toNat)])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteTrue hxZero hinner)
@@ -503,7 +505,7 @@ theorem execRpowFunctionReturnXZeroNZero (evm : EVM.State) {b : UInt256} :
 
 theorem execRpowFunctionReturnXZeroNNonzero (evm : EVM.State) {n b : UInt256}
     (hnz : n ≠ ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals ⟨0⟩ n b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals ⟨0⟩ n b } evm
       rpowFunction.body
       (.returned { contract := contract, locals := uintTernaryLocals ⟨0⟩ n b } evm
         (some [.int 0])) := by
@@ -539,7 +541,7 @@ theorem execRpowFunctionReturnXZeroNNonzero (evm : EVM.State) {n b : UInt256}
     intro hbad
     exact hnz (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
   have hinner :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .ite (.binary .eq (.var "n") (.intLit 0))
             [ .return [.var "b"] ]
             [ .return [.intLit 0] ] ]
@@ -547,7 +549,7 @@ theorem execRpowFunctionReturnXZeroNNonzero (evm : EVM.State) {n b : UInt256}
     exact ExecBlock.consReturn (ExecStmt.iteFalse hnZero
       (ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzeroRet))))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := locals } evm (some [.int 0])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteTrue hxZero hinner)
   simpa [locals] using ExecFuncBody.execBlockRet hblock

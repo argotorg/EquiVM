@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestArrayMemory
 import Benchmarks.EAS.EAS.AttestLoopControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -30,8 +32,8 @@ theorem easAttestRecordsStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+11 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (attestArraysStartPC site) (attestArraysStartStack site schema R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7541⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestArraysStartPC site) (attestArraysStartStack site schema R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7541⟩
       (attestLoopLength site::attestRecordsReturnPC site::attestRecordsSaved site schema R) mem aw' rdata σ k' C' := by
   have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7541) = true := by rw [easPatchedValidJumps v]; jump_dest
   cases site with
@@ -44,9 +46,9 @@ theorem easAttestValuesStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema records : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+12 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (attestRecordsReturnPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestRecordsReturnPC site)
       (records::attestRecordsSaved site schema R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7240⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7240⟩
       (attestLoopLength site::attestValuesReturnPC site::attestValuesSaved site schema records R) mem aw' rdata σ k' C' := by
   have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7240) = true := by rw [easPatchedValidJumps v]; jump_dest
   cases site with
@@ -59,9 +61,9 @@ theorem easAttestArraysDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema records values t3 t4 : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+12 ≤ 1024) (ha : recordArrayPtr site t3 t4 = records) (hv : recordValuesPtr site t4 = values)
-    (rd : RD (deployedRuntime v) ee g s0 (attestValuesReturnPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestValuesReturnPC site)
       (values::attestValuesSaved site schema records R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site schema ⟨0⟩ t3 t4 R) mem aw' rdata σ k' C' := by
   cases site with
   | single len s av ret data vs result attester =>
@@ -82,18 +84,18 @@ theorem easAttestArrays {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hheap : memLoad (UInt256.ofNat 64) mem = heap) (hcd : ee.calldata.size < UInt256.size)
     (ha : recordArrayPtr site t3 t4 = heap)
     (hv : recordValuesPtr site t4 = UInt256.ofNat (allocateNext heap.toNat (32+352*(attestLoopLength site).toNat)))
-    (rd : RD (deployedRuntime v) ee g s0 (attestArraysStartPC site) (attestArraysStartStack site schema R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestArraysStartPC site) (attestArraysStartStack site schema R) mem aw rdata σ k C) :
     let len := (attestLoopLength site).toNat
     let middle := allocateNext heap.toNat (32+352*len)
     let next := allocateNext middle (32+32*len)
     if len ≤ 2^64-1 then
       if middle ≤ 2^64-1 ∧ heap.toNat ≤ middle then
         if next ≤ 2^64-1 ∧ middle ≤ next then
-          ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+          ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
             (recordNextStack site schema ⟨0⟩ t3 t4 R) (attestArraysMemory mem ee.calldata heap len) aw' rdata σ k' C'
-        else RDrev (deployedRuntime v) g s0
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+        else RDrev fork (deployedRuntime v) g s0
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   obtain ⟨a1,k1,C1,r1⟩ := easAttestRecordsStart v site (by omega) rd
   have hrecords := easDefaultArrayAllocate v

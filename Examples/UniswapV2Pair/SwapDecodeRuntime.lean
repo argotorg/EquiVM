@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapDecoderPrefix
 import Examples.UniswapV2Pair.MemorySteps
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -55,9 +57,9 @@ theorem uniswapSwapDecodeRuntimeOk {s0 : State} {I : ExecutionEnv} {σ : Account
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
     (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
     (hpayload : 4 + swapDataOffset I + 32 + swapDataSize I ≤ I.calldata.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1475⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1475⟩
       [swapDataSizeWord I, swapRuntimePayloadPtr I, swapToMaskedWord I,
         swapAmount1OutWord I, swapAmount0OutWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by

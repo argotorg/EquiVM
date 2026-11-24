@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordArrayStore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -34,9 +36,9 @@ theorem easRecordValuesStore {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hvalue : memLoad (refUIDPtr site t3+UInt256.ofNat 160) mem = value)
     (hptr : recordUIDsPtr site (Reasoning.Theory.writeWord mem ((recordValuesPtr site t4).toNat+32+32*i) value) = uidPtr)
     (hu : memLoad uidPtr (Reasoning.Theory.writeWord mem ((recordValuesPtr site t4).toNat+32+32*i) value) = UInt256.ofNat len)
-    (rd : RD (deployedRuntime v) ee g s0 (recordValuesStartPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordValuesStartPC site)
       (recordValuesStack site dummy word t1 (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordUIDStorePC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordUIDStorePC site)
       (recordUIDStoreStack site (UInt256.ofNat (uidPtr.toNat+32+32*i)) word t1 (UInt256.ofNat i) t3 t4 R)
       (Reasoning.Theory.writeWord mem ((recordValuesPtr site t4).toNat+32+32*i) value) aw' rdata σ k' C' := by
   have hcell : (UInt256.ofNat ((recordValuesPtr site t4).toNat+32+32*i)).toNat =

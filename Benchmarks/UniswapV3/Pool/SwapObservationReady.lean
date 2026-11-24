@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.SwapObservation
 import Benchmarks.UniswapV3.Pool.SwapObservationFrameLaws
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
 
-structure SwapObservationReadyExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
+structure SwapObservationReadyExit (fork : Ethereum.Fork) (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
     (s0 : EVM.State) (σ : AccountMap) (rdata : ByteArray) (q p exactWord cache snap : UInt256)
     (R : List UInt256) (s : SwapStateData) (d : SwapIterationData) (frame : Frame) (evm : EVM.State)
     (initMem : ByteArray) (initAw initFree : UInt256) (initCost : Nat) where
@@ -17,14 +19,14 @@ structure SwapObservationReadyExit (v : UniswapV3PoolImmutables) (ee : Execution
   free : UInt256
   k : Nat
   cost : Nat
-  source : ExecStmt config frame evm swapInitializedBody[0]! (.ok frame' evm)
+  source : ExecStmt fork config frame evm swapInitializedBody[0]! (.ok frame' evm)
   contract_eq : frame'.contract = frame.contract
   immutables_eq : frame'.immutables = frame.immutables
   cache_get : frame'.locals.get? "cache" = some cacheData.value
   locals_get : ∀ name, name ≠ "cache" → name ≠ "__c12" →
     frame'.locals.get? name = frame.locals.get? name
   fits : cacheData.Fits
-  rd : RD (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache, snap] ++ R)
+  rd : RD fork (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache, snap] ++ R)
     mem aw rdata σ k cost
   heap : HeapMemory mem aw free
   cache_mem : SwapCacheMemory mem cache cacheData
@@ -40,7 +42,7 @@ theorem swapObservationReadyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3682⟩ ([q, p, exactWord, cache, snap] ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3682⟩ ([q, p, exactWord, cache, snap] ++ R)
       mem aw rdata σ k C)
     (hf : frame.contract = contract) (hst : SourceState s0 ee σ evm)
     (hcache : frame.locals.get? "cache" = some c.value)
@@ -54,10 +56,10 @@ theorem swapObservationReadyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hqfree : q.toNat + 224 ≤ free.toNat) (hb : free.toNat ≤ 2 ^ 200)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 58 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecStmt config frame evm swapInitializedBody[0]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    Nonempty (SwapObservationReadyExit v ee g s0 σ rdata q p exactWord cache snap R s d
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecStmt fork config frame evm swapInitializedBody[0]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    Nonempty (SwapObservationReadyExit fork v ee g s0 σ rdata q p exactWord cache snap R s d
       frame evm mem aw free C) := by
   have hcget := evalExpr_structField (name := "computedLatestObservation")
     (evalExpr_var_get (cfg := config) (evm := evm) hcache) rfl

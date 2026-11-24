@@ -1,5 +1,7 @@
 import Benchmarks.Safe.Runs1e6.TransactionStructTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -27,7 +29,7 @@ theorem transactionHashMemory_free {I : ExecutionEnv} {mem : ByteArray} {ptr : N
 set_option maxRecDepth 100000 in
 theorem safeTransactionHashTrace (tx : SafeTransaction)
     {I g s0 σ k C aw mem rdata ptr} {off ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6275⟩
+    (h : RD fork safeBytecode I g s0 ⟨6275⟩
       (tx.nonce :: UInt256.ofNat tx.refundReceiver.val :: UInt256.ofNat tx.gasToken.val ::
         tx.gasPrice :: tx.baseGas :: tx.safeTxGas :: tx.operation ::
         UInt256.ofNat tx.payload.size :: off :: tx.value :: UInt256.ofNat tx.target.val :: ret :: R)
@@ -37,7 +39,7 @@ theorem safeTransactionHashTrace (tx : SafeTransaction)
     (hi : off.toNat + tx.payload.size ≤ I.calldata.size)
     (hd : I.calldata.extract off.toNat (off.toNat + tx.payload.size) = tx.payload)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (transactionWord I tx :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (transactionWord I tx :: R)
       (transactionHashMemory mem ptr I off tx) aw' rdata σ k' C' := by
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeTransactionDomainTrace h hf (by omega) (by simp; omega)
   have hfree : memLoad ⟨64⟩ (domainMemoryAt mem ptr I) = UInt256.ofNat ptr := by

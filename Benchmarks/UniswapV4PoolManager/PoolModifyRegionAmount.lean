@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.CheckedSignedAmount
 import Benchmarks.UniswapV4PoolManager.TickSqrtSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -37,7 +39,7 @@ theorem poolModifyRegionAmount {f : Frame} {evm : State} {id sqrtPrice : UInt256
     (hc : PoolModifyContext f id p) (ht : poolTicksValid p.lower p.upper)
     (hprice : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat sqrtPrice.toNat))) (hb : sqrtPrice.toNat < 2^160)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127) (one : Bool) :
-    ExecBlock config f evm (poolModifyRegionAmountBlock one) (poolModifyRegionAmountResult f evm one p sqrtPrice) := by
+    ExecBlock fork config f evm (poolModifyRegionAmountBlock one) (poolModifyRegionAmountResult f evm one p sqrtPrice) := by
   have htick : f.locals.get? (poolModifyRegionTickName one) = some (.int (poolModifyRegionTick one p)) := by
     cases one with
     | false => exact hc.upper
@@ -46,7 +48,7 @@ theorem poolModifyRegionAmount {f : Frame} {evm : State} {id sqrtPrice : UInt256
     cases one with
     | false => exact (poolTicksValid_bounds ht).2
     | true => exact (poolTicksValid_bounds ht).1
-  have hcall := tickSqrtCall (f := f) (evm := evm) hc.contract (evalLocalValue htick)
+  have hcall := tickSqrtCall (fork := fork) (f := f) (evm := evm) hc.contract (evalLocalValue htick)
     (by omega : (poolModifyRegionTick one p).natAbs < 2^256) (poolModifyRegionSqrtRet one)
   rw [if_pos hbound] at hcall
   let f1 := wordLocal f (poolModifyRegionSqrtRet one) (poolModifyRegionPrice one p)

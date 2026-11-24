@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt1QuotientSource
 import Benchmarks.UniswapV3.Pool.LowGasSafeAdd
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -41,7 +43,7 @@ theorem evalNextSqrt1AddArgs (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt1AddReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : a.price.toNat ≤ (a.price + nextSqrt1Quotient a).toNat) :
-    ExecStmt config (nextSqrt1QuotientFrame imms a) evm
+    ExecStmt fork config (nextSqrt1QuotientFrame imms a) evm
       (.internalCall "LowGasSafeMath_add" nextSqrt1AddArgs "__c2")
       (.ok (nextSqrt1AddFrame imms a) evm) :=
   internalCallFunctionReturn (callee := safeAddFunction)
@@ -53,7 +55,7 @@ theorem nextSqrt1AddReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt1AddReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬a.price.toNat ≤ (a.price + nextSqrt1Quotient a).toNat) :
-    ExecStmt config (nextSqrt1QuotientFrame imms a) evm
+    ExecStmt fork config (nextSqrt1QuotientFrame imms a) evm
       (.internalCall "LowGasSafeMath_add" nextSqrt1AddArgs "__c2") .reverted :=
   internalCallFunctionRevert (callee := safeAddFunction)
     (locals := safeAddLocals a.price (nextSqrt1Quotient a))
@@ -70,7 +72,7 @@ theorem evalNextSqrt1CastArgs (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt1CastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : safeCast160Valid (a.price + nextSqrt1Quotient a)) :
-    ExecStmt config (nextSqrt1AddFrame imms a) evm
+    ExecStmt fork config (nextSqrt1AddFrame imms a) evm
       (.internalCall "SafeCast_toUint160" [.var "__c2"] "__c3")
       (.ok (nextSqrt1CastFrame imms a) evm) :=
   internalCallFunctionReturn (callee := safeCast160Function)
@@ -82,7 +84,7 @@ theorem nextSqrt1CastReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt1CastReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬safeCast160Valid (a.price + nextSqrt1Quotient a)) :
-    ExecStmt config (nextSqrt1AddFrame imms a) evm
+    ExecStmt fork config (nextSqrt1AddFrame imms a) evm
       (.internalCall "SafeCast_toUint160" [.var "__c2"] "__c3") .reverted :=
   internalCallFunctionRevert (callee := safeCast160Function)
     (locals := safeCast160Locals (a.price + nextSqrt1Quotient a))

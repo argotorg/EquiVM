@@ -4,6 +4,8 @@ import Benchmarks.Safe.V2_0e91d99.SetupBodyTrace
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_006
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -16,10 +18,10 @@ theorem safeSetupBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setupTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xb6 0x3e 0x80 0x0d ⟨0xb63e800d⟩
     hdispatch setupSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xb63e800d⟩ 2 ⟨1239⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -32,7 +34,7 @@ theorem safeSetupBodyCore
   let evm := initState σ σ₀ (.ofUInt256 g) A I
   cases hdec : decodeCalldata setupNames setupTypes I.calldata with
   | none =>
-      have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+      have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
         obtain hr | ⟨n, len, k', C', hb, h₂⟩ :=
           safeDecodeSetupEvidence hdecode hlong hsize (by simp) (by jump_dest)
         · exact hr
@@ -69,7 +71,7 @@ theorem safeSetupRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setupTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSetupBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V2_0e91d99

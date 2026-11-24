@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.NoDelegateCall
 import Benchmarks.UniswapV3.Pool.BlockTimestamp
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -31,7 +33,7 @@ def observeCallArgs : List Expr :=
 
 theorem observeInitialPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (secondsAgos : List UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (observeFrame v secondsAgos) evm (observeTransition.body.take 3)
+    ExecBlock fork config (observeFrame v secondsAgos) evm (observeTransition.body.take 3)
       (.ok (observeInitialFrame v secondsAgos) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .array []) ?_)
@@ -41,14 +43,14 @@ theorem observeInitialPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem observeDelegateCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (secondsAgos : List UInt256) (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecStmt config (observeInitialFrame v secondsAgos) evm
+    ExecStmt fork config (observeInitialFrame v secondsAgos) evm
       (.internalCall "checkNotDelegateCall" [] "__c0") (.ok (observeDelegateFrame v secondsAgos) evm) :=
   internalCallFunctionReturn (callee := noDelegateCallFunction) (argVals := []) (locals := ∅)
     (calleeStele := noDelegateCallFrame v) (value := none)
     (by simp only [evalExprs?, pure]) noDelegateCallLookup rfl (noDelegateCallReturns v evm hself)
 
 theorem observeTimestampCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (secondsAgos : List UInt256) :
-    ExecStmt config (observeDelegateFrame v secondsAgos) evm
+    ExecStmt fork config (observeDelegateFrame v secondsAgos) evm
       (.internalCall "_blockTimestamp" [] "__c1")
       (.ok (observeReadyFrame v secondsAgos evm.executionEnv) evm) :=
   internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)
@@ -59,9 +61,9 @@ theorem observeTimestampCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (se
 theorem observeReadyPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (secondsAgos : List UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecBlock config (observeFrame v secondsAgos) evm (observeTransition.body.take 5)
+    ExecBlock fork config (observeFrame v secondsAgos) evm (observeTransition.body.take 5)
       (.ok (observeReadyFrame v secondsAgos evm.executionEnv) evm) := by
-  change ExecBlock _ _ _ (observeTransition.body.take 3 ++ (observeTransition.body.drop 3).take 2) _
+  change ExecBlock fork _ _ _ (observeTransition.body.take 3 ++ (observeTransition.body.drop 3).take 2) _
   apply execBlock_append_ok (observeInitialPrefix v evm secondsAgos hwv)
   exact ExecBlock.consNormal (observeDelegateCall v evm secondsAgos hself)
     (ExecBlock.consNormal (observeTimestampCall v evm secondsAgos) ExecBlock.nil)
@@ -69,7 +71,7 @@ theorem observeReadyPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem observeRevertsDelegate (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (secondsAgos : List UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner ≠ v.original) :
-    ExecTransitionBody config contract evm (observeLocals secondsAgos) observeTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm (observeLocals secondsAgos) observeTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 observeTransition.body]
   apply execBlock_append_ok (observeInitialPrefix v evm secondsAgos hwv)

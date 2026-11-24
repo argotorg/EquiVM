@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.MemoryBytesDecoded
 import Benchmarks.Safe.ViaIR.CalldataDecodeArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,14 +12,14 @@ set_option maxRecDepth 2000 in
 set_option maxHeartbeats 200000 in
 theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7262⟩
+    (h : RD fork safeBytecode I g s0 ⟨7262⟩
       (UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R)
       solcFreePtrMem aw rdata σ k C)
     (hword : calldataWord I.calldata off = UInt256.ofNat len)
     (hin : off + 32 + len ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (hn : len ≤ 2 ^ 64 - 192) (hov : R.length + 12 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (⟨128⟩ :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (⟨128⟩ :: R)
       (memoryBytesDecoded (I.calldata.extract (off + 32) (off + 32 + len)))
       aw' rdata σ k' C' := by
   have hsize : UInt256.size = 2 ^ 256 := rfl
@@ -31,7 +33,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
     rw [hadd off 31 (by omega), slt_ofNat_lit_one_low hs (by omega)]
     rfl) h
   have h₂ := safeRuntime_block_7275 (by simp; omega) (by jump_dest) h₁
-  change RD safeBytecode I g s0 ⟨7208⟩
+  change RD fork safeBytecode I g s0 ⟨7208⟩
     ((UInt256.ofNat off + UInt256.ofNat 32) ::
       calldataWord I.calldata (UInt256.ofNat off).toNat :: UInt256.ofNat I.calldata.size ::
       ⟨7289⟩ :: ret :: R) solcFreePtrMem aw rdata σ _ _ at h₂
@@ -73,7 +75,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
       rfl) h₈
   simp only [safeRuntime_block_7234_fallthrough_stack,
     safeRuntime_block_7234_fallthrough_memory, safeRuntime_block_7157_memory] at h₉
-  change RD safeBytecode I g s0 ⟨7248⟩
+  change RD fork safeBytecode I g s0 ⟨7248⟩
     (UInt256.ofNat len :: (UInt256.ofNat off + UInt256.ofNat 32) :: ⟨128⟩ ::
       ⟨7289⟩ :: ⟨128⟩ :: ret :: R) (memoryBytesInitialHeader len) aw₉ rdata σ k₉ C₉ at h₉
   obtain ⟨aw₁₀, k₁₀, C₁₀, h₁₀⟩ := safeRuntime_block_7248_packed (by simp; omega)
@@ -86,7 +88,7 @@ theorem safeDecodeMemoryBytesValid {I g s0 σ k C aw rdata off len} {ret : UInt2
     omega
   simp only [safeRuntime_block_7289_stack, safeRuntime_block_7248_memory,
     hadd off 32 (by omega), ulit_toNat' (off + 32) (by omega), hlen, hz] at h₁₁
-  change RD safeBytecode I g s0 ret (⟨128⟩ :: R)
+  change RD fork safeBytecode I g s0 ret (⟨128⟩ :: R)
     (writeWord (I.calldata.write (off + 32) (memoryBytesInitialHeader len) 160 len)
       (160 + len) ⟨0⟩) _ _ _ _ _ at h₁₁
   rw [memoryBytesDecoded_copy hin] at h₁₁

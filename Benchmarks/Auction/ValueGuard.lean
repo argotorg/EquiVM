@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -37,8 +39,8 @@ theorem guardedBody (i : Entry) (hi : i ≠ 6) :
   interval_cases i <;> first | exact ⟨_, rfl⟩ | exact (hi rfl).elim
 
 theorem entryGuardPrefix {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i ≠ 6)
-    (h : RD auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C) :
-    RD auctionBytecode I g s0 (guardTestPc i)
+    (h : RD fork auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C) :
+    RD fork auctionBytecode I g s0 (guardTestPc i)
       [UInt256.isZero I.weiValue, I.weiValue, sel] mem aw rdata acc (k + 4) (C + 9) := by
   obtain ⟨hd0, hd1, hd2, hd3, _⟩ := entryGuards i hi
   exact evm_run h with [
@@ -46,9 +48,9 @@ theorem entryGuardPrefix {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i �
     raw dup1 hd2 (by evm_ov), raw iszero hd3 (by evm_ov) ]
 
 theorem entryGuardZero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i ≠ 6)
-    (h : RD auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k' C', RD auctionBytecode I g s0 (guardedBodyPc i) [sel] mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 (guardedBodyPc i) [sel] mem aw rdata acc k' C' := by
   obtain ⟨_, _, _, _, hpush, hji, _, _, _, hjd, hpop, htarget⟩ := entryGuards i hi
   have rd := entryGuardPrefix i hi h
   exact ⟨_, _, evm_run rd with [
@@ -57,8 +59,8 @@ theorem entryGuardZero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i ≠
     raw jumpdest hjd (by evm_ov), raw pop hpop (by evm_ov) ]⟩
 
 theorem entryGuardNonzero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i ≠ 6)
-    (h : RD auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C)
-    (hwv : I.weiValue ≠ ⟨0⟩) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 (entryPc i) [sel] mem aw rdata acc k C)
+    (hwv : I.weiValue ≠ ⟨0⟩) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, _, _, hpush, hji, hr0, hr1, hr2, _⟩ := entryGuards i hi
   have rd := entryGuardPrefix i hi h
   exact evm_run rd with [
@@ -68,9 +70,9 @@ theorem entryGuardNonzero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i 
 
 theorem entryNonpayableRevert {σ σ₀ A I} {g : UInt256}
     (i : Entry) (hi : i ≠ 6) (hcode : I.code = auctionBytecode)
-    (hsel : selIs I (entryBytes i)) (hreach : EntryReached i σ σ₀ A I g)
+    (hsel : selIs I (entryBytes i)) (hreach : EntryReached fork i σ σ₀ A I g)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   obtain ⟨_, _, rd⟩ := hreach
   have hrev := entryGuardNonzero i hi rd hwv
   have hd := dispatchEntry i hsel
@@ -81,7 +83,7 @@ theorem entryNonpayableRevert {σ σ₀ A I} {g : UInt256}
       (transitionSignature (entryTransition i)).paramTypes I.calldata = none
   · exact reEquiv_decodingFailed hd hdec hXi (by rfl) (by rfl)
   · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
         (entryTransition i).body .reverted := by
       obtain ⟨rest, hrest⟩ := guardedBody i hi

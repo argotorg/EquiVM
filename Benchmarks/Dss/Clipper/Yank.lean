@@ -2,6 +2,8 @@ import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.YankSuccessSource
 import Benchmarks.Dss.Clipper.YankVatEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -14,12 +16,12 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 28)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 28) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some yankTransition :=
     clipperDispatch_yank hsel
-  have hreachEntry := clipperReachYankBody
+  have hreachEntry := clipperReachYankBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -42,10 +44,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
         by_cases husrEvm : clipperYankSalesUsrWord σLocked I = ⟨0⟩
         · let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
-              ExecTransitionBody config contract evmStele locals
+              ExecTransitionBody fork config contract evmStele locals
                 yankTransition.body .reverted (immStore v) := by
             simpa [evmStele, locals] using
-              (clipperYankInactiveSourceReverts (hperm := by assumption)
+              (clipperYankInactiveSourceReverts (fork := fork) (hperm := by assumption)
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                 hauthEvm hlockedEvm (by simpa [σLocked] using husrEvm))
           have hrev := clipperYankX_usrZero (v := v) hpatch
@@ -64,10 +66,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 (clipperYankDogTarget σLocked I) = ⟨0⟩
           · let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hbody :
-                ExecTransitionBody config contract evmStele locals
+                ExecTransitionBody fork config contract evmStele locals
                   yankTransition.body .reverted (immStore v) := by
               simpa [evmStele, locals, σLocked] using
-                (clipperYankDogDigsNoCodeSourceReverts (hperm := by assumption)
+                (clipperYankDogDigsNoCodeSourceReverts (fork := fork) (hperm := by assumption)
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   v hwv hauthEvm hlockedEvm (by simpa [σLocked] using husrEvm)
                   (by simpa [σLocked] using hcodeSizeDog))
@@ -135,7 +137,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   hcodeSizeDogNE hdepthLt hperm
               cases zDog
               · have hcallDogEvm :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σLocked }
                       (EVM.address (AccountAddress.ofUInt256
@@ -180,7 +182,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     State.lookupAccount, State.setAccount, Account.updateStorage]
                   cases σ.get? I.codeOwner <;> rfl
                 have hcallDogStele :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (Stele.EVM.storageStore
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -196,10 +198,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     storageStore_accountMap, storageStore_executionEnv] using hcallDogSteleRaw
                 let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
-                    ExecTransitionBody config contract evmStele locals
+                    ExecTransitionBody fork config contract evmStele locals
                       yankTransition.body .reverted (immStore v) := by
                   simpa [evmStele, locals, σLocked] using
-                    (clipperYankDogDigsCallFailureSourceReverts (hperm := by assumption)
+                    (clipperYankDogDigsCallFailureSourceReverts (fork := fork) (hperm := by assumption)
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                       (evmDog := evmDogStele) (outDog := outDog)
                       v hwv hauthEvm hlockedEvm
@@ -209,7 +211,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               · obtain ⟨k2335, C2335, rd2335raw⟩ :=
                   RD.clipperYankDogDigsCallSuccessToFluxSetup v hpatch
                     (by simpa using rd2317)
-                have rd2335 : RD code I (Sat256.ofUInt256 g)
+                have rd2335 : RD fork code I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2335⟩
                     (⟨196⟩ :: clipperDogDigsSelectorWord ::
                       clipperYankDogTarget σLocked I :: clipperYankArgWord I ::
@@ -238,7 +240,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     (tab := clipperYankSalesTabWord σLocked I)
                     (rdata := outDog) v hpatch rd2335
                 have hcallDogEvm :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σLocked }
                       (EVM.address (AccountAddress.ofUInt256
@@ -281,7 +283,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     State.lookupAccount, State.setAccount, Account.updateStorage]
                   cases σ.get? I.codeOwner <;> rfl
                 have hcallDogStele :
-                    typedCallViaEVM config
+                    typedCallViaEVM fork config
                       (Stele.EVM.storageStore
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -325,10 +327,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     hpatch rd2495 hcodeSizeVat
                   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   have hbody :
-                      ExecTransitionBody config contract evmStele locals
+                      ExecTransitionBody fork config contract evmStele locals
                         yankTransition.body .reverted (immStore v) := by
                     simpa [evmStele, locals, σLocked] using
-                      (clipperYankVatFluxNoCodeSourceReverts (hperm := by assumption)
+                      (clipperYankVatFluxNoCodeSourceReverts (fork := fork) (hperm := by assumption)
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                         (evmDog := evmDogStele) (outDog := outDog)
                         v hwv hauthEvm hlockedEvm
@@ -377,7 +379,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       (rdata := outDog) v hpatch rd2495 hcodeSizeVatNE hdepthLt hperm
                   cases zVat
                   · have hcallVatEvm :
-                        typedCallViaEVM config
+                        typedCallViaEVM fork config
                           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ_dog
                              }
@@ -415,7 +417,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         solcSlotWord, Stele.EVM.storageLoad, State.lookupAccount, initState]
                       cases σ_dog_stele.get? I.codeOwner <;> rfl
                     have hcallVatStele :
-                        typedCallViaEVM config evmDogStele (EVM.address v.vat) "flux" 0
+                        typedCallViaEVM fork config evmDogStele (EVM.address v.vat) "flux" 0
                           [v.ilk, .address evmDogStele.executionEnv.codeOwner,
                             .address evmDogStele.executionEnv.source,
                             .int (Int.ofNat
@@ -427,10 +429,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         initState, hLotWord, hlotLoadStele] using hcallVatSteleRaw
                     let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     have hbody :
-                        ExecTransitionBody config contract evmStele locals
+                        ExecTransitionBody fork config contract evmStele locals
                           yankTransition.body .reverted (immStore v) := by
                       simpa [evmStele, locals, σLocked] using
-                        (clipperYankVatFluxCallFailureSourceReverts (hperm := by assumption)
+                        (clipperYankVatFluxCallFailureSourceReverts (fork := fork) (hperm := by assumption)
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmDog := evmDogStele) (evmVat := evmVatStele)
                           (outDog := outDog) (outVat := outVat)
@@ -439,7 +441,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           hdogCodeStele hcallDogStele hvatCodeStele hcallVatStele)
                     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                   · have hcallVatEvm :
-                        typedCallViaEVM config
+                        typedCallViaEVM fork config
                           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ_dog
                              }
@@ -478,7 +480,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         solcSlotWord, Stele.EVM.storageLoad, State.lookupAccount, initState]
                       cases σ_dog_stele.get? I.codeOwner <;> rfl
                     have hcallVatStele :
-                        typedCallViaEVM config evmDogStele (EVM.address v.vat) "flux" 0
+                        typedCallViaEVM fork config evmDogStele (EVM.address v.vat) "flux" 0
                           [v.ilk, .address evmDogStele.executionEnv.codeOwner,
                             .address evmDogStele.executionEnv.source,
                             .int (Int.ofNat
@@ -505,10 +507,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           hactiveLenSteleWord
                       let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
                       have hbody :
-                          ExecTransitionBody config contract evmStele locals
+                          ExecTransitionBody fork config contract evmStele locals
                             yankTransition.body .reverted (immStore v) := by
                         simpa [evmStele, locals, σLocked] using
-                          (clipperYankRemoveEmptyAfterVatSourceReverts (hperm := by assumption)
+                          (clipperYankRemoveEmptyAfterVatSourceReverts (fork := fork) (hperm := by assumption)
                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                             (evmDog := evmDogStele) (evmVat := evmVatStele)
                             (outDog := outDog) (outVat := outVat)
@@ -635,7 +637,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           rw [hsizeEq]
                           exact le_trans hremoveMemSize (Nat.le_max_left _ _)
                         have hret :
-                            RDret code (Sat256.ofUInt256 g)
+                            RDret fork code (Sat256.ofUInt256 g)
                               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               (clipperYankSuccessAccountMap σ_vat I lastIndexEvm)
                               ByteArray.empty := by
@@ -669,12 +671,12 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           rw [← hlastIndexEq, hloadMoveStele, ← hmoveEq]
                           exact hidEq
                         have hafter :=
-                          clipperYankAfterVatRemoveIdEqMoveSourceOk (hperm := by assumption) v evmVatStele I
+                          clipperYankAfterVatRemoveIdEqMoveSourceOk (fork := fork) (hperm := by assumption) v evmVatStele I
                             haccVatStele hactiveLenStele hidEqStele
                         let evmStele := initState σ σ₀
                           (Sat256.ofUInt256 g) A I
                         have hbody :
-                            ExecTransitionBody config contract evmStele locals
+                            ExecTransitionBody fork config contract evmStele locals
                               yankTransition.body
                               (.returned
                                 { contract := contract,
@@ -694,7 +696,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                     I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
                                 none) (immStore v) := by
                           simpa [evmStele, locals, σLocked] using
-                            (clipperYankAfterVatSourceOk (hperm := by assumption)
+                            (clipperYankAfterVatSourceOk (fork := fork) (hperm := by assumption)
                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (evmDog := evmDogStele) (evmVat := evmVatStele)
                               (outDog := outDog) (outVat := outVat)
@@ -843,19 +845,19 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               rw [hloadLenAfterStele, ← hlenAfterEq]
                               exact hlenAfterEvm
                             have hremoveRevert :
-                                ExecFuncBody config
+                                ExecFuncBody fork config
                                   { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
                                   evmVatStele removeFunction.body .reverted := by
                               simpa [evmIndexStele, evmMovePosStele, ← hlastIndexEq,
                                 hloadMoveStele, ← hmoveEq, hloadIdxStele, ← hidxEq] using
-                                (clipperYankRemoveIdNeMovePopEmptySourceReverts (hperm := by assumption)
+                                (clipperYankRemoveIdNeMovePopEmptySourceReverts (fork := fork) (hperm := by assumption)
                                   v evmVatStele I hactiveLenStele hidNeStele hidxBoundStele
                                   (by
                                     simpa [evmIndexStele, evmMovePosStele, ← hlastIndexEq,
                                       hloadMoveStele, ← hmoveEq, hloadIdxStele, ← hidxEq] using
                                       hlenAfterStele))
                             have hafter :
-                                ExecBlock config
+                                ExecBlock fork config
                                   { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v }
                                   evmVatStele
                                   [.internalCall "_remove" [.var "id"] "_removeRet",
@@ -880,10 +882,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             let evmStele := initState σ σ₀
                               (Sat256.ofUInt256 g) A I
                             have hbody :
-                                ExecTransitionBody config contract evmStele locals
+                                ExecTransitionBody fork config contract evmStele locals
                                   yankTransition.body .reverted (immStore v) := by
                               simpa [evmStele, locals, σLocked] using
-                                (clipperYankAfterVatSourceReverts (hperm := by assumption)
+                                (clipperYankAfterVatSourceReverts (fork := fork) (hperm := by assumption)
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogStele) (evmVat := evmVatStele)
                                   (outDog := outDog) (outVat := outVat)
@@ -897,7 +899,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                   I ⟨11⟩ + UInt256.lnot ⟨0⟩
                             have hret :
-                                RDret code (Sat256.ofUInt256 g)
+                                RDret fork code (Sat256.ofUInt256 g)
                                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                   (clipperYankSuccessAccountMap
                                       (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
@@ -925,7 +927,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               rw [u256_add_lnot_zero_eq_sub_one]
                               rw [hloadLenAfterStele, ← hlenAfterEq]
                             have hafter :
-                                ExecBlock config
+                                ExecBlock fork config
                                   { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v }
                                   evmVatStele
                                   [.internalCall "_remove" [.var "id"] "_removeRet",
@@ -949,7 +951,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                         I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
                               simpa [evmIndexStele, evmMovePosStele, ← hlastIndexEq,
                                 hloadMoveStele, ← hmoveEq, hloadIdxStele, ← hidxEq] using
-                                (clipperYankAfterVatRemoveIdNeMoveSourceOk (hperm := by assumption)
+                                (clipperYankAfterVatRemoveIdNeMoveSourceOk (fork := fork) (hperm := by assumption)
                                   v evmVatStele I haccVatStele hactiveLenStele hidNeStele
                                   hidxBoundStele
                                   (by
@@ -959,7 +961,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             let evmStele := initState σ σ₀
                               (Sat256.ofUInt256 g) A I
                             have hbody :
-                                ExecTransitionBody config contract evmStele locals
+                                ExecTransitionBody fork config contract evmStele locals
                                   yankTransition.body
                                   (.returned
                                     { contract := contract,
@@ -980,7 +982,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                         I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
                                     none) (immStore v) := by
                               simpa [evmStele, locals, σLocked] using
-                                (clipperYankAfterVatSourceOk (hperm := by assumption)
+                                (clipperYankAfterVatSourceOk (fork := fork) (hperm := by assumption)
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogStele) (evmVat := evmVatStele)
                                   (outDog := outDog) (outVat := outVat)
@@ -1041,13 +1043,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             simpa [idxEvm, hloadIdxStele, hloadLenStele, ← hidxEq,
                               ← hactiveLenEq] using hidxBoundEvm
                           have hremoveRevert :
-                              ExecFuncBody config
+                              ExecFuncBody fork config
                                 { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
                                 evmVatStele removeFunction.body .reverted :=
                             clipperYankRemoveIdNeMoveIndexOobSourceReverts
                               v evmVatStele I hactiveLenStele hidNeStele hidxBoundStele
                           have hafter :
-                              ExecBlock config
+                              ExecBlock fork config
                                 { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v }
                                 evmVatStele
                                 [.internalCall "_remove" [.var "id"] "_removeRet",
@@ -1071,10 +1073,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           let evmStele := initState σ σ₀
                             (Sat256.ofUInt256 g) A I
                           have hbody :
-                              ExecTransitionBody config contract evmStele locals
+                              ExecTransitionBody fork config contract evmStele locals
                                 yankTransition.body .reverted (immStore v) := by
                             simpa [evmStele, locals, σLocked] using
-                              (clipperYankAfterVatSourceReverts (hperm := by assumption)
+                              (clipperYankAfterVatSourceReverts (fork := fork) (hperm := by assumption)
                                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmDog := evmDogStele) (evmVat := evmVatStele)
                                 (outDog := outDog) (outVat := outVat)
@@ -1108,7 +1110,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               let evmSteleLock :=
                 Stele.EVM.storageStore evmStele evmStele.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
               let A_dog :=
-                (Ethereum.EVM.callSubstate evmSteleLock.executionEnv.fork evmSteleLock.accountMap
+                (Ethereum.EVM.callSubstate fork evmSteleLock.accountMap
                   (EVM.address (AccountAddress.ofUInt256
                     (clipperYankDogTarget σLocked I))) evmSteleLock.substate)
               let evmDogStele : EVM.State := { evmSteleLock with substate := A_dog }
@@ -1116,7 +1118,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 simpa [evmSteleLock, evmStele, initState, storageStore_executionEnv]
                   using hdepthEq
               have hcallDogStele :
-                  typedCallViaEVM config
+                  typedCallViaEVM fork config
                     (Stele.EVM.storageStore
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1149,10 +1151,10 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           (clipperYankSalesHashMemRefresh_size I))
                     hdepthLock)
               have hbody :
-                  ExecTransitionBody config contract evmStele locals
+                  ExecTransitionBody fork config contract evmStele locals
                     yankTransition.body .reverted (immStore v) := by
                 simpa [evmStele, locals, σLocked] using
-                  (clipperYankDogDigsCallFailureSourceReverts (hperm := by assumption)
+                  (clipperYankDogDigsCallFailureSourceReverts (fork := fork) (hperm := by assumption)
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     (evmDog := evmDogStele) (outDog := ByteArray.empty)
                     v hwv hauthEvm hlockedEvm
@@ -1161,7 +1163,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody config contract evmStele locals
+            ExecTransitionBody fork config contract evmStele locals
               yankTransition.body .reverted (immStore v) := by
           simpa [evmStele, locals] using
             (clipperYankLockedSourceReverts
@@ -1173,7 +1175,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody config contract evmStele locals
+          ExecTransitionBody fork config contract evmStele locals
             yankTransition.body .reverted (immStore v) := by
         simpa [evmStele, locals] using
           (clipperYankAuthSourceReverts

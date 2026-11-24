@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PositionWriteStorage
 import Benchmarks.UniswapV4PoolManager.WordLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,7 +26,7 @@ theorem positionFeesStoreBody {f : Frame} {evm : EVM.State} {id key fee0 fee1 ow
     (h1 : f.locals.get? "feeGrowthInside1X128" = some (.int (Int.ofNat fee1.toNat)))
     (ho0 : f.locals.get? "feesOwed0" = some (.int (Int.ofNat owed0.toNat)))
     (ho1 : f.locals.get? "feesOwed1" = some (.int (Int.ofNat owed1.toNat))) :
-    ExecFuncBody config f evm (positionUpdateFunction.body.drop 8)
+    ExecFuncBody fork config f evm (positionUpdateFunction.body.drop 8)
       (positionFeesStoreResult f evm id key fee0 fee1 owed0 owed1) := by
   have hw0 := positionFee_write (f := f) (evm := evm) (value := fee0) hs false
   unfold positionFeesStoreResult
@@ -34,8 +36,8 @@ theorem positionFeesStoreBody {f : Frame} {evm : EVM.State} {id key fee0 fee1 ow
   · rw [if_neg hp]
     let evm1 := Stele.EVM.storageStore evm evm.executionEnv.codeOwner (positionFeeSlot id key false) fee0
     have hw1 := positionFee_write (f := f) (evm := evm1) (value := fee1) hs true
-    refine .execBlockRet (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) (evalLocalValue h0) hw0)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (evalLocalValue h1) hw1) (ExecBlock.consReturn (ExecStmt.return ?_))))
+    refine .execBlockRet (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) (evalLocalValue h0) hw0)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (evalLocalValue h1) hw1) (ExecBlock.consReturn (ExecStmt.return ?_))))
     change evalExprs? config f (positionFeeStores evm id key fee0 fee1) [.var "feesOwed0", .var "feesOwed1"] = _
     simp only [evalExprs?, evalLocalValue (cfg := config) (f := f) (evm := positionFeeStores evm id key fee0 fee1) ho0,
       evalLocalValue (cfg := config) (f := f) (evm := positionFeeStores evm id key fee0 fee1) ho1,

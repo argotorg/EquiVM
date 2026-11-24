@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitMinimumEVM
 import Benchmarks.CurveVault.DebitSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -17,14 +19,14 @@ theorem vaultDebitMinimum (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s
     (hmt : memLoad (UInt256.ofNat 640) (vaultDebitMinimumMemory isWithdraw mem) = total)
     (hma : vaultDebitMinimumAssets isWithdraw I (vaultDebitMinimumMemory isWithdraw mem) = assets)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumEntry isWithdraw)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumEntry isWithdraw)) R mem aw rdata σ k C) :
     (∃ aw' k' C',
-      ExecStmt config {contract := contract, locals := locals} evm (.require (vaultDebitMinimumExpr isWithdraw))
+      ExecStmt fork config {contract := contract, locals := locals} evm (.require (vaultDebitMinimumExpr isWithdraw))
         (.ok {contract := contract, locals := locals} evm) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumNext isWithdraw)) R
+      RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitMinimumNext isWithdraw)) R
         (vaultDebitMinimumMemory isWithdraw mem) aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm (.require (vaultDebitMinimumExpr isWithdraw))
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} evm (.require (vaultDebitMinimumExpr isWithdraw))
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have htEval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ht
   have haEval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ha
   have hconstant : evalExpr? config {contract := contract, locals := locals} evm (.intLit 10000) =

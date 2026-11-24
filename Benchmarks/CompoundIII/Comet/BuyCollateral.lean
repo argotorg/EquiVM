@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.BuyCollateralEvm
 import Benchmarks.CompoundIII.Comet.BuyCollateralSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `buyCollateral(address,uint256,uint256,address)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListBuyCollateralBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 64)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 64) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some buyCollateralTransition :=
     cometSelectorDispatch ⟨64, by decide⟩ hsel
@@ -34,7 +36,7 @@ theorem cometWithExtendedAssetListBuyCollateralBody {σ σ₀ A I} {g : UInt256}
     exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hdec := hdecode.trans
     (decodeCalldata_addressUintUintAddress I "asset" "minAmount" "baseAmount" "recipient" hsz)
-  have hX := buyCollateralX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := buyCollateralX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hargs : BuyCollateralCalldataValid I
   · rw [if_pos hargs] at hdec

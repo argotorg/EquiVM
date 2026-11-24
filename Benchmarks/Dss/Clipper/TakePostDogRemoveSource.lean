@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakePostDogRemove
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -58,16 +60,16 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
         (UInt256.ofNat
           ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner,
           .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
           .int (Int.ofNat lotNew.toNat)]
         (true, evmFlux, outFlux) true)
     (hremoveBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmFlux
         removeFunction.body .reverted) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog
@@ -97,16 +99,16 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
     evmDog I price slice owe0 owe slice' tabNew lotNew
   have hguard := clipperEvalTakeVatCodeGuard_true v evmDog digsRetFrame.locals hvatCode
   have hflux :
-      ExecBlock config digsRetFrame evmDog
+      ExecBlock fork config digsRetFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         (.ok fluxRetFrame evmFlux) := by
     simpa [checkedExternalCallStmts, digsRetFrame, fluxRetFrame, collapseReturns] using
-      (checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard
+      (checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard
         (clipperEvalVat v evmDog digsRetFrame.locals) hargs hcallFlux
         (clipperTakeDecodeFluxVoid outFlux))
   have hremove :
-      ExecStmt config fluxRetFrame evmFlux
+      ExecStmt fork config fluxRetFrame evmFlux
         (.internalCall "_remove" [.var "id"] "_removeRet2") .reverted := by
     exact internalCallFunctionRevert
       (cfg := config) (caller := fluxRetFrame) (evm := evmFlux)
@@ -119,7 +121,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
             price slice owe0 owe slice' tabNew lotNew))
       (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremoveBody
   have htabIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -130,7 +132,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
     exact ExecStmt.iteTrue (by simpa [digsRetFrame] using htabCond)
       (execBlockAppendOk hflux (ExecBlock.consRevert hremove))
   have hlotIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -156,13 +158,13 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
         (UInt256.ofNat
           ((evmDog.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner,
           .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
           .int (Int.ofNat lotNew.toNat)]
         (true, evmFlux, outFlux) true)
     (hremoveBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmFlux
         removeFunction.body (.returned calleeStele evmRemove none))
     (hperm : evmRemove.executionEnv.perm = true) :
@@ -172,7 +174,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
           (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew).insert "_fluxUsrRet" .unit |>.insert
               "_removeRet2" .unit, immutables := immStore v }
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog
@@ -204,16 +206,16 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
     evmDog I price slice owe0 owe slice' tabNew lotNew
   have hguard := clipperEvalTakeVatCodeGuard_true v evmDog digsRetFrame.locals hvatCode
   have hflux :
-      ExecBlock config digsRetFrame evmDog
+      ExecBlock fork config digsRetFrame evmDog
         (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
           [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet")
         (.ok fluxRetFrame evmFlux) := by
     simpa [checkedExternalCallStmts, digsRetFrame, fluxRetFrame, collapseReturns] using
-      (checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard
+      (checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard
         (clipperEvalVat v evmDog digsRetFrame.locals) hargs hcallFlux
         (clipperTakeDecodeFluxVoid outFlux))
   have hremove :
-      ExecStmt config fluxRetFrame evmFlux
+      ExecStmt fork config fluxRetFrame evmFlux
         (.internalCall "_remove" [.var "id"] "_removeRet2")
         (.ok frameRemoveRet evmRemove) := by
     simpa [resumeAfterInternalCall, fluxRetFrame, digsRetFrame, frameRemoveRet] using
@@ -229,7 +231,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
               price slice owe0 owe slice' tabNew lotNew))
         (clipperYankRemoveLookup) (clipperYankRemoveBind I) hremoveBody)
   have htabIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
             [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
@@ -240,7 +242,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
     exact ExecStmt.iteTrue (by simpa [digsRetFrame] using htabCond)
       (execBlockAppendOk hflux (ExecBlock.consNormal hremove ExecBlock.nil))
   have hlotIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite (.binary .eq (.var "tab") (.intLit 0))
@@ -264,7 +266,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
     simpa [frameRemoveRet] using
       assign_clipperLocked v evmRemove frameRemoveRet.locals hlocked ⟨0⟩
   have hunlock :
-      ExecStmt config frameRemoveRet evmRemove
+      ExecStmt fork config frameRemoveRet evmRemove
         (.assign .storage lockedRef (.intLit 0))
         (.ok frameRemoveRet
           (Stele.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by

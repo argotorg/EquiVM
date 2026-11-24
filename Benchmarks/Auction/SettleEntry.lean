@@ -3,14 +3,16 @@ import Benchmarks.Auction.SettleInternal
 import Benchmarks.Auction.PausableSource
 import Benchmarks.Auction.PausableErrors
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem settlePausedPrefix {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2361⟩ (⟨2424⟩ :: pausedWord σ I :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨2361⟩ (⟨2424⟩ :: pausedWord σ I :: R)
       mem aw rdata σ k' C' := by
   have rd2354 := evm_run h with [jumpdest, push1 ⟨51⟩]
   obtain ⟨_, _, rd2355⟩ := rd2354.sload (by native_decide) (by evm_ov)
@@ -19,27 +21,27 @@ theorem settlePausedPrefix {I g s0 R mem aw rdata σ k C}
   exact ⟨_, _, rd2361⟩
 
 theorem settlePaused {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
     (hp : pausedWord σ I ≠ ⟨0⟩) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2424⟩ R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨2424⟩ R mem aw rdata σ k' C' := by
   obtain ⟨_, _, rd2361⟩ := settlePausedPrefix h hov
   exact ⟨_, _, evm_run rd2361 with [jumpiT hp (by jump_dest)]⟩
 
 theorem settleNotPaused {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2351⟩ R mem aw rdata σ k C)
     (hp : pausedWord σ I = ⟨0⟩) (hov : R.length + 7 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd2361⟩ := settlePausedPrefix h (by omega)
   have rd2362 := evm_run rd2361 with [jumpiNT hp]
   exact pausableError 2 rd2362 (by omega)
 
 theorem settleEnterSplit {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
+      ∃ k' C', RD fork auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
         mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have rd2463 := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
   have hstoreDec : decode auctionBytecode ⟨2463⟩ = some (.SSTORE, none) := by native_decide
   by_cases hperm : I.perm = true
@@ -51,17 +53,17 @@ theorem settleEnterSplit {I g s0 ret R mem aw rdata σ k C}
   exact ⟨_, _, evm_run rd2464 with [push2 ⟨2471⟩, push2 ⟨4086⟩, jump (by jump_dest)]⟩
 
 theorem settleEnter {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
       mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' :=
   permSplit_true hperm (settleEnterSplit h hov)
 
 theorem settleExit {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2471⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2471⟩ (ret :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨1⟩) k' C' := by
   have rd2476 := evm_run h with [jumpdest, push1 ⟨1⟩, push1 ⟨101⟩]
   obtain ⟨_, _, rd2477⟩ := rd2476.sstore hperm (by native_decide) (by evm_ov)

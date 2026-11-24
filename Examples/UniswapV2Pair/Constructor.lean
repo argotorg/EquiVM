@@ -5,6 +5,8 @@ import Examples.UniswapV2Pair.ConstructorCoupling
 import Examples.UniswapV2Pair.ConstructorStorageCoupling
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -13,20 +15,20 @@ theorem uniswapConstructorBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairInitcode)
     (hperm : I.perm = true) :
-    typedConstructorRefinementFor config contract [] σ σ₀ g A I
+    typedConstructorRefinementFor fork config contract [] σ σ₀ g A I
       (fun _ => uniswapV2PairBytecode) := by
   rcases uniswapConstructorEntryCases (σ := σ) (σ₀ := σ₀)
       (A := A) (g := Sat256.ofUInt256 g) hcode hperm with
     ⟨hwv, rdRev⟩ | ⟨hwv, _, _, rd23⟩
   · exact RDrev.constructorRefinementEmptyParams rdRev hcode rfl
-      (uniswapConstructorSourceReverts (hperm := by assumption) _ hwv)
+      (uniswapConstructorSourceReverts (fork := fork) (hperm := by assumption) _ hwv)
   · obtain ⟨_, _, rd49⟩ := RD.uniswapConstructorTypeHash rd23 (by decide)
     obtain ⟨_, _, rd100⟩ := RD.uniswapConstructorLiterals rd49 (by decide)
     obtain ⟨_, _, rd200⟩ := RD.uniswapConstructorDomainData rd100 (by decide)
     obtain ⟨_, _, rd225⟩ := RD.uniswapConstructorDomainHash rd200 (by decide)
     have rdRet := RD.uniswapConstructorStoreAndReturn rd225 hperm (by decide)
     let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody := uniswapConstructorSourceReturns (hperm := by assumption) evmS hwv
+    have hbody := uniswapConstructorSourceReturns (fork := fork) (hperm := by assumption) evmS hwv
     have haL : sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩ =
         (uniswapLockExitedState evmS).accountMap := by
       simp only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
@@ -39,7 +41,7 @@ theorem uniswapConstructorBodyCore
 
 theorem uniswapV2PairConstructorCorrect :
     typedConstructorRefinement config uniswapV2PairInitcode contract (fun _ => uniswapV2PairBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata
     hperm
   have hargs := emptyCtorDeployment_args_length (cfg := config) (contract := contract)
     rfl rfl hdeploy

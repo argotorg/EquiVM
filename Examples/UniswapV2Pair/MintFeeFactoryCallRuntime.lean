@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -9,7 +11,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7696 : RD uniswapV2PairBytecode I g
+    (rd7696 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7696⟩
       (reserve1 :: reserve0 :: ret :: R)
       mem
@@ -17,7 +19,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
     (hmem : 160 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7765⟩
       (mintFeeFactoryWord σ'' I :: mintFeeFactoryWord σ'' I :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
@@ -30,7 +32,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
   have rd7705 := evm_run rd7696 with [
     jumpdest, push1 ⟨0⟩, dup1, push1 ⟨5⟩, push1 ⟨0⟩, swap1]
   obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.sload (by native_decide) (by evm_ov)
-  have rd7706 : RD uniswapV2PairBytecode I g
+  have rd7706 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7706⟩
       (factoryRaw :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       baseMem feeToStaticcallActiveWords rdata σ'' k7706 C7706 := by
@@ -80,7 +82,7 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7765 : RD uniswapV2PairBytecode I g
+    (rd7765 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7765⟩
       (mintFeeFactoryWord σ'' I :: mintFeeFactoryWord σ'' I :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
@@ -89,7 +91,7 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail
       feeToStaticcallActiveWords rdata σ'' k C)
     (hfactoryNoCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g
+    RDrev fork uniswapV2PairBytecode g
       s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨7777⟩) rd7765 hfactoryNoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -102,7 +104,7 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7765 : RD uniswapV2PairBytecode I g
+    (rd7765 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7765⟩
       (mintFeeFactoryWord σ'' I :: mintFeeFactoryWord σ'' I :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
@@ -117,16 +119,16 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σFee, g'', A', zFee, outFee) = Ethereum.EVM.Θ
-          I.fork σ'' s0.σ₀ A_inFee
+          fork σ'' s0.σ₀ A_inFee
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I))
-          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I)))
+          (toExecute fork σ'' (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I)))
           callGasFee (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem).readWithPadding
               128 4)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD uniswapV2PairBytecode I g
+      ∧ RD fork uniswapV2PairBytecode I g
           s0 ⟨7781⟩
           ((if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨132⟩ :: feeToSelectorWord ::
         mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -158,7 +160,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
     {σFee : AccountMap}
     {σ'' : AccountMap} {mem outFee : ByteArray} {k C : ℕ}
     {reserve0 reserve1 ret : UInt256} {R : List UInt256} {zFee : Bool}
-    (rd7781 : RD uniswapV2PairBytecode I g
+    (rd7781 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7781⟩
       ((if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨132⟩ :: feeToSelectorWord ::
         mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -171,13 +173,13 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
     (houtFeeSize : outFee.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     (zFee = false →
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0)
     ∧ (zFee = true → outFee.size < 32 →
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0)
     ∧ (zFee = true → 32 ≤ outFee.size →
-      ∃ k' C', RD uniswapV2PairBytecode I g
+      ∃ k' C', RD fork uniswapV2PairBytecode I g
         s0 ⟨7825⟩
         (mintFeeKLastSlotWord σFee I :: UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)) ::
         ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)

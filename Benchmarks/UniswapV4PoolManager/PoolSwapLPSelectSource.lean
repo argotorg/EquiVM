@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0FeeSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapValues
 import Benchmarks.UniswapV4PoolManager.PoolSwapSyntax
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -48,23 +50,23 @@ theorem poolSwapLPSelectSource {f : Frame} {evm : State} {packed : UInt256} {p :
     (hs : f.locals.get? "slot0Start" = some (wordBytes32Value packed))
     (hflag : f.locals.get? "__c6" = some (.bool (lpFeeIsOverride p.lpFeeOverride)))
     (hlp : f.locals.get? "lpFee" = some old) (hc : p.lpFeeOverride.toNat < 2^24) :
-    ExecStmt config f evm poolSwapFunction.body[20]!
+    ExecStmt fork config f evm poolSwapFunction.body[20]!
       (if poolSwapLPFeeValid p.lpFeeOverride then .ok (poolSwapLPSelectFrame f packed p.lpFeeOverride) evm else .reverted) := by
   have hg := evalLocalValue (cfg := config) (evm := evm) hflag
   cases he : lpFeeIsOverride p.lpFeeOverride
   · have hv : poolSwapLPFeeValid p.lpFeeOverride := by simp only [poolSwapLPFeeValid, he, Bool.false_eq_true, false_implies]
     rw [if_pos hv, poolSwapLPSelectFrame, he]
     apply ExecStmt.iteFalse (by simpa only [he] using hg)
-    have hcall := slot0GetLPFeeCall hf (evalLocalValue (evm := evm) hs) "storedFee"
-    exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
+    have hcall := slot0GetLPFeeCall (fork := fork) hf (evalLocalValue (evm := evm) hs) "storedFee"
+    exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
       (assignLocalValue ((store_get_ne _ _ (by decide : ("storedFee" == "lpFee") = false)).trans hlp))))
-  · have hcall := lpFeeOverrideValidateCall hf hc
+  · have hcall := lpFeeOverrideValidateCall (fork := fork) hf hc
       (evalStructField (evm := evm) (field := "lpFeeOverride") (evalLocalValue hp) rfl) "overrideFee"
     by_cases hv : (lpFeeRemoveOverride p.lpFeeOverride).toNat ≤ 1000000
     · rw [if_pos hv] at hcall
       rw [if_pos (show poolSwapLPFeeValid p.lpFeeOverride from fun _ => hv), poolSwapLPSelectFrame, he]
       apply ExecStmt.iteTrue (by simpa only [he] using hg)
-      exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
+      exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
         (assignLocalValue ((store_get_ne _ _ (by decide : ("overrideFee" == "lpFee") = false)).trans hlp))))
     · rw [if_neg hv] at hcall
       rw [if_neg (show ¬poolSwapLPFeeValid p.lpFeeOverride from fun hh => hv (hh he))]

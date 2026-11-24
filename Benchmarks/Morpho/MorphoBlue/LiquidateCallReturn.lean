@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Allocation
 import Benchmarks.Morpho.MorphoBlue.LiquidateGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,14 +16,14 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoLiquidateDecodeResume (n : Nat) (hn : n ≤ 32)
     (hstack : R.length + 20 ≤ 1024) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3678)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3678)
       ([ptr, UInt256.ofNat n, ptr] ++ liquidateGuardTail id seized shares srcOff len R) mem aw rdata σ k C) :
     if n = 32 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
         ([UInt256.ofNat 128, id, calldataWord ee.calldata 164, memLoad ptr (returnReserveMem mem ptr 32), UInt256.ofNat 1577,
           UInt256.ofNat 1638, memLoad ptr (returnReserveMem mem ptr 32)] ++ liquidateGuardTail id seized shares srcOff len R)
         (returnReserveMem mem ptr 32) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_3678 (immWords := wordsOf (immStore v))
     (by simp only [liquidateGuardTail, List.length_append, List.length_nil, List.append, List.length_cons]; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -51,9 +53,9 @@ theorem morphoLiquidateDecodeResume (n : Nat) (hn : n ≤ 32)
 
 theorem morphoLiquidateCallFalse (hstack : R.length + 20 ≤ 1024)
     (hsize : rdata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1546)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1546)
       ([UInt256.ofNat 0, ptr] ++ liquidateGuardTail id seized shares srcOff len R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_1546_taken (immWords := wordsOf (immStore v))
     (by simp only [liquidateGuardTail, List.length_append, List.length_nil, List.append, List.length_cons]; omega) (by decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   exact morphoBlocks.morpho_block_3714 (immWords := wordsOf (immStore v))
@@ -62,15 +64,15 @@ theorem morphoLiquidateCallFalse (hstack : R.length + 20 ≤ 1024)
 
 theorem morphoLiquidateCallTrue (hstack : R.length + 20 ≤ 1024)
     (hsize : rdata.size < UInt256.size) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1546)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1546)
       ([UInt256.ofNat 1, ptr] ++ liquidateGuardTail id seized shares srcOff len R)
       mem aw rdata σ k C) :
     if 32 ≤ rdata.size then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
         ([UInt256.ofNat 128, id, calldataWord ee.calldata 164, memLoad ptr (returnReserveMem mem ptr 32), UInt256.ofNat 1577,
           UInt256.ofNat 1638, memLoad ptr (returnReserveMem mem ptr 32)] ++ liquidateGuardTail id seized shares srcOff len R)
         (returnReserveMem mem ptr 32) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_1546_fallthrough (immWords := wordsOf (immStore v))
     (by simp only [liquidateGuardTail, List.length_append, List.length_nil, List.append, List.length_cons]; omega) (by decide) h
   have rd2 := morphoBlocks.morpho_block_1553_taken (immWords := wordsOf (immStore v))

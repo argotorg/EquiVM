@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ThreeAddressUintCalldata
 import Benchmarks.CompoundIII.Comet.TwoAddressUintDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,13 +18,13 @@ theorem cometDecodeThreeAddressesUint {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 11 ≤ 1024) (hsz : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨2215⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2215⟩
       (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C) :
     if ThreeAddressUintCalldataValid ee then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (calldataWord ee.calldata 100 :: calldataWord ee.calldata 68 ::
           calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hlo : 132 ≤ ee.calldata.size
   · by_cases hhi : ee.calldata.size < 2^255+4
     · have r1 := cometWithExtendedAssetList_block_2215_fallthrough
@@ -31,7 +33,7 @@ theorem cometDecodeThreeAddressesUint {v : CometWithExtendedAssetListImmutables}
       have r2 := cometWithExtendedAssetList_block_2228
         (immWords := wordsOf (immStore v)) (by omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-      change RD _ _ _ _ _ (calldataWord ee.calldata 4 :: UInt256.ofNat 2238 ::
+      change RD fork _ _ _ _ _ (calldataWord ee.calldata 4 :: UInt256.ofNat 2238 ::
         calldataWord ee.calldata 4 :: ret :: UInt256.ofNat 4 :: R) _ _ _ _ _ _ at r2
       by_cases hc0 : (calldataWord ee.calldata 4).toNat < EVM.addressModulus
       · obtain ⟨_, _, r3⟩ := cometValidateAddress_ok (v := v) (ret := ⟨2238⟩)
@@ -40,7 +42,7 @@ theorem cometDecodeThreeAddressesUint {v : CometWithExtendedAssetListImmutables}
         have r4 := cometWithExtendedAssetList_block_2238
           (immWords := wordsOf (immStore v)) (by omega)
           (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-        change RD _ _ _ _ _ (calldataWord ee.calldata 36 :: UInt256.ofNat 2253 ::
+        change RD fork _ _ _ _ _ (calldataWord ee.calldata 36 :: UInt256.ofNat 2253 ::
           calldataWord ee.calldata 36 :: UInt256.ofNat 4 :: ret :: calldataWord ee.calldata 4 :: R)
           _ _ _ _ _ _ at r4
         by_cases hc1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus
@@ -50,7 +52,7 @@ theorem cometDecodeThreeAddressesUint {v : CometWithExtendedAssetListImmutables}
           have r6 := cometWithExtendedAssetList_block_2253
             (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5
-          change RD _ _ _ _ _ (calldataWord ee.calldata 68 :: UInt256.ofNat 2040 ::
+          change RD fork _ _ _ _ _ (calldataWord ee.calldata 68 :: UInt256.ofNat 2040 ::
             calldataWord ee.calldata 68 :: UInt256.ofNat 96 :: ret :: UInt256.ofNat 4 ::
               calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: R) _ _ _ _ _ _ at r6
           by_cases hc2 : (calldataWord ee.calldata 68).toNat < EVM.addressModulus

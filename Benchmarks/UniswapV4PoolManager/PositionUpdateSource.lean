@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PositionLiquiditySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,16 +35,16 @@ def positionUpdatePreludeFrame (f : Frame) (evm : EVM.State) (id key : UInt256) 
 
 theorem positionUpdatePrelude {f : Frame} {evm : EVM.State} {id key : UInt256}
     (hs : f.locals.get? "self" = some (positionRefValue id key)) :
-    ExecBlock config f evm (positionUpdateFunction.body.take 3) (.ok (positionUpdatePreludeFrame f evm id key) evm) := by
+    ExecBlock fork config f evm (positionUpdateFunction.body.take 3) (.ok (positionUpdatePreludeFrame f evm id key) evm) := by
   let f1 := wordLocal f "feesOwed0" ⟨0⟩
   let f2 := wordLocal f1 "feesOwed1" ⟨0⟩
-  have h0 : ExecStmt config f evm positionUpdateFunction.body[0]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm positionUpdateFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have h1 : ExecStmt config f1 evm positionUpdateFunction.body[1]! (.ok f2 evm) :=
+  have h1 : ExecStmt fork config f1 evm positionUpdateFunction.body[1]! (.ok f2 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have hs2 : f2.locals.get? "self" = some (positionRefValue id key) := by
     simp only [f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hs]
-  have h2 : ExecStmt config f2 evm positionUpdateFunction.body[2]!
+  have h2 : ExecStmt fork config f2 evm positionUpdateFunction.body[2]!
       (.ok (positionUpdatePreludeFrame f evm id key) evm) := ExecStmt.letDecl (positionLiquidity_read hs2)
   exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (execBlock_singleton h2))
 
@@ -51,27 +53,27 @@ theorem positionUpdateBody {f : Frame} {evm : EVM.State} {id key fee0 fee1 : UIn
     (hd : f.locals.get? "liquidityDelta" = some (.int delta))
     (h0 : f.locals.get? "feeGrowthInside0X128" = some (.int (Int.ofNat fee0.toNat)))
     (h1 : f.locals.get? "feeGrowthInside1X128" = some (.int (Int.ofNat fee1.toNat))) :
-    ∃ f', ExecFuncBody config f evm positionUpdateFunction.body (positionUpdateResult f' evm id key delta fee0 fee1) := by
+    ∃ f', ExecFuncBody fork config f evm positionUpdateFunction.body (positionUpdateResult f' evm id key delta fee0 fee1) := by
   let f3 := positionUpdatePreludeFrame f evm id key
-  have hpre := positionUpdatePrelude (evm := evm) hs
+  have hpre := positionUpdatePrelude (fork := fork) (evm := evm) hs
   have hs3 : f3.locals.get? "self" = some (positionRefValue id key) := by
     simp only [f3, positionUpdatePreludeFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hs]
   have hd3 : f3.locals.get? "liquidityDelta" = some (.int delta) := by
     simp only [f3, positionUpdatePreludeFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hd]
   have hl3 : f3.locals.get? "liquidity" = some (.int (Int.ofNat (positionLiquidityWord evm id key).toNat)) :=
     store_get_self _ _ _
-  have hbranch := positionLiquidityBranch (f := f3) (evm := evm) hf hs3 hl3 hd3
+  have hbranch := positionLiquidityBranch (fork := fork) (f := f3) (evm := evm) hf hs3 hl3 hd3
   rw [positionChangeResult_normal] at hbranch
   by_cases hr : positionChangeReverts (positionLiquidityWord evm id key) delta
   · rw [if_pos hr] at hbranch
     exact ⟨f3, by simpa only [positionUpdateResult, if_pos hr] using (execFuncBody_prepend hpre
-      (show ExecFuncBody config f3 evm (positionUpdateFunction.body.drop 3) .reverted from
+      (show ExecFuncBody fork config f3 evm (positionUpdateFunction.body.drop 3) .reverted from
         .execBlockRevert (ExecBlock.consRevert hbranch)))⟩
   · rw [if_neg hr] at hbranch
     by_cases hp : delta ≠ 0 ∧ evm.executionEnv.perm = false
     · rw [if_pos hp] at hbranch
       exact ⟨f3, by simpa only [positionUpdateResult, if_neg hr, if_pos hp] using (execFuncBody_prepend hpre
-        (show ExecFuncBody config f3 evm (positionUpdateFunction.body.drop 3) .staticViolation from
+        (show ExecFuncBody fork config f3 evm (positionUpdateFunction.body.drop 3) .staticViolation from
           .execBlockStatic (ExecBlock.consStatic hbranch)))⟩
     · rw [if_neg hp] at hbranch
       let f4 := positionChangeFrame f3 (positionLiquidityWord evm id key) delta
@@ -101,7 +103,7 @@ theorem positionUpdateCall {f : Frame} {evm : EVM.State} {id key fee0 fee1 : UIn
     (hd : evalExpr? config f evm ed = .ok (.int delta))
     (h0 : evalExpr? config f evm e0 = .ok (.int (Int.ofNat fee0.toNat)))
     (h1 : evalExpr? config f evm e1 = .ok (.int (Int.ofNat fee1.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Position_update" [es, ed, e0, e1] ret)
+    ExecStmt fork config f evm (.internalCall "Position_update" [es, ed, e0, e1] ret)
       (resumeCallResult f ret (positionUpdateResult f evm id key delta fee0 fee1)) := by
   let fc : Frame := {f with locals := (((((∅ : Store).insert "feeGrowthInside1X128" (.int (Int.ofNat fee1.toNat))).insert
     "feeGrowthInside0X128" (.int (Int.ofNat fee0.toNat))).insert "liquidityDelta" (.int delta)).insert

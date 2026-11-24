@@ -2,6 +2,8 @@ import Benchmarks.Safe.V2_0e91d99.ExecTransactionContext
 import Benchmarks.Safe.V2_0e91d99.PaymentTrace
 import Benchmarks.Safe.V2_0e91d99.SignatureBranchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -44,7 +46,7 @@ theorem execPaymentFinal_paid (locals : Store) (paid : UInt256) (called : Bool) 
   cases called <;> simp [execPaymentFinal]
 
 theorem safeExecPaymentInit (locals : Store) (evm : EVM.State) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.letDecl "payment" (some uint256) (.intLit 0)) (.ok (execPaymentInit locals) evm) :=
   .letDecl (by simp [evalExpr?, uint256Value, pure])
 
@@ -63,9 +65,9 @@ theorem safeExecPaymentCondition (p : ExecTransactionInput) (evm : EVM.State) {l
 theorem safeExecPaymentCall (p : ExecTransactionInput) (evm : EVM.State) {locals : Store}
     {used : UInt256} {result : ExecResult} (hl : ExecTransactionLocals p locals)
     (hu : locals["gasUsed"]? = some (uint256Value used))
-    (hb : ExecFuncBody config (execPaymentInput p used).frame evm handlePaymentFunction.body
+    (hb : ExecFuncBody fork config (execPaymentInput p used).frame evm handlePaymentFunction.body
       result) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "handlePayment"
         [.var "gasUsed", .var "baseGas", .var "gasPrice", .var "gasToken",
           .var "refundReceiver"] "paymentCall")
@@ -75,7 +77,7 @@ theorem safeExecPaymentCall (p : ExecTransactionInput) (evm : EVM.State) {locals
     (evalLocalValue hl.tx.gasToken) (evalLocalValue hl.tx.refundReceiver) hb
 
 theorem safeExecPaymentAssign (locals : Store) (evm : EVM.State) (paid : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (resumeAfterInternalCall (execPaymentInit locals) "paymentCall"
         (some [uint256Value paid])) evm
       (.assign .localVar (varRef "payment") (.var "paymentCall"))

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V0_cdb2eb5.ModuleGuardCall
 import Benchmarks.Safe.V0_cdb2eb5.GuardRefinement
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -19,12 +21,12 @@ theorem safeModuleGuardFinish {σ σ₀ σ' : AccountMap} {g : UInt256} {A : Sub
     (hg : locals["moduleGuard"]? = some (.address (AccountAddress.ofNat guard.toNat)))
     (hb : locals.get? "_moduleGuard" = none) (hee : evm'.executionEnv = I)
     (hacc : evm'.accountMap = σ')
-    (hcheck : ExecStmt config (guardFrame .moduleGuard guard) (initState σ σ₀ (.ofUInt256 g) A I)
+    (hcheck : ExecStmt fork config (guardFrame .moduleGuard guard) (initState σ σ₀ (.ofUInt256 g) A I)
       (guardCheck .moduleGuard)
       (.ok { contract := contract, locals := locals } evm'))
-    (h : RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5814⟩
+    (h : RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5814⟩
       (guard :: ⟨664⟩ :: R) mem aw out σ' k C)
-    (hov : R.length + 6 ≤ 1024) : runtimeRefinementFor config contract σ σ₀ g A I := by
+    (hov : R.length + 6 ≤ 1024) : runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact guardFinish (kind := .moduleGuard) hcode hdispatch hdec hc hv ha hg hb hee hacc hcheck
     (fun hp ↦ safeModuleGuardStoreStatic h (by simp; omega) hp)
     (fun hp ↦ safeModuleGuardStoreTrace h hov hp)

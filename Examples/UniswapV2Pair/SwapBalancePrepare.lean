@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.PairBalanceHeaderRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,14 +11,14 @@ theorem RD.uniswapSwapBalance0Prepared
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2091 : RD uniswapV2PairBytecode I g s0 ⟨2091⟩
+    (rd2091 : RD fork uniswapV2PairBytecode I g s0 ⟨2091⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2149⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2149⟩
       (UInt256.land token0 solcAddrMask :: UInt256.land token0 solcAddrMask ::
         ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: UInt256.land token0 solcAddrMask ::
         token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
@@ -40,14 +42,14 @@ theorem RD.uniswapSwapBalance1Prepared
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr newBalance0 token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2206 : RD uniswapV2PairBytecode I g s0 ⟨2206⟩
+    (rd2206 : RD fork uniswapV2PairBytecode I g s0 ⟨2206⟩
       (newBalance0 :: token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2267⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2267⟩
       (UInt256.land token1 solcAddrMask :: UInt256.land token1 solcAddrMask ::
         ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: UInt256.land token1 solcAddrMask ::
         token1 :: token0 :: scratch1 :: newBalance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
@@ -70,11 +72,11 @@ theorem RD.uniswapSwapBalancesExit
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw balance1 balance0 token1 token0 scratch1 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd2324 : RD uniswapV2PairBytecode I g s0 ⟨2324⟩
+    (rd2324 : RD fork uniswapV2PairBytecode I g s0 ⟨2324⟩
       (balance1 :: token1 :: token0 :: scratch1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2331⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2331⟩
       (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run rd2324 with [swap3, pop, push1 ⟨0⟩, swap2, pop, pop]⟩

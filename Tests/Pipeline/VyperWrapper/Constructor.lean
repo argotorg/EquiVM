@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperWrapper.CallHelpers
 import Tests.Pipeline.VyperWrapper.CreationBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper constructor correctness
 
@@ -100,14 +102,14 @@ theorem ctorOutput (t : AccountAddress) :
 
 theorem wrapperConstructorCorrect :
     typedConstructorRefinement config wrapperCreationBytecode contract (immutableLayout.deployed wrapperBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
   have hdeploy' : genSolidityConstructorDeployment contract.ctor.params wrapperCreationBytecode args = some deployedInitcode :=
     hdeploy
   obtain ⟨t, hargs, hinit⟩ := ctorDeploy hdeploy'
   subst hargs
   have hcode' : I.code = wrapperCreationBytecode ++ (addrWord t).toByteArray := hcode.trans hinit
   have rd0 := RD.normalizePC (pc' := UInt256.ofNat 0)
-    (RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
+    (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
   have hcsize : wrapperCreationBytecode.size = 1838 := by native_decide
   have hw32 : (addrWord t).toByteArray.size = 32 := toByteArray_size _
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -141,7 +143,7 @@ theorem wrapperConstructorCorrect :
     rw [ulit_toNat' 58 (by decide), ulit_toNat' 64 (by decide), ulit_toNat' 1780 (by decide), ulit_toNat' 0 (by decide),
       ulit_toNat' 1812 (by decide), hload64, ctorOutput t] at rd3
     -- Stele
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ((∅ : Store).insert "token" (.address t)) contract.ctor.body
         (.returned { contract := contract, locals := (∅ : Store).insert "token" (.address t), immutables := ctorImms t }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) none) (initialImmutables contract) := by

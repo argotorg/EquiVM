@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchBindings
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -33,7 +35,7 @@ theorem oracleSearchReadPrefix (locals imms : Store) (evm : EVM.State)
     (time target cardinality left right : UInt256)
     (h : OracleSearchBindings locals time target cardinality left right)
     (hn : cardinality.toNat ≠ 0) (hc : cardinality.toNat < 2 ^ 16) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (oracleSearchBody.take 2)
       (.ok (oracleSearchReadFrame locals imms evm left right cardinality) evm) := by
   let mid := oracleSearchMiddle left right
@@ -49,7 +51,7 @@ theorem oracleSearchReadPrefix (locals imms : Store) (evm : EVM.State)
       (b := ⟨2⟩) (by simp only [evalExpr?, pure]; rfl) (by decide)
   obtain ⟨oldI, hi⟩ := h.index
   refine ExecBlock.consNormal (stele' := fm) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalVarBase_frame hi)) ?_
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalVarBase_frame hi)) ?_
   have hfm := h.insert_aux "i" (.int (Int.ofNat mid.toNat)) (by decide)
   have hr : evalExpr? config fm evm (.binary .mod (.var "i") (.var "cardinality")) =
       .ok (.int (Int.ofNat (UInt256.mod mid cardinality).toNat)) :=
@@ -57,7 +59,7 @@ theorem oracleSearchReadPrefix (locals imms : Store) (evm : EVM.State)
       (evalExpr_var_get hfm.cardinality) hn
   obtain ⟨oldBefore, hbefore⟩ := hfm.beforeOrAt
   exact ExecBlock.consNormal
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalOracleObservationExpr _ _ _ _ _ hfm.base hr
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalOracleObservationExpr _ _ _ _ _ hfm.base hr
       (oracleSearchRemainder_lt mid cardinality hn hc)) (assignLocalVarBase_frame hbefore))
     ExecBlock.nil
 
@@ -74,7 +76,7 @@ theorem oracleSearchUninitialized (locals imms : Store) (evm : EVM.State)
     (h : OracleSearchBindings locals time target cardinality left right)
     (hn : cardinality.toNat ≠ 0) (hc : cardinality.toNat < 2 ^ 16)
     (hinit : (oracleSearchBefore left right cardinality evm.accountMap evm.executionEnv).initialized = false) :
-    ∃ locals', ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ∃ locals', ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleSearchBody (.continue {contract := contract, locals := locals', immutables := imms} evm) ∧
       OracleSearchBindings locals' time target cardinality (oracleSearchMiddle left right + ⟨1⟩) right := by
   let fr := oracleSearchReadFrame locals imms evm left right cardinality
@@ -86,7 +88,7 @@ theorem oracleSearchUninitialized (locals imms : Store) (evm : EVM.State)
   apply execBlock_append_ok (oracleSearchReadPrefix locals imms evm time target cardinality left right h hn hc)
   refine ExecBlock.consContinue (ExecStmt.iteTrue ?_ ?_)
   · simpa only [hinit, Bool.not_false] using evalOracleSearchInitialized locals imms evm left right cardinality
-  · refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat next.toNat))
+  · refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat next.toNat))
       ?_ (assignLocalVarBase_frame hfr.left)) ?_
     · exact evalExpr_word_add (b := ⟨1⟩)
         (evalExpr_var_get (by simp [oracleSearchReadFrame, Std.HashMap.getElem_insert]))

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeRuntimeSqrt
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -38,7 +40,7 @@ theorem mintFeeSqrtPrefixSmall
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size)
     (hprodSmall : (UInt256.mul reserve0 reserve1).toNat ≤ 3)
     (hkLastSmall : kLast.toNat ≤ 3) :
-    ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+    ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
       [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK",
         .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -55,7 +57,7 @@ theorem mintFeeSqrtPrefixSmall
   have hprodSmall' : (mintFeeReserveProductWord reserve0 reserve1).toNat ≤ 3 := by
     simpa [hprodWord] using hprodSmall
   have hrootK :=
-    uniswapSqrtFunctionCallSuccess_le3
+    uniswapSqrtFunctionCallSuccess_le3 (fork := fork)
       (caller := mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast)
       (evm := evm) (y := mintFeeReserveProductWord reserve0 reserve1)
       (args := [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))])
@@ -67,7 +69,7 @@ theorem mintFeeSqrtPrefixSmall
     rw [sqrtFunctionSmallResultValue_eq_int_of_word]
     simp [rootK, hprodWord]
   have hrootK' :
-      ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecStmt fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
@@ -75,7 +77,7 @@ theorem mintFeeSqrtPrefixSmall
     simpa [mintFeeAfterRootKFrame, mintFeeAfterRootKStore, resumeAfterInternalCall]
       using hrootK
   have hrootKLast :=
-    uniswapSqrtFunctionCallSuccess_le3
+    uniswapSqrtFunctionCallSuccess_le3 (fork := fork)
       (caller := mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK)
       (evm := evm) (y := kLast) (args := [.var "_kLast"]) (retVar := "rootKLast")
       rfl hkLastSmall
@@ -84,7 +86,7 @@ theorem mintFeeSqrtPrefixSmall
       sqrtFunctionSmallResultValue kLast = .int rootKLast := by
     rw [sqrtFunctionSmallResultValue_eq_int_of_word]
   have hrootKLast' :
-      ExecStmt config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
+      ExecStmt fork config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
         (.internalCall "sqrt" [.var "_kLast"] "rootKLast")
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
@@ -100,7 +102,7 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
     {σFee σ'' : AccountMap}
     {o o1 outFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 toWord sel : UInt256} {zFee : Bool}
-    (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7781 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
@@ -132,7 +134,7 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
       UInt256.land (reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
           reserve112Mask =
         reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
       [UInt256.mul
           (reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)

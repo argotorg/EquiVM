@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -68,7 +70,7 @@ theorem catReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨507⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨2622662641⟩ :=
@@ -105,10 +107,10 @@ theorem catDenyBodyCore
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (denyUsr I))))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨507⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := catCallerWardsSlot I
@@ -136,10 +138,10 @@ theorem catDenyBodyCore
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
     have hbodySplit :
-        (I.perm = true → ExecTransitionBody config contract evm0 locals denyTransition.body
+        (I.perm = true → ExecTransitionBody fork config contract evm0 locals denyTransition.body
           (.returned { contract := contract, locals := locals } evm1 none)) ∧
         (I.perm = false →
-          ExecTransitionBody config contract evm0 locals denyTransition.body
+          ExecTransitionBody fork config contract evm0 locals denyTransition.body
             .staticViolation) := by
       have hguard := catAuthGuardEval_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -169,7 +171,7 @@ theorem catDenyBodyCore
           (hstore := hstore)
       constructor
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlock (hperm := hperm)
+        have hblock := nonpayableRequireAssignStorageBlock (fork := fork) (hperm := hperm)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0) (evm' := evm1)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -179,7 +181,7 @@ theorem catDenyBodyCore
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1] using
           ExecFuncBody.execBlockOK hblock
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlockStatic
+        have hblock := nonpayableRequireAssignStorageBlockStatic (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -218,7 +220,7 @@ theorem catDenyBodyCore
     · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
-        RDret catBytecode (Sat256.ofUInt256 g)
+        RDret fork catBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -233,12 +235,12 @@ theorem catDenyBodyCore
   · have hauthStele : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals denyTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -267,9 +269,9 @@ theorem catDenyShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    catReachDenyBody (σ := σ)
+    catReachDenyBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -293,7 +295,7 @@ theorem catDenyBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 36

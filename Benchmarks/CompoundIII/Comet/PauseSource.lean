@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PauseWrites
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -73,7 +75,7 @@ theorem pauseReady (evm : EVM.State) (v : CometWithExtendedAssetListImmutables)
     (a : PauseInputs) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (ha : PauseAuthorized v evm.executionEnv) :
-    ABlock config evm { contract := contract, locals := pauseInputStore a, immutables := immStore v }
+    ABlock fork config evm { contract := contract, locals := pauseInputStore a, immutables := immStore v }
       pauseTransition.body (pauseReadyFrame evm (immStore v) a) pauseWrites := by
   rw [pause_body]
   refine ⟨fun h ↦ (calldataPrologue_ok hv hhi).run ?_⟩
@@ -111,7 +113,7 @@ theorem pauseFlags_eval (evm : EVM.State) (imms : Store) (a : PauseInputs) :
   cases s <;> cases t <;> cases w <;> cases a <;> cases b <;> rfl
 
 theorem pauseFlagsAssign (evm : EVM.State) (imms : Store) (a : PauseInputs) :
-    ExecStmt config (pauseReadyFrame evm imms a) evm
+    ExecStmt fork config (pauseReadyFrame evm imms a) evm
       (.assign .storage ⟨"pauseFlags", []⟩ pauseFlagExpr)
       (if evm.executionEnv.perm then
         .ok (pauseReadyFrame evm imms a) (pauseSourceState evm a) else .staticViolation) := by
@@ -123,13 +125,13 @@ theorem pause_returns (evm : EVM.State) (v : CometWithExtendedAssetListImmutable
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (ha : PauseAuthorized v evm.executionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (pauseInputStore a) pauseTransition.body
+    ExecTransitionBody fork config contract evm (pauseInputStore a) pauseTransition.body
       (.returned (pauseReadyFrame evm (immStore v) a) (pauseSourceState evm a) none)
       (immStore v) := by
   apply ExecFuncBody.execBlockOK
   apply (pauseReady evm v a hv hhi ha).run
   apply ExecBlock.consNormal (by simpa only [hperm, if_true] using pauseFlagsAssign evm (immStore v) a)
-  apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa [pauseSourceState] using hperm) (vals :=
+  apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa [pauseSourceState] using hperm) (vals :=
     [.bool a.supply, .bool a.transfer, .bool a.withdraw, .bool a.absorb, .bool a.buy]) ?_)
   · exact ExecBlock.nil
   · simp only [evalExprs?, evalExpr?, pauseReadyFrame, calldataLocalFrame,
@@ -141,7 +143,7 @@ theorem pause_static (evm : EVM.State) (v : CometWithExtendedAssetListImmutables
     (a : PauseInputs) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (ha : PauseAuthorized v evm.executionEnv) (hp : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (pauseInputStore a) pauseTransition.body
+    ExecTransitionBody fork config contract evm (pauseInputStore a) pauseTransition.body
       .staticViolation (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   apply (pauseReady evm v a hv hhi ha).run
@@ -151,7 +153,7 @@ theorem pause_reverts (evm : EVM.State) (v : CometWithExtendedAssetListImmutable
     (a : PauseInputs) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (ha : ¬ PauseAuthorized v evm.executionEnv) :
-    ExecTransitionBody config contract evm (pauseInputStore a) pauseTransition.body
+    ExecTransitionBody fork config contract evm (pauseInputStore a) pauseTransition.body
       .reverted (immStore v) := by
   rw [pause_body]
   apply ExecFuncBody.execBlockRevert

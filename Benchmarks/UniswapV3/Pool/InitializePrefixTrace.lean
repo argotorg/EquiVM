@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.BlockTimestamp
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,10 +14,10 @@ set_option maxRecDepth 10000
 theorem initializeGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10715⟩ (price :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10715⟩ (price :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 0 20 σ ee ≠ ⟨0⟩) ∨
-      (slot0FieldWord 0 20 σ ee = ⟨0⟩ ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨10782⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 0 20 σ ee ≠ ⟨0⟩) ∨
+      (slot0FieldWord 0 20 σ ee = ⟨0⟩ ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨10782⟩
         (price :: R) mem aw rdata σ k' C') := by
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 160 - 1) := by decide
@@ -47,11 +49,11 @@ theorem initializeGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem initializeBeforeOracleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10782⟩ (price :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10782⟩ (price :: R) mem aw rdata σ k C)
     (hp : price.toNat < 2 ^ 160) (hov : R.length + 24 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ (tickLogValid price ∧ tickLogSafe (tickLogResult price))) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ (tickLogValid price ∧ tickLogSafe (tickLogResult price))) ∨
       (tickLogValid price ∧ tickLogSafe (tickLogResult price) ∧ ∃ k' C',
-        RD (deployedRuntime v) ee g s0 ⟨17514⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨17514⟩
           (UInt256.ofNat ee.header.timestamp :: ⟨8⟩ :: ⟨10817⟩ :: ⟨0⟩ :: ⟨0⟩ ::
             tickLogChoiceRaw (tickLogResult price) price :: price :: R) mem aw rdata σ k' C') := by
   have hprice : tickLogPrice price = price :=

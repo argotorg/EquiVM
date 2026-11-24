@@ -2,6 +2,8 @@ import Reasoning.ABIViews
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor Stele source semantics
 -/
@@ -331,7 +333,7 @@ theorem gemJoinCtorBodySuccess
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -350,7 +352,7 @@ theorem gemJoinCtorBodySuccess
     let evm5 := gemJoinCtorAfterGemState evm4 gem
     let localsAfterDecimals := locals.insert "decimalsRet" (.int (Int.ofNat dec.toNat))
     let evm6 := gemJoinCtorAfterDecState evmDecimals dec
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := localsAfterDecimals } evm6) := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5 localsAfterDecimals evm6
   have hassignWards :
@@ -396,7 +398,7 @@ theorem gemJoinCtorBodySuccess
       evalExprs? config { contract := contract, locals := locals } evm5 [] = .ok [] := by
     exact evalExprs_gemJoinCtorDecimalsArgs evm5 vat ilk gem
   have hdecimalStmt :
-      ExecStmt config { contract := contract, locals := locals } evm5
+      ExecStmt fork config { contract := contract, locals := locals } evm5
         (.externalCall (.var "gem_") "decimals" (.intLit 0) [] "decimalsRet" (perm := false))
         (.ok { contract := contract, locals := localsAfterDecimals } evmDecimals) := by
     simpa [localsAfterDecimals, collapseReturns] using
@@ -413,18 +415,18 @@ theorem gemJoinCtorBodySuccess
     List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalVat (evm := evm2) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalIlk (evm := evm3) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalGem (evm := evm4) vat ilk gem
   refine ExecBlock.consNormal (ExecStmt.requireTrue hgemGuard) ?_
   refine ExecBlock.consNormal hdecimalStmt ?_
   exact ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa [typedCallViaEVM_executionEnv_eq hcallDecimals,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [typedCallViaEVM_executionEnv_eq hcallDecimals,
       gemJoinCtorAfterInitStores, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
       gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, initState] using hperm))
       (by
@@ -455,7 +457,7 @@ theorem gemJoinCtorBodyNoCodeReverts
     let evm3 := gemJoinCtorAfterVatState evm2 vat
     let evm4 := gemJoinCtorAfterIlkState evm3 ilk
     let evm5 := gemJoinCtorAfterGemState evm4 gem
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       .reverted := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5
   have hassignWards :
@@ -508,13 +510,13 @@ theorem gemJoinCtorBodyNoCodeReverts
     List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalVat (evm := evm2) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalIlk (evm := evm3) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalGem (evm := evm4) vat ilk gem
   exact ExecBlock.consRevert (ExecStmt.requireFalse hgemGuard)
 
@@ -533,7 +535,7 @@ theorem gemJoinCtorBodyDecimalsFailureReverts
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -548,7 +550,7 @@ theorem gemJoinCtorBodyDecimalsFailureReverts
     let evm3 := gemJoinCtorAfterVatState evm2 vat
     let evm4 := gemJoinCtorAfterIlkState evm3 ilk
     let evm5 := gemJoinCtorAfterGemState evm4 gem
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       .reverted := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5
   have hassignWards :
@@ -597,17 +599,17 @@ theorem gemJoinCtorBodyDecimalsFailureReverts
     List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalVat (evm := evm2) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalIlk (evm := evm3) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalGem (evm := evm4) vat ilk gem
   refine ExecBlock.consNormal (ExecStmt.requireTrue hgemGuard) ?_
   exact ExecBlock.consRevert
-    (ExecStmt.externalCallFailure (hperm := Or.inl rfl) hgem (by simp [evalExpr?, pure]) hdecimalArgs
+    (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inl rfl) hgem (by simp [evalExpr?, pure]) hdecimalArgs
       hcallDecimals)
 
 theorem gemJoinCtorBodyDecimalsDecodeReverts
@@ -625,7 +627,7 @@ theorem gemJoinCtorBodyDecimalsDecodeReverts
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -641,7 +643,7 @@ theorem gemJoinCtorBodyDecimalsDecodeReverts
     let evm3 := gemJoinCtorAfterVatState evm2 vat
     let evm4 := gemJoinCtorAfterIlkState evm3 ilk
     let evm5 := gemJoinCtorAfterGemState evm4 gem
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       .reverted := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5
   have hassignWards :
@@ -690,17 +692,17 @@ theorem gemJoinCtorBodyDecimalsDecodeReverts
     List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, evm0, gemJoinCtorAfterWardsState, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalVat (evm := evm2) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, initState] using hperm)) ?_ hassignIlk) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalIlk (evm := evm3) vat ilk gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, gemJoinCtorAfterWardsState, gemJoinCtorAfterLiveState, gemJoinCtorAfterVatState, gemJoinCtorAfterIlkState, initState] using hperm)) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_gemJoinCtorLocalGem (evm := evm4) vat ilk gem
   refine ExecBlock.consNormal (ExecStmt.requireTrue hgemGuard) ?_
   exact ExecBlock.consRevert
-    (ExecStmt.externalCallReturnDecodeRevert (hperm := Or.inl rfl) hgem (by simp [evalExpr?, pure]) hdecimalArgs
+    (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := Or.inl rfl) hgem (by simp [evalExpr?, pure]) hdecimalArgs
       hcallDecimals hdecDecimals)
 
 theorem gemJoinSteleCtorExecSuccess
@@ -718,7 +720,7 @@ theorem gemJoinSteleCtorExecSuccess
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -730,7 +732,7 @@ theorem gemJoinSteleCtorExecSuccess
     let locals := gemJoinCtorLocals vat ilk gem
     let localsAfterDecimals := locals.insert "decimalsRet" (.int (Int.ofNat dec.toNat))
     let evm6 := gemJoinCtorAfterDecState evmDecimals dec
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
       σ σ₀ g A I
       (.returned { contract := contract, locals := localsAfterDecimals } evm6 none) := by
@@ -763,7 +765,7 @@ theorem gemJoinSteleCtorExecReverts_noCode
               vat ilk gem)
             (EVM.address gem)))) = 0)
     (hperm : I.perm = true) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -795,14 +797,14 @@ theorem gemJoinSteleCtorExecReverts_decimalsFailure
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (false, evmDecimals, outDecimals) false)
     (hperm : I.perm = true) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -834,7 +836,7 @@ theorem gemJoinSteleCtorExecReverts_decimalsDecode
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (gemJoinCtorAfterInitStores
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -842,7 +844,7 @@ theorem gemJoinSteleCtorExecReverts_decimalsDecode
         (EVM.address gem) "decimals" 0 [] (true, evmDecimals, outDecimals) false)
     (hdecDecimals : config.externalABI.decode? "decimals" outDecimals = none)
     (hperm : I.perm = true) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -863,7 +865,7 @@ theorem gemJoinSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro

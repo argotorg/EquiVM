@@ -1,4 +1,6 @@
 import Reasoning.SteleBody
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 namespace UniswapV2Pair
 
@@ -8,7 +10,7 @@ abbrev optionalSafeTransferFrame (caller : Frame) (retVar : Ident) (value : UInt
 theorem optionalSafeTransferSkip {cfg : Config} {caller : Frame} {evm : EVM.State}
     {condition : Expr} {body : List Stmt} {retVar : Ident} {value : UInt256}
     (hz : value = ⟨0⟩) (hcond : evalExpr? cfg caller evm condition = .ok (.bool false)) :
-    ExecStmt cfg caller evm (.ite condition body [])
+    ExecStmt fork cfg caller evm (.ite condition body [])
       (.ok (optionalSafeTransferFrame caller retVar value) evm) := by
   rw [optionalSafeTransferFrame, if_pos hz]
   exact ExecStmt.iteFalse hcond ExecBlock.nil

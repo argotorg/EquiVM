@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.Common
 import Benchmarks.EAS.EAS.RuntimeBlocks_054
 import Benchmarks.EAS.EAS.RuntimeBlocks_055
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,10 +13,10 @@ theorem easECDSAError {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C n : Nat} {ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 7 ≤ 1024) (hnat : n < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16786⟩ (UInt256.ofNat n::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16786⟩ (UInt256.ofNat n::ret::R) mem aw rdata σ k C) :
     if n = 0 ∨ n = 4 then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hn : n < 5
   · have hc : UInt256.lt (UInt256.ofNat n) (UInt256.ofNat 5) = ⟨1⟩ :=
       ult_one (by simpa only [ulit_toNat' n hnat] using hn)

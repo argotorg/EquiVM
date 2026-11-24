@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionUpdateWords
 import Benchmarks.UniswapV3.Pool.PositionUpdateStorage
 import Benchmarks.UniswapV3.Pool.PositionUpdateStaticTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,14 +21,14 @@ def positionUpdateFirstWritePC (a : PositionUpdateArgs) : UInt256 :=
 theorem positionUpdateFirstWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21807⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21807⟩
       (positionUpdateFeeRaw a evm true :: ⟨0⟩ :: positionUpdateFeeRaw a evm false ::
         EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::
         EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R)
       mem aw rdata σ k C)
     (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
       (positionUpdateWorkingWords a evm p ++ ret :: R) mem aw rdata σ k' C' := by
   by_cases hz : a.delta = 0
   · have r1 := uniswapV3Pool_block_21807_taken (immWords := wordsOf (immStore v))
@@ -48,9 +50,9 @@ theorem positionUpdateFirstWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
 theorem positionUpdateFirstWriteStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
+    (rd : RD fork (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
       (positionUpdateWorkingWords a evm p ++ ret :: R) mem aw rdata σ k C)
-    (hp : ee.perm = false) (hov : R.length + 13 ≤ 1024) : RDstatic (deployedRuntime v) g s0 := by
+    (hp : ee.perm = false) (hov : R.length + 13 ≤ 1024) : RDstatic fork (deployedRuntime v) g s0 := by
   by_cases hz : a.delta = 0
   · simp only [positionUpdateFirstWritePC, if_pos hz, positionUpdateWorkingWords,
       List.cons_append, List.nil_append] at rd
@@ -63,11 +65,11 @@ theorem positionUpdateLiquidityStoreX {σ : AccountMap} {ee : ExecutionEnv} {g :
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
+    (rd : RD fork (deployedRuntime v) ee g s0 (positionUpdateFirstWritePC a)
       (positionUpdateWorkingWords a evm p ++ ret :: R) mem aw rdata σ k C)
     (hp : ee.perm = true) (hov : R.length + 13 ≤ 1024) :
     ∃ σ' k' C', SourceState s0 ee σ' (positionUpdateLiquidityState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨21846⟩ (positionUpdateWorkingWords a evm p ++ ret :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨21846⟩ (positionUpdateWorkingWords a evm p ++ ret :: R)
         mem aw rdata σ' k' C' := by
   by_cases hz : a.delta = 0
   · simp only [positionUpdateFirstWritePC, if_pos hz] at rd

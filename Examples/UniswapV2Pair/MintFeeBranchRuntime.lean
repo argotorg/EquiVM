@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.Routines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -10,13 +12,13 @@ theorem uniswapMintFeeRuntimeFeeOffEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7825 : RD uniswapV2PairBytecode I g
+    (rd7825 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7825⟩
       (kLast :: feeTo :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hfeeToZero : UInt256.land feeTo solcAddrMask = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
@@ -36,14 +38,14 @@ theorem uniswapMintFeeRuntimeFeeOffKLastZeroReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd8026 : RD uniswapV2PairBytecode I g
+    (rd8026 : RD fork uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hkLastZero : kLast = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨0⟩ :: R)
       mem aw rdata σFee k' C' := by
@@ -59,14 +61,14 @@ theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd8026 : RD uniswapV2PairBytecode I g
+    (rd8026 : RD fork uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hperm : I.perm = true) (hkLastNonzero : kLast ≠ ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨0⟩ :: R)
       mem aw rdata (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) k' C' := by
@@ -84,13 +86,13 @@ theorem uniswapMintFeeRuntimeFeeOnEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7825 : RD uniswapV2PairBytecode I g
+    (rd7825 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7825⟩
       (kLast :: feeTo :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hfeeToNonzero : UInt256.land feeTo solcAddrMask ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
@@ -109,14 +111,14 @@ theorem uniswapMintFeeRuntimeFeeOnKLastZeroReturnOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7848 : RD uniswapV2PairBytecode I g
+    (rd7848 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hkLastZero : kLast = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
       mem aw rdata σFee k' C' := by
@@ -133,7 +135,7 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7848 : RD uniswapV2PairBytecode I g
+    (rd7848 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
@@ -141,7 +143,7 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (reserve1 :: reserve0 :: ⟨3737⟩ :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
@@ -165,14 +167,14 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroRootKEntryOfTail
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd6780 : RD uniswapV2PairBytecode I g
+    (rd6780 : RD fork uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (reserve1 :: reserve0 :: ⟨3737⟩ :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g
+    ∃ k' C', RD fork uniswapV2PairBytecode I g
       s0 ⟨8046⟩
       (UInt256.mul reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by

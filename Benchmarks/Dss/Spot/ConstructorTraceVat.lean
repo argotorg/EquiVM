@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorTraceVatMask
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor vat storage trace
 -/
@@ -15,11 +17,11 @@ theorem spotCtorVatStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd75 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨109⟩
       [⟨1⟩] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σWards ⟨2⟩ (spotCtorVatStored σWards I vat)) k' C' := by

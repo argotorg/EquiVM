@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapLiquiditySource
 import Benchmarks.UniswapV3.Pool.SwapCrossLoad
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,14 +14,14 @@ theorem swapLiquidityLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (net : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3851⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3851⟩
       ([EVM.wordOfInt net, ⟨0⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 19 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨13807⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
         ([swapLiquidityRaw a.zeroForOne net, s.liquidity, ⟨3877⟩,
           swapLiquidityRaw a.zeroForOne net, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
@@ -34,7 +36,7 @@ theorem swapLiquidityLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have hm1 := hm.expand32 (UInt256.ofNat 192 + p) hp
   have hmono := expandedWords_mono (off := UInt256.ofNat 192 + p) (size := ⟨32⟩)
     hm.active hp
-  have r1 : ∃ k1 C1, C + 1 ≤ C1 ∧ RD (deployedRuntime v) ee g s0 ⟨3863⟩
+  have r1 : ∃ k1 C1, C + 1 ≤ C1 ∧ RD fork (deployedRuntime v) ee g s0 ⟨3863⟩
       (swapLiquidityRaw a.zeroForOne net :: q ::
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k1 C1 := by

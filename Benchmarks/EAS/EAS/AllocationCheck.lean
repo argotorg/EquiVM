@@ -1,5 +1,8 @@
 import Benchmarks.EAS.EAS.DiffTarget
 
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 Compare the EAS-local allocation counter with the actual EVM free-memory word,
 including repeated UID hashing, storage copies, resolver returns, and refunds.
@@ -20,8 +23,8 @@ private def check (accounts : AccountMap) (name : String) (args : List Value)
   let accounts := transferValue accounts caller t.selfAddress value
   let env := t.env t.runtime caller value input true 1000 16756728
   let gas : UInt256 := .ofNat t.gas
-  let trace := runTrace (initialState accounts accounts gas default env) (t.gas + 1)
-  let (spec, replay) := steleExecRun t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
+  let trace := runTrace fork (initialState accounts accounts gas default env) (t.gas + 1)
+  let (spec, replay) := steleExecRun fork t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
     t.immutables accounts accounts gas default env
   let verdict := compareRuntime trace.xiResult spec
   unless verdict.isSuccess && replay.mismatches.isEmpty && replay.boundaries.isEmpty do
@@ -51,10 +54,10 @@ private def allocatorBoundaries : IO Unit := do
     -- Enter the pinned allocator block with its Yul calling convention.
     let evm := { initial with machineState := { initial.machineState with
       pc := .ofNat 4883, stack := [heap, size, t.runtime.size].map UInt256.ofNat } }
-    let trace := runTrace evm 100
+    let trace := runTrace fork evm 100
     let locals : Store := (∅ : Store) |>.insert "size" (.int size)
       |>.insert "$EAS.freeMemory" (.int heap)
-    let (spec, _) := execFuncBody 100 replayOracle (Replay.ofTrace trace) t.config
+    let (spec, _) := execFuncBody fork 100 replayOracle (Replay.ofTrace trace) t.config
       { contract := t.contract, locals := locals, immutables := t.immutables } initial fn.body
     match trace.result, spec with
     | .ok (.success state _), .result (.returned frame _ _) =>

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiAttestSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -18,7 +20,7 @@ theorem batchRowReadSource {L imms : Store} {evm : EVM.State} {requests : List V
     (hrequests : L.get? requestsName = some (.array requests))
     (hindex : L.get? "i" = some (.int (Int.ofNat i))) (hi : i < requests.length)
     (hlen : requests.length < UInt256.size) (hnorm : normalizeRawBoolWord? requests[i] = .ok requests[i]) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm (batchRowRead ty requestsName rowName)
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm (batchRowRead ty requestsName rowName)
       (.ok {contract := contract,locals := batchRowReadLocals L rowName (decide (i=requests.length-1)) requests[i],immutables := imms} evm) := by
   let L1 := L.insert "last" (.bool false)
   have hn : (UInt256.ofNat requests.length).toNat = requests.length := ulit_toNat' _ hlen
@@ -39,7 +41,7 @@ theorem batchRowReadSource {L imms : Store} {evm : EVM.State} {requests : List V
     rw [batchRowLast,evalExpr?,evalLocalValue hi1,he] <;> try decide
     simp only [bind,EvalResult.bind,hs,evalBinaryOp_eq_int_ok,hv]
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .bool false) (by simp only [evalExpr?,pure]))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hlast (assignLocalValue (store_get_self L "last" (.bool false))))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hlast (assignLocalValue (store_get_self L "last" (.bool false))))
   apply ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil
   apply evalArrayIndex
     (evalLocalValue (by simpa (disch := first | decide | exact beq_eq_false_iff_ne.mpr hneq | exact beq_eq_false_iff_ne.mpr (Ne.symm hneq)) only [store_get_ne] using hd1))

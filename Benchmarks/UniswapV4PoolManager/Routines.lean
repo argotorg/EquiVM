@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.EntrySource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_033
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared PoolManager bytecode routines. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,8 +34,8 @@ theorem decodeAddress4 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 4 ≤ 1024)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11583⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret (calldataWord I.calldata 4 :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11583⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret (calldataWord I.calldata 4 :: R)
       mem aw rdata σ k' C' := by
   have rdValid := poolManagerBlocks.poolManager_block_11583_fallthrough hstack
     (addressSubMask_zero hcanon) h
@@ -45,8 +47,8 @@ theorem decodeAddress4Reverts {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hnc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨11583⟩ (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11583⟩ (ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 816) = true := by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest
   have rdRevert := poolManagerBlocks.poolManager_block_11583_taken hstack
@@ -59,8 +61,8 @@ theorem decodeAddress36 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 4 ≤ 1024)
     (hcanon : (calldataWord I.calldata 36).toNat < EVM.addressModulus)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11618⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret (calldataWord I.calldata 36 :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11618⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret (calldataWord I.calldata 36 :: R)
       mem aw rdata σ k' C' := by
   have rdValid := poolManagerBlocks.poolManager_block_11618_fallthrough hstack
     (addressSubMask_zero hcanon) h
@@ -72,8 +74,8 @@ theorem decodeAddress36Reverts {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hnc : ¬ (calldataWord I.calldata 36).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨11618⟩ (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11618⟩ (ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 816) = true := by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest
   have rdRevert := poolManagerBlocks.poolManager_block_11618_taken hstack
@@ -88,9 +90,9 @@ theorem decodeAddressUintUint {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : I.calldata.size < UInt256.size)
     (hc : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11653⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11653⟩
       (UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (calldataWord I.calldata 68 :: calldataWord I.calldata 36 :: calldataWord I.calldata 4 :: R)
       mem aw rdata σ k' C' := by
   have rdAddr := poolManagerBlocks.poolManager_block_11653_fallthrough
@@ -106,9 +108,9 @@ theorem decodeAddressUintUintLengthReverts {I : ExecutionEnv} {g : Sat256} {s0 :
     {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hbad : UInt256.slt (UInt256.ofNat I.calldata.size + UInt256.ofNat (UInt256.size - 4)) ⟨96⟩ ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨11653⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11653⟩
       (UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
     rw [deployedRuntime_jumps v]; jump_dest
   have rdRevert := poolManagerBlocks.poolManager_block_11653_taken
@@ -122,9 +124,9 @@ theorem decodeAddressUintUintAddressReverts {I : ExecutionEnv} {g : Sat256} {s0 
     (hlen : 100 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit)
     (hsize : I.calldata.size < UInt256.size)
     (hc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨11653⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11653⟩
       (UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have rdAddr := poolManagerBlocks.poolManager_block_11653_fallthrough
     (by simpa only [List.length_cons] using hstack)
     (viaIRStaticLenCheckOk (words := 3) hlen hhi hsize) h

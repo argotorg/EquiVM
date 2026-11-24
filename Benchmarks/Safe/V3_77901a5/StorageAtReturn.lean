@@ -6,6 +6,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_008
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_030
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -15,11 +17,11 @@ set_option maxRecDepth 2000
 
 set_option maxHeartbeats 800000 in
 theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨918⟩ (⟨128⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨918⟩ (⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024)
     (hm : AddressArrayMemory mem n words (UInt256.ofNat (32 * n)))
     (hn : n ≤ 2 ^ 64 - 1) :
-    RDret safeBytecode g s0 σ (wordBufferReturnBytes words) := by
+    RDret fork safeBytecode g s0 σ (wordBufferReturnBytes words) := by
   let fp := 160 + 32 * n
   have hfp : (addressArrayFreePtr n).toNat = fp :=
     ulit_toNat' _ (by change 160 + 32 * n < 2 ^ 256; omega)
@@ -68,7 +70,7 @@ theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List 
   obtain ⟨aw₆, k₆, C₆, h₆⟩ := safeRuntime_block_9759_packed (by simp; omega)
     (by jump_dest) h₅
   simp only [safeRuntime_block_9759_stack, safeRuntime_block_9759_memory, he] at h₆
-  change RD safeBytecode I g s0 ⟨9790⟩ _
+  change RD fork safeBytecode I g s0 ⟨9790⟩ _
     ((⟨0⟩ : UInt256).toByteArray.write 0 encoded encoded.size 32) aw₆ rdata σ k₆ C₆ at h₆
   rw [writeWordAtEnd encoded (⟨0⟩ : UInt256) rfl] at h₆
   have h₇ := safeRuntime_block_9790 (by simp; omega) (by jump_dest) h₆
@@ -95,7 +97,7 @@ theorem safeStorageAtReturnTrace {I g s0 σ k C aw mem rdata n words} {R : List 
     exact hm.freePtr
   have hefree : memLoad (UInt256.ofNat 64) (encoded ++ (⟨0⟩ : UInt256).toByteArray) =
       addressArrayFreePtr n := memLoad_of_wordRead _ _ _ he64
-  change RDret safeBytecode g s0 σ ((encoded ++ (⟨0⟩ : UInt256).toByteArray).readWithPadding
+  change RDret fork safeBytecode g s0 σ ((encoded ++ (⟨0⟩ : UInt256).toByteArray).readWithPadding
     (memLoad (UInt256.ofNat 64) (encoded ++ (⟨0⟩ : UInt256).toByteArray)).toNat
     (UInt256.sub (UInt256.ofNat (fp + 64 + 32 * n))
       (memLoad (UInt256.ofNat 64) (encoded ++ (⟨0⟩ : UInt256).toByteArray))).toNat) at hret

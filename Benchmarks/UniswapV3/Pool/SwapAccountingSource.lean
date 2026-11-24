@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapAccountingModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -35,7 +37,7 @@ theorem swapAccountingRemainingSource {frame : Frame} {evm : EVM.State}
     (hs : frame.locals.get? "state" = some s.value)
     (hr : frame.locals.get? (swapAccountingFirstName exactInput) =
       some (.int (Int.ofNat (swapAccountingFirst exactInput d).toNat))) :
-    ExecStmt config frame evm (swapAccountingBody exactInput)[1]!
+    ExecStmt fork config frame evm (swapAccountingBody exactInput)[1]!
       (.ok (swapStateFrame frame {s with remaining := swapAccountingRemaining exactInput s d})
         evm) := by
   have hstate := evalExpr_structField (name := "amountSpecifiedRemaining")
@@ -66,7 +68,7 @@ theorem swapAccountingCalculatedSource {frame : Frame} {evm : EVM.State}
     (exactInput : Bool) (s : SwapStateData) (value : Int)
     (hs : frame.locals.get? "state" = some s.value)
     (hr : frame.locals.get? (swapAccountingResultName exactInput) = some (.int value)) :
-    ExecStmt config frame evm (swapAccountingBody exactInput)[4]!
+    ExecStmt fork config frame evm (swapAccountingBody exactInput)[4]!
       (.ok (swapStateFrame frame {s with calculated := value}) evm) := by
   cases exactInput <;>
     exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get hr) (assignLocalField_frame hs rfl rfl)

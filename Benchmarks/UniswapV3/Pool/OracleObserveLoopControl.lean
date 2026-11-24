@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.DynamicWordArray
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,14 +18,14 @@ theorem oracleObserveLoopCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C i : Nat} {aw agoPtr ticksPtr secondsPtr card liquidity index : UInt256}
     {tickRaw timeRaw ret : UInt256} {mem rdata : ByteArray} {rawAgos : List UInt256}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17172⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
       (oracleObserveStack i secondsPtr ticksPtr card liquidity index tickRaw agoPtr timeRaw ret R)
       mem aw rdata σ k C)
     (ha : ActiveWords aw) (hm : DynamicWordArrayMemory mem agoPtr rawAgos)
     (hb : agoPtr.toNat + 32 * (rawAgos.length + 1) ≤ 2 ^ 200)
     (hi : i < rawAgos.length) (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', C + (Cₘ (M aw (wordArrayElement agoPtr i) ⟨32⟩) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨13193⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
         (card :: liquidity :: index :: tickRaw :: rawAgos[i] :: timeRaw :: ⟨8⟩ :: ⟨17215⟩ ::
           oracleObserveStack i secondsPtr ticksPtr card liquidity index tickRaw agoPtr timeRaw ret R)
         mem (M aw (wordArrayElement agoPtr i) ⟨32⟩) rdata σ k' C' := by
@@ -62,14 +64,14 @@ theorem oracleObserveLoopDoneX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C i : Nat} {aw agoPtr ticksPtr secondsPtr card liquidity index : UInt256}
     {tickRaw timeRaw ret : UInt256} {mem rdata : ByteArray} {rawAgos : List UInt256}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17172⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
       (oracleObserveStack i secondsPtr ticksPtr card liquidity index tickRaw agoPtr timeRaw ret R)
       mem aw rdata σ k C)
     (hm : DynamicWordArrayMemory mem agoPtr rawAgos)
     (hb : agoPtr.toNat + 32 * (rawAgos.length + 1) < UInt256.size)
     (hi : rawAgos.length ≤ i) (hiw : i < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0 ret (secondsPtr :: ticksPtr :: R)
+    RD fork (deployedRuntime v) ee g s0 ret (secondsPtr :: ticksPtr :: R)
       mem (M aw agoPtr ⟨32⟩) rdata σ (k + 8 + 13)
       (C + (29 + memExpansionCost aw agoPtr ⟨32⟩) + 34) := by
   have hh := hm.header hb

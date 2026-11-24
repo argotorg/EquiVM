@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BalanceBurn
 import Benchmarks.UniswapV4PoolManager.BalanceMintTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! The ERC6909 balance debit and Transfer event reached by burn. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -15,15 +17,15 @@ theorem balanceBurnLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {sender id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 11 ≤ 1024) (hmem : mem.size = 96)
-    (h : RD (deployedRuntime v) I g s0 ⟨972⟩ (balanceBurnStack sender id amount R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨12269⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨972⟩ (balanceBurnStack sender id amount R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨12269⟩
       (solcSlotWordAt (balanceSlot sender id) σ I :: amount :: ⟨607⟩ :: balanceSlot sender id ::
         balanceBurnStack sender id amount R) (nestedMappingMemory sender id ⟨4⟩ mem) aw' rdata σ k' C' := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 12269) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_972 (R := R) hstack hj h
   let nextMem := nestedMappingMemory sender id ⟨4⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨12269⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12269⟩
     (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) σ I :: amount :: ⟨607⟩ :: keccakWord ⟨0⟩ ⟨64⟩ nextMem ::
       balanceBurnStack sender id amount R) nextMem _ rdata σ k' C' at hnext
   dsimp only [nextMem] at hnext
@@ -34,9 +36,9 @@ theorem balanceBurnReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {value slot sender id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 10 ≤ 1024) (hp : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨607⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨607⟩
       (value :: slot :: balanceBurnStack sender id amount R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) .empty := by
+    RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) .empty := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 1005) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', hlog⟩ := poolManagerBlocks.poolManager_block_607
@@ -44,19 +46,19 @@ theorem balanceBurnReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) hp hj h
   exact poolManagerBlocks.poolManager_block_1005 (by change R.length + 7 ≤ 1024; omega) hp hlog
 
-@[irreducible] def balanceBurnTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+@[irreducible] def balanceBurnTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (sender id amount : UInt256) : Prop :=
   if amount.toNat ≤ (balanceWord evm sender id).toNat then
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    RDret (deployedRuntime v) g s0 (balanceBurnPost evm sender id amount).accountMap .empty
-  else RDrev (deployedRuntime v) g s0
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    RDret fork (deployedRuntime v) g s0 (balanceBurnPost evm sender id amount).accountMap .empty
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem balanceBurnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {sender id amount : UInt256} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 11 ≤ 1024) (hmem : mem.size = 96)
     (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨972⟩ (balanceBurnStack sender id amount R) mem aw rdata evm.accountMap k C) :
-    balanceBurnTraceResult v I g s0 evm sender id amount := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨972⟩ (balanceBurnStack sender id amount R) mem aw rdata evm.accountMap k C) :
+    balanceBurnTraceResult fork v I g s0 evm sender id amount := by
   rw [balanceBurnTraceResult]
   generalize hbalance : balanceWord evm sender id = balance at ⊢
   obtain ⟨aw', k', C', hsub⟩ := balanceBurnLoadTrace v hstack hmem h

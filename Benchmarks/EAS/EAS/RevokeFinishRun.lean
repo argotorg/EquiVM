@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RevokeLoopMemory
 import Benchmarks.EAS.EAS.RevokeLoopLocals
 import Benchmarks.EAS.EAS.RevokeLoopControl
 import Benchmarks.EAS.EAS.ResolveManyCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,11 +14,11 @@ def revokeFinishLocals (L : Store) (used : UInt256) (heap : Nat) : Store :=
 
 theorem revokeFinishSource {L imms : Store} {evm evm' : EVM.State} {old heap : Nat} {used : UInt256}
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat old)))
-    (hc : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    (hc : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "_resolveAttestations" revokeResolveArgs "__c2$allocation")
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} "__c2$allocation"
         (some [.int (Int.ofNat used.toNat),.int (Int.ofNat heap)])) evm')) :
-    ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm revokeFinish
+    ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm revokeFinish
       (.returned {contract := contract,locals := revokeFinishLocals L used heap,immutables := imms} evm'
         (some [.int (Int.ofNat used.toNat),.int (Int.ofNat heap)])) := by
   apply execFuncBody_append (heapResultBlock_ok (result := "__c2") hc hh (by decide) (by decide) (by decide))
@@ -36,9 +38,9 @@ theorem revokeFinishRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
     (hh : heap.toNat ≤ 2^64-1) (hperm : rs.length = 0 ∨ ee.perm = true)
     (hlast : site.kind = .single → site.last = true)
     (hret : (D_J (deployedRuntime v) 0).contains site.ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.exitPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.exitPC
       (revokeLoopStack site ee (UInt256.ofNat i) R) mem aw rdata σ k C) :
-    HeapReturnPostOrStatic ((resolveManyUsedValue s.resolver values).toNat ≤ site.available.toNat)
+    HeapReturnPostOrStatic fork ((resolveManyUsedValue s.resolver values).toNat ≤ site.available.toNat)
       config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v} evm
       revokeFinish (.int (Int.ofNat (resolveManyUsedValue s.resolver values).toNat)) site.ret
       (resolveManyUsedValue s.resolver values::R) mem heap.toNat := by

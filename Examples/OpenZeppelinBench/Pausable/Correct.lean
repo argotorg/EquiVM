@@ -4,6 +4,8 @@ import Examples.OpenZeppelinBench.Pausable.Pause
 import Examples.OpenZeppelinBench.Pausable.GuardedWhenNotPaused
 import Examples.OpenZeppelinBench.Pausable.GuardedWhenPaused
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ hands the body proof to the one-function file for that selector.
 
 theorem pausableCorrect :
   runtimeRefinement config pausableBenchBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩

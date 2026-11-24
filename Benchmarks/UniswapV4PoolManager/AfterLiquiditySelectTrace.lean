@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquidityActiveTrace
 import Benchmarks.UniswapV4PoolManager.SignedComparison
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -8,14 +10,14 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def afterLiquiditySelection (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def afterLiquiditySelection (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (mem rdata : ByteArray) (σ : AccountMap) (hook : AccountAddress) (p : ModifyLiquidityWords)
     (key params delta fees src len ret : UInt256) (R : List UInt256) : Prop :=
   if afterLiquidityActive hook p then
-    ∃ aw k C, Cₘ aw ≤ C ∧ RD (deployedRuntime v) I g s0 (afterLiquidityEncodePc (afterLiquidityAdd p))
+    ∃ aw k C, Cₘ aw ≤ C ∧ RD fork (deployedRuntime v) I g s0 (afterLiquidityEncodePc (afterLiquidityAdd p))
       (afterLiquidityEncodeStack (afterLiquidityAdd p) (accountWord hook) key params delta fees src len ret R)
       mem aw rdata σ k C
-  else afterLiquidityReturnTrace v I g s0 mem rdata σ ret delta ⟨0⟩ R
+  else afterLiquidityReturnTrace fork v I g s0 mem rdata σ ret delta ⟨0⟩ R
 
 theorem afterLiquiditySelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw key params delta fees src len ret : UInt256} {hook : AccountAddress}
@@ -23,10 +25,10 @@ theorem afterLiquiditySelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024) (hpaid : Cₘ aw ≤ C)
     (hd : memLoad (params+UInt256.ofNat 64) mem = p.delta)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14466⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14466⟩
       (fees :: src :: len :: key :: params :: accountWord hook :: ret :: ⟨0⟩ :: delta :: R)
       mem aw rdata σ k C) :
-    afterLiquiditySelection v I g s0 mem rdata σ hook p key params delta fees src len ret R := by
+    afterLiquiditySelection fork v I g s0 mem rdata σ hook p key params delta fees src len ret R := by
   have hpay : Cₘ (M aw (params+UInt256.ofNat 64) ⟨32⟩) ≤
       C+memExpansionCost aw (params+UInt256.ofNat 64) ⟨32⟩ := by
     dsimp only [memExpansionCost]; omega

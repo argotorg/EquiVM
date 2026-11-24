@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionMemory
 import Benchmarks.UniswapV3.Pool.UpdatePositionFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,26 +12,26 @@ theorem updatePositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19151⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19151⟩
       (updatePositionEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 602 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 44 ≤ 1024) :
-    (ExecFuncBody config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecFuncBody config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body
-      .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecFuncBody config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body
+    (ExecFuncBody fork config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecFuncBody fork config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body
+      .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecFuncBody fork config (updatePositionFrame (immStore v) a) evm updatePositionFunction.body
       (.returned (updatePositionFinalFrame v a evm) (updatePositionFinalState v a evm)
         (some [updatePositionKeyValue a])) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (updatePositionFinalState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
+      RD fork (deployedRuntime v) ee g s0 ret (solcMappingSlot ⟨7⟩ (updatePositionKey a) :: R)
         (updatePositionMemory mem p v a evm) aw' rdata σ' k' C' ∧
       HeapMemory (updatePositionMemory mem p v a evm) aw' (updatePositionFree p a evm)) := by
   rcases hs with ⟨hw, he, hs⟩
   subst σ
   subst ee
   have hs : SourceState s0 evm.executionEnv evm.accountMap evm := ⟨hw, rfl, rfl⟩
-  have hprefix := updatePositionPrefixSource (immStore v) evm a ha
+  have hprefix := updatePositionPrefixSource (fork := fork) (immStore v) evm a ha
   obtain ⟨aw1, k1, C1, r1, hm1⟩ := updatePositionEntryX (v := v) a rd ha hm (by omega) (by omega)
   have hp1 : (p + (⟨58⟩ : UInt256)).toNat = p.toNat + 58 :=
     uadd_word_ofNat_toNat p 58 (by change _ < 2 ^ 256; omega)
@@ -44,10 +46,10 @@ theorem updatePositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     apply ExecFuncBody.execBlockStatic
     rw [← List.take_append_drop 7 updatePositionFunction.body]
     exact execBlock_append_ok hprefix (ExecBlock.consStatic hchange)
-  · have hsource : ExecBlock config (updatePositionFrame (immStore v) a) evm
+  · have hsource : ExecBlock fork config (updatePositionFrame (immStore v) a) evm
         (updatePositionFunction.body.take 11)
         (.ok (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)) := by
-      change ExecBlock config _ _ (updatePositionFunction.body.take 7 ++
+      change ExecBlock fork config _ _ (updatePositionFunction.body.take 7 ++
         updatePositionFunction.body[7]! :: updatePositionFeeBody) _
       exact execBlock_append_ok hprefix
         (ExecBlock.consNormal hchange (updatePositionFeeSource v a evm))

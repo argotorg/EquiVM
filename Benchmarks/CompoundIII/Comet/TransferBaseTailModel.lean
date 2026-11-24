@@ -1,25 +1,27 @@
 import Benchmarks.CompoundIII.Comet.WithdrawBaseTailModel
 import Benchmarks.CompoundIII.Comet.TransferBaseEventsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive TransferBaseTailTrace (v : CometWithExtendedAssetListImmutables)
+inductive TransferBaseTailTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src : AccountAddress) (balance : UInt256) (evm : EVM.State) : InternalOutcome → Prop where
-  | nonnegative (hn : 0 ≤ signedWord balance) : TransferBaseTailTrace v src balance evm (.ok evm)
+  | nonnegative (hn : 0 ≤ signedWord balance) : TransferBaseTailTrace fork v src balance evm (.ok evm)
   | tooSmall (hn : signedWord balance < 0) (hm : ¬ WithdrawBaseBorrowMin v balance) :
-      TransferBaseTailTrace v src balance evm .reverted
+      TransferBaseTailTrace fork v src balance evm .reverted
   | failed (hn : signedWord balance < 0) (hm : WithdrawBaseBorrowMin v balance)
-      (hc : CollateralCheckTrace v true src evm none) :
-      TransferBaseTailTrace v src balance evm .reverted
+      (hc : CollateralCheckTrace fork v true src evm none) :
+      TransferBaseTailTrace fork v src balance evm .reverted
   | rejected {evm'} (hn : signedWord balance < 0) (hm : WithdrawBaseBorrowMin v balance)
-      (hc : CollateralCheckTrace v true src evm (some (evm', false))) :
-      TransferBaseTailTrace v src balance evm .reverted
+      (hc : CollateralCheckTrace fork v true src evm (some (evm', false))) :
+      TransferBaseTailTrace fork v src balance evm .reverted
   | accepted {evm'} (hn : signedWord balance < 0) (hm : WithdrawBaseBorrowMin v balance)
-      (hc : CollateralCheckTrace v true src evm (some (evm', true))) :
-      TransferBaseTailTrace v src balance evm (.ok evm')
+      (hc : CollateralCheckTrace fork v true src evm (some (evm', true))) :
+      TransferBaseTailTrace fork v src balance evm (.ok evm')
 
 def transferBaseChecks : List Stmt :=
   [.require withdrawBaseBorrowMinExpr,

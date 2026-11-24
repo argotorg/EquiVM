@@ -9,6 +9,8 @@ import Reasoning.SteleBody
 import Reasoning.Storage
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flipper constructor correctness stub
 
@@ -734,7 +736,7 @@ theorem flipperCtorSteleExecSuccess
     let evm6 := flipperCtorAfterCatState evm5 cat
     let evm7 := flipperCtorAfterIlkState evm6 ilk
     let evm8 := flipperCtorAfterWardsState evm7
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .address cat, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I
       (.returned { contract := contract, locals := flipperCtorLocals vat cat ilk } evm8 none) := by
@@ -795,22 +797,22 @@ theorem flipperCtorSteleExecSuccess
         assign_flipperCtorWardsCaller evm7 (locals := locals)
           (by simp [locals, flipperCtorLocals])
     have hblock :
-        ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+        ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
           (.ok { contract := contract, locals := locals } evm8) := by
       simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
       refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
       · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignBeg) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, evm0, flipperCtorAfterBegState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignTtl) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignTau) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignKicks) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, initState] using hperm)) ?_ hassignVat) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignBeg) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, evm0, flipperCtorAfterBegState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignTtl) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignTau) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignKicks) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, initState] using hperm)) ?_ hassignVat) ?_
       · simpa [locals] using evalExpr_flipperCtorLocalVat (evm := evm4) vat cat ilk
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, initState] using hperm)) ?_ hassignCat) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, initState] using hperm)) ?_ hassignCat) ?_
       · simpa [locals] using evalExpr_flipperCtorLocalCat (evm := evm5) vat cat ilk
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm6, evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, flipperCtorAfterCatState, initState] using hperm)) ?_ hassignIlk) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm6, evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, flipperCtorAfterCatState, initState] using hperm)) ?_ hassignIlk) ?_
       · simpa [locals] using evalExpr_flipperCtorLocalIlk (evm := evm6) vat cat ilk
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm7, evm6, evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, flipperCtorAfterCatState, flipperCtorAfterIlkState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm7, evm6, evm5, evm4, evm3, evm2, evm1, evm0, flipperCtorAfterBegState, flipperCtorAfterTtlState, flipperCtorAfterTauState, flipperCtorAfterKicksState, flipperCtorAfterVatState, flipperCtorAfterCatState, flipperCtorAfterIlkState, initState] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
         ExecBlock.nil
     simpa [ExecTransitionBody, contract, constructorDecl, locals, evm0, evm8] using
       ExecFuncBody.execBlockOK hblock
@@ -819,7 +821,7 @@ theorem flipperSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat cat : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .address cat, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -840,10 +842,10 @@ theorem flipperCtorNonpayableRDrev
     (vat cat : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
     (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
+    RDrev fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
       (initState σ σ₀ g A I) := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  have rd0 : RD code I g (initState σ σ₀ g A I) ⟨0⟩ []
+  have rd0 : RD fork code I g (initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
     simpa [code] using RD.initState hcode
   have rd5 := evm_run rd0 with [
@@ -1046,12 +1048,12 @@ theorem flipperCtorInitReach
     let σPacked := sstoreAccountMap I.codeOwner σBeg ⟨5⟩ slot5New
     let σKicks := sstoreAccountMap I.codeOwner σPacked ⟨6⟩ ⟨0⟩
     ∃ k C,
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨66⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C := by
   intro σBeg slot5Old slot5New σPacked σKicks
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  have rd0 : RD code I g (initState σ σ₀ g A I) ⟨0⟩ []
+  have rd0 : RD fork code I g (initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
     simpa [code] using RD.initState hcode
   have rd5 := evm_run rd0 with [
@@ -1120,14 +1122,14 @@ private theorem flipperCtorValueGuardReach
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hwv : I.weiValue = ⟨0⟩)
     (rd66 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨66⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨79⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨66⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks
     k C at rd66
   have rd72 := evm_run rd66 with [
@@ -1147,15 +1149,15 @@ private theorem flipperCtorArgsSizeReach
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (rd79 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨79⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨87⟩
       [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨79⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks
     k C at rd79
   have rd87 := evm_run rd79 with [
@@ -1174,16 +1176,16 @@ private theorem flipperCtorArgsCodecopyReach
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd87 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨87⟩
         [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨93⟩
       [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
       ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨87⟩ [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
     σKicks k C at rd87
   have hcopy : code.write 6596 solcFreePtrMem 128 96 = flipperCtorCopiedMem vat cat ilk := by
@@ -1204,16 +1206,16 @@ private theorem flipperCtorArgsFreePtrReach
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd93 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨93⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
         ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨99⟩
       [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
       ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨93⟩ [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
     ByteArray.empty σKicks k C at rd93
   have hmstore :
@@ -1234,17 +1236,17 @@ private theorem flipperCtorArgsGuardReach
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd99 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨99⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
         ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨107⟩
       [⟨112⟩, ⟨1⟩, ⟨96⟩, ⟨128⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
       σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨99⟩ [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
     ByteArray.empty σKicks k C at rd99
   have rd107 := evm_run rd99 with [
@@ -1265,17 +1267,17 @@ private theorem flipperCtorArgsLoadReach
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (rd112 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨112⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
         ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨128⟩
       [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
       σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I)
+  change RD fork code I g (initState σ σ₀ g A I)
     ⟨112⟩ [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
     ByteArray.empty σKicks k C at rd112
   have hmloadVat := flipperCtorArgsMem_mload_vat vat cat ilk hilk
@@ -1307,10 +1309,10 @@ theorem flipperCtorArgsReach
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hwv : I.weiValue = ⟨0⟩) {k C : ℕ}
     (rd66 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨66⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨128⟩
       [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
@@ -1330,12 +1332,12 @@ theorem flipperCtorVatStoreReach
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd128 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨128⟩
         [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σKicks k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨159⟩
       [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
         solcAddrMask, ⟨64⟩]
@@ -1343,7 +1345,7 @@ theorem flipperCtorVatStoreReach
       (sstoreAccountMap I.codeOwner σKicks ⟨2⟩
           (setAddressOffset0Word (solcSlotWord σKicks I ⟨2⟩) (EVM.word vat.val))) k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I) ⟨128⟩
+  change RD fork code I g (initState σ σ₀ g A I) ⟨128⟩
         [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σKicks k C at rd128
@@ -1433,13 +1435,13 @@ theorem flipperCtorCatStoreReach
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd159 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨159⟩
         [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
           solcAddrMask, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨175⟩
       [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
@@ -1447,7 +1449,7 @@ theorem flipperCtorCatStoreReach
           (setAddressOffset0Word (solcSlotWord σVat I ⟨7⟩) (EVM.word cat.val)))
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I) ⟨159⟩
+  change RD fork code I g (initState σ σ₀ g A I) ⟨159⟩
         [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
           solcAddrMask, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
@@ -1490,19 +1492,19 @@ theorem flipperCtorIlkStoreReach
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd175 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨175⟩
         [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σCat k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨181⟩
       [⟨32⟩, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
       (sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk))
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I) ⟨175⟩
+  change RD fork code I g (initState σ σ₀ g A I) ⟨175⟩
         [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σCat k C at rd175
@@ -1520,18 +1522,18 @@ theorem flipperCtorWardsStoreReach
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (hperm : I.perm = true)
     (rd181 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨181⟩
         [⟨32⟩, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σIlk k C) :
-    ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+    ∃ k' C', RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
       (initState σ σ₀ g A I) ⟨196⟩ []
       (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
       (sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I) ⟨181⟩
+  change RD fork code I g (initState σ σ₀ g A I) ⟨181⟩
         [⟨32⟩, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σIlk k C at rd181
@@ -1564,15 +1566,15 @@ theorem flipperCtorReturnRuntime
     {k C : ℕ}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (rd196 :
-      RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
+      RD fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
         (initState σ σ₀ g A I) ⟨196⟩ []
         (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σFinal k C) :
-    RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
+    RDret fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
       (initState σ σ₀ g A I)
       σFinal flipperBytecode := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState σ σ₀ g A I) ⟨196⟩ []
+  change RD fork code I g (initState σ σ₀ g A I) ⟨196⟩ []
         (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
         σFinal k C at rd196
   have hcopy :
@@ -1619,7 +1621,7 @@ theorem flipperCtorSuccessRDret
     let σCat := sstoreAccountMap I.codeOwner σVat ⟨7⟩ catStored
     let σIlk := sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk)
     let σWards := sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩
-    RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
+    RDret fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
       (initState σ σ₀ g A I)
       σWards flipperBytecode := by
   intro σBeg slot5Old slot5New σPacked σKicks vatStored σVat catStored σCat σIlk σWards
@@ -1658,7 +1660,7 @@ theorem flipperCtorSuccessRDret
 set_option maxHeartbeats 1000000 in
 theorem flipperConstructorCorrect :
     typedConstructorRefinement config flipperCreationBytecode contract (fun _ => flipperBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases flipperCtorDeployment_shape hdeploy with ⟨vat, cat, ilk, hargs, hilk, hdeployed⟩
   subst args
@@ -1681,11 +1683,11 @@ theorem flipperConstructorCorrect :
     let σCat := sstoreAccountMap I.codeOwner σVat ⟨7⟩ catStored
     let σIlk := sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk)
     let σWards := sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩
-    have hrd0 := flipperCtorSuccessRDret
+    have hrd0 := flipperCtorSuccessRDret (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat cat ilk hcodeTail hperm hilk hwv
     have hrd :
-        RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
+        RDret fork (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
           (Sat256.ofUInt256 g)
           (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
@@ -1787,7 +1789,7 @@ theorem flipperConstructorCorrect :
               (g := g) vat cat ilk hilk hwv)
         ?_
       exact ctorResultEquiv.success rfl rfl hAccountsWards rfl
-  · have hrd := flipperCtorNonpayableRDrev
+  · have hrd := flipperCtorNonpayableRDrev (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat cat ilk hcodeTail hperm hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩

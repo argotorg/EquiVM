@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.ConstructorDomainSource
 import Examples.UniswapV2Pair.Bytes32WordSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -47,7 +49,7 @@ theorem constructorAssignFactory (evm : EVM.State) :
 
 theorem uniswapConstructorSourceReturns (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ constructorDecl.body
+    ExecTransitionBody fork config contract evm ∅ constructorDecl.body
       (.returned { contract := contract, locals := ∅ }
         (constructorFactoryState (constructorDomainState (uniswapLockExitedState evm))) none) := by
   apply ExecFuncBody.execBlockOK
@@ -71,7 +73,7 @@ theorem uniswapConstructorSourceReturns (evm : EVM.State) (hwv : evm.executionEn
 
 theorem uniswapConstructorSourceReverts (evm : EVM.State) (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ constructorDecl.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ constructorDecl.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (ExecStmt.assign
     (hperm := Or.inr hperm)

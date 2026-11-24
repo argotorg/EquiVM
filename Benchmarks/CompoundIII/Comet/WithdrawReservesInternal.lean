@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawReservesModel
 import Benchmarks.CompoundIII.Comet.WithdrawReservesLog
 import Benchmarks.CompoundIII.Comet.TransferOutInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -9,13 +11,13 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def WithdrawReservesRun (v : CometWithExtendedAssetListImmutables)
+def WithdrawReservesRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (g : Sat256) (s0 : State) (result : Option EVM.State) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some evm' => if evm'.executionEnv.perm = true then
-      RDret (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
-    else RDstatic (deployedRuntime v) g s0
+      RDret fork (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
+    else RDstatic fork (deployedRuntime v) g s0
 
 theorem cometWithdrawReservesAfter {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
@@ -23,10 +25,10 @@ theorem cometWithdrawReservesAfter {v : CometWithExtendedAssetListImmutables}
     {recipient : AccountAddress} {evm : EVM.State}
     (hstack : R.length + 21 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = free)
     (hlo : 96 ≤ free.toNat) (hb : free.toNat + 68 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6208⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6208⟩
       (reserves :: mask :: EVM.word recipient.val :: amount :: R) mem aw rdata σ k C) :
-    ∃ result, WithdrawReservesAfter v recipient amount reserves evm result ∧
-      WithdrawReservesRun v g s0 result := by
+    ∃ result, WithdrawReservesAfter fork v recipient amount reserves evm result ∧
+      WithdrawReservesRun fork v g s0 result := by
   rcases cometWithdrawReservesChecks (by omega) h with ⟨hv, k1, C1, r1⟩ | ⟨hv, r1⟩
   · have r2 := cometWithExtendedAssetList_block_6226
       (immWords := wordsOf (immStore v)) (by omega)
@@ -58,10 +60,10 @@ theorem cometWithdrawReservesQuery {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 38 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = free)
     (hlo : 96 ≤ free.toNat) (hb : free.toNat + 100 < 2^64)
     (ha : evm.executionEnv.source = v.governor) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6201⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6201⟩
       (mask :: EVM.word recipient.val :: amount :: R) mem aw rdata σ k C) :
-    ∃ result, WithdrawReservesTrace v recipient amount evm result ∧
-      WithdrawReservesRun v g s0 result := by
+    ∃ result, WithdrawReservesTrace fork v recipient amount evm result ∧
+      WithdrawReservesRun fork v g s0 result := by
   have r1 := cometWithExtendedAssetList_block_6201
     (immWords := wordsOf (immStore v)) (by change R.length + 3 + 2 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

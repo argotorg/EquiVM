@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyValues
 import Benchmarks.UniswapV4PoolManager.LocalStruct
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -28,11 +30,11 @@ def poolModifyTickAssignBlock (upper : Bool) : List Stmt :=
 theorem poolModifyTickAssignments {f : Frame} {evm : State} {upper flipped fl fu : Bool} {gross gl gu : UInt256}
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu))
     (hr : f.locals.get? (poolModifyTickRet upper) = some (.tuple [.bool flipped, .int (Int.ofNat gross.toNat)])) :
-    ExecBlock config f evm (poolModifyTickAssignBlock upper)
+    ExecBlock fork config f evm (poolModifyTickAssignBlock upper)
       (.ok (poolModifyTickFrame f upper flipped gross fl gl fu gu) evm) := by
   let f1 := {f with locals := f.locals.insert "state" (poolModifyFlipValue upper flipped fl gl fu gu)}
   have he0 := evalTupleProjection (evalLocalValue (cfg := config) (f := f) (evm := evm) hr) (i := 0) rfl
-  have h0 : ExecStmt config f evm (poolModifyTickAssignBlock upper)[0]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm (poolModifyTickAssignBlock upper)[0]! (.ok f1 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he0 (assignLocalField hs
       (show lookupField? (poolModifyStateValue fl gl fu gu) (poolModifyFlipField upper) =
         some (.bool (if upper then fu else fl)) by cases upper <;> rfl)
@@ -40,7 +42,7 @@ theorem poolModifyTickAssignments {f : Frame} {evm : State} {upper flipped fl fu
   have hr1 : f1.locals.get? (poolModifyTickRet upper) = some (.tuple [.bool flipped, .int (Int.ofNat gross.toNat)]) :=
     (store_get_ne _ _ (by cases upper <;> decide : ("state" == poolModifyTickRet upper) = false)).trans hr
   have he1 := evalTupleProjection (evalLocalValue (cfg := config) (f := f1) (evm := evm) hr1) (i := 1) rfl
-  have h1 : ExecStmt config f1 evm (poolModifyTickAssignBlock upper)[1]!
+  have h1 : ExecStmt fork config f1 evm (poolModifyTickAssignBlock upper)[1]!
       (.ok (poolModifyTickFrame f upper flipped gross fl gl fu gu) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he1 (assignLocalField (store_get_self _ _ _)
       (show lookupField? (poolModifyFlipValue upper flipped fl gl fu gu) (poolModifyGrossField upper) =

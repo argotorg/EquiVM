@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.Arithmetic
 import Benchmarks.CurveVault.RuntimeBlocks_002
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -35,15 +37,15 @@ theorem vaultInitializePrecision {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {decimals x1 x2 : UInt256} {R : List UInt256} {locals : Store}
     (hd : locals.get? "__c0" = some (.int (Int.ofNat decimals.toNat)))
     (haw : aw.toNat ≤ 10) (hstack : R.length + 4 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 294) (decimals :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 294) (decimals :: x1 :: x2 :: R) mem aw rdata σ k C) :
     (decimals.toNat ≤ 18 ∧ ∃ aw' k' C', aw'.toNat ≤ 10 ∧
-      ExecStmt config {contract := contract, locals := locals} evm initializeTransition.body[4]!
+      ExecStmt fork config {contract := contract, locals := locals} evm initializeTransition.body[4]!
         (.ok {contract := contract, locals := (locals.insert "borrowed_precision"
           (.int (Int.ofNat (UInt256.exp ⟨10⟩ (UInt256.sub ⟨18⟩ decimals)).toNat)))} evm) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 327) (UInt256.sub ⟨18⟩ decimals :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 327) (UInt256.sub ⟨18⟩ decimals :: R)
         (decimals.toByteArray.write 0 mem 288 32) aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm initializeTransition.body[4]! .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} evm initializeTransition.body[4]! .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let prepared := decimals.toByteArray.write 0 mem 288 32
   have hmd : memLoad (UInt256.ofNat 288) prepared = decimals :=
     memLoad_write_back _ _ 288 (by decide +kernel) (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 288 (by omega)))
@@ -69,7 +71,7 @@ theorem vaultInitializePrecision {I : ExecutionEnv} {g : Sat256} {s0 evm : State
       change UInt256.gt (UInt256.sub ⟨18⟩ (memLoad (UInt256.ofNat 288) prepared)) ⟨18⟩ = _
       rw [hmd]
       exact ugt_zero (by rw [usub_toNat hsub]; change 18 - decimals.toNat ≤ 18; omega)) h)
-  change RD vaultBytecode I g s0 (UInt256.ofNat 317)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 317)
     (UInt256.sub ⟨18⟩ (memLoad (UInt256.ofNat 288) prepared) :: memLoad (UInt256.ofNat 288) prepared :: R)
     prepared _ rdata σ k0 C0 at rd317
   rw [hmd] at rd317

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.BoolCallBlock
 import Benchmarks.EAS.EAS.ResolverOneSource
 import Benchmarks.EAS.EAS.RefundSource
 import Benchmarks.EAS.EAS.WordExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -50,7 +52,7 @@ theorem resolveOneZeroExpr_eval {cfg : Config} {frame : Frame} {evm : EVM.State}
 theorem resolveOnePrefixSource {cfg : Config} {locals imms : Store} {evm : EVM.State} {target : AccountAddress}
     (hr : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm
       (.field (.var "schemaRecord") "resolver") = .ok (.address target)) (hn : target ≠ EVM.address 0) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveOnePrefix
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOnePrefix
       (.ok {contract := contract, locals := locals.insert "resolver" (.address target), immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl hr)
   apply ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ExecBlock.nil
@@ -64,10 +66,10 @@ theorem resolveOneSource_zero {cfg : Config} {locals imms : Store} {evm : EVM.St
     (hv : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if value = ⟨0⟩ then
-      ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body
+      ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body
         (.returned {contract := contract, locals := locals.insert "resolver" (.address (EVM.address 0)), immutables := imms}
           evm (some [.int 0,.int (Int.ofNat heap)]))
-    else ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body .reverted := by
+    else ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body .reverted := by
   have hrz : evalExpr? cfg {contract := contract, locals := locals.insert "resolver" (.address (EVM.address 0)), immutables := imms}
       evm resolveOneZeroExpr = .ok (.bool true) := by
     simpa only [decide_true] using resolveOneZeroExpr_eval (cfg := cfg)
@@ -96,16 +98,16 @@ theorem resolveOneAmountSource {cfg : Config} {locals imms : Store} {evm : EVM.S
     (hv : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (ha : locals.get? "availableValue" = some (.int (Int.ofNat available.toNat))) :
     if value.toNat ≤ available.toNat then
-      ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneAmountBlock
+      ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneAmountBlock
         (.ok {contract := contract, locals := locals.insert "availableValue" (.int (Int.ofNat (UInt256.sub available value).toNat)), immutables := imms} evm)
-    else ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneAmountBlock .reverted := by
+    else ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneAmountBlock .reverted := by
   have he := naturalLeSource (cfg := cfg) (frame := {contract := contract, locals := locals, immutables := imms}) (evm := evm)
     (by simp only [evalExpr?, hv, EvalResult.ofOption] : evalExpr? cfg _ evm (.var "value") = .ok (.int (Int.ofNat value.toNat)))
     (by simp only [evalExpr?, ha, EvalResult.ofOption] : evalExpr? cfg _ evm (.var "availableValue") = .ok (.int (Int.ofNat available.toNat)))
   by_cases hb : value.toNat ≤ available.toNat
   · rw [if_pos hb]
     apply ExecBlock.consNormal (ExecStmt.requireTrue (by simpa only [decide_eq_true hb] using he))
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalCastUint256Sub
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalCastUint256Sub
       (by simp only [evalExpr?, ha, EvalResult.ofOption]) (by simp only [evalExpr?, hv, EvalResult.ofOption]) hb)
       (assignLocalBase_ok (frame := {contract := contract, locals := locals, immutables := imms}) ha)) ExecBlock.nil
   · rw [if_neg hb]
@@ -121,13 +123,13 @@ theorem resolveOneResolverSource {locals imms : Store} {evm evm' : EVM.State} {a
     (hv : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hrv : locals.get? "isRevocation" = some (.bool rev)) (hsize : a.data.size < UInt256.size)
-    (hc : callViaEVM evm target (Int.ofNat value.toNat) (resolverOnePayload a rev) (success,evm',out))
+    (hc : callViaEVM fork evm target (Int.ofNat value.toNat) (resolverOnePayload a rev) (success,evm',out))
     (hout : out.size < 2^255)
     (hperm : EVM.wordOfInt (Int.ofNat value.toNat) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
     if callBoolAccepted heap success out then
-      ExecStmt config {contract := contract, locals := locals, immutables := imms} evm resolveOneResolver
+      ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm resolveOneResolver
         (.ok {contract := contract, locals := resolveOneResolverLocals locals rev heap out, immutables := imms} evm')
-    else ExecStmt config {contract := contract, locals := locals, immutables := imms} evm resolveOneResolver .reverted := by
+    else ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm resolveOneResolver .reverted := by
   have hcall := resolverOneCall (hperm := hperm) (heap := heap) (imms := imms) (locals := locals)
     (args := [.var "resolver", .var "attestation", .boolLit rev, .var "value", .var "$EAS.freeMemory"])
     (retVar := resolveOneCallTmp rev)
@@ -152,10 +154,10 @@ def resolveOneRefundLocals (locals : Store) (heap : Nat) : Store :=
 
 theorem resolveOneRefundBlockSource {cfg : Config} {locals imms : Store} {evm evm' : EVM.State} {old heap : Nat}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat old)))
-    (hc : ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    (hc : ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_refund" [.var "availableValue", .var "$EAS.freeMemory"] "__c3$allocation")
       (.ok {contract := contract, locals := locals.insert "__c3$allocation" (.tuple [.tuple [],.int (Int.ofNat heap)]), immutables := imms} evm')) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneRefundBlock
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneRefundBlock
       (.ok {contract := contract, locals := resolveOneRefundLocals locals heap, immutables := imms} evm') := by
   apply ExecBlock.consNormal hc
   exact unpackHeapResult (store_get_self _ _ _)
@@ -165,7 +167,7 @@ theorem resolveOneRefundBlockSource {cfg : Config} {locals imms : Store} {evm ev
 theorem resolveOneReturnSource {cfg : Config} {locals imms : Store} {evm : EVM.State} {value : UInt256} {heap : Nat}
     (hv : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneReturn
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneReturn
       (.returned {contract := contract, locals := locals, immutables := imms} evm
         (some [.int (Int.ofNat value.toNat),.int (Int.ofNat heap)])) := by
   apply ExecFuncBody.execBlockRet (ExecBlock.consReturn (ExecStmt.return ?_))
@@ -174,9 +176,9 @@ theorem resolveOneReturnSource {cfg : Config} {locals imms : Store} {evm : EVM.S
 theorem resolveOneSource_nonzero {cfg : Config} {locals imms : Store} {evm : EVM.State} {target : AccountAddress} {result : ExecResult}
     (hr : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm
       (.field (.var "schemaRecord") "resolver") = .ok (.address target)) (hn : target ≠ EVM.address 0)
-    (ht : ExecFuncBody cfg {contract := contract, locals := locals.insert "resolver" (.address target), immutables := imms}
+    (ht : ExecFuncBody fork cfg {contract := contract, locals := locals.insert "resolver" (.address target), immutables := imms}
       evm resolveOneSuffix result) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body result := by
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveOneFunction.body result := by
   rw [resolveOne_body]
   exact execFuncBody_append (resolveOnePrefixSource hr hn) ht
 

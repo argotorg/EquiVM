@@ -2,6 +2,8 @@ import Reasoning.SteleArithmetic
 import Benchmarks.Dss.Clipper.Deny
 import Benchmarks.Dss.Clipper.FileDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -260,12 +262,12 @@ theorem clipperReachFileUintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 9)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨673⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨673⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperFileUintSelectorWord hsz hsel
-  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -284,7 +286,7 @@ theorem clipperReachFileUintBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (fork := fork) (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -370,10 +372,10 @@ theorem RD.clipperFileUintDecodeToRoutine (v : ClipperImmutables) {code : ByteAr
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨695⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨695⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J code 0).contains ⟨2621⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨2621⟩
+    ∃ k' C', RD fork code ee g s0 ⟨2621⟩
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   have rd696 := h.jumpdest (by clipper_decode) (by evm_ov)
@@ -395,10 +397,10 @@ theorem clipperFileUintDecodedToBody {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     {sel : UInt256}
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I)
       (⟨673⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨2621⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨2621⟩ : UInt256)
       (clipperFileUintData I :: calldataWord I.calldata 4 :: ⟨502⟩ :: sel :: [])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk

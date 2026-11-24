@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.TaylorRoutines
 import Benchmarks.Morpho.MorphoBlue.WadSource
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -24,10 +26,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {id rate elapsed ret : UInt256} {R : List UInt256}
 
 theorem morphoAccrueReachTaylor (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([rate, elapsed, UInt256.ofNat 13488, UInt256.ofNat 13563, marketFieldWord σ ee id 2,
         UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32, solcAddrMask,
         UInt256.ofNat 0, UInt256.ofNat 3, UInt256.ofNat 13552] ++ accrueMathTail id rate ret R)
@@ -35,7 +37,7 @@ theorem morphoAccrueReachTaylor (hstack : R.length + 40 ≤ 1024)
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_13407_packed
     (immWords := wordsOf (immStore v)) (by simp only [List.append]; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([rate, elapsed, UInt256.ofNat 13488, UInt256.ofNat 13563,
       UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 1) σ ee) uint128Mask,
@@ -49,10 +51,10 @@ theorem morphoAccrueReachTaylor (hstack : R.length + 40 ≤ 1024)
   exact ⟨aw1, k1, C1, rd1⟩
 
 theorem morphoAccrueReachInterestMul (hstack : R.length + 40 ≤ 1024) (hfit : TaylorFits rate elapsed)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([marketFieldWord σ ee id 2, taylorWord rate elapsed, UInt256.ofNat 13563, wad,
         UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32, solcAddrMask,
         UInt256.ofNat 0, UInt256.ofNat 3, wad] ++ accrueMathTail id rate ret R)
@@ -65,10 +67,10 @@ theorem morphoAccrueReachInterestMul (hstack : R.length + 40 ≤ 1024) (hfit : T
 theorem morphoAccrueMathReverts (hstack : R.length + 40 ≤ 1024)
     (hbad : ¬ TaylorFits rate elapsed ∨ UInt256.size ≤
       (marketFieldWord σ ee id 2).toNat * (taylorWord rate elapsed).toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   by_cases hf : TaylorFits rate elapsed
   · obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueReachInterestMul (v := v) hstack hf h
     exact morphoCheckedMulReverts (v := v)
@@ -79,10 +81,10 @@ theorem morphoAccrueMathReverts (hstack : R.length + 40 ≤ 1024)
 
 theorem morphoAccrueInterestOk (hstack : R.length + 40 ≤ 1024) (ht : TaylorFits rate elapsed)
     (hm : (marketFieldWord σ ee id 2).toNat * (taylorWord rate elapsed).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13407)
       ([UInt256.ofNat 96, elapsed, solcAddrMask, id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, rate] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([accrueInterestWord σ ee id rate elapsed, UInt256.ofNat 13574, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32, solcAddrMask,
         accrueInterestWord σ ee id rate elapsed, UInt256.ofNat 3, wad] ++ accrueMathTail id rate ret R)

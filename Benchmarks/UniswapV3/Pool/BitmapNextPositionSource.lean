@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -28,7 +30,7 @@ def bitmapNextBitFrame (imms : Store) (tick spacing : Int) (lte : Bool) : Frame 
       (.int (bitmapBitPos (bitmapNextPosition (bitmapNextCompressed tick spacing) lte)))}
 
 theorem bitmapNextPositionCall (imms : Store) (evm : EVM.State) (tick spacing : Int) (lte : Bool) :
-    ExecStmt config (bitmapNextPrefixFrame imms tick spacing lte) evm (bitmapNextBranch lte)[0]!
+    ExecStmt fork config (bitmapNextPrefixFrame imms tick spacing lte) evm (bitmapNextBranch lte)[0]!
       (.ok (bitmapNextCallFrame imms tick spacing lte) evm) := by
   have ec := evalExpr_var_get (cfg := config) (evm := evm)
     (bitmapNextPrefixGet imms tick spacing lte).1
@@ -46,7 +48,7 @@ theorem bitmapNextPositionCall (imms : Store) (evm : EVM.State) (tick spacing : 
 
 theorem bitmapNextPositionSource (imms : Store) (evm : EVM.State)
     (tick spacing : Int) (lte : Bool) :
-    ExecBlock config (bitmapNextPrefixFrame imms tick spacing lte) evm
+    ExecBlock fork config (bitmapNextPrefixFrame imms tick spacing lte) evm
       ((bitmapNextBranch lte).take 3) (.ok (bitmapNextBitFrame imms tick spacing lte) evm) := by
   have ew : evalExpr? config (bitmapNextCallFrame imms tick spacing lte) evm
       (.tupleGet (.var (bitmapNextCallName lte)) 0) =

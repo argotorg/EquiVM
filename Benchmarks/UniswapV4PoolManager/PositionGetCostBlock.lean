@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -34,8 +36,8 @@ private theorem positionGetMemoryCostSum {C Cr c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10
 The prefix uses the decoded instructions of block 5802; its memory and stack are the supplied summaries. -/
 theorem positionGetCostBlock {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024)
-    (h : RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 5802) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), Cₘ (positionGetActiveWords aw x0 (memLoad (UInt256.ofNat 64) mem))+C ≤ C'+Cₘ aw ∧ RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 5915) (poolManager_block_5802_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (poolManager_block_5802_memory (mem := mem) (x0 := x0) (x8 := x8) (x10 := x10)) (positionGetActiveWords aw x0 (memLoad (UInt256.ofNat 64) mem)) rdata σ k' C' := by
+    (h : RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 5802) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), Cₘ (positionGetActiveWords aw x0 (memLoad (UInt256.ofNat 64) mem))+C ≤ C'+Cₘ aw ∧ RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 5915) (poolManager_block_5802_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (poolManager_block_5802_memory (mem := mem) (x0 := x0) (x8 := x8) (x10 := x10)) (positionGetActiveWords aw x0 (memLoad (UInt256.ofNat 64) mem)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(immutableLayout, poolManagerBytecode, immWords, (⟨5802⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 160) (by immutable_decode(immutableLayout, poolManagerBytecode, immWords, (⟨5803⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 160), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)

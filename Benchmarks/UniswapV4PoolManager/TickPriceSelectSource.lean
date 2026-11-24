@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.TickPriceWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -20,7 +22,7 @@ theorem tickPriceSelectSource {f : Frame} {evm : EVM.State} {sqrtPrice low high 
     (hlow : f.locals.get? "tickLow" = some (.int (EVM.signed low)))
     (hhigh : f.locals.get? "tickHi" = some (.int (EVM.signed high)))
     (ht : f.locals.get? "tick" = some (.int (EVM.signed low))) :
-    ∃ f', ExecBlock config f evm (tickPriceFunction.body.drop 53)
+    ∃ f', ExecBlock fork config f evm (tickPriceFunction.body.drop 53)
       (signedWordResult f' evm (tickPriceChoose sqrtPrice low high)) := by
   have hneq := evalNeSignedWords (cfg := config) (evm := evm) (evalLocalValue hlow) (evalLocalValue hhigh)
   by_cases heq : low = high
@@ -28,7 +30,7 @@ theorem tickPriceSelectSource {f : Frame} {evm : EVM.State} {sqrtPrice low high 
     refine ⟨f, (ExecBlock.consNormal
       (ExecStmt.iteFalse ?_ ExecBlock.nil) (ABlock.start.returns (evalLocalValue ht)))⟩
     simpa only [heq, ne_eq, not_true_eq_false, decide_false] using hneq
-  · have hcall := tickSqrtCall (f := f) (evm := evm) hf (evalLocalValue hhigh)
+  · have hcall := tickSqrtCall (fork := fork) (f := f) (evm := evm) hf (evalLocalValue hhigh)
         (signedNatAbs_lt_size high) "priceHi"
     by_cases hb : (EVM.signed high).natAbs ≤ 887272
     · rw [if_pos hb] at hcall
@@ -52,9 +54,9 @@ theorem tickPriceSelectSource {f : Frame} {evm : EVM.State} {sqrtPrice low high 
       let f6 : Frame := {f5 with locals := f5.locals.insert "tick" (.int (EVM.signed result))}
       have ht5 : f5.locals.get? "tick" = some (.int (EVM.signed low)) :=
         (store_get_ne _ _ (by decide : ("priceHi" == "tick") = false)).trans ht
-      have hbranch : ExecStmt config f evm tickPriceFunction.body[53]! (.ok f6 evm) :=
+      have hbranch : ExecStmt fork config f evm tickPriceFunction.body[53]! (.ok f6 evm) :=
         ExecStmt.iteTrue (by simpa only [decide_eq_true heq] using hneq)
-          (ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hselect (assignLocalValue ht5))))
+          (ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hselect (assignLocalValue ht5))))
       simp only [signedWordResult, tickPriceChoose, if_neg heq, if_pos hb]
       have ht6 : f6.locals.get? "tick" = some (.int (EVM.signed result)) := store_get_self _ _ _
       exact ⟨f6, (ExecBlock.consNormal hbranch

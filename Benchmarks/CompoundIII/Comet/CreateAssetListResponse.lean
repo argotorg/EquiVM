@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListCall
 import Benchmarks.CompoundIII.Comet.ConstructorFactoryResponse
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -13,14 +15,14 @@ theorem cometCreateAssetListResponse {tail : ByteArray} {ee : ExecutionEnv} {g :
     {aw ptr base : UInt256} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hmem : ptr.toNat + 32 ≤ mem.size)
     (hptr : 96 ≤ ptr.toNat) (hfit : ptr.toNat + 32 < 2^64) (hhi : out.size < 2^138)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1394⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1394⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: base :: R)
       (callOutputMem mem out ptr ⟨32⟩) aw out σ k C) :
     if z = true ∧ ConstructorFactoryReturnValid out then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1410⟩
         (base :: calldataWord out 0 :: base :: R)
         (constructorFactoryReturnMemory mem out ptr) aw' out σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
   have hsize : out.size < UInt256.size := by change _ < 2^256; omega
   have hout : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hsize
   have hsub (n : Nat) : UInt256.sub (ptr + UInt256.ofNat n) ptr = UInt256.ofNat n :=
@@ -53,7 +55,7 @@ theorem cometCreateAssetListResponse {tail : ByteArray} {ee : ExecutionEnv} {g :
       have r7 := cometWithExtendedAssetListCreation_block_2032
         (by change R.length + 1 + 3 ≤ 1024; omega) (by native_decide) r6
       have hread := constructorFactoryReturnMemory_word hmem hptr hsize hlo
-      change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
+      change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
         (ptr :: ⟨2043⟩ :: base :: R)
         (constructorFactoryReturnMemory mem out ptr) _ out σ _ _ at r7
       by_cases hcanon : (calldataWord out 0).toNat < 2^160

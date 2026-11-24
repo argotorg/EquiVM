@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapStepFillTrace
 import Benchmarks.UniswapV4PoolManager.FixedAllocationGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,10 +16,10 @@ theorem poolSwapStepInitTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {zeroForOne : Bool} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
     (hp : memLoad (UInt256.ofNat 64) mem = step) (hf : step.toNat+256 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨19061⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19061⟩
       ([ret, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne),
         packed, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepInitAW aw step) ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨19155⟩
+    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepInitAW aw step) ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨19155⟩
       ([remaining, ret, params, calculated, packed, fee, protocol, amount, UInt256.fromBool (!zeroForOne),
         step, poolSlot id, state]++R)
       (poolSwapStepInitMem mem evm id step zeroForOne) (poolSwapStepInitAW aw step) rdata evm.accountMap k' C' := by

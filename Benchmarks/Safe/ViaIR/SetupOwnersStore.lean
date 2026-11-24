@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.WordArrayBuffer
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_016
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -31,13 +33,13 @@ theorem safeAddressHighMask :
 set_option maxRecDepth 2000 in
 theorem safeSetupOwnersStore (evm : EVM.State) {I g s0 σ k C aw mem rdata i}
     {owner current src n : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3742⟩
+    (h : RD fork safeBytecode I g s0 ⟨3742⟩
       (current :: ⟨0⟩ :: ⟨64⟩ :: owner :: ⟨1⟩ :: src :: UInt256.ofNat i :: n :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hfit : i + 1 < UInt256.size) (hperm : I.perm = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3333⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3333⟩
       (src :: UInt256.ofNat (i + 1) :: owner :: R)
       (twoWordHashMem current ⟨2⟩ mem) aw' rdata (writeOwnerLink evm current owner).accountMap
       k' C' := by
@@ -56,7 +58,7 @@ theorem safeSetupOwnersStore (evm : EVM.State) {I g s0 σ k C aw mem rdata i}
     rw [u256_add_comm]
     exact uInt256_one_add_ofNat_of_lt hfit
   rw [hh, hinc] at h'
-  change RD safeBytecode I g s0 ⟨3333⟩
+  change RD fork safeBytecode I g s0 ⟨3333⟩
     (src :: UInt256.ofNat (i + 1) :: owner :: R)
     (twoWordHashMem current ⟨2⟩ mem) aw' rdata
     (sstoreAccountMap I.codeOwner σ (mapSlot current ⟨2⟩)

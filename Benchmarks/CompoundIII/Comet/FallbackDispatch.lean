@@ -8,6 +8,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_005
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_006
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,9 +22,9 @@ theorem cometFallbackDispatchLong {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 68 → (cometWithExtendedAssetListSelBytes i == I.calldata.extract 0 4) = false) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨14⟩ []
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨14⟩ []
       solcFreePtrMem (M ⟨0⟩ ⟨64⟩ ⟨32⟩) ByteArray.empty σ k C := by
-  have r0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have r0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have r1 := cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v))
     (by decide) (by rw [lt_four_eq_zero_of_ge hsz hsize]; decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r0
@@ -509,14 +511,14 @@ theorem cometFallbackDispatch {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 68 → (cometWithExtendedAssetListSelBytes i == I.calldata.extract 0 4) = false) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨18418⟩ [⟨22⟩]
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨18418⟩ [⟨22⟩]
       solcFreePtrMem (M ⟨0⟩ ⟨64⟩ ⟨32⟩) ByteArray.empty σ k C := by
-  have h14 : ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨14⟩ []
+  have h14 : ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨14⟩ []
       solcFreePtrMem (M ⟨0⟩ ⟨64⟩ ⟨32⟩) ByteArray.empty σ k C := by
     by_cases hsz : 4 ≤ I.calldata.size
     · exact cometFallbackDispatchLong v hcode hsize hsz hnm
     · have hshort : I.calldata.size < 4 := by omega
-      have r0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+      have r0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
       have r1 := cometWithExtendedAssetList_block_0_fallthrough
         (immWords := wordsOf (immStore v)) (by decide)
         (isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)) r0

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.OperationPotentialMemory
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -30,19 +32,19 @@ theorem call_gas_minimum {cost minimum : Nat}
     {gas source recipient target value value' inOff inSize outOff outSize : UInt256}
     {permission : Bool} {s s' : State} {x : UInt256}
     (hpaid : cost ≤ s.machineState.gasAvailable.toNat)
-    (hnet : Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256
+    (hnet : Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256
       recipient)
       value gas s.accountMap s.machineState s.substate+minimum ≤ cost)
-    (h : call cost gas source recipient target value value' inOff inSize outOff outSize permission s = .ok (x, s')) :
+    (h : call fork cost gas source recipient target value value' inOff inSize outOff outSize permission s = .ok (x, s')) :
     s'.machineState.gasAvailable.toNat+minimum ≤ s.machineState.gasAvailable.toNat := by
-  have ht := Theta_gas_le (fork := s.executionEnv.fork)
+  have ht := Theta_gas_le (fork := fork)
     (σ := s.accountMap) (σ₀ := s.σ₀)
-    (A := callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target)
+    (A := callSubstate fork s.accountMap (AccountAddress.ofUInt256 target)
       s.substate)
     (s := AccountAddress.ofUInt256 source) (o := s.executionEnv.sender)
-    (r := AccountAddress.ofUInt256 recipient) (c := toExecute s.executionEnv.fork s.accountMap
+    (r := AccountAddress.ofUInt256 recipient) (c := toExecute fork s.accountMap
       (AccountAddress.ofUInt256 target))
-    (g := UInt256.ofNat (Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target)
+    (g := UInt256.ofNat (Ccallgas fork (AccountAddress.ofUInt256 target)
       (AccountAddress.ofUInt256 recipient)
       value gas s.accountMap s.machineState s.substate))
     (p := UInt256.ofNat s.executionEnv.gasPrice) (v := value) (v' := value')
@@ -50,7 +52,7 @@ theorem call_gas_minimum {cost minimum : Nat}
     (e := s.executionEnv.depth+1) (H := s.executionEnv.header)
     (blobVersionedHashes := s.executionEnv.blobVersionedHashes)
     (blocks := s.executionEnv.blocks) (w := permission)
-  have hf := UInt256.toNat_ofNat_le (Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target)
+  have hf := UInt256.toNat_ofNat_le (Ccallgas fork (AccountAddress.ofUInt256 target)
     (AccountAddress.ofUInt256 recipient) value gas s.accountMap s.machineState s.substate)
   unfold call at h
   simp [Ethereum.State.addAccessedAccount] at h
@@ -65,7 +67,7 @@ theorem call_gas_minimum {cost minimum : Nat}
 
 theorem step_create_gas_cost {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (h : step gasCost (.CREATE, arg) s = .ok s') :
+    (h : step fork gasCost (.CREATE, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+gasCost ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,
@@ -80,7 +82,7 @@ theorem step_create_gas_cost {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s 
 
 theorem step_create2_gas_cost {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (h : step gasCost (.CREATE2, arg) s = .ok s') :
+    (h : step fork gasCost (.CREATE2, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+gasCost ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,

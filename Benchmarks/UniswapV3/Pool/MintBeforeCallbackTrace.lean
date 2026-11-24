@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintModifyTrace
 import Benchmarks.UniswapV3.Pool.MintBeforeBalances
 import Benchmarks.UniswapV3.Pool.WordArrayFreshMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,23 +13,23 @@ theorem mintBeforeCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {len start : UInt256} {rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : MintArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5805⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5805⟩
       (⟨0⟩ :: ⟨0⟩ :: len :: start :: a.amount :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: EVM.word a.recipient.val :: R)
       solcFreePtrMem ⟨3⟩ rdata σ k C)
     (ha : a.Fits) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : ee.perm = true) (hov : R.length + 60 ≤ 1024) :
-    (ExecTransitionBody config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecTransitionBody config contract evm (mintLocals a) mintTransition.body
-        .staticViolation (immStore v) ∧ RDstatic (deployedRuntime v) g s0) ∨
+    (ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body
+        .staticViolation (immStore v) ∧ RDstatic fork (deployedRuntime v) g s0) ∨
     (∃ (evm' : EVM.State) (σ' : AccountMap) (out mem' : ByteArray)
       (aw' free amount0 amount1 before0 before1 : UInt256) (locals' : Store) (k' C' : Nat),
-      ExecBlock config (mintFrame v a) evm (mintTransition.body.take 16)
+      ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 16)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       SourceState s0 ee σ' evm' ∧ MintCallValues locals' a amount0 amount1 before0 before1 ∧
-      RD (deployedRuntime v) ee g s0 ⟨5966⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5966⟩
         (before1 :: before0 :: amount1 :: amount0 :: amount1 :: amount0 :: len :: start ::
           a.amount :: EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: EVM.word a.recipient.val :: R)
         mem' aw' out σ' k' C' ∧ HeapMemory mem' aw' free ∧ 128 ≤ mem'.size ∧
@@ -46,9 +48,9 @@ theorem mintBeforeCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have hzero1 : memLoad (UInt256.ofNat 96) mem1 = ⟨0⟩ := by
     rw [MemoryPrefix.memLoad hmem1 (UInt256.ofNat 96) (by decide) (by decide) hsizeParams]
     exact wordArrayAllocMem_fresh_zero _ (by intro h; cases h)
-  have hpre : ExecBlock config (mintFrame v a) evm (mintTransition.body.take 14)
+  have hpre : ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 14)
       (.ok (mintBalancesInitFrame v a a0 a1) evm1) := by
-    change ExecBlock config _ _ (mintTransition.body.take 8 ++
+    change ExecBlock fork config _ _ (mintTransition.body.take 8 ++
       (mintTransition.body.drop 8).take 4 ++ (mintTransition.body.drop 12).take 2) _
     exact execBlock_append_ok (execBlock_append_ok hsrc (mintAmountsSource v a a0 a1 evm1))
       (mintBalancesInitSource v a a0 a1 evm1)
@@ -66,7 +68,7 @@ theorem mintBeforeCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     exact execBlockAppendReverted hbad
   · refine Or.inr (Or.inr ⟨evm2, σ2, out2, mem2, aw2, free2, EVM.wordOfInt a0,
       EVM.wordOfInt a1, b0, b1, locals2, k2, C2, ?_, hs2, hv2, r2, hm2, hsize2, hzero2, ?_⟩)
-    · change ExecBlock config _ _ (mintTransition.body.take 14 ++
+    · change ExecBlock fork config _ _ (mintTransition.body.take 14 ++
         (mintTransition.body.drop 14).take 2) _
       exact execBlock_append_ok hpre hsrc2
     · change free1.toNat ≤ 128 + 1338 at hp1

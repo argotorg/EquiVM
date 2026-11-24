@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.WithdrawBody
 
+variable {fork : Ethereum.Fork}
+
 /-! # WETH9 `withdraw(uint256)` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,7 +17,7 @@ namespace Benchmarks.WETH9
 theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 4) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchWithdraw hsel
@@ -32,7 +34,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
   · by_cases hsz36 : 36 ≤ I.calldata.size
     · -- decode succeeds; reach the body
       have hdec := weth9Decode_withdraw_ok hsz36
-      obtain ⟨_, _, h1395⟩ := weth9WithdrawReachBody (σ := σ)
+      obtain ⟨_, _, h1395⟩ := weth9WithdrawReachBody (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (g := gs) hcode hwv hsz36 hsize hsel
       by_cases hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat
       · -- `balanceOf[caller] ≥ wad`: store + external call
@@ -44,7 +46,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
         · have hp : I.perm = false := by simpa using hperm
           have hstatic := permSplit_false hp
             (weth9WithdrawReachStoreSplit (g := gs) hle h1395)
-          have hbody := weth9WithdrawBodyStatic evmS I hsrcS
+          have hbody := weth9WithdrawBodyStatic (fork := fork) evmS I hsrcS
             (by simpa [evmS, initState] using hwv) hleLoadS
             (by simpa [evmS, initState] using hp)
           exact weth9ReEquivExecStatic hcode hstatic hdisp hdec hbody
@@ -67,15 +69,15 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
         · -- depth limit: the call fails, `require(success)` reverts
           have hrev := weth9WithdrawCallDepthRev (g := gs) hperm hle hdepthEq h1395
           set evmSFail : EVM.State := { evmSZero with
-            substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+            substate := (Ethereum.EVM.callSubstate fork evmSZero.accountMap
               (EVM.address evmSZero.executionEnv.source) evmSZero.substate) } with hevmSFail
-          have hcall : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+          have hcall : callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
               (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty
               (false, evmSFail, ByteArray.empty) := by
             apply callViaEVM.callNotMade rfl rfl
             rintro ⟨_, hdepthNe⟩
             exact hdepthNe (by rw [hZeroEnv]; exact hdepthEq)
-          have hbody := weth9WithdrawBodyReverts_callFailure (hperm := by assumption) evmS evmSFail I ByteArray.empty
+          have hbody := weth9WithdrawBodyReverts_callFailure (fork := fork) (hperm := by assumption) evmS evmSFail I ByteArray.empty
             hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcall)
           exact weth9ReEquivExecRev hcode hrev hdisp hdec hbody
         · have hdepthLt : I.depth.val < 1024 :=
@@ -91,7 +93,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
             set evmECall : EVM.State :=
               { evmEZero with accountMap := σ', substate := A' }
               with hevmECall
-            have hcallE : callViaEVM evmEZero (AccountAddress.ofUInt256 (solcSourceWord I))
+            have hcallE : callViaEVM fork evmEZero (AccountAddress.ofUInt256 (solcSourceWord I))
                 (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty (z, evmECall, o) := by
               refine callViaEVM.callMade
                 (valueWord := withdrawWadWord I) (σ' := σ') (g' := g'') (A' := A')
@@ -116,17 +118,17 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
             set evmSCall : EVM.State :=
               { evmSZero with accountMap := σ', substate := A' }
               with hevmSCall
-            have hcallS : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+            have hcallS : callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty (z, evmSCall, o) := by
               rw [hTargetEq]
               simpa [← hZeroState, hevmSCall, hevmECall] using hcallE
             cases z
             · -- call failed: revert
-              have hbody := weth9WithdrawBodyReverts_callFailure (hperm := by assumption) evmS evmSCall I o
+              have hbody := weth9WithdrawBodyReverts_callFailure (fork := fork) (hperm := by assumption) evmS evmSCall I o
                 hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcallS)
               exact weth9ReEquivExecRev hcode (weth9WithdrawFailureTail hosz rd1470) hdisp hdec hbody
             · -- call succeeded: return
-              have hbody := weth9WithdrawBodyReturns_success (hperm := by assumption) evmS evmSCall I o
+              have hbody := weth9WithdrawBodyReturns_success (fork := fork) (hperm := by assumption) evmS evmSCall I o
                 hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcallS)
               refine weth9ReEquivExecGen hcode (weth9WithdrawSuccessTail hperm rd1470) hdisp hdec
                 hbody ?_ (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
@@ -134,9 +136,9 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
           · -- insufficient balance: the call fails, `require(success)` reverts
             have hrev := weth9WithdrawCallInsufficientRev (g := gs) hperm hle hbalance hdepthLt h1395
             set evmSFail : EVM.State := { evmSZero with
-              substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+              substate := (Ethereum.EVM.callSubstate fork evmSZero.accountMap
                 (EVM.address evmSZero.executionEnv.source) evmSZero.substate) } with hevmSFail
-            have hcall : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+            have hcall : callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty
                 (false, evmSFail, ByteArray.empty) := by
               apply callViaEVM.callNotMade rfl rfl
@@ -144,7 +146,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
               rw [wordOfInt_ofNat_toNat, show evmSZero.executionEnv.codeOwner = I.codeOwner from by
                 rw [hZeroEnv]] at hvalueBal
               exact hbalance (by rw [hStoreMap]; exact hvalueBal)
-            have hbody := weth9WithdrawBodyReverts_callFailure (hperm := by assumption) evmS evmSFail I ByteArray.empty
+            have hbody := weth9WithdrawBodyReverts_callFailure (fork := fork) (hperm := by assumption) evmS evmSFail I ByteArray.empty
               hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcall)
             exact weth9ReEquivExecRev hcode hrev hdisp hdec hbody
       · -- `balanceOf[caller] < wad`: `require` reverts
@@ -155,17 +157,17 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
           rw [show evmS.executionEnv.codeOwner = I.codeOwner from rfl, hstoreLoadS]
           exact hlt
         have hrev := weth9WithdrawRequireRev hlt h1395
-        have hbody := weth9WithdrawBodyReverts_geFalse evmS I hsrcS (by rw [hwvS']; exact hwv) hltS
+        have hbody := weth9WithdrawBodyReverts_geFalse (fork := fork) evmS I hsrcS (by rw [hwvS']; exact hwv) hltS
         exact weth9ReEquivExecRev hcode hrev hdisp hdec hbody
     · -- calldata too short: decode reverts
       have hshort : I.calldata.size < 36 := by omega
       exact weth9ReEquivDecodeFailed hcode
-        (weth9WithdrawDecodeRev (σ := σ) (σ₀ := σ₀) (A := A)
+        (weth9WithdrawDecodeRev (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
           (g := gs) hcode hwv hsz4 hshort hsize hsel)
         hdisp (weth9Decode_withdraw_none_short hsz4 hshort)
   · -- non-zero callvalue: the non-payable guard reverts
     exact weth9NonpayableRevert hcode
-      (weth9WithdrawGuardRev (σ := σ) (σ₀ := σ₀) (A := A)
+      (weth9WithdrawGuardRev (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
         (g := gs) hcode hwv hsz4 hsize hsel)
       hdisp (fun callargs _ => bodyReverts_nonPayable (by rw [hwvS']; exact hwv))
 

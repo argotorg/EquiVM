@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AccrualTime
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -15,8 +17,8 @@ theorem cometNow {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024) (ht : (timestampWord ee).toNat < 2^40)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7614⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (timestampWord ee :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7614⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (timestampWord ee :: R)
       mem aw rdata σ k' C' := by
   have hg : UInt256.lt (timestampWord ee)
       (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 40)) = ⟨1⟩ := ult_one ht
@@ -34,8 +36,8 @@ theorem cometNow_revert {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024) (ht : ¬ (timestampWord ee).toNat < 2^40)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7614⟩ R mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7614⟩ R mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hg : UInt256.lt (timestampWord ee)
       (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 40)) = ⟨0⟩ :=
     ult_zero (Nat.le_of_not_gt ht)
@@ -59,8 +61,8 @@ theorem cometCheckedSub40 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hx : x.toNat < 2^40) (hy : y.toNat < 2^40)
     (hle : y.toNat ≤ x.toNat) (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7753⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7753⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
       mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7753_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack)
@@ -76,8 +78,8 @@ theorem cometCheckedSub40_revert {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hx : x.toNat < 2^40) (hy : y.toNat < 2^40)
     (hlt : x.toNat < y.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7753⟩ (x :: y :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7753⟩ (x :: y :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7753_taken
     (immWords := wordsOf (immStore v)) hstack
     (by rw [mask40Clean x hx, mask40Clean y hy, ult_one hlt]; decide)

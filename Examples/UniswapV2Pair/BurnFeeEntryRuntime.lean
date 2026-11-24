@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintFeeCallRuntimeCases
 import Examples.UniswapV2Pair.BurnInternalCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -12,11 +14,11 @@ theorem uniswapBurnRuntimeMintFeeEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {balance0 balance1 token0 token1 reserve0 reserve1 : UInt256}
     {R : List UInt256} {k C : ℕ}
-    (rd4444 : RD uniswapV2PairBytecode I g s0 ⟨4444⟩
+    (rd4444 : RD fork uniswapV2PairBytecode I g s0 ⟨4444⟩
       (balance1 :: ⟨0⟩ :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨7696⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨7696⟩
       (reserve1 :: reserve0 :: ⟨4472⟩ :: ⟨0⟩ ::
         uniswapCodeOwnerStorageWord I σ
           (uniswapInternalMintBalanceHashSlot (UInt256.ofNat I.codeOwner.val) mem) ::

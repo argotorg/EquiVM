@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_020
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -43,11 +45,11 @@ theorem cometDecodeBool {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {off ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
     if BoolCanonical (calldataWord ee.calldata off.toNat) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (calldataWord ee.calldata off.toNat :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hc : BoolCanonical (calldataWord ee.calldata off.toNat)
   · rw [if_pos hc]
     have hclean := (boolWordClean_iff _).mpr hc
@@ -76,8 +78,8 @@ theorem cometDecodeBool_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {off ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hc : BoolCanonical (calldataWord ee.calldata off.toNat))
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord ee.calldata off.toNat :: R) mem aw rdata σ k' C' := by
   have hr := cometDecodeBool (v := v) hstack hret h
   rwa [if_pos hc] at hr
@@ -87,8 +89,8 @@ theorem cometDecodeBool_bad {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {off ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hc : ¬ BoolCanonical (calldataWord ee.calldata off.toNat))
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3348⟩ (off :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hr := cometDecodeBool (v := v) hstack hret h
   rwa [if_neg hc] at hr
 
@@ -96,9 +98,9 @@ theorem toUInt8Callable_lookup : lookupCallable? contract "toUInt8" = some toUIn
 
 theorem toUInt8_call (frame : Frame) (evm : EVM.State) (arg : Expr) (ret : Ident) (b : Bool)
     (hc : frame.contract = contract) (he : evalExpr? config frame evm arg = .ok (.bool b)) :
-    ExecStmt config frame evm (.internalCall "toUInt8" [arg] ret)
+    ExecStmt fork config frame evm (.internalCall "toUInt8" [arg] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int (boolWord b).toNat) } evm) := by
-  have hb : ExecFuncBody config
+  have hb : ExecFuncBody fork config
       { frame with locals := (∅ : Store).insert "x" (.bool b) } evm toUInt8Callable.body
       (.returned { frame with locals := (∅ : Store).insert "x" (.bool b) }
         evm (some [.int (boolWord b).toNat])) := by
@@ -114,9 +116,9 @@ theorem cometToUInt8 {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256} (b : Bool)
     (hstack : R.length + 4 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11118⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11118⟩
       (boolWord b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (boolWord b :: R) mem aw rdata σ k' C' := by
   cases b with
   | false =>

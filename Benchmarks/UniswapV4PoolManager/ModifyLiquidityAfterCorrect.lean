@@ -3,18 +3,20 @@ import Benchmarks.UniswapV4PoolManager.AfterLiquidityHookTrace
 import Benchmarks.UniswapV4PoolManager.AfterLiquidityReplyMemory
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def modifyLiquidityAfterHookTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def modifyLiquidityAfterHookTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (before : Frame) (key : PoolKeyWords) (keyPtr fees junk : UInt256)
     (R : List UInt256) (f : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ ∃ caller hookDelta mem rdata free,
     f = modifyLiquidityAfterHookFrame before caller hookDelta ∧ PoolKeyView mem keyPtr key ∧
     free.toNat+64 < UInt256.size ∧ memLoad (UInt256.ofNat 64) mem = free ∧ ∃ aw k C,
-      RD (deployedRuntime v) I g s0 ⟨6222⟩
+      RD fork (deployedRuntime v) I g s0 ⟨6222⟩
         ([hookDelta, caller, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
         mem aw rdata post.accountMap k C
 
@@ -37,13 +39,13 @@ theorem modifyLiquidityAfterCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨14427⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14427⟩
       ([key.hooks, keyPtr, paramsPtr, delta, fees, src, len, ⟨6222⟩, ⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm ((modifyLiquidityTransition.body.drop 26).take 3) result ∧
-      blockResultTrace (deployedRuntime v) g s0
-        (modifyLiquidityAfterHookTrace v I g s0 f key keyPtr fees junk R) (fun _ _ => False) result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm ((modifyLiquidityTransition.body.drop 26).take 3) result ∧
+      blockResultTrace fork (deployedRuntime v) g s0
+        (modifyLiquidityAfterHookTrace fork v I g s0 f key keyPtr fees junk R) (fun _ _ => False) result := by
   let hook := AccountAddress.ofNat key.hooks.toNat
   have hw : accountWord hook = key.hooks :=
     (accountWord_fromId key.hooks).trans (solcAddrMask_clean hc.2.2.2.2)
@@ -65,23 +67,23 @@ theorem modifyLiquidityAfterCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : St
   simp only [afterLiquidityInvocationResult, hI] at hstmt
   unfold afterLiquidityTraceResult at hr
   have hdone {state : State} {caller hookDelta free' : UInt256} {mem' rdata' : ByteArray}
-      (hs : ExecStmt config f evm modifyLiquidityTransition.body[26]!
+      (hs : ExecStmt fork config f evm modifyLiquidityTransition.body[26]!
         (.ok (modifyLiquidityAfterCallFrame f caller hookDelta) state))
       (henv' : state.executionEnv = I) (hworld' : state.σ₀ = s0.σ₀)
       (hkey' : PoolKeyView mem' keyPtr key) (hfreefit : free'.toNat+64 < UInt256.size)
       (hfree' : memLoad (UInt256.ofNat 64) mem' = free')
-      (ht : afterLiquidityReturnTrace v I g s0 mem' rdata' state.accountMap ⟨6222⟩ caller hookDelta
+      (ht : afterLiquidityReturnTrace fork v I g s0 mem' rdata' state.accountMap ⟨6222⟩ caller hookDelta
         ([⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)) :
-      ∃ result, ExecBlock config f evm ((modifyLiquidityTransition.body.drop 26).take 3) result ∧
-        blockResultTrace (deployedRuntime v) g s0
-          (modifyLiquidityAfterHookTrace v I g s0 f key keyPtr fees junk R) (fun _ _ => False) result := by
+      ∃ result, ExecBlock fork config f evm ((modifyLiquidityTransition.body.drop 26).take 3) result ∧
+        blockResultTrace fork (deployedRuntime v) g s0
+          (modifyLiquidityAfterHookTrace fork v I g s0 f key keyPtr fees junk R) (fun _ _ => False) result := by
     refine ⟨_, ExecBlock.consNormal hs (modifyLiquidityAfterAssignSource hd hh),
       henv', hworld', caller, hookDelta, mem', rdata', free', rfl, hkey', hfreefit, hfree', ?_⟩
     exact ht
   have hactive (caller hookDelta : UInt256)
-      (hs : ExecStmt config f evm modifyLiquidityTransition.body[26]!
+      (hs : ExecStmt fork config f evm modifyLiquidityTransition.body[26]!
         (.ok (modifyLiquidityAfterCallFrame f caller hookDelta) post))
-      (ht : afterLiquidityReturnTrace v I g s0
+      (ht : afterLiquidityReturnTrace fork v I g s0
         (afterLiquidityReplyMemory (afterLiquidityAdd p) I.calldata mem src.toNat free len I.source key p delta fees out)
         out post.accountMap ⟨6222⟩ caller hookDelta ([⟨6240⟩, fees, keyPtr, UInt256.ofNat 64, junk] ++ R)) := by
     have hwide : free.toNat+len.toNat+out.size+768 < UInt256.size := by

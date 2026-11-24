@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dent.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1533,7 +1535,7 @@ theorem evalExpr_dent_tic_var_kissRetTicLocals
 theorem flopperDentBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : dentLiveWord evm ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -1544,7 +1546,7 @@ theorem flopperDentBodyReverts_guyNotSet (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : dentLiveWord evm = ⟨1⟩)
     (hguy : dentGuyWord evm I = ⟨0⟩) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -1559,7 +1561,7 @@ theorem flopperDentBodyReverts_ticFinished (evm : EVM.State) (I : ExecutionEnv)
     (hguy : dentGuyWord evm I ≠ ⟨0⟩)
     (hticNe : dentTicWord evm I ≠ ⟨0⟩)
     (hticLe : (dentTicWord evm I).toNat ≤ (dentTimestampWord evm).toNat) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -1578,7 +1580,7 @@ theorem flopperDentBodyReverts_endFinished (evm : EVM.State) (I : ExecutionEnv)
       (dentTimestampWord evm).toNat < (dentTicWord evm I).toNat ∨
         dentTicWord evm I = ⟨0⟩)
     (hendLe : (dentEndWord evm I).toNat ≤ (dentTimestampWord evm).toNat) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
         (.binary .or
@@ -1609,7 +1611,7 @@ theorem flopperDentBodyReverts_bidMismatch (evm : EVM.State) (I : ExecutionEnv)
         dentTicWord evm I = ⟨0⟩)
     (hendGt : (dentTimestampWord evm).toNat < (dentEndWord evm I).toNat)
     (hbid : dentBidWord I ≠ dentBidStoredWord evm I) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
         (.binary .or
@@ -1642,7 +1644,7 @@ theorem flopperDentBodyReverts_lotNotLower (evm : EVM.State) (I : ExecutionEnv)
     (hendGt : (dentTimestampWord evm).toNat < (dentEndWord evm I).toNat)
     (hbid : dentBidWord I = dentBidStoredWord evm I)
     (hlotLe : (dentLotStoredWord evm I).toNat ≤ (dentLotWord I).toNat) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
         (.binary .or
@@ -1678,7 +1680,7 @@ theorem flopperDentBodyReverts_begLotOverflow (evm : EVM.State) (I : ExecutionEn
     (hbid : dentBidWord I = dentBidStoredWord evm I)
     (hlotLt : (dentLotWord I).toNat < (dentLotStoredWord evm I).toNat)
     (hoverflow : UInt256.size ≤ (dentBegWord evm).toNat * (dentLotWord I).toNat) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
         (.binary .or
@@ -1717,7 +1719,7 @@ theorem flopperDentBodyReverts_lotOneOverflow (evm : EVM.State) (I : ExecutionEn
     (hlotLt : (dentLotWord I).toNat < (dentLotStoredWord evm I).toNat)
     (hbegFit : (dentBegWord evm).toNat * (dentLotWord I).toNat < UInt256.size)
     (hoverflow : UInt256.size ≤ (dentLotStoredWord evm I).toNat * dentOneWord.toNat) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
         (.binary .or

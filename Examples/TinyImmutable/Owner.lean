@@ -1,6 +1,8 @@
 import Examples.TinyImmutable.BlocksProof
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
 open Reasoning.Immutables (wordsOf)
@@ -18,7 +20,7 @@ theorem tinyOwnerDecode_empty {v : TinyImmutables} {I : ExecutionEnv}
 
 theorem tinyOwnerBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals ownerTransition.body
+    ExecTransitionBody fork config contract evm locals ownerTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.address v.owner])) (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
@@ -33,13 +35,13 @@ theorem tinyOwnerReturnEncoding (v : TinyImmutables) :
     solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat (↑v.owner : Nat))
 
 theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hreach : ∃ k C, RD (deployedRuntime v) I g
+    (hreach : ∃ k C, RD fork (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨67⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) := by
   obtain ⟨k, C, rd67⟩ := hreach
-  have rd106 : RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
+  have rd106 : RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
       [EVM.Word.ofNat (↑v.owner : Nat), ⟨106⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
     have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -58,15 +60,15 @@ theorem tinyOwnerBodyCore
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : (ownerSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz := tinyOwnerSelector_size hsel
   have hd := tinyDispatch_owner v hsel
-  have hreach := tinyBlocksReachOwnerBody (σ := σ)
+  have hreach := tinyBlocksReachOwnerBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize
     hsel
   have hdec := tinyOwnerDecode_empty (v := v) (I := I) hsz
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         ownerTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetCallMemory
 import Benchmarks.CompoundIII.Comet.MemoryAllocate
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -59,8 +61,8 @@ theorem cometAllocateAssetZero {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 8 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = ptr)
     (hptr : ptr.toNat + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7039⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (ptr :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7039⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (ptr :: R)
       (assetZeroMemory mem ptr) aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7039
     (immWords := wordsOf (immStore v)) (by omega)

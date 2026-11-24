@@ -1,5 +1,7 @@
 import Benchmarks.Dss.GemJoin.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor wards storage trace
 -/
@@ -16,12 +18,12 @@ theorem gemJoinCtorWardsStoreReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd68 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨68⟩
         [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨85⟩
       [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty

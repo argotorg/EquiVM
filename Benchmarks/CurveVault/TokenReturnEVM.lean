@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_028
 import Benchmarks.CurveVault.RuntimeBlocks_029
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -27,8 +29,8 @@ theorem vaultTokenReturnFinish {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {unused returnPc : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
     (hload : memLoad (UInt256.ofNat 320) mem = ⟨1⟩)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7668) (unused :: returnPc :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 returnPc R mem aw' out σ k' C' := by
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7668) (unused :: returnPc :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 returnPc R mem aw' out σ k' C' := by
   have rd7680 := vaultBlocks.vault_block_7668_fallthrough
     (by simp only [List.length_cons]; omega) (by rw [hload]; decide +kernel) h
   exact vaultBlocks.vault_block_7680_packed (by omega) hvalid rd7680
@@ -39,10 +41,10 @@ theorem vaultTokenReturnEVM {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hwide : out.size < UInt256.size)
     (hload : 32 ≤ out.size → memLoad (UInt256.ofNat 192) mem = retWord out)
     (hstack : R.length + 6 ≤ 1024) (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7606) (token :: returnPc :: R) mem aw out σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7606) (token :: returnPc :: R) mem aw out σ k C) :
     (vaultTokenReturnAccepted σ token out ∧ ∃ aw' k' C',
-      RD vaultBytecode I g s0 returnPc R ((UInt256.ofNat 1).toByteArray.write 0 mem 320 32) aw' out σ k' C') ∨
-    (¬ vaultTokenReturnAccepted σ token out ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R ((UInt256.ofNat 1).toByteArray.write 0 mem 320 32) aw' out σ k' C') ∨
+    (¬ vaultTokenReturnAccepted σ token out ∧ RDrev fork vaultBytecode g s0) := by
   have hgap : 320 - mem.size < USize.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 320 (by omega))
   have honeLoad : memLoad (UInt256.ofNat 320) ((UInt256.ofNat 1).toByteArray.write 0 mem 320 32) = ⟨1⟩ :=
@@ -96,12 +98,12 @@ theorem vaultTokenReturnEVM {I : ExecutionEnv} {g : Sat256} {s0 : State}
       · exact hcanon (Or.inr ho)
     have rd7663 := vaultBlocks.vault_block_7652_fallthrough
       (by simp only [List.length_cons]; omega) (by rw [hload h32]; exact (u256_shr1_zero_iff _).mpr hcanon) rd7652
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7663)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7663)
       (memLoad (UInt256.ofNat 192) mem :: UInt256.ofNat 32 :: token :: returnPc :: R)
       mem _ out σ _ _ at rd7663
     rw [hload h32] at rd7663
     have rd7668 := vaultBlocks.vault_block_7663 (by simp only [List.length_cons]; omega) rd7663
-    change RD vaultBytecode I g s0 (UInt256.ofNat 7668) (token :: returnPc :: R)
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 7668) (token :: returnPc :: R)
       ((retWord out).toByteArray.write 0 mem 320 32) _ out σ _ _ at rd7668
     rcases hcanon with hz | ho
     · rw [hz] at rd7668

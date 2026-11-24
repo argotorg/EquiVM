@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Vow.FlapAdd
 import Benchmarks.Dss.Vow.VatDaiCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,13 +15,13 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
     {σ σ₀ A I} {g sel surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1056⟩
       (kissDaiTargetWord acc I :: kissDaiTargetWord acc I :: ⟨128⟩ ::
         ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
@@ -30,7 +32,7 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
   have rd994 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd996 := rd994.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k997, C997, rd997Raw⟩ := rd996.sload (by native_decide) (by evm_ov)
-  have rd997 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd997 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨997⟩
       (rawTarget :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k997 C997 := by
@@ -110,7 +112,7 @@ theorem RD.vowFlapDai0NoCode
     {σ σ₀ A I} {g sel surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -118,7 +120,7 @@ theorem RD.vowFlapDai0NoCode
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) = ⟨0⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1056⟩ := RD.vowFlapToDai0ExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1056⟩) (okPc := ⟨1068⟩) rd1056
@@ -131,7 +133,7 @@ theorem RD.vowFlapToDai0Staticcall
     {σ σ₀ A I} {g sel surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -139,7 +141,7 @@ theorem RD.vowFlapToDai0Staticcall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1071⟩
       (gasWord :: kissDaiTargetWord acc I :: ⟨128⟩ :: ⟨36⟩ ::
         ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
@@ -158,7 +160,7 @@ theorem RD.vowFlapDai0PostCall
     {σ σ₀ A I} {g sel surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -169,14 +171,14 @@ theorem RD.vowFlapDai0PostCall
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (outDai : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨1814410054⟩ ::
           kissDaiTargetWord acc I :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (outDai.write 0 (vatDaiCalldataMem I mem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat)
         (UInt256.ofNat 6) outDai σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := acc
         }
@@ -217,12 +219,12 @@ theorem RD.vowFlapDai0CallFailure
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
       (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
@@ -235,11 +237,11 @@ theorem RD.vowFlapDai0CallSuccessToDecode
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1090⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
@@ -252,7 +254,7 @@ theorem RD.vowFlapDai0ReturnDecodeShortReverts
     {σ σ₀ A I} {g : UInt256} {sel surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1090⟩
       (d0 :: d1 :: d2 :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -263,7 +265,7 @@ theorem RD.vowFlapDai0ReturnDecodeShortReverts
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1090⟩) (okPc := ⟨1110⟩) rd
     hshort hhi
@@ -277,7 +279,7 @@ theorem RD.vowFlapDai0ReturnDecodeOk
     {σ σ₀ A I} {g : UInt256} {sel surplusNeed retWord : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1090⟩
       (d0 :: d1 :: d2 :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
@@ -293,7 +295,7 @@ theorem RD.vowFlapDai0ReturnDecodeOk
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1113⟩
       (retWord :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
@@ -309,14 +311,14 @@ theorem RD.vowFlapDai0InsufficientSurplus
     {σ σ₀ A I} {g sel vatDai surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1113⟩
       (vatDai :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hinsuff : vatDai.toNat < surplusNeed.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rd1114₀ := rd.lt (by native_decide) (by evm_ov)
   have hlt : UInt256.lt vatDai surplusNeed = ⟨1⟩ :=
@@ -390,12 +392,12 @@ theorem RD.vowFlapDai0Enough
     {σ σ₀ A I} {g sel vatDai surplusNeed : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1113⟩
       (vatDai :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (henough : surplusNeed.toNat ≤ vatDai.toNat) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k' C' := by
   have rd1114₀ := rd.lt (by native_decide) (by evm_ov)

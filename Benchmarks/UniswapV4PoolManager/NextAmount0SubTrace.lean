@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount0RoundTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,11 +13,11 @@ theorem nextAmount0SubRoundTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23782⟩ (n :: product :: price :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23782⟩ (n :: product :: price :: ret :: R) mem aw rdata σ k C) :
     (nextAmount0RoundFits n price (UInt256.sub n product) true → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret
+      RD fork (deployedRuntime v) I g s0 ret
         (nextAmount0RoundWord n price (UInt256.sub n product) true :: R) mem aw rdata σ k' C') ∧
-    (¬nextAmount0RoundFits n price (UInt256.sub n product) true → RDrev (deployedRuntime v) g s0) := by
+    (¬nextAmount0RoundFits n price (UInt256.sub n product) true → RDrev fork (deployedRuntime v) g s0) := by
   have rd1 := poolManagerBlocks.poolManager_block_23782 (by change R.length+7 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   have hr := nextAmount0RoundTrace (n := n) (price := price) (d := UInt256.sub n product)
@@ -35,10 +37,10 @@ theorem nextAmount0SubTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23697⟩ (price :: liquidity :: amount :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23697⟩ (price :: liquidity :: amount :: ret :: R) mem aw rdata σ k C) :
     if nextAmount0Fits price liquidity amount false then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (nextAmount0Word price liquidity amount false :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (nextAmount0Word price liquidity amount false :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hpc : UInt256.land price (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = price :=
     solcAddrMask_clean hp
   have hnc := amount0Numerator1_clean hl

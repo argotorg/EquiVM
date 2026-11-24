@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateABI
 import Benchmarks.Morpho.MorphoBlue.CalldataBytesDecode
 import Benchmarks.Morpho.MorphoBlue.CreateMarketMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,15 +19,15 @@ theorem morphoLiquidateDecode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (hs : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1260) (UInt256.ofNat 0 :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1260) (UInt256.ofNat 0 :: R)
       solcFreePtrMem aw out σ k C) :
-    (¬ LiquidateBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ LiquidateBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (LiquidateBounds ee.calldata ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1378)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1378)
         (liquidateDecodeStack ee.calldata R)
         (createMarketDecodedMem (marketParamsFromCalldata ee.calldata)) aw' out σ k' C') := by
   have hbad (hc : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩)
-      (UInt256.ofNat 288) = ⟨1⟩) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat 288) = ⟨1⟩) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_1260_taken (immWords := wordsOf (immStore v))
       (by change R.length + 1 + 3 ≤ 1024; omega)
       (by rw [wordAddNegFour, hc]; decide)

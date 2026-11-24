@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_065
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_066
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_067
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -34,12 +36,12 @@ theorem cometMembershipReadStore {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (add reserved : Bool) (bit : Nat)
     (hstack : R.length + 8 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (assetMembershipReadPc add reserved)
+    (h : RD fork (deployedRuntime v) ee g s0 (assetMembershipReadPc add reserved)
       (userBasicSlot account :: assetMembershipMask add reserved bit :: ⟨3121⟩ :: ret :: R)
       mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ret R
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ret R
       (assetMembershipFieldResult evm account add reserved bit) := by
-  have hstep : ∃ k' C', RD (deployedRuntime v) ee g s0 (assetMembershipStorePc reserved)
+  have hstep : ∃ k' C', RD fork (deployedRuntime v) ee g s0 (assetMembershipStorePc reserved)
       (userBasicSlot account ::
         typedBitUpdateWord add (if reserved then ⟨8, by decide⟩ else ⟨16, by decide⟩)
           (userBasicFieldWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -103,10 +105,10 @@ theorem cometMembershipField {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (add reserved : Bool) (bit : Nat)
     (hstack : R.length + 9 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14224⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14224⟩
       (assetMembershipMask add reserved bit :: assetMembershipReadPc add reserved ::
         EVM.word account.val :: ⟨3121⟩ :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (twoWordHashMem (EVM.word account.val) ⟨5⟩ mem) rdata ret R
       (assetMembershipFieldResult evm account add reserved bit) := by
   have r1 := cometWithExtendedAssetList_block_14224

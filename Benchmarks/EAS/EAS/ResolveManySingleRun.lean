@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ResolveOneCall
 import Benchmarks.EAS.EAS.ResolveManyEntry
 import Benchmarks.EAS.EAS.ResolveManySource
 import Benchmarks.EAS.EAS.RecordArrayMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,9 +23,9 @@ theorem resolveManySingleRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat2
     (hvalues : WordArrayMemoryView mem values [value] ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManySinglePC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManySinglePC rev)
       (resolveManyHeadStack rev schema array values available last.toUInt256 (UInt256.ofNat 1) (ret::R)) mem aw rdata σ k C) :
-    HeapReturnPost ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnPost fork ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm resolveManySingleBody (.int (Int.ofNat (resolveOneUsedValue target value).toNat))
       ret (resolveOneUsedValue target value::R) mem ptr.toNat := by
   obtain ⟨src,dataPtr,hsrc,hview,hsrcEnd,hdataEnd⟩ := harray.records 0 (by simp)
@@ -39,7 +41,7 @@ theorem resolveManySingleRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat2
     let value' := Value.int (Int.ofNat (resolveOneUsedValue target value).toNat)
     let L := unpackHeapLocals (locals.insert "__c0$allocation" (.tuple [value',.int (Int.ofNat heap')]))
       "__c0" "$EAS.freeMemory" value' heap'
-    have hunpack := unpackHeapResult (cfg := config) (evm := e)
+    have hunpack := unpackHeapResult (fork := fork) (cfg := config) (evm := e)
       (frame := {contract := contract, locals := locals.insert "__c0$allocation" (.tuple [value',.int (Int.ofNat heap')]), immutables := imms})
       (tmp := "__c0$allocation") (result := "__c0") (cursor := "$EAS.freeMemory")
       (store_get_self _ _ _)

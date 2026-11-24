@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashProtocolCalc
 import Benchmarks.UniswapV3.Pool.FlashProtocolSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -25,10 +27,10 @@ theorem SourceState.flashProtocolState {s0 ee σ evm} (hs : SourceState s0 ee σ
 theorem flashProtocolStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw fees junk : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashProtocolStoreEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashProtocolStoreEntry second)
       (fees :: junk :: R) mem aw rdata σ k C)
     (hperm : ee.perm = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (flashGrowthEntry second) (fees :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (flashGrowthEntry second) (fees :: R)
       mem aw rdata (flashProtocolMap σ ee second fees) k' C' := by
   have hmask : UInt256.land fees (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1)
       (UInt256.ofNat 128)) (UInt256.ofNat 1)) = uint128Word fees := by
@@ -67,7 +69,7 @@ theorem flashProtocolStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem flashProtocolX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw paid0 paid1 : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (locals : Store) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashProtocolEntry second) (paid1 :: paid0 :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashProtocolEntry second) (paid1 :: paid0 :: R)
       mem aw rdata σ k C) (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hp : locals.get? (flashPaidName second) =
       some (.int (Int.ofNat (if second then paid1 else paid0).toNat)))
@@ -77,16 +79,16 @@ theorem flashProtocolX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     let divisor := poolProtocolDivisor second σ ee
     let fees := poolProtocolFees paid divisor
     SourceState s0 ee (flashProtocolMap σ ee second fees) (flashProtocolState evm second fees) ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashProtocolStmts second)
         (.ok (flashProtocolFrame locals (immStore v) second paid divisor)
           (flashProtocolState evm second fees)) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 (flashGrowthEntry second)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 (flashGrowthEntry second)
         (fees :: divisor :: paid1 :: paid0 :: R) mem aw rdata
         (flashProtocolMap σ ee second fees) k' C' := by
   dsimp only
   refine ⟨SourceState.flashProtocolState hs second _, ?_, ?_⟩
-  · have h := flashProtocolSource (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) locals (immStore v) evm second _ hp hslot hfees
+  · have h := flashProtocolSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) locals (immStore v) evm second _ hp hslot hfees
     simpa only [← hs.accounts, hs.env] using h
   · obtain ⟨_, _, rdCalc⟩ := flashProtocolCalcX (v := v) second rd (by omega)
     exact flashProtocolStoreX (v := v) second rdCalc hperm (by evm_ov)

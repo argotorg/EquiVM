@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,9 +20,9 @@ theorem beforeSwapCall {f : Frame} {evm post : State} {hook : AccountAddress}
     (hd : evalExpr? config f evm ed = .ok (.bytes data))
     (hc : PoolKeyCanonical key) (hl : p.priceLimit.toNat < 2^160)
     (hcall : evm.executionEnv.source ≠ hook → beforeSwapActive hook →
-      callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out))
+      callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out))
     (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_beforeSwap" [es, ek, ep, ed] ret)
+    ExecStmt fork config f evm (.internalCall "Hooks_beforeSwap" [es, ek, ep, ed] ret)
       (resumeCallResult f ret (beforeSwapResult (beforeSwapCallFrame f hook key p data) evm post hook key p data z out)) := by
   apply internalCallFunctionExec (argVals := [.address hook, poolKeyValue key, swapParamsValue p, .bytes data])
     (by simp only [evalExprs?, hs, hk, hp, hd, bind, EvalResult.bind, pure])

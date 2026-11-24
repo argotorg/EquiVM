@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.RuntimeBlocks_037
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_038
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,9 +15,9 @@ set_option maxRecDepth 10000
 theorem tickSqrtFactor4X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11812⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11812⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11843⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11843⟩
       (tickSqrtStep absTick ratio (4, 340214320654664324051920982716015181260) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 4) = ⟨0⟩
   · have out := uniswapV3Pool_block_11812_taken (immWords := wordsOf (immStore v))
@@ -31,9 +33,9 @@ theorem tickSqrtFactor4X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor8X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11843⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11843⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11874⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11874⟩
       (tickSqrtStep absTick ratio (8, 340146287995602323631171512101879684304) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 8) = ⟨0⟩
   · have out := uniswapV3Pool_block_11843_taken (immWords := wordsOf (immStore v))
@@ -49,9 +51,9 @@ theorem tickSqrtFactor8X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor16X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11874⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11874⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11905⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11905⟩
       (tickSqrtStep absTick ratio (16, 340010263488231146823593991679159461444) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 16) = ⟨0⟩
   · have out := uniswapV3Pool_block_11874_taken (immWords := wordsOf (immStore v))
@@ -67,9 +69,9 @@ theorem tickSqrtFactor16X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor32X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11905⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11905⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11936⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11936⟩
       (tickSqrtStep absTick ratio (32, 339738377640345403697157401104375502016) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 32) = ⟨0⟩
   · have out := uniswapV3Pool_block_11905_taken (immWords := wordsOf (immStore v))
@@ -85,9 +87,9 @@ theorem tickSqrtFactor32X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor64X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11936⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11936⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11967⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11967⟩
       (tickSqrtStep absTick ratio (64, 339195258003219555707034227454543997025) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 64) = ⟨0⟩
   · have out := uniswapV3Pool_block_11936_taken (immWords := wordsOf (immStore v))
@@ -103,9 +105,9 @@ theorem tickSqrtFactor64X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor128X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11967⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11967⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11998⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11998⟩
       (tickSqrtStep absTick ratio (128, 338111622100601834656805679988414885971) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 128) = ⟨0⟩
   · have out := uniswapV3Pool_block_11967_taken (immWords := wordsOf (immStore v))
@@ -121,9 +123,9 @@ theorem tickSqrtFactor128X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor256X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11998⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11998⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12030⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12030⟩
       (tickSqrtStep absTick ratio (256, 335954724994790223023589805789778977700) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 256) = ⟨0⟩
   · have out := uniswapV3Pool_block_11998_taken (immWords := wordsOf (immStore v))
@@ -139,9 +141,9 @@ theorem tickSqrtFactor256X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor512X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12030⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12030⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12062⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12062⟩
       (tickSqrtStep absTick ratio (512, 331682121138379247127172139078559817300) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 512) = ⟨0⟩
   · have out := uniswapV3Pool_block_12030_taken (immWords := wordsOf (immStore v))
@@ -157,9 +159,9 @@ theorem tickSqrtFactor512X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor1024X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12062⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12062⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12094⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12094⟩
       (tickSqrtStep absTick ratio (1024, 323299236684853023288211250268160618739) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 1024) = ⟨0⟩
   · have out := uniswapV3Pool_block_12062_taken (immWords := wordsOf (immStore v))
@@ -175,9 +177,9 @@ theorem tickSqrtFactor1024X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor2048X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12094⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12094⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12126⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12126⟩
       (tickSqrtStep absTick ratio (2048, 307163716377032989948697243942600083929) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 2048) = ⟨0⟩
   · have out := uniswapV3Pool_block_12094_taken (immWords := wordsOf (immStore v))
@@ -193,9 +195,9 @@ theorem tickSqrtFactor2048X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor4096X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12126⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12126⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12158⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12158⟩
       (tickSqrtStep absTick ratio (4096, 277268403626896220162999269216087595045) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 4096) = ⟨0⟩
   · have out := uniswapV3Pool_block_12126_taken (immWords := wordsOf (immStore v))
@@ -211,9 +213,9 @@ theorem tickSqrtFactor4096X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor8192X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12158⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12158⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12190⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12190⟩
       (tickSqrtStep absTick ratio (8192, 225923453940442621947126027127485391333) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 8192) = ⟨0⟩
   · have out := uniswapV3Pool_block_12158_taken (immWords := wordsOf (immStore v))
@@ -229,9 +231,9 @@ theorem tickSqrtFactor8192X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor16384X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12190⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12190⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12222⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12222⟩
       (tickSqrtStep absTick ratio (16384, 149997214084966997727330242082538205943) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 16384) = ⟨0⟩
   · have out := uniswapV3Pool_block_12190_taken (immWords := wordsOf (immStore v))
@@ -247,9 +249,9 @@ theorem tickSqrtFactor16384X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor32768X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12222⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12222⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12254⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12254⟩
       (tickSqrtStep absTick ratio (32768, 66119101136024775622716233608466517926) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 32768) = ⟨0⟩
   · have out := uniswapV3Pool_block_12222_taken (immWords := wordsOf (immStore v))
@@ -265,9 +267,9 @@ theorem tickSqrtFactor32768X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor65536X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12254⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12254⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12287⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12287⟩
       (tickSqrtStep absTick ratio (65536, 12847376061809297530290974190478138313) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 65536) = ⟨0⟩
   · have out := uniswapV3Pool_block_12254_taken (immWords := wordsOf (immStore v))
@@ -283,9 +285,9 @@ theorem tickSqrtFactor65536X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor131072X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12287⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12287⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12319⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12319⟩
       (tickSqrtStep absTick ratio (131072, 485053260817066172746253684029974020) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 131072) = ⟨0⟩
   · have out := uniswapV3Pool_block_12287_taken (immWords := wordsOf (immStore v))
@@ -301,9 +303,9 @@ theorem tickSqrtFactor131072X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor262144X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12319⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12319⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12350⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12350⟩
       (tickSqrtStep absTick ratio (262144, 691415978906521570653435304214168) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 262144) = ⟨0⟩
   · have out := uniswapV3Pool_block_12319_taken (immWords := wordsOf (immStore v))
@@ -319,9 +321,9 @@ theorem tickSqrtFactor262144X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactor524288X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12350⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12350⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12379⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12379⟩
       (tickSqrtStep absTick ratio (524288, 1404880482679654955896180642) :: absTick :: R) mem aw rdata σ k' C' := by
   by_cases hz : UInt256.land absTick (UInt256.ofNat 524288) = ⟨0⟩
   · have out := uniswapV3Pool_block_12350_taken (immWords := wordsOf (immStore v))
@@ -337,9 +339,9 @@ theorem tickSqrtFactor524288X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtFactorsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw absTick ratio : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11812⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11812⟩ (ratio :: absTick :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12379⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12379⟩
       (tickSqrtFactors.tail.foldl (tickSqrtStep absTick) ratio :: absTick :: R)
       mem aw rdata σ k' C' := by
   obtain ⟨k0, C0, r0⟩ := tickSqrtFactor4X rd hov

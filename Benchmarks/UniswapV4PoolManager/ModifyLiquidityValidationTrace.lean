@@ -7,31 +7,33 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_016
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def modifyLiquidityValidationTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv)
+def modifyLiquidityValidationTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 evm : State) (mem rdata : ByteArray) (key : PoolKeyWords)
     (keyPtr paramsPtr src len junk : UInt256) (R : List UInt256) : Prop :=
-  if transientWord evm lockSlot = ⟨0⟩ then RDrev (deployedRuntime v) g s0
+  if transientWord evm lockSlot = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
   else if I.codeOwner = v.original then
-    if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev (deployedRuntime v) g s0
-    else ∃ aw k C, aw.toNat ≤ 14 ∧ RD (deployedRuntime v) I g s0 ⟨5474⟩
+    if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
+    else ∃ aw k C, aw.toNat ≤ 14 ∧ RD fork (deployedRuntime v) I g s0 ⟨5474⟩
       ([src, paramsPtr, len, keyPtr, poolKeyId key, junk] ++ R)
       (poolLookupMemory mem (poolKeyId key)) aw rdata evm.accountMap k C
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem modifyLiquidityValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw keyPtr paramsPtr src len junk : UInt256} {k C : Nat}
     {key : PoolKeyWords} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (hk : PoolKeyView mem keyPtr key) (hb : keyPtr.toNat+160 ≤ 448) (haw : aw.toNat ≤ 14)
-    (h : RD (deployedRuntime v) I g s0 ⟨5394⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5394⟩
       ([len, src, keyPtr, paramsPtr, junk] ++ R) mem aw rdata evm.accountMap k C) :
-    modifyLiquidityValidationTraceResult v I g s0 evm mem rdata key keyPtr paramsPtr src len junk R := by
+    modifyLiquidityValidationTraceResult fork v I g s0 evm mem rdata key keyPtr paramsPtr src len junk R := by
   rw [modifyLiquidityValidationTraceResult]
   have hlock : codeOwnerTransientWord I evm.accountMap lockSlot = transientWord evm lockSlot :=
     (transientWord_accountMap hI lockSlot).symm
@@ -57,7 +59,7 @@ theorem modifyLiquidityValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     exact hdelegate
   rw [if_pos hd] at hdelegate ⊢
   obtain ⟨k3, C3, rd3⟩ := hdelegate
-  change RD _ _ _ _ ⟨5443⟩ (paramsPtr :: len :: keyPtr :: src :: junk :: R) _ _ _ _ _ _ at rd3
+  change RD fork _ _ _ _ ⟨5443⟩ (paramsPtr :: len :: keyPtr :: src :: junk :: R) _ _ _ _ _ _ at rd3
   have hh : keccakWord keyPtr (UInt256.ofNat 160) mem = poolKeyId key := hk.hash
   have hm : poolManagerBlocks.poolManager_block_5443_memory (mem := mem) (x2 := keyPtr) =
       poolLookupMemory mem (poolKeyId key) := by

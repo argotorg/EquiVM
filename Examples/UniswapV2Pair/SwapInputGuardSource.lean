@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapInputSource
 import Examples.UniswapV2Pair.PositiveWordsSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -19,13 +21,13 @@ theorem evalExpr_swap_inputRequire (caller : Frame) (evm : EVM.State) (amount0In
 
 theorem uniswapSwapBodyReverts_inputGuard (evm evmB : EVM.State) (I : ExecutionEnv)
     (caller : Frame) (amount0In amount1In : UInt256)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapInputsPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapInputsPrefix
       (.ok (swapAfterInputsFrame caller amount0In amount1In) evmB))
     (hnot : ¬ (0 < amount0In.toNat ∨ 0 < amount1In.toNat)) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   have hreq := evalExpr_swap_inputRequire caller evmB amount0In amount1In
-  have hterm := ExecStmt.requireFalse (by simpa only [hnot, decide_false] using hreq)
-  have htail : ExecBlock config (swapAfterInputsFrame caller amount0In amount1In) evmB
+  have hterm := ExecStmt.requireFalse (fork := fork) (by simpa only [hnot, decide_false] using hreq)
+  have htail : ExecBlock fork config (swapAfterInputsFrame caller amount0In amount1In) evmB
       [swapInputRequireStmt] .reverted := ExecBlock.consRevert hterm
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapInputsPrefix, swapBalancesPrefix, swapCallbackPrefix,
@@ -41,7 +43,7 @@ theorem uniswapSwapBodyReverts_inputGuard (evm evmB : EVM.State) (I : ExecutionE
 
 theorem uniswapSwapInputGuardSource {caller : Frame} (evm : EVM.State) (amount0In amount1In : UInt256)
     (hpos : 0 < amount0In.toNat ∨ 0 < amount1In.toNat) :
-    ExecBlock config (swapAfterInputsFrame caller amount0In amount1In) evm [swapInputRequireStmt]
+    ExecBlock fork config (swapAfterInputsFrame caller amount0In amount1In) evm [swapInputRequireStmt]
       (.ok (swapAfterInputsFrame caller amount0In amount1In) evm) := by
   exact ExecBlock.consNormal (ExecStmt.requireTrue
     (by simpa only [hpos, decide_true] using evalExpr_swap_inputRequire caller evm amount0In amount1In)) ExecBlock.nil

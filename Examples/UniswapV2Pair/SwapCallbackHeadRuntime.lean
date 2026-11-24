@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SwapTransfersRuntime
 import Examples.UniswapV2Pair.MemorySteps
 import Examples.UniswapV2Pair.MintCommon
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -37,12 +39,12 @@ theorem uniswapSwapCallbackHeadStored
     {σ : AccountMap}
     {mem rdata : ByteArray} {ptr aw token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
-    (rd1911 : RD uniswapV2PairBytecode I g s0 ⟨1911⟩
+    (rd1911 : RD fork uniswapV2PairBytecode I g s0 ⟨1911⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hload : memoryWordLoad mem ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 28 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2001⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2001⟩
       ((ptr + ⟨132⟩) :: dataLen :: dataPtr :: (ptr + ⟨132⟩) :: (ptr + ⟨100⟩) :: (ptr + ⟨4⟩) ::
         dataLen :: dataPtr :: amount1Out :: amount0Out :: UInt256.ofNat I.source.val :: ⟨282191964⟩ ::
         UInt256.land solcAddrMask toWord :: token1 :: token0 :: scratch1 :: scratch0 ::

@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_006
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_028
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -27,11 +29,11 @@ theorem safeSwapOwnerAccounts (evm : EVM.State) (prev old new : UInt256) :
 
 theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6387⟩ (new :: old :: prev :: ⟨664⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6387⟩ (new :: old :: prev :: ⟨664⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) (hm : mem.size = 96)
     (hp : prev.toNat < EVM.addressModulus) (ho : old.toNat < EVM.addressModulus)
     (hn : new.toNat < EVM.addressModulus) (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (swapOwnerAccounts σ I prev old new) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (swapOwnerAccounts σ I prev old new) ByteArray.empty := by
   obtain ⟨_, _, h₁⟩ := safeRuntime_block_6387 (by simp; omega) hperm h
   obtain ⟨_, _, h₂⟩ := safeRuntime_block_6460 (by omega) hperm (by jump_dest) h₁
   have hret := safeRuntime_block_664 (by simp [safeRuntime_block_6460_stack]; omega) h₂
@@ -76,7 +78,7 @@ theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
       setAddressOffset0Word word ⟨0⟩ := by
     rw [setAddressOffset0Word, u256_land_zero_left, u256_lor_zero, u256_land_comm]
   simp only [hfirst, hsecond] at hret
-  change RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner
+  change RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ (mapSlot new ⟨2⟩)
         (setAddressOffset0Word (solcSlotWordAt (mapSlot new ⟨2⟩) σ I) (ownerLinkAt σ I old)))
@@ -87,9 +89,9 @@ theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
 
 theorem safeSwapOwnerTraceStatic {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6387⟩ (new :: old :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6387⟩ (new :: old :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hhash := evm_run h with [jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     dup3, dup2, and, push0, dup2, dup2, genMstore, push1 ⟨2⟩, push1 ⟨32⟩, genMstore,
     push1 ⟨64⟩, dup1, dup3, genKeccak256, dup1]

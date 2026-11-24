@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.StaticCallBridge
 import Reasoning.ABIViews
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -48,17 +50,17 @@ theorem tokenBalance_decode_short {out : ByteArray} (hlo : out.size < 32) :
 
 theorem tokenBalance_typed {evm evm' : EVM.State} {asset : AccountAddress}
     {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) :
-    typedCallViaEVM config evm asset "balanceOf" 0 [.address evm.executionEnv.codeOwner]
+    typedCallViaEVM fork config evm asset "balanceOf" 0 [.address evm.executionEnv.codeOwner]
       (z, evm', out) false := ⟨_, tokenBalancePayload_encode _, hc⟩
 
 theorem tokenBalance_source_ok {frame : Frame} {evm evm' : EVM.State}
     {asset : AccountAddress} {expr : Expr} {ret : Ident} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (true, evm', out) false) (hlo : 32 ≤ out.size) (hhi : out.size < 2^255) :
-    ExecStmt config frame evm (.externalCall expr "balanceOf" (.intLit 0) [.env .this] ret
+    ExecStmt fork config frame evm (.externalCall expr "balanceOf" (.intLit 0) [.env .this] ret
       (perm := false))
       (.ok { frame with locals :=
         frame.locals.insert ret (.int (Int.ofNat (calldataWord out 0).toNat)) } evm') := by
@@ -70,9 +72,9 @@ theorem tokenBalance_source_ok {frame : Frame} {evm evm' : EVM.State}
 theorem tokenBalance_source_revert {frame : Frame} {evm evm' : EVM.State}
     {asset : AccountAddress} {expr : Expr} {ret : Ident} {z : Bool} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hv : ¬ (z = true ∧ 32 ≤ out.size)) :
-    ExecStmt config frame evm (.externalCall expr "balanceOf" (.intLit 0) [.env .this] ret
+    ExecStmt fork config frame evm (.externalCall expr "balanceOf" (.intLit 0) [.env .this] ret
       (perm := false)) .reverted := by
   rw [← addressOfAddress asset] at hc
   cases z with

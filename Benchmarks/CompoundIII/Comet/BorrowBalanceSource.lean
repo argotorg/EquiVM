@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AccountBalanceSource
 import Benchmarks.CompoundIII.Comet.Unsigned104
 import Benchmarks.CompoundIII.Comet.NegativePrincipal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -41,7 +43,7 @@ theorem borrowBalanceCallable_returns (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr))) :
-    ∃ final, ExecFuncBody config (accountBalanceEntry v addr) evm borrowBalanceCallable.body
+    ∃ final, ExecFuncBody fork config (accountBalanceEntry v addr) evm borrowBalanceCallable.body
       (.returned final evm (some [.int (borrowBalanceWord v
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
@@ -52,7 +54,7 @@ theorem borrowBalanceCallable_returns (v : CometWithExtendedAssetListImmutables)
   let basic := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr)
   let idx := currentIndex v w0 w1 time true
   let f3 := accountBalanceFrame v addr true w0 w1 time basic
-  have hprefix := accountBalancePrefix v evm addr true hv.1
+  have hprefix := accountBalancePrefix (fork := fork) v evm addr true hv.1
   have hprincipal : evalExpr? config f3 evm (.var "principal") =
       .ok (.int (signed104 basic)) :=
     accountBalancePrincipalEval v addr true w0 w1 time basic evm
@@ -65,7 +67,7 @@ theorem borrowBalanceCallable_returns (v : CometWithExtendedAssetListImmutables)
     let f4 : Frame := { f3 with locals := f3.locals.insert "__c2" (.int principal.toNat) }
     let f5 : Frame := { f4 with locals := f4.locals.insert "__c3" (.int val.toNat) }
     refine ⟨f5, ExecFuncBody.execBlockRet ?_⟩
-    change ExecBlock config (accountBalanceEntry v addr) evm _
+    change ExecBlock fork config (accountBalanceEntry v addr) evm _
       (.returned f5 evm (some [.int (borrowBalanceWord v w0 w1 time basic).toNat]))
     rw [borrowBalanceWord, if_pos hp]
     apply execBlockAppendOk hprefix
@@ -88,7 +90,7 @@ theorem borrowBalanceCallable_returns (v : CometWithExtendedAssetListImmutables)
         EvalResult.ofOption]
       rfl)
   · refine ⟨f3, ExecFuncBody.execBlockRet ?_⟩
-    change ExecBlock config (accountBalanceEntry v addr) evm _
+    change ExecBlock fork config (accountBalanceEntry v addr) evm _
       (.returned f3 evm (some [.int (borrowBalanceWord v w0 w1 time basic).toNat]))
     rw [borrowBalanceWord, if_neg hp]
     apply execBlockAppendOk hprefix
@@ -101,7 +103,7 @@ theorem borrowBalanceCallable_reverts (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr))) :
-    ExecFuncBody config (accountBalanceEntry v addr) evm borrowBalanceCallable.body .reverted := by
+    ExecFuncBody fork config (accountBalanceEntry v addr) evm borrowBalanceCallable.body .reverted := by
   let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
   let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
   let time := timestampWord evm.executionEnv
@@ -112,7 +114,7 @@ theorem borrowBalanceCallable_reverts (v : CometWithExtendedAssetListImmutables)
       have hb := signed104_bounds basic
       have hn : ¬ -(2^103 : Int) < signed104 basic := fun hm ↦ hv ⟨hc, hm⟩
       omega
-    have hpref := accountBalancePrefix v evm addr true hc
+    have hpref := accountBalancePrefix (fork := fork) v evm addr true hc
     apply execBlockAppendOk hpref
     have he := accountBalancePrincipalEval v addr true w0 w1 time basic evm
     have hcond : evalExpr? config (accountBalanceFrame v addr true w0 w1 time basic) evm
@@ -122,7 +124,7 @@ theorem borrowBalanceCallable_reverts (v : CometWithExtendedAssetListImmutables)
     apply ExecBlock.consRevert (ExecStmt.iteTrue hcond ?_)
     apply ExecBlock.consRevert (ExecStmt.internalCallArgsRevert ?_)
     simp only [evalExprs?, checkedPrincipalNegSource_revert he hmin, bind, EvalResult.bind]
-  · have hpref := currentIndicesBlock_result v (accountBalanceEntry v addr) evm rfl rfl
+  · have hpref := currentIndicesBlock_result (fork := fork) v (accountBalanceEntry v addr) evm rfl rfl
       (by simp [accountBalanceEntry])
     dsimp only at hpref
     rw [if_neg hc] at hpref
@@ -140,7 +142,7 @@ theorem borrowBalance_call_ok (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr))
-    ExecStmt config frame evm (.internalCall "borrowBalanceOf_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "borrowBalanceOf_body" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int val.toNat) } evm) := by
   obtain ⟨final, hf⟩ := borrowBalanceCallable_returns v evm addr hv
   exact ExecStmt.internalCallReturn (callee := borrowBalanceCallable)
@@ -158,7 +160,7 @@ theorem borrowBalance_call_revert (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr))) :
-    ExecStmt config frame evm (.internalCall "borrowBalanceOf_body" [expr] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "borrowBalanceOf_body" [expr] ret) .reverted := by
   apply ExecStmt.internalCallRevert (callee := borrowBalanceCallable)
     (locals := (∅ : Store).insert "account" (.address addr))
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.address addr])

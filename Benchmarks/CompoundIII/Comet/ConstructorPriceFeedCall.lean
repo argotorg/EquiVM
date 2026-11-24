@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedMemory
 import Benchmarks.CompoundIII.Comet.ConstructorChecksSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -16,11 +18,11 @@ theorem cometConstructorPriceFeedEnter {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
     (hout : out.size < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨832⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨832⟩
       (calldataWord out 0 :: UInt256.ofNat (constructorRecordBase c) ::
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorDecimalsReturnMemory c out) aw out σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
       ee g s0 ⟨871⟩
       ((g.subNat C').toUInt256 :: constructorRecordWord c 3 :: constructorPriceFeedPtr c :: ⟨4⟩ ::
         constructorPriceFeedPtr c :: ⟨32⟩ :: constructorPriceFeedPtr c :: calldataWord out 0 ::
@@ -46,16 +48,16 @@ theorem cometConstructorPriceFeedCall {ee : ExecutionEnv} {g : Sat256} {s0 evm :
     {σ : AccountMap} {c : ConstructorConfig} {out : ByteArray} {aw : UInt256} {k C : Nat}
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
     (hout : out.size < UInt256.size) (hs : SourceState s0 ee σ evm)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨871⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨871⟩
       ((g.subNat C).toUInt256 :: constructorRecordWord c 3 :: constructorPriceFeedPtr c :: ⟨4⟩ ::
         constructorPriceFeedPtr c :: ⟨32⟩ :: constructorPriceFeedPtr c :: calldataWord out 0 ::
         UInt256.ofNat (constructorRecordBase c) ::
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorPriceFeedMemory c out) aw out σ k C) :
     ∃ evm' σ' z feed aw' k' C',
-      callViaEVM evm c.baseTokenPriceFeed 0 decimalsPayload (z, evm', feed) false ∧
+      callViaEVM fork evm c.baseTokenPriceFeed 0 decimalsPayload (z, evm', feed) false ∧
       SourceState s0 ee σ' evm' ∧ feed.size < 2^138 ∧
-      RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨872⟩
+      RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨872⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: constructorPriceFeedPtr c :: calldataWord out 0 ::
           UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)

@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Benchmarks.Auction.CheckedAdd
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -37,28 +39,28 @@ theorem checkedMulCondition_fail {a b : UInt256} (hb : UInt256.size ≤ b.toNat 
     isZero_eq_zero_of_ne ha, u256_lor_zero]
 
 theorem checkedMulPrefix {I g s0 a b ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨5665⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨5665⟩
       (⟨4886⟩ :: checkedMulCondition a b :: UInt256.mul b a :: a :: b :: ret :: R)
       mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div,
     dup5, eq, or, push2 ⟨4886⟩]⟩
 
 theorem checkedMulOk {I g s0 a b ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
     (hno : b.toNat * a.toNat < UInt256.size)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (UInt256.mul b a :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (UInt256.mul b a :: R) mem aw rdata acc k' C' := by
   obtain ⟨_, _, rd5665⟩ := checkedMulPrefix h hov
   have rd4886 := evm_run rd5665 with [jumpiT (by rw [checkedMulCondition_ok hno]; decide)
     (by jump_dest)]
   exact arithmeticReturn rd4886 hret (by evm_ov)
 
 theorem checkedMulOverflow {I g s0 a b ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5650⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ b.toNat * a.toNat) (hov : R.length + 9 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd5665⟩ := checkedMulPrefix h hov
   have rd5630 := evm_run rd5665 with [jumpiNT (checkedMulCondition_fail hover),
     push2 ⟨4886⟩, push2 ⟨5630⟩, jump (by jump_dest)]

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveOneRun
 import Benchmarks.EAS.EAS.HeapCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,9 +21,9 @@ theorem resolveOneCallRun {locals imms : Store} {args : List Expr} {retVar : Ide
     (hsrc : src.toNat+320 ≤ ptr.toNat) (hdata : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15724⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15724⟩
       (schemaPtr::src::value::rev.toUInt256::available::last.toUInt256::ret::R) mem aw rdata σ k C) :
-    HeapCallPost ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapCallPost fork ((resolveOneUsedValue target value).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm "_resolveAttestation" args retVar (.int (Int.ofNat (resolveOneUsedValue target value).toNat))
       ret (resolveOneUsedValue target value::R) mem ptr.toNat := by
   exact (resolveOneRun (imms := imms) v hfield ht hstack hperm hs hview hsrc hdata hheap hh hret rd).call

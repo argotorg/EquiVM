@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapCrossLiquidityTrace
 import Benchmarks.UniswapV4PoolManager.TickCrossTrace
 import Benchmarks.UniswapV4PoolManager.TickCrossStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,16 +28,16 @@ theorem poolSwapCrossTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hg : memLoad (step+UInt256.ofNat 224) mem = s.feeGrowthGlobal)
     (ht : memLoad (step+UInt256.ofNat 32) mem = s.tickNext)
     (hl : memLoad (state+UInt256.ofNat 64) (tickCrossMemory mem id s.tickNext) = liquidity)
-    (h : RD (deployedRuntime v) I g s0 ⟨19984⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19984⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state] ++ R)
       mem aw rdata evm.accountMap k C) :
-    if evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0
+    if evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0
     else if liquidityAddFits liquidity (EVM.signed (poolSwapCrossDelta zeroForOne (poolSwapCrossNet evm id s zeroForOne))) then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19904⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19904⟩
         ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state] ++ R)
         (poolSwapCrossMemory mem id state s evm zeroForOne liquidity) (poolSwapCrossAW aw step state) rdata
         (poolSwapCrossPost evm id s zeroForOne).accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, hC1, rd1⟩ := poolSwapCrossPrepareTrace v zeroForOne hstack hI hg h
   by_cases hp : evm.executionEnv.perm = false
   · rw [if_pos hp]

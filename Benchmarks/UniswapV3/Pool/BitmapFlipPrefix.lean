@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitmapPositionSource
 import Benchmarks.UniswapV3.Pool.WordXor
 import Benchmarks.UniswapV3.Pool.SourceWordMask
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -64,7 +66,7 @@ theorem evalBitmapFlipGuard (imms : Store) (evm : EVM.State) (tick spacing : Int
   simp only [beq_iff_eq, decide_eq_true_eq, Value.int.injEq]
 
 theorem bitmapFlipRevertsZero (imms : Store) (evm : EVM.State) (tick : Int) :
-    ExecFuncBody config (bitmapFlipFrame imms tick 0) evm bitmapFlipFunction.body .reverted := by
+    ExecFuncBody fork config (bitmapFlipFrame imms tick 0) evm bitmapFlipFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.requireRevert
@@ -74,13 +76,13 @@ theorem bitmapFlipRevertsZero (imms : Store) (evm : EVM.State) (tick : Int) :
 
 theorem bitmapFlipRevertsRemainder (imms : Store) (evm : EVM.State) (tick spacing : Int)
     (hn : spacing ≠ 0) (hr : tick.tmod spacing ≠ 0) :
-    ExecFuncBody config (bitmapFlipFrame imms tick spacing) evm bitmapFlipFunction.body .reverted := by
+    ExecFuncBody fork config (bitmapFlipFrame imms tick spacing) evm bitmapFlipFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse
     (by simpa only [hr, decide_false] using evalBitmapFlipGuard imms evm tick spacing hn)))
 
 theorem bitmapFlipPositionCall (imms : Store) (evm : EVM.State) (tick spacing : Int)
     (hn : spacing ≠ 0) :
-    ExecStmt config (bitmapFlipFrame imms tick spacing) evm (bitmapFlipFunction.body[1]!)
+    ExecStmt fork config (bitmapFlipFrame imms tick spacing) evm (bitmapFlipFunction.body[1]!)
       (.ok (bitmapFlipCallFrame imms tick spacing) evm) := by
   have ht := evalExpr_var_get (cfg := config) (evm := evm) (bitmapFlipInitialGet imms tick spacing).1
   have hs := evalExpr_var_get (cfg := config) (evm := evm) (bitmapFlipInitialGet imms tick spacing).2
@@ -101,7 +103,7 @@ theorem evalBitmapFlipMask (imms : Store) (evm : EVM.State) (tick spacing : Int)
 
 theorem bitmapFlipReadySource (imms : Store) (evm : EVM.State) (tick spacing : Int)
     (hn : spacing ≠ 0) (hr : tick.tmod spacing = 0) :
-    ExecBlock config (bitmapFlipFrame imms tick spacing) evm (bitmapFlipFunction.body.take 5)
+    ExecBlock fork config (bitmapFlipFrame imms tick spacing) evm (bitmapFlipFunction.body.take 5)
       (.ok (bitmapFlipReadyFrame imms tick spacing) evm) := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (by simpa only [hr, decide_true] using evalBitmapFlipGuard imms evm tick spacing hn)) ?_

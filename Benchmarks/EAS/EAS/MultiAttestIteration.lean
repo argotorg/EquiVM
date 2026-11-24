@@ -1,32 +1,34 @@
 import Benchmarks.EAS.EAS.MultiAttestReadRun
 import Benchmarks.EAS.EAS.MultiAttestCallRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
 
-def MultiAttestAt (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def MultiAttestAt (fork : Ethereum.Fork) (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (n : Nat) (base table : UInt256) (R : List UInt256) (i : Nat) (L : Store) (evm : EVM.State) : Prop :=
   ∃ (σ : AccountMap) (mem out : ByteArray) (aw : UInt256) (k C : Nat)
       (heap available : UInt256) (groups : List (List UInt256)),
     SourceState s0 ee σ evm ∧ heap.toNat ≤ 2^64-1 ∧ groups.length = n ∧
     MultiAttestLocals L (multiRequestValues ee.calldata base n) groups available heap.toNat i ∧
     MultiAttestMemory mem table groups i heap.toNat ∧
-    RD (deployedRuntime v) ee g s0 ⟨3767⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨3767⟩
       (multiAttestLoopStack n i base table available (UInt256.ofNat groups.flatten.length) R) mem aw out σ k C
 
 theorem multiAttestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {n i : Nat} {base table : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+48 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size) (hi : i < n)
-    (h : MultiAttestAt v ee g s0 n base table R i L evm) :
-    (∃ L' evm', ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration
+    (h : MultiAttestAt fork v ee g s0 n base table R i L evm) :
+    (∃ L' evm', ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration
       (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      MultiAttestAt v ee g s0 n base table R (i+1) L' evm') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      MultiAttestAt fork v ee g s0 n base table R (i+1) L' evm') ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestIteration .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   obtain ⟨σ,mem,out,aw,k,C,heap,available,groups,hstate,hh,hg,hf,hm,rd⟩ := h
   have hn : n < UInt256.size := by omega
   have hlo : 224 ≤ heap.toNat := by have := hm.view.span; have := hm.low; omega
@@ -66,7 +68,7 @@ theorem multiAttestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv
         intro j hj
         have hlow := hdata.objectsLow j hj
         omega
-      have hsol2 : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} evm multiAttestCopy
+      have hsol2 : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} evm multiAttestCopy
           (.ok {contract := contract,locals := L2,immutables := immStore v} evm) :=
         heapResultBlock_ok hcopySol hf1.heap (by decide) (by decide) (by decide)
       have hfront := execBlock_append hsol1 hsol2
@@ -85,7 +87,7 @@ theorem multiAttestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv
         simpa only [multiAttestIteration,List.append_assoc] using execBlock_append hfront hbad
       · refine Or.inr (Or.inr ⟨?_,hstatic⟩)
         simpa only [multiAttestIteration,List.append_assoc] using execBlock_append hfront hbad
-    · have hb : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} evm multiAttestCopy .reverted :=
+    · have hb : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} evm multiAttestCopy .reverted :=
         ExecBlock.consRevert hcopySol
       refine Or.inr (Or.inl ⟨?_,hrev⟩)
       simpa only [multiAttestIteration,List.append_assoc] using execBlock_append hsol1

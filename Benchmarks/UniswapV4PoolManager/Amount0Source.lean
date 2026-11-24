@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Amount0Branches
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -10,7 +12,7 @@ theorem amount0CoreBody {f : Frame} {evm : EVM.State} {lo hi liquidity : UInt256
     (hb : f.locals.get? "sqrtPriceBX96" = some (.int (Int.ofNat hi.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hr : f.locals.get? "roundUp" = some (.bool roundUp)) :
-    ∃ f', ExecFuncBody config f evm (amount0Function.body.drop 1)
+    ∃ f', ExecFuncBody fork config f evm (amount0Function.body.drop 1)
       (if amount0CoreFits lo hi liquidity roundUp then
         .returned f' evm (some [.int (Int.ofNat (amount0CoreWord lo hi liquidity roundUp).toNat)])
        else .reverted) := by
@@ -22,9 +24,9 @@ theorem amount0CoreBody {f : Frame} {evm : EVM.State} {lo hi liquidity : UInt256
     simp only [if_neg hn]
     exact ⟨f, ExecFuncBody.execBlockRevert (ExecBlock.consRevert
       (ExecStmt.requireFalse (by simpa only [hz, ne_self_iff_false, decide_false] using hguard)))⟩
-  · have h1 : ExecStmt config f evm amount0Function.body[1]! (.ok f evm) :=
+  · have h1 : ExecStmt fork config f evm amount0Function.body[1]! (.ok f evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hz] using hguard)
-    have hn := amount0Numerators (evm := evm) ho hh ha hb hl
+    have hn := amount0Numerators (fork := fork) (evm := evm) ho hh ha hb hl
     let fn := amount0NumeratorsFrame f lo hi liquidity
     obtain ⟨f', hbranch⟩ := amount0Branches (f := fn) (evm := evm) (roundUp := roundUp) (liquidity := liquidity) hf hz
       (by simp only [fn, amount0NumeratorsFrame, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, ha])
@@ -48,11 +50,11 @@ theorem amount0Body {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     (hb : f.locals.get? "sqrtPriceBX96" = some (.int (Int.ofNat b.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hr : f.locals.get? "roundUp" = some (.bool roundUp)) :
-    ∃ f', ExecFuncBody config f evm amount0Function.body
+    ∃ f', ExecFuncBody fork config f evm amount0Function.body
       (if amount0Fits a b liquidity roundUp then
         .returned f' evm (some [.int (Int.ofNat (amount0Word a b liquidity roundUp).toNat)])
        else .reverted) := by
-  have hs := amount0Sort (evm := evm) ha hb
+  have hs := amount0Sort (fork := fork) (evm := evm) ha hb
   have hp := amount0SortFrame_prices ha hb
   obtain ⟨f', hc⟩ := amount0CoreBody (evm := evm)
     ((amount0SortFrame_contract _ _ _).trans hf) (amount0_ordered a b) (amount0_bounds hac hbc).2
@@ -67,7 +69,7 @@ theorem amount0Call {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (hr : evalExpr? config f evm er = .ok (.bool roundUp)) (ret : Ident) :
-    ExecStmt config f evm
+    ExecStmt fork config f evm
       (.internalCall "SqrtPriceMath_getAmount0Delta_uint160_uint160_uint128_bool" [ea, eb, el, er] ret)
       (if amount0Fits a b liquidity roundUp then .ok (wordLocal f ret (amount0Word a b liquidity roundUp)) evm
        else .reverted) := by

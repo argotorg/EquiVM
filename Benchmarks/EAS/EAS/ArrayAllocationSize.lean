@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Allocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_020
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,10 +11,10 @@ theorem easArrayAllocationSize {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {len ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5069⟩ (len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5069⟩ (len::ret::R) mem aw rdata σ k C) :
     if len.toNat ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (32+32*len.toNat)::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (32+32*len.toNat)::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hl : len.toNat ≤ 2^64-1
   · rw [if_pos hl]
     obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5069_fallthrough_packed (immWords := wordsOf (immStore v))

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferCollateralCheckEvm
 import Benchmarks.CompoundIII.Comet.AssetMembershipEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,10 +18,10 @@ theorem cometTransferCollateralDstMember {v : CometWithExtendedAssetListImmutabl
     (hv : AssetValid out) (hm : AssetMemory mem ptr free out) (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 160 + 928 * v.numAssets.toNat + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15523⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15523⟩
       (transferCollateralDstStack src dst asset ptr amount balance next ret R) mem aw out σ k C) :
-    ∃ result, TransferCollateralDstMember v src dst balance next evm out result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferCollateralDstMember fork v src dst balance next evm out result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_15523
     (immWords := wordsOf (immStore v)) (by change R.length + 7 + 6 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -52,11 +54,11 @@ theorem cometTransferCollateralSrcMember {v : CometWithExtendedAssetListImmutabl
     (hv : AssetValid out) (hm : AssetMemory mem ptr free out) (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 160 + 928 * v.numAssets.toNat + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15511⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15511⟩
       (ptr :: transferCollateralReadyStack src dst asset amount
         srcBalance srcNext dstBalance dstNext ret R) mem aw out σ k C) :
-    ∃ result, TransferCollateralSrcMember v src dst srcBalance srcNext dstBalance dstNext
-        evm out result ∧ internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferCollateralSrcMember fork v src dst srcBalance srcNext dstBalance dstNext
+        evm out result ∧ internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_15511
     (immWords := wordsOf (immStore v)) (by change R.length + 6 + 11 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

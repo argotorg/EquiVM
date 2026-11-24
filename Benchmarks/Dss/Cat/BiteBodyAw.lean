@@ -10,6 +10,8 @@ import Benchmarks.Dss.Cat.BiteGuardReach
 import Benchmarks.Dss.Cat.BiteEVM
 import Benchmarks.Dss.Cat.FileAddress
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -39,7 +41,7 @@ theorem catBiteReachPostIlksAw {σ σ₀ A I} {g : UInt256}
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: catBiteIlksEndPtr :: catBiteIlksSelectorWord ::
           catBiteVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
@@ -48,7 +50,7 @@ theorem catBiteReachPostIlksAw {σ σ₀ A I} {g : UInt256}
         (o'.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
           catBiteIlksOutPtr.toNat (min catBiteIlksOutSize (UInt256.ofNat o'.size)).toNat)
         awout o' σ' k' C'
-    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    ∧ typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A' }, o') false
@@ -89,7 +91,7 @@ for `aw ≥ 9` (from `catBiteReachPostIlksAw`'s `288 ≤ aw·32`) both `M`s coll
 theorem catBiteReachPostUrnsAw {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {status urn iRate iSpot iDust : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (status :: catBiteIlksEndPtr :: catBiteIlksSelectorWord :: catBiteVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
@@ -109,7 +111,7 @@ theorem catBiteReachPostUrnsAw {σ σ₀ A I} {g : UInt256}
     (hdepth : I.depth.val < 1024) :
     ∃ (σ'' : AccountMap) (z : Bool)
       (o' : ByteArray) (A'' : Substate) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ ::
           UInt256.land (solcSlotWordAt ⟨3⟩ σ' I) biteAddrMaskWord ::
@@ -118,7 +120,7 @@ theorem catBiteReachPostUrnsAw {σ σ₀ A I} {g : UInt256}
         (o'.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
           (⟨128⟩ : UInt256).toNat (min (⟨64⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
         aw o' σ'' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σ' }
         (AccountAddress.ofUInt256 (UInt256.land (solcSlotWordAt ⟨3⟩ σ' I) biteAddrMaskWord))
@@ -209,7 +211,7 @@ theorem catBiteReachSeg6Aw {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk fp q : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem ⟨9⟩ o σ' k C)
     (hqNat : q.toNat = 224)
@@ -227,7 +229,7 @@ theorem catBiteReachSeg6Aw {σ σ₀ A I} {g : UInt256}
     (hqsz : q.toNat + 96 < UInt256.size)
     (hle : (solcSlotWord σ' I ⟨6⟩).toNat ≤ (solcSlotWord σ' I ⟨5⟩).toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (UInt256.sub (solcSlotWord σ' I ⟨5⟩) (solcSlotWord σ' I ⟨6⟩) ::
         ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -456,7 +458,7 @@ theorem catBiteTraceGrabBuildAw {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink p : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σ' k C)
@@ -465,7 +467,7 @@ theorem catBiteTraceGrabBuildAw {σ σ₀ A I} {g : UInt256}
     (hawcov : p.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p.toNat + 256 < UInt256.size)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ (k' C' : ℕ), RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
         UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
@@ -520,14 +522,14 @@ theorem catBiteTraceGrabBuildAw {σ σ₀ A I} {g : UInt256}
   have rd2074 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd2076 := rd2074.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2077raw⟩ := rd2076.sload (by native_decide) (by evm_ov)
-  have rd2077 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd2077 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2077⟩
       (solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o σ' _ _ := rd2077raw
   have rd2079 := rd2077.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   have rd2080d := rd2079.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2081raw⟩ := rd2080d.sload (by native_decide) (by evm_ov)
-  have rd2081 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd2081 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2081⟩
       (solcSlotWord σ' I ⟨4⟩ :: ⟨4⟩ :: solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink ::
         iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd2081raw
@@ -649,7 +651,7 @@ theorem catBiteTraceFessBuildAw {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {dartRate dink dart q art ink iDust iSpot iRate urn ilk p2 : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2242⟩
       (dartRate :: ⟨1769929592⟩ :: UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -659,7 +661,7 @@ theorem catBiteTraceFessBuildAw {σ σ₀ A I} {g : UInt256}
     (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p2.toNat + 96 < UInt256.size)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ (k' C' : ℕ), RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::

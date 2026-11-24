@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AccrueMathRoutines
 import Benchmarks.Morpho.MorphoBlue.Uint128Arithmetic
 import Benchmarks.Morpho.MorphoBlue.MarketWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -25,9 +27,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem morphoStoreUint128High {slot value dest : UInt256}
     (hstack : R.length + 7 ≤ 1024) (hp : ee.perm = true)
     (hvalid : (D_J (deployedRuntime v) 0).contains dest = true) (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2278) (value :: slot :: dest :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2278) (value :: slot :: dest :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 dest R mem aw rdata
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 dest R mem aw rdata
       (sstoreAccountMap ee.codeOwner σ slot (setUint128HighWord (solcSlotWordAt slot σ ee) value)) k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoBlocks.morpho_block_2278 (immWords := wordsOf (immStore v))
     hstack hp hvalid h
@@ -38,9 +40,9 @@ theorem morphoStoreUint128High {slot value dest : UInt256}
   exact ⟨k1, C1, rd1⟩
 
 theorem morphoAccrueSharesReachAdd (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
       ([shares, UInt256.ofNat 13863, interest, shares] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([marketFieldWord σ ee id 1, shares, UInt256.ofNat 2278, marketFieldSlot id 1,
         UInt256.ofNat 13863, interest, shares] ++ accrueMathTail id rate ret R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' rdata σ k' C' := by
@@ -55,7 +57,7 @@ theorem morphoAccrueSharesReachAdd (hstack : R.length + 24 ≤ 1024)
       twoWordHashMem_solcMappingSlot_any _ _ _
     simpa only [marketFieldSlot, Nat.reduceDiv, show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl,
       u256_add_zero] using hh
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 3) mem)) σ ee) (UInt256.ofNat 128), shares, UInt256.ofNat 2278,
       keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem),
@@ -66,9 +68,9 @@ theorem morphoAccrueSharesReachAdd (hstack : R.length + 24 ≤ 1024)
 
 theorem morphoAccrueSharesAddReverts (hstack : R.length + 24 ≤ 1024) (hc : shares.toNat < 2 ^ 128)
     (hover : 2 ^ 128 ≤ (marketFieldWord σ ee id 1).toNat + shares.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
       ([shares, UInt256.ofNat 13863, interest, shares] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueSharesReachAdd (v := v) hstack h
   exact morphoCheckedAdd128Reverts (v := v)
     (by simp only [accrueMathTail, List.append, List.length_append, List.length_cons, List.length_nil]; omega)
@@ -77,9 +79,9 @@ theorem morphoAccrueSharesAddReverts (hstack : R.length + 24 ≤ 1024) (hc : sha
 theorem morphoAccrueSharesStore (hstack : R.length + 24 ≤ 1024) (hp : ee.perm = true)
     (hc : shares.toNat < 2 ^ 128)
     (hfit : (marketFieldWord σ ee id 1).toNat + shares.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13840)
       ([shares, UInt256.ofNat 13863, interest, shares] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
       ([interest, shares] ++ accrueMathTail id rate ret R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' rdata
       (storeMarketFieldAccounts σ ee id ⟨1, by decide⟩ (marketFieldWord σ ee id 1 + shares)) k' C' := by

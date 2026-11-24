@@ -6,6 +6,8 @@ import Benchmarks.Safe.Runs1e6.Blocks.Runtime_030
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_042
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -19,10 +21,10 @@ def versionReturnData : ByteArray :=
 
 set_option maxRecDepth 100000 in
 theorem safeVersionTrace {I g s0 σ k C} {R : List UInt256} {cv : UInt256}
-    (h : RD safeBytecode I g s0 ⟨1699⟩ (cv :: R) solcFreePtrMem
+    (h : RD fork safeBytecode I g s0 ⟨1699⟩ (cv :: R) solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    RDret safeBytecode g s0 σ versionReturnData := by
+    RDret fork safeBytecode g s0 σ versionReturnData := by
   have h918 := safeRuntime_block_1699 (by omega) (by jump_dest) h
   have h9876 := safeRuntime_block_918 (by simp; omega) (by jump_dest) h918
   have h9767 := safeRuntime_block_12484 (by simp; omega) (by jump_dest) h9876
@@ -45,17 +47,17 @@ theorem safeVersionBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some versionTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xff 0xa1 0xad 0x74 ⟨0xffa1ad74⟩
     hdispatch versionSelectorBytes (by decide)
-  obtain ⟨k, C, h1688⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1688⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xffa1ad74⟩ 3 ⟨1688⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   · have h1699 := safeRuntime_block_1688_taken (by simp)
       (by rw [hvalue]; decide) (by jump_dest) h1688
     have hret := safeVersionTrace h1699 (by simp)
-    have hbody := nonpayableBytesLiteralBodyReturns (cfg := config) (contract := contract)
+    have hbody := nonpayableBytesLiteralBodyReturns (fork := fork) (cfg := config) (contract := contract)
       (imms := ∅)
       (initState σ σ₀ (.ofUInt256 g) A I) ∅ (String.toByteArray "1.5.0") hvalue
     refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -72,7 +74,7 @@ theorem safeVersionRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some versionTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeVersionBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.Runs1e6

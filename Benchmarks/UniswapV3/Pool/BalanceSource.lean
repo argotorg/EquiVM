@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Calls
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 import Benchmarks.UniswapV3.Pool.TupleReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -51,7 +53,7 @@ def balanceGuard : Expr :=
     (.binary .ge (.arrayLength .localVar ⟨"data", []⟩) (.intLit 32))
 
 theorem balancePrefix (v : UniswapV3PoolImmutables) (second : Bool) (evm : EVM.State) :
-    ABlock config evm {contract := contract, locals := ∅, immutables := immStore v}
+    ABlock fork config evm {contract := contract, locals := ∅, immutables := immStore v}
       (balanceFunction second).body (balanceTokenFrame v second)
       [balanceCallStmt, .require balanceGuard, .return [.abiDecode abiUInt256 (.var "data")]] := by
   cases second
@@ -60,9 +62,9 @@ theorem balancePrefix (v : UniswapV3PoolImmutables) (second : Bool) (evm : EVM.S
 
 theorem balanceCall (v : UniswapV3PoolImmutables) (second : Bool) (evm evm' : EVM.State)
     (ok : Bool) (out : ByteArray)
-    (hcall : callViaEVM evm (balanceToken v second) 0
+    (hcall : callViaEVM fork evm (balanceToken v second) 0
       (balanceCalldata evm.executionEnv.codeOwner) (ok, evm', out) false) :
-    ExecStmt config (balanceTokenFrame v second) evm balanceCallStmt
+    ExecStmt fork config (balanceTokenFrame v second) evm balanceCallStmt
       (.ok (balanceCallFrame v second ok out) evm') := by
   apply lowLevelCallWithPermSource (hperm := Or.inl rfl) (target := balanceToken v second)
     (calldata := balanceCalldata evm.executionEnv.codeOwner)
@@ -88,10 +90,10 @@ theorem evalBalanceGuard (v : UniswapV3PoolImmutables) (second ok : Bool)
 
 theorem balanceReturns (v : UniswapV3PoolImmutables) (second : Bool) (evm evm' : EVM.State)
     (out : ByteArray)
-    (hcall : callViaEVM evm (balanceToken v second) 0
+    (hcall : callViaEVM fork evm (balanceToken v second) 0
       (balanceCalldata evm.executionEnv.codeOwner) (true, evm', out) false)
     (hout : 32 ≤ out.size) :
-    ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
       (balanceFunction second).body
       (.returned (balanceCallFrame v second true out) evm'
         (some [.int (Int.ofNat (balanceValue out).toNat)])) := by
@@ -110,10 +112,10 @@ theorem balanceReturns (v : UniswapV3PoolImmutables) (second : Bool) (evm evm' :
 
 theorem balanceReverts (v : UniswapV3PoolImmutables) (second : Bool) (evm evm' : EVM.State)
     (ok : Bool) (out : ByteArray)
-    (hcall : callViaEVM evm (balanceToken v second) 0
+    (hcall : callViaEVM fork evm (balanceToken v second) 0
       (balanceCalldata evm.executionEnv.codeOwner) (ok, evm', out) false)
     (hbad : (ok && decide (32 ≤ out.size)) = false) :
-    ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
       (balanceFunction second).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (balancePrefix v second evm).run

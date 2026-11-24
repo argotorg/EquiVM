@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ArithmeticRoutines
 import Benchmarks.Morpho.MorphoBlue.NarrowingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -46,9 +48,9 @@ theorem morphoCheckedAdd128Ok (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128)
     (hfit : a.toNat + b.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
   have hma : UInt256.land a uint128Mask = a := halfWord_low_clean a ha
   have hmb : UInt256.land b uint128Mask = b := halfWord_low_clean b hb
   have hw : (a + b).toNat = a.toNat + b.toNat :=
@@ -66,8 +68,8 @@ theorem morphoCheckedAdd128Ok (hstack : R.length + 6 ≤ 1024)
 theorem morphoCheckedAdd128Reverts (hstack : R.length + 6 ≤ 1024)
     (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128)
     (hover : 2 ^ 128 ≤ a.toNat + b.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hma : UInt256.land a uint128Mask = a := halfWord_low_clean a ha
   have hmb : UInt256.land b uint128Mask = b := halfWord_low_clean b hb
   have hw : (a + b).toNat = a.toNat + b.toNat :=

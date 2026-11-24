@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.InitializeHookSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -11,9 +13,9 @@ theorem beforeInitializeCall {f : Frame} {evm evm' : EVM.State} {hook : AccountA
     (hp : evalExpr? config f evm ep = .ok (.int (Int.ofNat price.toNat)))
     (hc : PoolKeyCanonical key) (hprice : price.toNat < 2^160)
     (hcall : hookEnabled evm.executionEnv.source hook ⟨8192⟩ →
-      callViaEVM evm hook 0 (beforeInitializePayload evm.executionEnv.source key price) (z, evm', out))
+      callViaEVM fork evm hook 0 (beforeInitializePayload evm.executionEnv.source key price) (z, evm', out))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_beforeInitialize" [es, ek, ep] retVar)
+    ExecStmt fork config f evm (.internalCall "Hooks_beforeInitialize" [es, ek, ep] retVar)
       (resumeCallResult f retVar (hookInvocationResult f evm evm'
         (hookEnabled evm.executionEnv.source hook ⟨8192⟩) z
         (beforeInitializePayload evm.executionEnv.source key price) out)) := by
@@ -40,9 +42,9 @@ theorem afterInitializeCall {f : Frame} {evm evm' : EVM.State} {hook : AccountAd
     (ht : evalExpr? config f evm et = .ok (.int (EVM.signed tick)))
     (hc : PoolKeyCanonical key) (hprice : price.toNat < 2^160) (htick : int24Canonical tick)
     (hcall : hookEnabled evm.executionEnv.source hook ⟨4096⟩ →
-      callViaEVM evm hook 0 (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out))
+      callViaEVM fork evm hook 0 (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_afterInitialize" [es, ek, ep, et] retVar)
+    ExecStmt fork config f evm (.internalCall "Hooks_afterInitialize" [es, ek, ep, et] retVar)
       (resumeCallResult f retVar (hookInvocationResult f evm evm'
         (hookEnabled evm.executionEnv.source hook ⟨4096⟩) z
         (afterInitializePayload evm.executionEnv.source key price tick) out)) := by

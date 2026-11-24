@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.Decode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -18,14 +20,14 @@ structure ArrayHeadChecks (cd : ByteArray) (head : UInt256) : Prop where
 theorem attesterArrayView {words : String → UInt256} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw ret head : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2406⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2406⟩
       (head :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
-    (¬ ArrayHeadChecks ee.calldata head ∧ RDrev (immutableLayout.runtime attesterBytecode words) g
+    (¬ ArrayHeadChecks ee.calldata head ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g
         s0) ∨
       (ArrayHeadChecks ee.calldata head ∧ ∃ k' C',
-        RD (immutableLayout.runtime attesterBytecode words) ee g s0 ret
+        RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ret
           (calldataWord ee.calldata head.toNat :: (head + UInt256.ofNat 32) :: R)
           mem aw rdata σ k' C') := by
   by_cases hhead : UInt256.slt (head + UInt256.ofNat 31) (UInt256.ofNat ee.calldata.size) =
@@ -79,13 +81,13 @@ structure MultiHeadChecks (cd : ByteArray) : Prop where
 theorem attesterMultiHeads {words : String → UInt256} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2482⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2482⟩
       (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hstack : R.length + 18 ≤ 1024)
     (hvalid : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
-    (¬ MultiHeadChecks ee.calldata ∧ RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+    (¬ MultiHeadChecks ee.calldata ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
       (MultiHeadChecks ee.calldata ∧ ∃ k' C',
-        RD (immutableLayout.runtime attesterBytecode words) ee g s0 ret
+        RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ret
           (calldataWord ee.calldata (arrayHead ee.calldata 36).toNat ::
             (arrayHead ee.calldata 36 + UInt256.ofNat 32) ::
             calldataWord ee.calldata (arrayHead ee.calldata 4).toNat ::

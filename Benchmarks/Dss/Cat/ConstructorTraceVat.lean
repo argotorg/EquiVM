@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cat constructor vat storage trace
 
@@ -18,11 +20,11 @@ theorem catCtorVatSloadReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨79⟩
       [solcSlotWord σWards I ⟨3⟩, ⟨3⟩, ⟨1⟩, EVM.word vat.val]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -43,12 +45,12 @@ theorem catCtorVatMaskLowReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd79 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨79⟩
         [solcSlotWord σWards I ⟨3⟩, ⟨3⟩, ⟨1⟩, EVM.word vat.val]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨90⟩
       [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨3⟩, ⟨1⟩, solcSlotWord σWards I ⟨3⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -70,12 +72,12 @@ theorem catCtorVatMaskHighReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd90 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨90⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨3⟩, ⟨1⟩, solcSlotWord σWards I ⟨3⟩]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨102⟩
       [UInt256.land (solcSlotWord σWards I ⟨3⟩) (UInt256.lnot solcAddrMask), ⟨3⟩, ⟨1⟩,
         UInt256.land (EVM.word vat.val) solcAddrMask]
@@ -98,13 +100,13 @@ theorem catCtorVatMaskJoinReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd102 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨102⟩
         [UInt256.land (solcSlotWord σWards I ⟨3⟩) (UInt256.lnot solcAddrMask), ⟨3⟩, ⟨1⟩,
           UInt256.land (EVM.word vat.val) solcAddrMask]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨108⟩
       [⟨3⟩, catCtorVatStored σWards I vat, ⟨1⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -122,11 +124,11 @@ theorem catCtorVatBeforeStoreReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨108⟩
       [⟨3⟩, catCtorVatStored σWards I vat, ⟨1⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -141,11 +143,11 @@ theorem catCtorVatStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd75 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨109⟩
       [⟨1⟩] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σWards ⟨3⟩ (catCtorVatStored σWards I vat)) k' C' := by

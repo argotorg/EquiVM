@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_062
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_063
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,16 +18,16 @@ theorem cometTransferInBalanceAfter {v : CometWithExtendedAssetListImmutables}
     {asset : AccountAddress} {evm : EVM.State}
     (hstack : R.length + 15 ≤ 1024) (hfree : memLoad ⟨64⟩ mem = ptr) (hlo : 96 ≤ ptr.toNat)
     (hptr : ptr.toNat + 36 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13449⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13449⟩
       (EVM.word asset.val :: ⟨32⟩ :: pre :: tokenBalanceSelectorWord :: R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+      callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
         (z, evm', out) false ∧ SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if z = true ∧ 32 ≤ out.size then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨8603⟩
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨8603⟩
           (calldataWord out 0 :: pre :: ⟨2425⟩ :: R)
           (tokenBalanceReturnMemory mem ptr ee.codeOwner out) aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_13449 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   have hf : memLoad (UInt256.ofNat 64) mem = ptr := hfree
@@ -52,7 +54,7 @@ theorem cometTransferInBalanceAfter {v : CometWithExtendedAssetListImmutables}
       immutableLayout_inBounds, immutableTemplate_size64))
     (tokenBalanceInputMemory_payload hb) (by rw [tokenBalancePayload_size]; decide)
     (by change R.length + 4 + 1 ≤ 1024; omega)
-  have hc' : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+  have hc' : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false := by
     have haddr : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
       accountAddress_roundtrip asset
@@ -89,7 +91,7 @@ theorem cometTransferInBalanceAfter {v : CometWithExtendedAssetListImmutables}
       obtain ⟨aw9, k9, C9, r9⟩ := cometAllocatedWordDecode (v := v)
         (by change R.length + 2 + 9 ≤ 1024; omega) (by omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r8
-      change RD _ _ _ _ ⟨13525⟩
+      change RD fork _ _ _ _ ⟨13525⟩
         (memLoad ptr (tokenBalanceReturnMemory mem ptr ee.codeOwner out) :: pre :: ⟨2425⟩ :: R)
         (tokenBalanceReturnMemory mem ptr ee.codeOwner out) _ _ _ _ _ at r9
       rw [tokenBalanceReturnMemory_word hlo hb hlen hhi] at r9

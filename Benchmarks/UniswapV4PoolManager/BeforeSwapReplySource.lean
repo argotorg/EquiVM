@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapDeltaSource
 import Benchmarks.UniswapV4PoolManager.BeforeSwapFeeSource
 import Benchmarks.UniswapV4PoolManager.HookWrapperSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -31,11 +33,11 @@ theorem beforeSwapReplySource {f : Frame} {evm : State} {hook : AccountAddress} 
     (hh : f.locals.get? "hookReturn" = some oldHook)
     (hf : f.locals.get? "lpFeeOverride" = some oldFee)
     (hr : f.locals.get? "result" = some (.bytes out)) :
-    ExecBlock config f evm beforeSwapReplyStmts (beforeSwapReplyResult f evm hook key amount out) := by
+    ExecBlock fork config f evm beforeSwapReplyStmts (beforeSwapReplyResult f evm hook key amount out) := by
   have hlen := evalNatEqLiteral (cfg := config) (evm := evm) (k := 96) (evalLocalBytesLength hr)
   by_cases hsize : out.size = 96
   · rw [beforeSwapReplyResult, if_pos hsize]
-    have hfee := beforeSwapFeeSource (evm := evm) hk hr hf (by omega : 96 ≤ out.size)
+    have hfee := beforeSwapFeeSource (fork := fork) (evm := evm) hk hr hf (by omega : 96 ≤ out.size)
     have hget := beforeSwapFeeFrame_get f key out
     have hflag := hookPermission_eval (evalLocalValue (cfg := config) (evm := evm)
       ((hget "self" (by decide)).trans hs)) ⟨8⟩ (by decide)

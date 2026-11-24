@@ -1,5 +1,7 @@
 import Benchmarks.Auction.OwnerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -27,12 +29,12 @@ theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Id
       some (.elem (.int uint256Int)))
     (hloc : auctionConfig.storageBackend.locate? { base := name } =
       some (.leaf (auctionUint256Loc slot))) :
-    (evm.executionEnv.perm = true → ExecTransitionBody auctionConfig auctionContract evm locals
+    (evm.executionEnv.perm = true → ExecTransitionBody fork auctionConfig auctionContract evm locals
       [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
         .assign .storage { base := name } (.var param)]
       (.returned { contract := auctionContract, locals := locals }
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner slot value) none)) ∧
-      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm locals
+      (evm.executionEnv.perm = false → ExecTransitionBody fork auctionConfig auctionContract evm locals
         [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
           .assign .storage { base := name } (.var param)] .staticViolation) := by
   have hownerEval := evalOwnerEq_true evm locals howner ho
@@ -54,7 +56,7 @@ theorem ownerBodyReverts (evm : EVM.State) (locals : Store) (rest : List Stmt)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv ≠ ownerWord evm.accountMap evm.executionEnv)
     (howner : locals.get? "_owner" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals
+    ExecTransitionBody fork auctionConfig auctionContract evm locals
       (nonpayable :: .require (.binary .eq sender (.storage ownerRef)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert <|
     nonpayableSecondRequireReverts hwv (evalOwnerEq_false evm locals howner ho)

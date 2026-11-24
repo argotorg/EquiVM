@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapSlotMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,12 +11,12 @@ set_option maxRecDepth 10000
 theorem swapSlotReadBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (ha0 : BoundedActiveWords aw limit)
     (hb : p.toNat + 224 ≤ limit) (hov : R.length + 6 ≤ 1024) :
-    (slot0FieldWord 30 1 σ ee = ⟨0⟩ ∧ RDrev (deployedRuntime v) g s0) ∨
+    (slot0FieldWord 30 1 σ ee = ⟨0⟩ ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨2543⟩ (p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨2543⟩ (p :: R)
         (wordArrayAllocMem mem p (slot0StructWords σ ee)) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (slot0StructWords σ ee)) aw' (p + ⟨224⟩) ∧
       Slot0Memory (wordArrayAllocMem mem p (slot0StructWords σ ee)) p σ ee ∧
@@ -56,11 +58,11 @@ theorem swapSlotReadBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv}
 theorem swapSlotReadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
-    (slot0FieldWord 30 1 σ ee = ⟨0⟩ ∧ RDrev (deployedRuntime v) g s0) ∨
+    (slot0FieldWord 30 1 σ ee = ⟨0⟩ ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨2543⟩ (p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨2543⟩ (p :: R)
         (wordArrayAllocMem mem p (slot0StructWords σ ee)) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (slot0StructWords σ ee)) aw' (p + ⟨224⟩) ∧
       Slot0Memory (wordArrayAllocMem mem p (slot0StructWords σ ee)) p σ ee) := by

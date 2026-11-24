@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CopyEncodeViews
 import Benchmarks.EAS.EAS.EncodeValuesSource
 import Benchmarks.EAS.EAS.RuntimeBlocks_018
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,10 +22,10 @@ theorem easEncodeWordLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsrc : src+32*len < UInt256.size) (hdst : dst+32*len < UInt256.size)
     (hlen : len < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.pc
+    (rd : RD fork (deployedRuntime v) ee g s0 site.pc
       (UInt256.ofNat i::UInt256.ofNat len::UInt256.ofNat (src+32*i)::UInt256.ofNat (dst+32*i)::ret::R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (dst+32*len)::R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (dst+32*len)::R)
       (easCopyWords (UInt256.ofNat src) (UInt256.ofNat dst) mem (32*i) n) aw' rdata σ k' C' := by
   induction n generalizing i mem aw k C with
   | zero =>
@@ -45,7 +47,7 @@ theorem easEncodeWordLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     have hc : UInt256.lt (UInt256.ofNat i) (UInt256.ofNat len) ≠ ⟨0⟩ := by
       rw [ult_one (by rw [ulit_toNat' _ hin, ulit_toNat' _ hlen]; exact hi)]
       decide
-    have hstep : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 site.pc
+    have hstep : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 site.pc
         ((UInt256.ofNat 1+UInt256.ofNat i)::UInt256.ofNat len::
           (UInt256.ofNat (src+32*i)+UInt256.ofNat 32)::(UInt256.ofNat 32+UInt256.ofNat (dst+32*i))::ret::R)
         (Reasoning.Theory.writeWord mem (UInt256.ofNat (dst+32*i)).toNat
@@ -102,9 +104,9 @@ theorem easEncodeWordValues {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbound : dst.toNat+32*words.length < UInt256.size)
     (hwords : memoryWords mem src.toNat words.length = words)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.pc
+    (rd : RD fork (deployedRuntime v) ee g s0 site.pc
       (⟨0⟩::UInt256.ofNat words.length::src::dst::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (dst.toNat+32*words.length)::R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (dst.toNat+32*words.length)::R)
       (writeWordSequence mem dst.toNat words) aw' rdata σ k' C' := by
   have hl : words.length < UInt256.size := by omega
   obtain ⟨aw1,k1,C1,rd1⟩ := easEncodeWordLoop v site src.toNat dst.toNat words.length 0 words.length (by omega)
@@ -113,7 +115,7 @@ theorem easEncodeWordValues {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have hm := easCopyWords_eq_sequence src dst mem 0 words.length
     (by omega) (by omega) (by omega) (by omega)
   simp only [Nat.add_zero, hwords] at hm
-  simpa only [Nat.mul_zero, u256_ofNat_toNat, hm] using (show ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+  simpa only [Nat.mul_zero, u256_ofNat_toNat, hm] using (show ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
     (UInt256.ofNat (dst.toNat+32*words.length)::R)
     (easCopyWords (UInt256.ofNat src.toNat) (UInt256.ofNat dst.toNat) mem (32*0) words.length) aw' rdata σ k' C' from ⟨aw1,k1,C1,rd1⟩)
 

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.BorrowPositionRefine
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceMath
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,9 +29,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {k C : Nat} {R : List UInt256}
 
 theorem morphoBorrowMarketSharesReachAdd (hstack : R.length + 36 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8645)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8645)
       (shares :: borrowMarketTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([marketFieldWord σ ee id 3, shares, UInt256.ofNat 8673] ++ borrowSharesStoreTail id assets shares account receiver R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_8645_packed (immWords := wordsOf (immStore v))
@@ -47,15 +49,15 @@ theorem morphoBorrowMarketSharesReachAdd (hstack : R.length + 36 ≤ 1024)
 
 theorem morphoBorrowMarketSharesStore (hstack : R.length + 36 ≤ 1024) (hperm : ee.perm = true)
     (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8673)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8673)
       (value :: borrowSharesStoreTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([assets, UInt256.ofNat 8747] ++ borrowMarketTail id assets shares account receiver R)
       mem aw' out (storeMarketFieldAccounts σ ee id ⟨3, by decide⟩ value) k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_8673_packed (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 18 ≤ 1024; omega) hperm
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ _ _ _ _
+  change RD fork _ _ _ _ _ _ _ _ _
     (sstoreAccountMap ee.codeOwner σ (marketFieldSlot id 2)
       (UInt256.lor (UInt256.land (UInt256.lnot uint128Mask) (UInt256.shiftLeft value (UInt256.ofNat 128)))
         (UInt256.land uint128Mask (solcSlotWordAt (marketFieldSlot id 2) σ ee)))) _ _ at rd1
@@ -64,9 +66,9 @@ theorem morphoBorrowMarketSharesStore (hstack : R.length + 36 ≤ 1024) (hperm :
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoBorrowMarketAssetsReachAdd (hstack : R.length + 36 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8747)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8747)
       (assets :: borrowMarketTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([marketFieldWord σ ee id 2, assets, UInt256.ofNat 8777] ++ borrowStoreTail σ ee id assets shares account receiver R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_8747_packed (immWords := wordsOf (immStore v))
@@ -84,15 +86,15 @@ theorem morphoBorrowMarketAssetsReachAdd (hstack : R.length + 36 ≤ 1024)
 
 theorem morphoBorrowStoreHealth (hstack : R.length + 36 ≤ 1024) (hperm : ee.perm = true)
     (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8777)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8777)
       (value :: borrowStoreTail σ ee id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13948)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13948)
       ([UInt256.ofNat 128, id, account, UInt256.ofNat 8794] ++ borrowHealthTail id assets shares account receiver R)
       mem aw' out (storeMarketFieldAccounts σ ee id ⟨2, by decide⟩ value) k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_8777_packed (immWords := wordsOf (immStore v))
     (by change R.length + 6 + 13 ≤ 1024; omega) hperm
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ _ _ _ _
+  change RD fork _ _ _ _ _ _ _ _ _
     (sstoreAccountMap ee.codeOwner σ (marketFieldSlot id 2)
       (UInt256.lor (UInt256.land (solcSlotWordAt (marketFieldSlot id 2) σ ee) (UInt256.lnot uint128Mask))
         (UInt256.land value uint128Mask))) _ _ at rd1

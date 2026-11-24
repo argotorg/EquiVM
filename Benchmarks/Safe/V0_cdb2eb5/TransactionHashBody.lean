@@ -1,13 +1,15 @@
 import Benchmarks.Safe.V0_cdb2eb5.TransactionArguments
 import Benchmarks.Safe.V0_cdb2eb5.Operation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
 
 theorem safeTransactionHashBody {evm : EVM.State} {tx : SafeTransaction}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (ho : tx.operation.toNat < 2) :
-    ExecTransitionBody config contract evm (transactionArgs tx) gettransactionhashTransition.body
+    ExecTransitionBody fork config contract evm (transactionArgs tx) gettransactionhashTransition.body
       (.returned (transactionFrame tx) evm
         (some [wordBytes32Value (transactionWord evm.executionEnv tx)])) := by
   apply ExecFuncBody.execBlockRet
@@ -24,7 +26,7 @@ theorem safeTransactionHashBody {evm : EVM.State} {tx : SafeTransaction}
 
 theorem safeTransactionHashInvalid {evm : EVM.State} {tx : SafeTransaction}
     (ho : ¬tx.operation.toNat < 2) :
-    ExecTransitionBody config contract evm (transactionArgs tx) gettransactionhashTransition.body
+    ExecTransitionBody fork config contract evm (transactionArgs tx) gettransactionhashTransition.body
       .reverted := by
   by_cases hv : evm.executionEnv.weiValue = ⟨0⟩
   swap

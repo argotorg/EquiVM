@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.Decoded
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -10,12 +12,12 @@ namespace BlindAuction
 theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩)
-    (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨387⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C)
  :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
 
@@ -88,7 +90,7 @@ theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
     · exact hrev.reEquivDecodingFailed hcode hd hdecNone
     · obtain ⟨callargs, hdec⟩ := Option.ne_none_iff_exists'.mp hdecNone
       have hbody :
-          ExecTransitionBody blindAuctionConfig blindAuctionContract
+          ExecTransitionBody fork blindAuctionConfig blindAuctionContract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
             revealTransition.body .reverted := by
         exact blindAuctionRevealBodyReverts_nonpayable

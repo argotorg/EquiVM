@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.StaticWordCalls
 import Benchmarks.CurveVault.RuntimeBlocks_004
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -16,17 +18,17 @@ theorem vaultSetMaxAdminCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_factory" = none)
     (hfactory : (codeOwnerStorageWord I σ ⟨4⟩).toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 861) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 861) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
       (retWord out).toNat < EVM.addressModulus ∧ (codeOwnerStorageWord I σ' ⟨4⟩).toNat < EVM.addressModulus ∧
-      ExecStmt config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxAdminStmt
+      ExecStmt fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxAdminStmt
         (.ok {contract := contract, locals := locals.insert "factory_admin" (.address (AccountAddress.ofNat (retWord out).toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 932) (retWord out :: ⟨32⟩ :: codeOwnerStorageWord I σ ⟨4⟩ :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 932) (retWord out :: ⟨32⟩ :: codeOwnerStorageWord I σ ⟨4⟩ :: R)
         ((retWord out).toByteArray.write 0 (vaultBlocks.vault_block_861_memory (mem := mem)) 64 32)
         aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxAdminStmt .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxAdminStmt .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let evm0 := vaultSetLock evm ⟨1⟩
   let σ0 := tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩
   have hs0 : SourceState s0 I σ0 evm0 := by
@@ -41,7 +43,7 @@ theorem vaultSetMaxAdminCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   dsimp only [σ0] at hreceiver
   rw [codeOwnerStorageWord_tstore] at hreceiver
   obtain ⟨gasArg, k0, C0, rd886⟩ := vaultBlocks.vault_block_861 hstack hperm h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 886)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 886)
     (gasArg :: codeOwnerStorageWord I σ0 ⟨4⟩ :: UInt256.ofNat 92 :: ⟨4⟩ :: ⟨64⟩ :: ⟨32⟩ ::
       codeOwnerStorageWord I σ0 ⟨4⟩ :: R) _ _ rdata σ0 k0 C0 at rd886
   dsimp only [σ0] at rd886
@@ -75,7 +77,7 @@ theorem vaultSetMaxAdminCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         (by simp only [vaultBlocks.vault_block_898_taken_stack, vaultBlocks.vault_block_887_taken_stack, List.length_cons]; omega) rdFail) rd886
   rcases hbridge with ⟨evm', σ', out, aw', k', C', h32, hwide, hcall, hs', rd921⟩ |
     ⟨evm', out, hcall, hrev⟩ | ⟨evm', out, hcall, hshort, hrev⟩
-  · change RD vaultBytecode I g s0 (UInt256.ofNat 921)
+  · change RD fork vaultBytecode I g s0 (UInt256.ofNat 921)
       (⟨32⟩ :: codeOwnerStorageWord I σ ⟨4⟩ :: R)
       ((retWord out).toByteArray.write 0 (vaultBlocks.vault_block_861_memory (mem := mem)) 64 32)
       aw' out σ' k' C' at rd921

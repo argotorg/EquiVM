@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.StringBlocks
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -13,9 +15,9 @@ theorem vaultStringLoopRun {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {σ : AccountMap} {saved : UInt256} {R : List UInt256}
     (isName : Bool) (fuel count : Nat) (hcount : count ≤ 3) (hstack : R.length + 8 ≤ 1024) :
     ∀ (index : Nat) {mem : ByteArray} {aw : UInt256} {k C : Nat}, index + fuel + 1 = count →
-      RD vaultBytecode I g s0 (vaultStringPc isName 6477)
+      RD fork vaultBytecode I g s0 (vaultStringPc isName 6477)
         (UInt256.ofNat index :: UInt256.ofNat count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C →
-      ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
         (UInt256.ofNat count :: UInt256.ofNat count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R)
         (vaultStringCopyMemory I σ (vaultStringSlot isName) mem index (fuel + 1)) aw' rdata σ k' C' := by
   induction fuel with
@@ -47,9 +49,9 @@ theorem vaultStringCopyRoutine {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {saved : UInt256} {R : List UInt256} (isName : Bool)
     (count : Nat) (hcount : count ≤ 3) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6470)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6470)
       (UInt256.ofNat count :: ⟨0⟩ :: saved :: ⟨96⟩ :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
       (UInt256.ofNat count :: UInt256.ofNat count :: saved :: ⟨96⟩ :: ⟨32⟩ :: R)
       (vaultStringCopyMemory I σ (vaultStringSlot isName) mem 0 count) aw' rdata σ k' C' := by
   cases count with
@@ -69,8 +71,8 @@ theorem vaultStringPrefix {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256} (isName : Bool)
     (hcount : (vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName))).toNat ≤ 3)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringPc isName 6500)
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringPc isName 6500)
       (vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName)) ::
         vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName)) ::
         (codeOwnerStorageWord I σ (vaultStringSlot isName) + ⟨32⟩) :: ⟨96⟩ :: ⟨32⟩ :: R)
@@ -79,7 +81,7 @@ theorem vaultStringPrefix {I : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨aw1, k1, C1, rdStart⟩ := vaultStringEntryPass isName (by omega) (ugt_zero hcount) h
   let count := vyperStringWords (codeOwnerStorageWord I σ (vaultStringSlot isName))
   have hword : UInt256.ofNat count.toNat = count := u256_ofNat_toNat count
-  change RD vaultBytecode I g s0 (vaultStringPc isName 6470)
+  change RD fork vaultBytecode I g s0 (vaultStringPc isName 6470)
     (count :: ⟨0⟩ :: (codeOwnerStorageWord I σ (vaultStringSlot isName) + ⟨32⟩) :: ⟨96⟩ :: ⟨32⟩ :: R)
     _ aw1 rdata σ k1 C1 at rdStart
   rw [← hword] at rdStart

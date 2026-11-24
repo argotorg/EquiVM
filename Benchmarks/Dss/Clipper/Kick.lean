@@ -2,6 +2,8 @@ import Reasoning.Storage
 import Benchmarks.Dss.Clipper.KickDepthLimit
 import Benchmarks.Dss.Clipper.Invalid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -29,32 +31,32 @@ private theorem clipperKickConnectOutcome
       (transitionSignature kickTransition).paramTypes I.calldata =
         some (clipperKickStore I))
     (hprefix : ∀ {result : ExecResult},
-      ExecBlock config
+      ExecBlock fork config
           (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
           sourceInit (clipperKickAfterInitializationBody) result →
-        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
+        ExecBlock fork config (Frame.mk contract (clipperKickStore I) (immStore v))
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           kickTransition.body result)
     (hid : clipperKickSourceIdWord evmLock = id)
-    (houtcome : ClipperKickTailOutcome v code g
+    (houtcome : ClipperKickTailOutcome fork v code g
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   cases houtcome with
   | reverted hsource hevm =>
-      have hbody : ExecTransitionBody config contract
+      have hbody : ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert (hprefix hsource)
       exact hevm.reEquivExecutionRevert hcode hdispatch hdecode hbody
   | invalid hsource hevm =>
-      have hbody : ExecTransitionBody config contract
+      have hbody : ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert (hprefix hsource)
       exact RDinvalid.reEquivExecutionInvalid hcode hevm hdispatch hdecode hbody
   | returned σFinal sourceAfter frame hsource hevm haccounts =>
-      have hbody : ExecTransitionBody config contract
+      have hbody : ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperKickStore I) kickTransition.body
           (.returned frame sourceAfter
@@ -96,12 +98,12 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 13))
     (hStorageWF : clipperStorageWF σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 13) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
     clipperDispatch_kick hsel
-  have hreachEntry := clipperReachKickEntry
+  have hreachEntry := clipperReachKickEntry (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) v hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz132 : 132 ≤ I.calldata.size
@@ -123,14 +125,14 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
           (clipperRelyAuthStorageSlot I) (by simp [evmStele, initState])
           hInitialAccounts
     have connectRevert
-        (hsource : ExecBlock config
+        (hsource : ExecBlock fork config
           (Frame.mk contract (clipperKickStore I) (immStore v)) evmStele
           kickTransition.body .reverted)
-        (hevm : RDrev code (Sat256.ofUInt256 g)
+        (hevm : RDrev fork code (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-        runtimeRefinementFor config contract
+        runtimeRefinementFor fork config contract
           σ σ₀ g A I (immStore v) := by
-      have hbody : ExecTransitionBody config contract evmStele
+      have hbody : ExecTransitionBody fork config contract evmStele
           (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert hsource
       simpa [evmStele] using
@@ -284,16 +286,16 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                     simpa [clipperKickTopSlot] using congrArg (fun slot => slot + ⟨4⟩)
                       (clipperKickSalesBaseSlot_eq evmLock σLock I hidEq)
                   have hprefix : ∀ {result : ExecResult},
-                      ExecBlock config
+                      ExecBlock fork config
                           (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
                           sourceInit (clipperKickAfterInitializationBody) result →
-                        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
+                        ExecBlock fork config (Frame.mk contract (clipperKickStore I) (immStore v))
                           evmStele kickTransition.body result := by
                     intro result hafter
                     exact clipperKickSourcePrefix (hperm := by assumption) v evmStele I hvalue hsrc hauthSource
                       hlockedSource hstoppedSource htab hlot husr
                       (by rw [hidEq]; exact hid) hlen hafter
-                  have houtcome : ClipperKickTailOutcome v code g
+                  have houtcome : ClipperKickTailOutcome fork v code g
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                       evmLock sourceInit (clipperKickIdWord σLock I) := by
                     by_cases hdepth : I.depth.val < 1024
@@ -322,7 +324,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                         have haddr := clipperKickSpotterAddress_eq_of_aligned halignInit
                         have hnoCode := clipperKickNoCode_of_aligned halignInit
                           haddr hspotter
-                        have hcall := clipperGetFeedPriceCallRevertsSpotterIlksNoCode
+                        have hcall := clipperGetFeedPriceCallRevertsSpotterIlksNoCode (fork := fork)
                           v sourceInit (clipperKickLocalsActivePos evmLock I)
                             "feedPrice" hnoCode
                         exact .reverted
@@ -339,38 +341,38 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                     hidEq houtcome
                 · have hidZero : clipperKickIdWord σLock I = ⟨0⟩ := by
                     simpa using hid
-                  have hsource := clipperKickSourceRevertsId (hperm := by assumption) v evmStele I hvalue hsrc
+                  have hsource := clipperKickSourceRevertsId (fork := fork) (hperm := by assumption) v evmStele I hvalue hsrc
                     hauthSource hlockedSource hstoppedSource htab hlot husr
                     (by rw [hidEq]; exact hidZero)
-                  have hevm := clipperKickX_idZero (σ := σLock) v hpatch hperm
+                  have hevm := clipperKickX_idZero (fork := fork) (σ := σLock) v hpatch hperm
                     hidZero rd5831
                   exact connectRevert hsource hevm
               · have husrZero : clipperKickUsrMaskedWord I = ⟨0⟩ := by
                   simpa using husr
-                have hsource := clipperKickSourceRevertsUsr (hperm := by assumption) v evmStele I hvalue hsrc
+                have hsource := clipperKickSourceRevertsUsr (fork := fork) (hperm := by assumption) v evmStele I hvalue hsrc
                   hauthSource hlockedSource hstoppedSource htab hlot husrZero
-                have hevm := clipperKickX_usrZero (σ := σLock) v hpatch husrZero rd5753
+                have hevm := clipperKickX_usrZero (fork := fork) (σ := σLock) v hpatch husrZero rd5753
                 exact connectRevert hsource hevm
-            · have hsource := clipperKickSourceRevertsLot (hperm := by assumption) v evmStele I hvalue hsrc
+            · have hsource := clipperKickSourceRevertsLot (fork := fork) (hperm := by assumption) v evmStele I hvalue hsrc
                 hauthSource hlockedSource hstoppedSource htab hlot
-              have hevm := clipperKickX_lotZero (σ := σLock) v hpatch hlot rd5681
+              have hevm := clipperKickX_lotZero (fork := fork) (σ := σLock) v hpatch hlot rd5681
               exact connectRevert hsource hevm
-          · have hsource := clipperKickSourceRevertsTab (hperm := by assumption) v evmStele I hvalue hsrc
+          · have hsource := clipperKickSourceRevertsTab (fork := fork) (hperm := by assumption) v evmStele I hvalue hsrc
               hauthSource hlockedSource hstoppedSource htab
-            have hevm := clipperKickX_tabZero (σ := σLock) v hpatch htab
+            have hevm := clipperKickX_tabZero (fork := fork) (σ := σLock) v hpatch htab
               (by simpa [σLock] using rd5609)
             exact connectRevert hsource hevm
         · have hstoppedGe : 1 ≤ (solcSlotWord σLock I ⟨14⟩).toNat := by omega
-          have hsource := clipperKickSourceRevertsStopped (hperm := by assumption) v evmStele I hvalue hsrc
+          have hsource := clipperKickSourceRevertsStopped (fork := fork) (hperm := by assumption) v evmStele I hvalue hsrc
             hauthSource hlockedSource (by rw [← hstoppedEq]; exact hstoppedGe)
-          have hevm := clipperKickX_stopped (σ := σ) v hpatch hperm
+          have hevm := clipperKickX_stopped (fork := fork) (σ := σ) v hpatch hperm
             (by simpa [σLock] using hstoppedGe) rd5520
           exact connectRevert hsource hevm
       · have hlockedSource : Stele.EVM.storageLoad evmStele
             evmStele.executionEnv.codeOwner ⟨13⟩ ≠ ⟨0⟩ := by
           intro hz
           exact hlocked (by rw [hlockEq, hz])
-        have hsource := clipperKickSourceRevertsLocked v evmStele I hvalue hsrc
+        have hsource := clipperKickSourceRevertsLocked (fork := fork) v evmStele I hvalue hsrc
           hauthSource hlockedSource
         have hevm := clipperKickX_locked v hpatch hlocked rd5443
         exact connectRevert hsource hevm
@@ -378,7 +380,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
           evmStele.executionEnv.codeOwner (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩ := by
         intro hone
         exact hauth (by rw [hauthEq, hone])
-      have hsource := clipperKickSourceRevertsUnauthorized v evmStele I hvalue hsrc
+      have hsource := clipperKickSourceRevertsUnauthorized (fork := fork) v evmStele I hvalue hsrc
         hauthSource
       have hevm := clipperKickX_unauthorized v hpatch hauth rd5361
       exact connectRevert hsource hevm

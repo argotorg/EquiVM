@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipControl
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,9 +16,9 @@ theorem cometUpdateAssetsIn {v : CometWithExtendedAssetListImmutables}
     (hoffset : memLoad ptr mem = offset) (ho : offset.toNat < 256)
     (hi : initial.toNat < 2^128) (hf : final.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14132⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14132⟩
       (EVM.word account.val :: ptr :: initial :: final :: ret :: R) mem aw rdata σ k C) :
-    AssetMembershipRun v ee g s0 mem rdata account ret R
+    AssetMembershipRun fork v ee g s0 mem rdata account ret R
       (assetMembershipResult evm account offset initial final) := by
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
     (UInt256.ofNat 1)
@@ -32,7 +34,7 @@ theorem cometUpdateAssetsIn {v : CometWithExtendedAssetListImmutables}
       (by change UInt256.isZero (UInt256.land mask initial) ≠ UInt256.ofNat 0
           rw [hci, hi0]; decide)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.isZero (UInt256.land mask initial) ::
         UInt256.isZero (UInt256.land mask initial) :: mask :: final ::
         EVM.word account.val :: ptr :: ret :: R) _ _ _ _ _ _ at r1
@@ -72,7 +74,7 @@ theorem cometUpdateAssetsIn {v : CometWithExtendedAssetListImmutables}
       (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
       (by change UInt256.isZero (UInt256.land mask initial) = UInt256.ofNat 0
           rw [hci]; exact isZero_eq_zero_of_ne hi0) h
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.isZero (UInt256.land mask initial) ::
         UInt256.isZero (UInt256.land mask initial) :: mask :: final ::
         EVM.word account.val :: ptr :: ret :: R) _ _ _ _ _ _ at r1

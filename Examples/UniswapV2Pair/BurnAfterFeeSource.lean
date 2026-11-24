@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnAmountsCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -15,7 +17,7 @@ abbrev burnTotalSupplyStore (reserveEvm callEvm feeEvm : EVM.State) (I : Executi
 
 theorem uniswapBurnTotalSupplyLet (reserveEvm callEvm feeEvm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256) (feeOn : Bool) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := burnFeeStore reserveEvm callEvm I balance0 balance1 feeOn }
       feeEvm [.letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef)]
       (.ok { contract := contract, locals :=
@@ -47,10 +49,10 @@ abbrev burnBeforeAmountsPrefix : List Stmt :=
 
 theorem uniswapBurnBeforeAmountsPrefix
     (evm evm1 evmFee : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm burnBeforeFeePrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm burnBeforeFeePrefix
       (.ok { contract := contract, locals :=
         burnLiquidityStore (uniswapLockEnteredState evm) evm1 I balance0 balance1 } evm1))
-    (hfee : ExecStmt config
+    (hfee : ExecStmt fork config
       { contract := contract, locals :=
         burnLiquidityStore (uniswapLockEnteredState evm) evm1 I balance0 balance1 } evm1
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -58,7 +60,7 @@ theorem uniswapBurnBeforeAmountsPrefix
         { contract := contract, locals :=
           burnLiquidityStore (uniswapLockEnteredState evm) evm1 I balance0 balance1 }
         "feeOn" (some [.bool feeOn])) evmFee)) :
-    ExecBlock config { contract := contract, locals := burnStore I } evm burnBeforeAmountsPrefix
+    ExecBlock fork config { contract := contract, locals := burnStore I } evm burnBeforeAmountsPrefix
       (.ok { contract := contract, locals :=
         burnTotalSupplyStore (uniswapLockEnteredState evm) evm1 evmFee I balance0 balance1 feeOn } evmFee) := by
   exact execBlock_append hprefix
@@ -66,14 +68,14 @@ theorem uniswapBurnBeforeAmountsPrefix
 
 theorem uniswapBurnBodyReverts_amounts
     (evm evm1 evmFee : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm burnBeforeAmountsPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm burnBeforeAmountsPrefix
       (.ok { contract := contract, locals :=
         burnTotalSupplyStore (uniswapLockEnteredState evm) evm1 evmFee I balance0 balance1 feeOn } evmFee))
-    (hamounts : ExecBlock config
+    (hamounts : ExecBlock fork config
       { contract := contract, locals :=
         burnTotalSupplyStore (uniswapLockEnteredState evm) evm1 evmFee I balance0 balance1 feeOn } evmFee
       [burnAmount0Stmt, burnAmount1Stmt] .reverted) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [burnTransition, burnBeforeAmountsPrefix, burnBeforeFeePrefix, burnCachePrefix,
       burnAmount0Stmt, burnAmount1Stmt, List.append_assoc] using

@@ -8,23 +8,25 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_007
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def swapValidationTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv)
+def swapValidationTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 evm : State) (mem rdata : ByteArray) (key : PoolKeyWords) (p : SwapParamsWords)
     (keyPtr paramsPtr src len junk : UInt256) (R : List UInt256) : Prop :=
-  if transientWord evm lockSlot = ⟨0⟩ then RDrev (deployedRuntime v) g s0
+  if transientWord evm lockSlot = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
   else if I.codeOwner = v.original then
-    if p.amountSpecified = ⟨0⟩ then RDrev (deployedRuntime v) g s0
-    else if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev (deployedRuntime v) g s0
-    else ∃ aw k C, aw.toNat ≤ 13 ∧ RD (deployedRuntime v) I g s0 ⟨1571⟩
+    if p.amountSpecified = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
+    else if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
+    else ∃ aw k C, aw.toNat ≤ 13 ∧ RD fork (deployedRuntime v) I g s0 ⟨1571⟩
       ([len, poolSlot (poolKeyId key), paramsPtr+UInt256.ofNat 64, keyPtr, poolKeyId key, src, paramsPtr, junk] ++ R)
       (twoWordHashMem (poolKeyId key) ⟨6⟩ mem) aw rdata evm.accountMap k C
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem swapValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw keyPtr paramsPtr src len junk : UInt256} {k C : Nat}
@@ -33,10 +35,10 @@ theorem swapValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hk : PoolKeyView mem keyPtr key)
     (hp : MemorySlice mem paramsPtr.toNat (wordBytes (swapParamsWordList p)))
     (hb : keyPtr.toNat+160 ≤ 416) (hpb : paramsPtr.toNat+96 ≤ 416) (haw : aw.toNat ≤ 13)
-    (h : RD (deployedRuntime v) I g s0 ⟨1488⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1488⟩
       ([len, src, keyPtr, paramsPtr+UInt256.ofNat 64, paramsPtr+UInt256.ofNat 32, paramsPtr, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    swapValidationTraceResult v I g s0 evm mem rdata key p keyPtr paramsPtr src len junk R := by
+    swapValidationTraceResult fork v I g s0 evm mem rdata key p keyPtr paramsPtr src len junk R := by
   rw [swapValidationTraceResult]
   have hlock : codeOwnerTransientWord I evm.accountMap lockSlot = transientWord evm lockSlot :=
     (transientWord_accountMap hI lockSlot).symm

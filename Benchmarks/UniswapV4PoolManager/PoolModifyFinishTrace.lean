@@ -1,18 +1,20 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountsTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
 /-- The inlined pool function returns two packed deltas at the caller's add-delta entry. -/
-def poolModifyReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyReturnTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (x1 x2 x4 x5 x9 extra : UInt256)
     (R : List UInt256) (post : State) (values : Option (List Value)) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ principal fees,
     values = some [.int (EVM.signed principal), .int (EVM.signed fees)] ∧ ∃ j0 j1 j2 aw k C,
-      RD (deployedRuntime v) I g s0 ⟨6046⟩
+      RD fork (deployedRuntime v) I g s0 ⟨6046⟩
         (j0 :: j1 :: j2 :: principal :: poolModifyAmountRest fees x1 x2 x4 x5 x9 extra R)
         mem aw rdata post.accountMap k C
 
@@ -23,11 +25,11 @@ theorem poolModifyFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6036⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6036⟩
       (junk :: p.lower :: p.upper :: EVM.wordOfInt p.delta :: ⟨0⟩ :: poolModifyAmountRest fees x1 x2 x4 x5 x9 extra R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (poolModifyReturnTrace v I g s0 σ₀ mem rdata x1 x2 x4 x5 x9 extra R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (poolModifyReturnTrace fork v I g s0 σ₀ mem rdata x1 x2 x4 x5 x9 extra R)
       (poolModifyFinishResult f evm id p fees) := by
   have hr := poolModifyAmountsTrace f v hstack hI hm hl hu ht hd h
   apply functionResultTrace_continueBlock hr

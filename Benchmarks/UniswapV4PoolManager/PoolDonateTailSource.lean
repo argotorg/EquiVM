@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolDonateGrowthSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -10,11 +12,11 @@ theorem poolDonateTailSource {f : Frame} {evm : State} {id amount0 amount1 liqui
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hd : f.locals.get? "delta" = some (.int (EVM.signed delta))) :
-    ∃ f', ExecBlock config f evm (poolDonateFunction.body.drop 7)
+    ∃ f', ExecBlock fork config f evm (poolDonateFunction.body.drop 7)
       (if (amount0 ≠ ⟨0⟩ ∨ amount1 ≠ ⟨0⟩) ∧ evm.executionEnv.perm = false then .staticViolation else
         .returned f' (poolDonateStep (poolDonateStep evm id false amount0 liquidity) id true amount1 liquidity)
           (some [.int (EVM.signed delta)])) := by
-  have hg0 := poolDonateGrowthSource (evm := evm) false hf hs h0 hl
+  have hg0 := poolDonateGrowthSource (fork := fork) (evm := evm) false hf hs h0 hl
   by_cases hbad0 : amount0 ≠ ⟨0⟩ ∧ evm.executionEnv.perm = false
   · rw [if_pos hbad0] at hg0
     refine ⟨f, ?_⟩
@@ -32,7 +34,7 @@ theorem poolDonateTailSource {f : Frame} {evm : State} {id amount0 amount1 liqui
     (poolDonateGrowthFrame_get _ _ _ _ _ (by decide)).trans hl
   have hd1 : f1.locals.get? "delta" = some (.int (EVM.signed delta)) :=
     (poolDonateGrowthFrame_get _ _ _ _ _ (by decide)).trans hd
-  have hg1 := poolDonateGrowthSource (f := f1) (evm := p1) true hf1 hs1 ha1 hl1
+  have hg1 := poolDonateGrowthSource (fork := fork) (f := f1) (evm := p1) true hf1 hs1 ha1 hl1
   have henv : p1.executionEnv = evm.executionEnv := poolDonateStep_executionEnv ..
   rw [henv] at hg1
   by_cases hbad1 : amount1 ≠ ⟨0⟩ ∧ evm.executionEnv.perm = false

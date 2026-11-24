@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchCompare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -40,7 +42,7 @@ theorem oracleSearchFound (locals imms : Store) (evm : EVM.State)
     (hinit : (oracleSearchBefore left right cardinality evm.accountMap evm.executionEnv).initialized = true)
     (hfound : (oracleSearchFirst time target cardinality left right evm.accountMap evm.executionEnv &&
       oracleSearchSecond time target cardinality left right evm.accountMap evm.executionEnv) = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleSearchBody
       (.break (oracleSearchCompareFrame locals imms evm time target cardinality left right) evm) := by
   rw [← List.take_append_drop 7 oracleSearchBody]
@@ -60,7 +62,7 @@ theorem oracleSearchAdvance (locals imms : Store) (evm : EVM.State)
     (hfound : (oracleSearchFirst time target cardinality left right evm.accountMap evm.executionEnv &&
       oracleSearchSecond time target cardinality left right evm.accountMap evm.executionEnv) = false) :
     let first := oracleSearchFirst time target cardinality left right evm.accountMap evm.executionEnv
-    ∃ locals', ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ∃ locals', ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleSearchBody (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       OracleSearchBindings locals' time target cardinality
         (if first then oracleSearchMiddle left right + ⟨1⟩ else left)
@@ -74,7 +76,7 @@ theorem oracleSearchAdvance (locals imms : Store) (evm : EVM.State)
   have ei := evalExpr_var_get (cfg := config) (frame := frame) (evm := evm) hg.2.2.1
   have eone : evalExpr? config frame evm (.intLit 1) =
       .ok (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) := by simp only [evalExpr?, pure]; rfl
-  have eprefix := oracleSearchComparePrefix locals imms evm time target cardinality left right h hn hc ht hinit
+  have eprefix := oracleSearchComparePrefix (fork := fork) locals imms evm time target cardinality left right h hn hc ht hinit
   cases hf : oracleSearchFirst time target cardinality left right evm.accountMap evm.executionEnv
   · let next := UInt256.sub (oracleSearchMiddle left right) ⟨1⟩
     refine ⟨frame.locals.insert "r" (.int (Int.ofNat next.toNat)), ?_, ?_⟩
@@ -87,7 +89,7 @@ theorem oracleSearchAdvance (locals imms : Store) (evm : EVM.State)
         simp only [hf, bind, EvalResult.bind, evalUnaryOp?]
         rfl
       · exact ExecBlock.consNormal
-          (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_sub ei eone) (assignLocalVarBase_frame hframe.right)) ExecBlock.nil
+          (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_sub ei eone) (assignLocalVarBase_frame hframe.right)) ExecBlock.nil
     · exact hframe.set_right next
   · let next := oracleSearchMiddle left right + ⟨1⟩
     refine ⟨frame.locals.insert "l" (.int (Int.ofNat next.toNat)), ?_, ?_⟩
@@ -100,7 +102,7 @@ theorem oracleSearchAdvance (locals imms : Store) (evm : EVM.State)
         simp only [hf, bind, EvalResult.bind, evalUnaryOp?]
         rfl
       · exact ExecBlock.consNormal
-          (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_add ei eone) (assignLocalVarBase_frame hframe.left)) ExecBlock.nil
+          (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_add ei eone) (assignLocalVarBase_frame hframe.left)) ExecBlock.nil
     · exact hframe.set_left next
 
 end Benchmarks.UniswapV3.Pool

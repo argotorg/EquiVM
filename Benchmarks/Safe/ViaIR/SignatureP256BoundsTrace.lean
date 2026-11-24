@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_039
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_040
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,15 +17,15 @@ set_option maxRecDepth 2000
 
 theorem safeSignatureP256Bounds (p : SignatureInput)
     {I g s0 σ k C aw mem rdata src} {i s r v hash executor last : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8265⟩
+    (h : RD fork safeBytecode I g s0 ⟨8265⟩
       (v :: r :: last :: s :: UInt256.ofNat src :: hash :: i :: executor :: p.required :: R)
       mem aw rdata σ k C)
     (hm : BytesMemory mem src p.signatures) (hn : p.signatures.size < UInt256.size)
     (hreq : p.requiredBytes ≤ p.signatures.size) (hov : R.length + 21 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
+    (RDrev fork safeBytecode g s0 ∧
       ¬(p.requiredBytes ≤ s.toNat ∧ s.toNat + 128 ≤ p.signatures.size)) ∨
     ∃ aw' k' C', p.requiredBytes ≤ s.toNat ∧ s.toNat + 128 ≤ p.signatures.size ∧
-      RD safeBytecode I g s0 ⟨8316⟩
+      RD fork safeBytecode I g s0 ⟨8316⟩
         (s :: last :: UInt256.land solcAddrMask r :: UInt256.ofNat src :: hash ::
           i :: executor :: p.required :: R)
         mem aw' rdata σ k' C' := by

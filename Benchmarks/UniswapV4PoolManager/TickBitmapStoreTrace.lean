@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.TickBitmapStoreStatic
 import Benchmarks.UniswapV4PoolManager.MappingScratchMemory
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,10 +18,10 @@ theorem tickBitmapStoreExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {mem rdata : ByteArray} {aw id tick spacing ret : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : (EVM.signed tick).natAbs ≤ 887272) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16670⟩ (tick :: spacing :: (poolSlot id+⟨5⟩) :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16670⟩ (tick :: spacing :: (poolSlot id+⟨5⟩) :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-      RD (deployedRuntime v) I g s0 ret R
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ret R
         (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
           (poolSlot id+⟨5⟩) mem) (tickBitmapActiveWords aw) rdata
         (tickBitmapPost evm id (EVM.signed tick) (EVM.signed spacing)).accountMap k' C' := by
@@ -64,10 +66,10 @@ theorem tickBitmapStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id tick spacing ret : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : (EVM.signed tick).natAbs ≤ 887272) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16670⟩ (tick :: spacing :: (poolSlot id+⟨5⟩) :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16670⟩ (tick :: spacing :: (poolSlot id+⟨5⟩) :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-      RD (deployedRuntime v) I g s0 ret R
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+      RD fork (deployedRuntime v) I g s0 ret R
         (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
           (poolSlot id+⟨5⟩) mem) aw' rdata
         (tickBitmapPost evm id (EVM.signed tick) (EVM.signed spacing)).accountMap k' C' := by

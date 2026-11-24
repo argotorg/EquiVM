@@ -4,6 +4,8 @@ import Benchmarks.EAS.EAS.RequestGuards
 import Benchmarks.EAS.EAS.ReadTimeBlock
 import Benchmarks.EAS.EAS.SchemaMemory
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,11 +17,11 @@ theorem easRequestGuards {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hp : memLoad cell mem = refUIDPtr site t3)
     (hv : AttestationRequestMemoryView mem (refUIDPtr site t3) dataPtr r)
     (hs : SchemaMemoryView mem (requestSchemaPtr site) s)
-    (rd : RD (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
     if (r.expirationTime.toNat = 0 ∨ (easTimeWord ee).toNat < r.expirationTime.toNat) ∧ (s.revocable || !r.revocable) = true then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
         (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have ht := easRequestTimeRun v site hstack hp ((u256_land_comm _ _).trans hv.expiration) rd
   by_cases htime : r.expirationTime.toNat = 0 ∨ (easTimeWord ee).toNat < r.expirationTime.toNat
   · rw [if_pos htime] at ht
@@ -48,21 +50,21 @@ theorem requestGuardsRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : 
     (hp : memLoad cell mem = refUIDPtr site t3)
     (hv : AttestationRequestMemoryView mem (refUIDPtr site t3) dataPtr r)
     (hsv : SchemaMemoryView mem (requestSchemaPtr site) s)
-    (rd : RD (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
     let L' := readTimeLocals L "__c1$allocation" "__c1" (easTimeWord ee) heap
     if (r.expirationTime.toNat = 0 ∨ (easTimeWord ee).toNat < r.expirationTime.toNat) ∧ (s.revocable || !r.revocable) = true then
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm requestGuardsBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm requestGuardsBody
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
         (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw' rdata σ k' C'
-    else ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm requestGuardsBody .reverted ∧
-      RDrev (deployedRuntime v) g s0 := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm requestGuardsBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
-  have ht := readTimeBlock_source (cfg := config) (imms := immStore v) (evm := evm) "__c1$allocation" "__c1" hh
+  have ht := readTimeBlock_source (fork := fork) (cfg := config) (imms := immStore v) (evm := evm) "__c1$allocation" "__c1" hh
     (by decide : ("__c1$allocation" == "$EAS.freeMemory") = false)
     (by decide : ("__c1" == "__c1$allocation") = false) (by decide : ("__c1" == "$EAS.freeMemory") = false)
   rw [hstate.env] at ht
-  have hg := attestRequestGuards_source (imms := immStore v) (evm := evm)
+  have hg := attestRequestGuards_source (fork := fork) (imms := immStore v) (evm := evm)
     (L := readTimeLocals L "__c1$allocation" "__c1" (easTimeWord ee) heap)
     (by simpa (disch := decide) only [readTimeLocals,heapResultLocals_get] using hr)
     (by simpa (disch := decide) only [readTimeLocals,heapResultLocals_get] using hs)

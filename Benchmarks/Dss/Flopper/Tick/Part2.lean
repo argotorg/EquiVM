@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Tick.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem flopperTickX_toCheckedMulStart
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -20,7 +22,7 @@ theorem flopperTickX_toCheckedMulStart
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
     let memLot := twoWordHashMem id ⟨1⟩ memTic
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4674⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4674⟩
       [solcSlotWordAt (auctionLotSlot id) σ I, solcSlotWordAt ⟨5⟩ σ I,
         ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -42,7 +44,7 @@ theorem flopperTickX_toCheckedMulStart
     raw push2 ⟨4558⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4531, C4531, rd4531raw⟩ := rd4530.sload (by native_decide) (by evm_ov)
-  have rd4531 : RD flopperBytecode I g
+  have rd4531 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4531⟩
       [solcSlotWordAt ⟨5⟩ σ I, ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k4531 C4531 := by
@@ -99,7 +101,7 @@ theorem flopperTickX_toCheckedMulStart
     simp [base, auctionLotSlot_eq, id]
   rw [hlotSlot] at rd4552pre
   obtain ⟨k4553, C4553, rd4553raw⟩ := rd4552pre.sload (by native_decide) (by evm_ov)
-  have rd4554 : RD flopperBytecode I g
+  have rd4554 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4554⟩
       [solcSlotWordAt (auctionLotSlot id) σ I, solcSlotWordAt ⟨5⟩ σ I,
         ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
@@ -116,11 +118,11 @@ theorem flopperTickX_mulOverflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hover :
       UInt256.size ≤ (solcSlotWordAt ⟨5⟩ σ I).toNat *
         (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4674⟩ := flopperTickX_toCheckedMulStart hendLt htic rd4292
   exact RD.flopperCheckedMulOverflowReverts
     (R := [tickOneWord, tickIdWord I, ⟨334⟩, sel])
@@ -137,7 +139,7 @@ theorem flopperTickX_toLotStoreStart
     (hmulFit :
       (solcSlotWordAt ⟨5⟩ σ I).toNat *
         (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -145,7 +147,7 @@ theorem flopperTickX_toLotStoreStart
     let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
     let memLot := twoWordHashMem id ⟨1⟩ memTic
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
       [solcSlotWordAt ⟨5⟩ σ I * solcSlotWordAt (auctionLotSlot id) σ I,
         tickOneWord, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -169,7 +171,7 @@ theorem flopperTickX_toCheckedAddStartSplit
     (hmulFit :
       (solcSlotWordAt ⟨5⟩ σ I).toNat *
         (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -180,11 +182,11 @@ theorem flopperTickX_toCheckedAddStartSplit
     let memStore := twoWordHashMem id ⟨1⟩ memLot
     let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
     (I.perm = true ∧
-      ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+      ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
         [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
           ⟨4618⟩, id, ⟨334⟩, sel]
         memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C') ∨
-      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flopperBytecode g (initState σ σ₀ g A I)) := by
   intro id memEnd memTic memLot memStore σLot
   obtain ⟨_, _, rd4558⟩ := flopperTickX_toLotStoreStart hendLt htic hmulFit rd4292
   have rd4563pre := evm_run rd4558 with [
@@ -257,7 +259,7 @@ theorem flopperTickX_toCheckedAddStartSplit
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k4590, C4590, rd4590raw⟩ := rd4589pre.sstore hperm
     hstoreDec (by evm_ov)
-  have rd4590 : RD flopperBytecode I g
+  have rd4590 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4590⟩
       [id, ⟨334⟩, sel] memStore (UInt256.ofNat 3) ByteArray.empty
       σLot k4590 C4590 := by
@@ -265,7 +267,7 @@ theorem flopperTickX_toCheckedAddStartSplit
       tickRuntimeLotBaseWord, lotBase, lotPost, id] using rd4590raw
   have rd4592 := rd4590.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4593, C4593, rd4593raw⟩ := rd4592.sload (by native_decide) (by evm_ov)
-  have rd4593 : RD flopperBytecode I g
+  have rd4593 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4593⟩
       [solcSlotWordAt ⟨6⟩ σLot I, id, ⟨334⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k4593 C4593 := by
@@ -303,7 +305,7 @@ theorem flopperTickX_toCheckedAddStart
     (hmulFit :
       (solcSlotWordAt ⟨5⟩ σ I).toNat *
         (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -313,7 +315,7 @@ theorem flopperTickX_toCheckedAddStart
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     let memStore := twoWordHashMem id ⟨1⟩ memLot
     let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
       [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
         ⟨4618⟩, id, ⟨334⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' :=
@@ -333,7 +335,7 @@ theorem flopperTickX_toEndStoreStart
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -343,7 +345,7 @@ theorem flopperTickX_toEndStoreStart
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     let memStore := twoWordHashMem id ⟨1⟩ memLot
     let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4618⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨4618⟩
       [tickRuntimeAddWord I.codeOwner σ I, id, ⟨334⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' := by
   intro id memEnd memTic memLot memStore σLot
@@ -406,11 +408,11 @@ theorem flopperTickX_success
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
+    RDret fork flopperBytecode g (initState σ σ₀ g A I)
       (tickRuntimeSuccessAccountMap I.codeOwner σ I) ByteArray.empty := by
   let id := tickIdWord I
   let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -475,7 +477,7 @@ theorem flopperTickX_success
   rw [hpackedSlot] at rd4636pre
   have rd4638pre := rd4636pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k4639, C4639, rd4639raw⟩ := rd4638pre.sload (by native_decide) (by evm_ov)
-  have rd4639 : RD flopperBytecode I g
+  have rd4639 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4639⟩
       [oldPacked, packedSlot, addWord, ⟨334⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σLot k4639 C4639 := by
@@ -528,11 +530,11 @@ theorem flopperTickX_addOverflow
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat)
-    (rd4292 : ∃ k C, RD flopperBytecode I g
+    (rd4292 : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4740⟩ :=
     flopperTickX_toCheckedAddStart hperm hendLt htic hmulFit rd4292
   let tau := tickRuntimeTauWord I.codeOwner σ I
@@ -677,17 +679,17 @@ theorem flopperTickBodyCoreEndNotExpired
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4292 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd4292 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeStele :
       (tickTimestampWord evmStele).toNat ≤ (tickEndWord evmStele I).toNat := by
     simpa [evmStele, tickTimestampWord, tickEndWord, initState] using hendGe
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flopperTickBodyReverts_endNotExpired evmStele I
       (by simpa [evmStele, initState] using hwv) hendGeStele
@@ -705,11 +707,11 @@ theorem flopperTickBodyCoreTicNonzero
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4292 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd4292 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -719,7 +721,7 @@ theorem flopperTickBodyCoreTicNonzero
     apply htic
     simpa [evmStele, tickTicWord, initState] using hzero
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flopperTickBodyReverts_ticNonzero evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele
@@ -740,11 +742,11 @@ theorem flopperTickBodyCoreMulOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4292 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd4292 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -755,7 +757,7 @@ theorem flopperTickBodyCoreMulOverflow
       UInt256.size ≤ (tickPadWord evmStele).toNat * (tickLotWord evmStele I).toNat := by
     simpa [evmStele, tickPadWord, tickLotWord, initState] using hover
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flopperTickBodyReverts_mulOverflow evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele hoverStele
@@ -780,11 +782,11 @@ theorem flopperTickBodyCoreAddOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4292 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd4292 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -805,7 +807,7 @@ theorem flopperTickBodyCoreAddOverflow
     simpa [evmStele, tickNow48Word, tickTimestampWord, initState, htau]
       using haddOverflow
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         .reverted := by
     exact flopperTickBodyReverts_addOverflow (hperm := hperm) evmStele I
       (by simpa [evmStele, initState] using hwv) hendLtStele hticStele hmulFitStele
@@ -832,11 +834,11 @@ theorem flopperTickBodyCoreSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (tickTransition.params.map Param.name)
         (transitionSignature tickTransition).paramTypes I.calldata = some (tickLocals I))
-    (rd4292 : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd4292 : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtStele :
       (tickEndWord evmStele I).toNat < (tickTimestampWord evmStele).toNat := by
@@ -855,7 +857,7 @@ theorem flopperTickBodyCoreSuccess
           (tickTauWord (tickAfterLotStore evmStele I)).toNat < 2 ^ 48 := by
     simpa [evmStele, tickNow48Word, tickTimestampWord, initState, htau] using haddFit
   have hbody :
-      ExecTransitionBody config contract evmStele (tickLocals I) tickTransition.body
+      ExecTransitionBody fork config contract evmStele (tickLocals I) tickTransition.body
         (.returned { contract := contract, locals := tickEndLocals evmStele I }
           (tickPostState evmStele I) none) := by
     exact flopperTickBodyReturns_success (hperm := hperm) evmStele I
@@ -879,10 +881,10 @@ theorem flopperTickBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨849⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flopperTickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flopperDecode_tick_none_short hsz4 hshort)
@@ -892,12 +894,12 @@ theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=
     flopperDispatchTick hsel
-  have hreach := flopperReachTickBody
+  have hreach := flopperReachTickBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -919,7 +921,7 @@ theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
               (by simpa [id, packedSlot] using hendLt)
               (by simpa [id, packedSlot] using htic)
               (by simpa [id] using hmulFit) rd4292)
-            have hsource := (flopperTickBodyReturns_successSplit
+            have hsource := (flopperTickBodyReturns_successSplit (fork := fork)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv
               (by simpa [tickEndWord, tickTimestampWord, initState, id, packedSlot]
                 using hendLt)

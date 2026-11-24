@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.WordArrayTraceLoop
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_009
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,9 +22,9 @@ theorem exttloadArrayTraceStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} {n i : Nat} (v : PoolManagerImmutables)
     (hstack : R.length + 9 ≤ 1024) (hn : n ≤ solcMaxU64)
     (ho : (calldataWord I.calldata 4).toNat ≤ solcMaxU64) (hi : i ≤ n)
-    (h : RD (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n i R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n i R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0
       (if i+1 < n then ⟨2914⟩ else ⟨2508⟩)
       (if i+1 < n then exttloadArrayStack I n (i+1) R else exttloadArrayExitStack I n (i+1) R)
       (writeWord mem (224+32*i) (exttloadTraceValue I σ i)) aw' rdata σ k' C' := by
@@ -51,7 +53,7 @@ theorem exttloadArrayTraceStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     obtain ⟨aw1, k1, C1, rd⟩ := poolManagerBlocks.poolManager_block_2914_fallthrough_packed hstack
       (by rw [houtadd, ult_one (by rw [UInt256.toNat_ofNat_of_lt houtfit,
         UInt256.toNat_ofNat_of_lt hendfit]; omega)]; rfl) h
-    change RD _ _ _ _ ⟨2933⟩
+    change RD fork _ _ _ _ ⟨2933⟩
       (UInt256.ofNat 160 :: (UInt256.ofNat (224+32*i) + UInt256.ofNat 32) ::
         (UInt256.ofNat (36 + (calldataWord I.calldata 4).toNat + 32*i) + UInt256.ofNat 32) ::
         UInt256.ofNat (224+32*n) :: UInt256.ofNat (160+32*n) :: UInt256.ofNat 160 :: R)
@@ -78,8 +80,8 @@ theorem exttloadArrayTraceLoop {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hn : n ≤ solcMaxU64) (ho : (calldataWord I.calldata 4).toNat ≤ solcMaxU64)
     (remaining : Nat) :
     ∀ i mem aw k C, i + remaining + 1 = n →
-      RD (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n i R) mem aw rdata σ k C →
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨2508⟩ (exttloadArrayExitStack I n n R)
+      RD fork (deployedRuntime v) I g s0 ⟨2914⟩ (exttloadArrayStack I n i R) mem aw rdata σ k C →
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨2508⟩ (exttloadArrayExitStack I n n R)
         (wordSequenceMemory mem (224+32*i) (wordArrayWords (exttloadTraceValue I σ) i (remaining+1)))
         aw' rdata σ k' C' := by
   exact wordArrayTraceLoop

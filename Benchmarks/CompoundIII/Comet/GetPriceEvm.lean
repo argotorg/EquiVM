@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,17 +15,17 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def GetPriceResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def GetPriceResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM s0 (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 pricePayload
+      callViaEVM fork s0 (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 pricePayload
         (z, evm', out) false ∧ σ' = evm'.accountMap ∧ out.size < 2^138 ∧
       if z = true ∧ PriceValid out then
-        RDret (deployedRuntime v) g s0 σ' (calldataWord out 32).toByteArray
-      else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+        RDret fork (deployedRuntime v) g s0 σ' (calldataWord out 32).toByteArray
+      else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem getPriceReturnData (out : ByteArray) (w : UInt256) (hout : 160 ≤ out.size)
     (hhi : out.size < UInt256.size) :
@@ -36,7 +38,7 @@ theorem getPriceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImm
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 21)) :
-    GetPriceResult v I g (initState σ σ₀ g A I) := by
+    GetPriceResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetPriceBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1195 (immWords := wordsOf (immStore v))
@@ -59,7 +61,7 @@ theorem getPriceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImm
           have rd6 := cometWithExtendedAssetList_block_3211
             (immWords := wordsOf (immStore v)) (by change 4 ≤ 1024; decide)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd5
-          change RD _ _ _ _ _ (calldataWord I.calldata 4 :: UInt256.ofNat 1504 ::
+          change RD fork _ _ _ _ _ (calldataWord I.calldata 4 :: UInt256.ofNat 1504 ::
             UInt256.ofNat 32 :: []) _ _ _ _ _ _ at rd6
           rw [← addressWord_eq_ofNat_address hc] at rd6
           obtain ⟨evm', σ', z, out, hcall, hs', hout, hf⟩ := cometPriceInternal (v := v)

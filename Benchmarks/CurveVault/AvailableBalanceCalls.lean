@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_029
 import Benchmarks.CurveVault.RuntimeBlocks_030
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -11,8 +13,8 @@ theorem vaultAvailableBalanceCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {k C : Nat} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7819) R mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_available_balance" "__c0" "available_balance"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7819) R mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_available_balance" "__c0" "available_balance"
       (UInt256.ofNat 7862) (codeOwnerStorageWord I σ ⟨3⟩ :: R)
       (vaultBlocks.vault_block_7819_memory (mem := mem)) (UInt256.ofNat 128) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_7819 hstack h
@@ -56,8 +58,8 @@ theorem vaultAvailableFeesCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {x0 : UInt256} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7862) (x0 :: R) mem aw rdata σ k C) :
-    vaultControllerCallOutcome s0 evm I g locals "controller_admin_fees" "__c1" "admin_fees"
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7862) (x0 :: R) mem aw rdata σ k C) :
+    vaultControllerCallOutcome fork s0 evm I g locals "controller_admin_fees" "__c1" "admin_fees"
       (UInt256.ofNat 7912) (codeOwnerStorageWord I σ ⟨3⟩ :: R)
       (vaultBlocks.vault_block_7862_memory (mem := mem)) (UInt256.ofNat 192) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_7862 hstack h

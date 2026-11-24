@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.GetFeedPrice
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -18,7 +20,7 @@ theorem RD.clipperStatusPricePostStaticcallFromCurrent {code : ByteArray}
     {s0 : State}
     {σ σ₀ A I} {g age top calcAddr tic ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code I (Sat256.ofUInt256 g) s0 ⟨8549⟩
+    (h : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) rdata σ k C)
@@ -28,12 +30,12 @@ theorem RD.clipperStatusPricePostStaticcallFromCurrent {code : ByteArray}
     (hmem : mem.size = 96)
     (hov : R.length + 100 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code I (Sat256.ofUInt256 g) s0 ⟨8565⟩
+      RD fork code I (Sat256.ofUInt256 g) s0 ⟨8565⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperStatusPriceSelectorWord ::
           calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
         (clipperStatusPricePostCallMem top age mem o)
         (UInt256.ofNat 7) o σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofUInt256 calcAddr)) "price" 0
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
@@ -91,14 +93,14 @@ theorem RD.clipperStatusPriceCallDepthLimitFromCurrent {code : ByteArray}
     {σ : AccountMap}
     {I} {g age top calcAddr tic ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code I (Sat256.ofUInt256 g) s0 ⟨8549⟩
+    (h : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code I (Sat256.ofUInt256 g) s0 ⟨8565⟩
+    ∃ k' C', RD fork code I (Sat256.ofUInt256 g) s0 ⟨8565⟩
       (⟨0⟩ :: ⟨196⟩ :: clipperStatusPriceSelectorWord ::
         calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) ByteArray.empty

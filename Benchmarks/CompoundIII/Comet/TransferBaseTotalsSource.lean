@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseTotalsModel
 import Benchmarks.CompoundIII.Comet.CheckedAddSubSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,7 +15,7 @@ theorem totalsChange_source (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (hi : frame.locals.get? increaseName = some (.int increase.toNat))
     (hd : frame.locals.get? decreaseName = some (.int decrease.toNat))
     (ht : frame.locals.get? (totalsPrincipalName borrow) = none) :
-    ExecStmt config frame evm (totalsChangeStmt borrow increaseName decreaseName)
+    ExecStmt fork config frame evm (totalsChangeStmt borrow increaseName decreaseName)
       (totalsChangeResult frame evm borrow increase decrease) := by
   have hei : evalExpr? config frame evm (.var increaseName) = .ok (.int increase.toNat) := by
     simp only [evalExpr?, hi, EvalResult.ofOption]
@@ -48,9 +50,9 @@ theorem transferBaseTotals_source (frame : Frame) (evm : EVM.State)
     (hR : frame.locals.get? "repayAmount" = some (.int repaid.toNat))
     (hST : frame.locals.get? "totalSupplyBase" = none)
     (hBT : frame.locals.get? "totalBorrowBase" = none) :
-    ExecBlock config frame evm transferBaseTotalsBlock
+    ExecBlock fork config frame evm transferBaseTotalsBlock
       (transferBaseTotalsResult frame evm supplied withdrawn borrowed repaid) := by
-  have hsrc := totalsChange_source frame evm false supplied withdrawn
+  have hsrc := totalsChange_source (fork := fork) frame evm false supplied withdrawn
     "supplyAmount" "withdrawAmount" hc hS hW hST
   cases hs : totalsChangeOutcome evm false supplied withdrawn with
   | reverted =>
@@ -63,7 +65,7 @@ theorem transferBaseTotals_source (frame : Frame) (evm : EVM.State)
       exact ExecBlock.consStatic hsrc
   | ok evm' =>
       simp only [totalsChangeResult, hs] at hsrc
-      have hdst := totalsChange_source frame evm' true borrowed repaid
+      have hdst := totalsChange_source (fork := fork) frame evm' true borrowed repaid
         "borrowAmount" "repayAmount" hc hB hR hBT
       cases hd : totalsChangeOutcome evm' true borrowed repaid with
       | reverted =>

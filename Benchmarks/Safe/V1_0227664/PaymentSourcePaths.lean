@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.PaymentSource
 import Benchmarks.Safe.V1_0227664.ExecuteCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -8,7 +10,7 @@ namespace Benchmarks.Safe.V1_0227664
 theorem safePaymentMul {p : PaymentInput} {evm : EVM.State} {price : UInt256} {expr : Expr}
     (he : evalExpr? config (p.totalFrame evm.executionEnv) evm expr = .ok (uint256Value price))
     (hfit : p.gasTotal.toNat * price.toNat < UInt256.size) :
-    ExecStmt config (p.totalFrame evm.executionEnv) evm
+    ExecStmt fork config (p.totalFrame evm.executionEnv) evm
       (.internalCall "_mul" [.var "gasTotal", expr] "payment")
       (.ok (p.paidFrame evm.executionEnv price) evm) := by
   apply safeInternalMul rfl ?_ he hfit
@@ -24,7 +26,7 @@ theorem safePaymentMulOverflow (p : PaymentInput) (evm : EVM.State)
     (hsum : p.gasUsed.toNat + p.baseGas.toNat < UInt256.size)
     (hover : UInt256.size ≤ p.gasTotal.toNat *
       (if p.gasToken = EVM.address 0 then p.nativePrice evm.executionEnv else p.gasPrice).toNat) :
-    ExecFuncBody config p.frame evm handlePaymentFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safePaymentPrefix hsum
   refine .consRevert ?_
@@ -42,9 +44,9 @@ theorem safePaymentMulOverflow (p : PaymentInput) (evm : EVM.State)
     exact evalLocalValue (by simp [PaymentInput.totalFrame, Std.HashMap.getElem?_insert])
 
 theorem safePaymentTokenCall {p : PaymentInput} {evm evm' : EVM.State} {f' : Frame} {z : Bool}
-    (hc : ExecFuncBody config (p.tokenInput evm.executionEnv).frame evm transferTokenFunction.body
+    (hc : ExecFuncBody fork config (p.tokenInput evm.executionEnv).frame evm transferTokenFunction.body
       (.returned f' evm' (some [.bool z]))) :
-    ExecStmt config (p.paidFrame evm.executionEnv p.gasPrice) evm
+    ExecStmt fork config (p.paidFrame evm.executionEnv p.gasPrice) evm
       (.internalCall "transferToken" [.var "gasToken", .var "receiver", .var "payment"]
         "transferred") (.ok (p.tokenFinal evm.executionEnv z) evm') := by
   have ht := safeInternalTransferToken (p := p.tokenInput evm.executionEnv)
@@ -65,15 +67,15 @@ theorem safePaymentTokenSource {p : PaymentInput} {evm evm' : EVM.State} {f' : F
     (hsum : p.gasUsed.toNat + p.baseGas.toNat < UInt256.size)
     (hprod : p.gasTotal.toNat * p.gasPrice.toNat < UInt256.size)
     (htoken : p.gasToken ≠ EVM.address 0)
-    (hc : ExecFuncBody config (p.tokenInput evm.executionEnv).frame evm transferTokenFunction.body
+    (hc : ExecFuncBody fork config (p.tokenInput evm.executionEnv).frame evm transferTokenFunction.body
       (.returned f' evm' (some [.bool z]))) :
-    ExecFuncBody config p.frame evm handlePaymentFunction.body
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body
       (if z then .returned (p.tokenFinal evm.executionEnv z) evm'
         (some [uint256Value (UInt256.mul p.gasTotal p.gasPrice)]) else .reverted) := by
   have hcond : evalExpr? config (p.totalFrame evm.executionEnv) evm
       (eqE (.var "gasToken") zeroAddr) = .ok (.bool false) := by
     simpa only [htoken, decide_false] using safePaymentTokenCondition p evm
-  have hmul := safePaymentMul (safePaymentGasPrice p evm) hprod
+  have hmul := safePaymentMul (fork := fork) (safePaymentGasPrice p evm) hprod
   have hcall := safePaymentTokenCall hc
   have he : evalExpr? config (p.tokenFinal evm.executionEnv z) evm' (.var "transferred") =
       .ok (.bool z) := evalLocalValue (by
@@ -93,11 +95,11 @@ theorem safePaymentTokenSource {p : PaymentInput} {evm evm' : EVM.State} {f' : F
 
 theorem safePaymentNativeCall {p : PaymentInput} {evm evm' : EVM.State} {z : Bool}
     {out : ByteArray}
-    (hc : callViaEVM evm (EVM.address (p.receiver evm.executionEnv))
+    (hc : callViaEVM fork evm (EVM.address (p.receiver evm.executionEnv))
       (Int.ofNat (UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv)).toNat)
       ByteArray.empty (z, evm', out))
     (hperm : UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecStmt config (p.paidFrame evm.executionEnv (p.nativePrice evm.executionEnv)) evm
+    ExecStmt fork config (p.paidFrame evm.executionEnv (p.nativePrice evm.executionEnv)) evm
       (.lowLevelCall (.var "receiver") (.var "payment") emptyBytes "refundSuccess" "refundData")
       (.ok (p.nativeFinal evm.executionEnv z out) evm') := by
   have hr : evalExpr? config (p.paidFrame evm.executionEnv (p.nativePrice evm.executionEnv)) evm
@@ -116,19 +118,19 @@ theorem safePaymentNativeSource {p : PaymentInput} {evm evm' : EVM.State} {z : B
     {out : ByteArray} (hsum : p.gasUsed.toNat + p.baseGas.toNat < UInt256.size)
     (hprod : p.gasTotal.toNat * (p.nativePrice evm.executionEnv).toNat < UInt256.size)
     (htoken : p.gasToken = EVM.address 0)
-    (hc : callViaEVM evm (EVM.address (p.receiver evm.executionEnv))
+    (hc : callViaEVM fork evm (EVM.address (p.receiver evm.executionEnv))
       (Int.ofNat (UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv)).toNat)
       ByteArray.empty (z, evm', out))
     (hperm : UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv) = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecFuncBody config p.frame evm handlePaymentFunction.body
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body
       (if z then .returned (p.nativeFinal evm.executionEnv z out) evm'
         (some [uint256Value (UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv))])
       else .reverted) := by
   have hcond : evalExpr? config (p.totalFrame evm.executionEnv) evm
       (eqE (.var "gasToken") zeroAddr) = .ok (.bool true) := by
     simpa only [htoken, decide_true] using safePaymentTokenCondition p evm
-  have hmul := safePaymentMul (safePaymentPrice p evm) hprod
-  have hcall := safePaymentNativeCall (hperm := by assumption) hc
+  have hmul := safePaymentMul (fork := fork) (safePaymentPrice p evm) hprod
+  have hcall := safePaymentNativeCall (fork := fork) (hperm := by assumption) hc
   have he : evalExpr? config (p.nativeFinal evm.executionEnv z out) evm' (.var "refundSuccess") =
       .ok (.bool z) := evalLocalValue (by
     simp [PaymentInput.nativeFinal, Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert])
@@ -150,7 +152,7 @@ theorem safePaymentNativeStatic (p : PaymentInput) (evm : EVM.State)
     (hprod : p.gasTotal.toNat * (p.nativePrice evm.executionEnv).toNat < UInt256.size)
     (htoken : p.gasToken = EVM.address 0) (hperm : evm.executionEnv.perm = false)
     (hpayment : UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv) ≠ ⟨0⟩) :
-    ExecFuncBody config p.frame evm handlePaymentFunction.body .staticViolation := by
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply safePaymentPrefix hsum
   apply ExecBlock.consStatic

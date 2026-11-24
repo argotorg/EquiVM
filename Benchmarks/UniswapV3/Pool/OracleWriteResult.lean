@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -22,7 +24,7 @@ def oracleWriteReturnFrame (imms : Store) (a : OracleWriteArgs) (evm : EVM.State
 theorem oracleWriteSourceReturns (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hv : oracleWriteValid a evm) (hfit : a.Fits)
     (hperm : oracleWriteSame a evm = true ∨ evm.executionEnv.perm = true) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body
       (.returned (oracleWriteReturnFrame imms a evm) (oracleWriteState a evm)
         (some [.int (Int.ofNat (oracleWriteResultIndex a evm).toNat),
           .int (Int.ofNat (oracleWriteResultCardinality a evm).toNat)])) := by
@@ -36,7 +38,7 @@ theorem oracleWriteSourceReturns (imms : Store) (evm : EVM.State) (a : OracleWri
 
 theorem oracleWriteSourceReverts (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hv : ¬ oracleWriteValid a evm) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body .reverted := by
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body .reverted := by
   by_cases hi : a.index.toNat < 65535
   · have hs : oracleWriteSame a evm = false := by
       cases he : oracleWriteSame a evm

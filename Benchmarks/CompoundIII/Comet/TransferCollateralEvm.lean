@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferCollateralPrefixEvm
 import Benchmarks.CompoundIII.Comet.TransferCollateralTailEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -16,11 +18,11 @@ theorem cometTransferCollateral {v : CometWithExtendedAssetListImmutables}
     (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 672 + 1696 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15329⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15329⟩
       (EVM.word src.val :: EVM.word dst.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, TransferCollateralTrace v src dst asset amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferCollateralTrace fork v src dst asset amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have hp := cometTransferCollateralPrefix src dst asset (by omega) ha hs h
   cases he : transferCollateralPrefixOutcome evm src dst asset amount with
   | reverted => rw [he] at hp; exact ⟨.reverted, .reverted he, hp⟩

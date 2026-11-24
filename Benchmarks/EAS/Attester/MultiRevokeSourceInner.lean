@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.LocalArray
 import Benchmarks.EAS.Attester.Spec
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -27,7 +29,7 @@ theorem revokeInnerRun {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
     (hd : locals.get? "data" = some (.array data)) (hlen : data.length = uids.length)
     (hfilled : ∀ k < j, data[k]? = (revokePairValues uids)[k]?)
     (hnorm : ∀ v ∈ uids, normalizeRawBoolWord? v = .ok v) :
-    ∃ result, ExecForLoop cfg ⟨C, locals, imms⟩ evm revokeInnerCond revokeInnerPost revokeInnerBody
+    ∃ result, ExecForLoop fork cfg ⟨C, locals, imms⟩ evm revokeInnerCond revokeInnerPost revokeInnerBody
       (.ok ⟨C, result, imms⟩ evm) ∧
       result.get? "data" = some (.array (revokePairValues uids)) ∧
       ∀ name, name ≠ "data" → name ≠ "j" → result.get? name = locals.get? name := by
@@ -61,13 +63,13 @@ theorem revokeInnerRun {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
         have hv := evalLocalArrayIndex (cfg := cfg) (stele := ⟨C, locals, imms⟩)
           (evm := evm) hu hi hget (hnorm uid (List.mem_of_getElem? hget))
         simp only [evalExpr?, evalExprList?, hv, bind, EvalResult.bind, pure, value]
-      have hbody : ExecBlock cfg ⟨C, locals, imms⟩ evm revokeInnerBody
+      have hbody : ExecBlock fork cfg ⟨C, locals, imms⟩ evm revokeInnerBody
           (.ok ⟨C, afterData, imms⟩ evm) :=
-        ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hd hi hjd))
+        ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hd hi hjd))
             ExecBlock.nil
       have hiData : afterData.get? "j" = some (.int (Int.ofNat j)) := by
         simpa [afterData, Std.HashMap.getElem?_insert] using hi
-      have hpost : ExecBlock cfg ⟨C, afterData, imms⟩ evm revokeInnerPost
+      have hpost : ExecBlock fork cfg ⟨C, afterData, imms⟩ evm revokeInnerPost
           (.ok ⟨C, afterStep, imms⟩ evm) := execLocalIncrement hiData (by omega)
       have hfilled' : ∀ k < j + 1, (data.set j value)[k]? = (revokePairValues uids)[k]? := by
         intro k hk
@@ -97,7 +99,7 @@ theorem revokeInnerFor {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
     (hu : locals.get? "uids" = some (.array uids))
     (hd : locals.get? "data" = some (.array data)) (hlen : data.length = uids.length)
     (hnorm : ∀ v ∈ uids, normalizeRawBoolWord? v = .ok v) :
-    ∃ result, ExecStmt cfg ⟨C, locals, imms⟩ evm
+    ∃ result, ExecStmt fork cfg ⟨C, locals, imms⟩ evm
       (.for [.letDecl "j" (some uint256) (.intLit 0)] revokeInnerCond revokeInnerPost
           revokeInnerBody)
       (.ok ⟨C, result, imms⟩ evm) ∧ result.get? "data" = some (.array (revokePairValues uids)) ∧

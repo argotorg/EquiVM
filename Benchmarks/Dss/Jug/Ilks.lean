@@ -1,6 +1,8 @@
 import Reasoning.ABIViews
 import Benchmarks.Dss.Jug.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -232,7 +234,7 @@ theorem solcScratchReturn2Mem_read128_64 {scratch : ByteArray} (first second : U
 theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc first second ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (second :: first :: ret :: R)
+    (h : RD fork code ee g s0 pc (second :: first :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcTwoWordReturnFromMemWf code pc)
     (hmload64 :
@@ -243,7 +245,7 @@ theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 6 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
+    RDret fork code g s0 acc (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd14,
       hd15, hd16, hd17, hd18, hd19, hd20, hd21, hd22, hd23, hd24⟩
@@ -328,12 +330,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcIlksStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee ((solcMappingSlot ⟨1⟩ key) + ⟨1⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key) :: ret :: R)
       (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -375,7 +377,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = (∅ : Store).insert "arg0" (ilksArgValue I)) :
-    ExecTransitionBody config contract evm locals ilksTransition.body
+    ExecTransitionBody fork config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)),
@@ -445,7 +447,7 @@ theorem jugReachIlksBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (jugSelBytes 6)) :
-    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork jugBytecode I g (initState σ σ₀ g A I)
         ⟨549⟩ [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : jugSelWord I = ⟨0xd9638d36⟩ :=
@@ -477,10 +479,10 @@ theorem jugIlksBodyCoreOk
       config.externalABI.decodeCalldata? (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (ilksArgValue I)))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨549⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let dutySlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let rhoSlot := dutySlot + ⟨1⟩
   let dutyWord := solcSlotWordAt dutySlot σ I
@@ -491,7 +493,7 @@ theorem jugIlksBodyCoreOk
   have hrhoSlot : ilksRhoSlotFor I = rhoSlot := by
     simp [rhoSlot, dutySlot, ilksRhoSlotFor_eq hsz36]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -510,7 +512,7 @@ theorem jugIlksBodyCoreOk
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have htoRoutine : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+  have htoRoutine : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2106⟩
       (ilksArgWord I :: ⟨578⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -530,7 +532,7 @@ theorem jugIlksBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret jugBytecode (Sat256.ofUInt256 g)
+      RDret fork jugBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray dutyWord ++ UInt256.toByteArray rhoWord) := by
     have hret' := RD.solcTwoWordReturnFromMem
@@ -565,10 +567,10 @@ theorem jugIlksBodyCoreDecodeFailed_short
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨549⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -590,12 +592,12 @@ theorem jugIlksBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     jugDispatchIlks hsel
-  have hreach := jugReachIlksBody (σ := σ)
+  have hreach := jugReachIlksBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

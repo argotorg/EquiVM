@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleSearchBefore
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_070
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_071
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,13 +14,13 @@ theorem oracleSearchFoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (first second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20742⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20742⟩
       ((if first && second then ⟨1⟩ else ⟨0⟩) :: (if first then ⟨1⟩ else ⟨0⟩) ::
         oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
           cardRaw indexRaw targetRaw timeRaw ret R) mem aw rdata σ k C)
     (hf : (first && second) = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret (afterPtr :: beforePtr :: R)
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret (afterPtr :: beforePtr :: R)
       mem aw rdata σ k' C' := by
   have r1 := uniswapV3Pool_block_20742_fallthrough (immWords := wordsOf (immStore v))
     (by first | omega | (dsimp only [oracleSearchStack, List.length]; omega))
@@ -35,12 +37,12 @@ theorem oracleSearchAdvanceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (first second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20742⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20742⟩
       ((if first && second then ⟨1⟩ else ⟨0⟩) :: (if first then ⟨1⟩ else ⟨0⟩) ::
         oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
           cardRaw indexRaw targetRaw timeRaw ret R) mem aw rdata σ k C)
     (hf : (first && second) = false) (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ⟨20441⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ⟨20441⟩
       (oracleSearchStack (oracleSearchMiddle left right)
         (if first then oracleSearchMiddle left right + ⟨1⟩ else left)
         (if first then right else UInt256.sub (oracleSearchMiddle left right) ⟨1⟩)

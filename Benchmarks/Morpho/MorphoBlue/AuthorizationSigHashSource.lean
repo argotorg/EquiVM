@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigNonceRefine
 import Benchmarks.Morpho.MorphoBlue.PackedHashSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -110,7 +112,7 @@ def authorizationHashLocals (locals : Store) (v : MorphoImmutables)
 theorem morphoAuthorizationHashSource (v : MorphoImmutables) (a : AuthorizationWords)
     (cd : ByteArray) (locals : Store) (evm : EVM.State)
     (hc : a.Canonical) (hl : AuthorizationLocals a cd locals) :
-    ABlock config evm { contract := contract, locals := locals, immutables := immStore v }
+    ABlock fork config evm { contract := contract, locals := locals, immutables := immStore v }
       (setAuthorizationWithSigTransition.body.drop 14)
       { contract := contract, locals := authorizationHashLocals locals v a, immutables := immStore v }
       (setAuthorizationWithSigTransition.body.drop 16) := by

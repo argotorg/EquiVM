@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.SignatureIteration
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_014
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -20,7 +22,7 @@ theorem evalSignatureLoopCondition {p : SignatureInput} {f : Frame} {evm : EVM.S
 theorem safeSignatureLoop (fuel : Nat) (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src i} {s r v current last executor ret : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2002⟩
+    (h : RD fork safeBytecode I g s0 ⟨2002⟩
       (UInt256.ofNat i :: s :: r :: v :: current :: last :: p.required :: UInt256.ofNat src ::
         p.hash :: executor :: ret :: R) mem aw rdata σ k C)
     (hc : SignatureContext p f i last) (he : p.executor = AccountAddress.ofUInt256 executor)
@@ -32,12 +34,12 @@ theorem safeSignatureLoop (fuel : Nat) (p : SignatureInput) (evm : EVM.State)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hcount : p.required.toNat = i + fuel) (hov : R.length + 44 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecStmt config f evm (.while signatureLoopCondition signatureLoopBody) .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecStmt fork config f evm (.while signatureLoopCondition signatureLoopBody) .reverted) ∨
     ∃ f' evm' σ' mem' ptr' aw' out k' C',
-      ExecStmt config f evm (.while signatureLoopCondition signatureLoopBody) (.ok f' evm') ∧
+      ExecStmt fork config f evm (.while signatureLoopCondition signatureLoopBody) (.ok f' evm') ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
       memLoad ⟨96⟩ mem' = ⟨0⟩ ∧ ptr ≤ ptr' ∧ ptr' ≤ ptr + fuel * 2 ^ 140 ∧
       mem'.size ≤ max mem.size (ptr + fuel * 2 ^ 140) ∧ MemoryPreserves mem mem' 96 ptr := by

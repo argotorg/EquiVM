@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperRegistry.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `ids(uint256)`
 
@@ -37,7 +39,7 @@ theorem idsDecode_short {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) (hshort
 theorem registryIdsBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 11) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachIdsBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some idsTransition :=
@@ -76,7 +78,7 @@ theorem registryIdsBody {σ σ₀ A I} {g : UInt256} (_hwf : storageWF σ I)
     rw [ulit_toNat' 64 (by decide), ulit_toNat' 32 (by decide),
       toByteArray_write_read_back_of_gap _ (registryDispatchMem 8) 64
         (by rw [hmemsize]; exact lt_usize _ (by decide)), slotWord_eq] at rd3
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (idsStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (idsStore I)
         idsTransition.body
         (.returned (frame (idsStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [uint256Value (solcSlotWordAt (UInt256.ofNat 3 + argWord I) σ I)])) := by

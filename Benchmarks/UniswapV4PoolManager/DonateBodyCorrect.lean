@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.DonateBeforeCorrect
 import Benchmarks.UniswapV4PoolManager.DonateValidationTrace
 import Benchmarks.UniswapV4PoolManager.DonatePreludeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,14 +23,14 @@ theorem donateBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     (hc : PoolKeyCanonical key)
     (haw : aw.toNat ≤ 10) (hsrc : src.toNat+len.toNat ≤ I.calldata.size) (hcd : I.calldata.size < 2^255)
     (hgas : g.toNat < 324518553658429321982441292826060)
-    (h : RD (deployedRuntime v) I g s0 ⟨10076⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10076⟩
       ([len, src, amount0, ⟨160⟩, amount1, junk]++R)
       (poolKeyMemory key) aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 5) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 5) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   have hkey := poolKeyMemory_view key
-  have hs := donateValidationSource (evm := evm) v hf him hc hk
+  have hs := donateValidationSource (fork := fork) (evm := evm) v hf him hc hk
   have ht := donateValidationTrace v (by omega) hI hkey (by decide) haw h
   rw [donateValidationResult, hI] at hs
   rw [donateValidationTraceResult] at ht

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.LPFeeTrace
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,9 +15,9 @@ set_option maxRecDepth 5000
 theorem updateFeeAuthorizationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw fee : UInt256} {key : PoolKeyWords} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hc : PoolKeyCanonical key)
-    (h : RD (deployedRuntime v) I g s0 ⟨8594⟩ (fee :: ⟨160⟩ :: R) (poolKeyMemory key) aw rdata σ k C) :
-    (¬dynamicFeeAuthorized I key ∧ RDrev (deployedRuntime v) g s0) ∨
-    (dynamicFeeAuthorized I key ∧ ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨8623⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8594⟩ (fee :: ⟨160⟩ :: R) (poolKeyMemory key) aw rdata σ k C) :
+    (¬dynamicFeeAuthorized I key ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (dynamicFeeAuthorized I key ∧ ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨8623⟩
       (⟨160⟩ :: fee :: R) (poolKeyMemory key) aw' rdata σ k' C') := by
   have hfee : UInt256.land (memLoad ((⟨160⟩ : UInt256) + UInt256.ofNat 64) (poolKeyMemory key))
       (UInt256.ofNat 16777215) = key.fee := by
@@ -34,7 +36,7 @@ theorem updateFeeAuthorizationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
     have rd2 := poolManagerBlocks.poolManager_block_8774 (by simp; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-    change RD _ _ _ _ ⟨8618⟩
+    change RD fork _ _ _ _ ⟨8618⟩
       (UInt256.isZero (UInt256.eq (accountWord I.source)
         (UInt256.land (memLoad ((⟨160⟩ : UInt256)+UInt256.ofNat 128) (poolKeyMemory key))
           (UInt256.ofNat 1461501637330902918203684832716283019655932542975))) :: ⟨160⟩ :: fee :: R)
@@ -63,33 +65,33 @@ theorem updateFeeAuthorizationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem updateFeePoolHashTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw fee : UInt256} {key : PoolKeyWords} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨8634⟩ (⟨160⟩ :: ⟨160⟩ :: fee :: R) (poolKeyMemory key) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨13686⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8634⟩ (⟨160⟩ :: ⟨160⟩ :: fee :: R) (poolKeyMemory key) aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨13686⟩
       (poolSlot (poolKeyId key) :: ⟨8656⟩ :: fee :: poolSlot (poolKeyId key) :: R)
       (twoWordHashMem (poolKeyId key) ⟨6⟩ (poolKeyMemory key)) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', rd⟩ := poolManagerBlocks.poolManager_block_8634_packed hstack
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   let mem := twoWordHashMem (keccakWord ⟨160⟩ ⟨160⟩ (poolKeyMemory key)) ⟨6⟩ (poolKeyMemory key)
-  change RD _ _ _ _ ⟨13686⟩
+  change RD fork _ _ _ _ ⟨13686⟩
     (keccakWord ⟨0⟩ ⟨64⟩ mem :: ⟨8656⟩ :: fee :: keccakWord ⟨0⟩ ⟨64⟩ mem :: R)
     mem aw' rdata σ k' C' at rd
   dsimp only [mem] at rd
   rw [poolKeyMemory_hash, mappingMemory_slot_any] at rd
   exact ⟨_, _, _, rd⟩
 
-@[irreducible] def updateFeeTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+@[irreducible] def updateFeeTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (key : PoolKeyWords) (fee : UInt256) : Prop :=
   if dynamicFeeAuthorized I key then
-    if fee.toNat ≤ 1000000 then poolSetFeeTraceResult v I g s0 evm (poolKeyId key) fee
-    else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+    if fee.toNat ≤ 1000000 then poolSetFeeTraceResult fork v I g s0 evm (poolKeyId key) fee
+    else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem updateFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {rdata : ByteArray} {aw fee : UInt256} {key : PoolKeyWords} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024) (hI : evm.executionEnv = I)
     (hc : PoolKeyCanonical key) (hfee : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨8594⟩ (fee :: ⟨160⟩ :: R) (poolKeyMemory key) aw rdata evm.accountMap k C) :
-    updateFeeTraceResult v I g s0 evm key fee := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8594⟩ (fee :: ⟨160⟩ :: R) (poolKeyMemory key) aw rdata evm.accountMap k C) :
+    updateFeeTraceResult fork v I g s0 evm key fee := by
   unfold updateFeeTraceResult
   rcases updateFeeAuthorizationTrace v (by omega) hc h with ⟨ha, hr⟩ | ⟨ha, aw1, k1, C1, rd1⟩
   · rw [if_neg ha]; exact hr

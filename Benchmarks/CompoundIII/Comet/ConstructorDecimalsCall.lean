@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecimalsEnter
 import Benchmarks.CompoundIII.Comet.ConstructorSourcePrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -38,7 +40,7 @@ def constructorDecimalsCopyMemory (c : ConstructorConfig) (out : ByteArray) : By
 theorem cometConstructorDecimalsCall {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     {aw : UInt256} {k C : Nat}
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨733⟩
       ((g.subNat C).toUInt256 :: constructorRecordWord c 2 ::
         UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) :: ⟨4⟩ ::
@@ -48,10 +50,10 @@ theorem cometConstructorDecimalsCall {σ σ₀ A I} {g : Sat256} {c : Constructo
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorDecimalsMemory c) aw ByteArray.empty σ k C) :
     ∃ evm' σ' z out aw' k' C',
-      callViaEVM (initState σ σ₀ g A I) c.baseToken 0 decimalsPayload (z, evm', out) false ∧
+      callViaEVM fork (initState σ σ₀ g A I) c.baseToken 0 decimalsPayload (z, evm', out) false ∧
       SourceState (initState σ σ₀ g A I) I σ' evm' ∧
       out.size < 2^138 ∧
-      RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨734⟩
         ((if z then ⟨1⟩ else ⟨0⟩) ::
           UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) ::

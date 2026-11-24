@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.CalldataDecodeArithmetic
 import Benchmarks.Safe.V3_77901a5.Memory
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -12,14 +14,14 @@ namespace Benchmarks.Safe.V3_77901a5
 set_option maxRecDepth 100000 in
 theorem safeAddressCalldataCopyStep {I g s0 σ k C aw mem rdata i n src dst}
     {scratch base fallbackHandler target threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11543⟩
+    (h : RD fork safeBytecode I g s0 ⟨11543⟩
       (UInt256.ofNat i :: UInt256.ofNat dst :: UInt256.ofNat src :: scratch :: base ::
         fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hi : i < n) (hn : n < UInt256.size) (hsrc : src + 32 < UInt256.size)
     (hdst : dst + 32 < UInt256.size)
     (hc : (calldataWord I.calldata src).toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11543⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11543⟩
       (UInt256.ofNat (i + 1) :: UInt256.ofNat (dst + 32) :: UInt256.ofNat (src + 32) ::
         scratch :: base :: fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R)
       (writeWord mem dst (calldataWord I.calldata src)) aw' rdata σ k' C' := by
@@ -45,12 +47,12 @@ theorem safeAddressCalldataCopyStep {I g s0 σ k C aw mem rdata i n src dst}
 set_option maxRecDepth 100000 in
 theorem safeAddressCalldataCopyStepRevert {I g s0 σ k C aw mem rdata i n src dst}
     {scratch base fallbackHandler target threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11543⟩
+    (h : RD fork safeBytecode I g s0 ⟨11543⟩
       (UInt256.ofNat i :: UInt256.ofNat dst :: UInt256.ofNat src :: scratch :: base ::
         fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hi : i < n) (hn : n < UInt256.size) (hsrc : src < UInt256.size)
     (hc : ¬(calldataWord I.calldata src).toNat < EVM.addressModulus)
-    (hov : R.length + 16 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 16 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_11543_fallthrough (by omega) (by
     rw [ult_one (by rw [ulit_toNat' _ (by omega), ulit_toNat' _ hn]; exact hi)]
     decide) h

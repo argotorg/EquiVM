@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.RuntimeBlocks_051
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_052
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,11 +19,11 @@ theorem uint16Word_clean {w : UInt256} (hw : w.toNat < 2 ^ 16) :
 theorem oracleGrowStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw current next junk ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (i : Nat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16139⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16139⟩
       (UInt256.ofNat i :: junk :: next :: current :: UInt256.ofNat 8 :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hnext : next.toNat < 2 ^ 16) (hi : i < next.toNat) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16139⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16139⟩
       (UInt256.ofNat (i + 1) :: junk :: next :: current :: UInt256.ofNat 8 :: ret :: R)
       mem aw rdata (storeObservationTimestampOne evm (UInt256.ofNat i)).accountMap k' C' := by
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' i (by change i < 2 ^ 256; omega)
@@ -52,11 +54,11 @@ theorem oracleGrowStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem oracleGrowLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw current next junk ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (i count : Nat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16139⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16139⟩
       (UInt256.ofNat i :: junk :: next :: current :: UInt256.ofNat 8 :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hnext : next.toNat < 2 ^ 16) (hsum : i + count = next.toNat) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16207⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16207⟩
       (next :: junk :: next :: current :: UInt256.ofNat 8 :: ret :: R)
       mem aw rdata (oracleGrowState evm i count).accountMap k' C' := by
   induction count generalizing evm σ k C i with
@@ -80,13 +82,13 @@ theorem oracleGrowLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem oracleGrowX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw current next ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16053⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16053⟩
       (next :: current :: UInt256.ofNat 8 :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hcurrent : current.toNat < 2 ^ 16) (hnext : next.toNat < 2 ^ 16)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ current = ⟨0⟩) ∨
-    (0 < current.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RDrev fork (deployedRuntime v) g s0 ∧ current = ⟨0⟩) ∨
+    (0 < current.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (oracleGrowResult current next :: R) mem aw rdata
       (oracleGrowState evm current.toNat (next.toNat - current.toNat)).accountMap k' C') := by
   have hcc := uint16Word_clean hcurrent

@@ -2,6 +2,8 @@ import Reasoning.SteleArithmetic
 import Reasoning.EVMWord
 import Benchmarks.Dss.Flipper.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -183,9 +185,9 @@ theorem flipperCheckedMulOk {σ I} {g : Sat256} {s0 : State}
     (hret : (D_J flipperBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024)
     (hfit : x.toNat * y.toNat < UInt256.size)
-    (h : RD flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
+    (h : RD fork flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ret (UInt256.mul x y :: R)
+    ∃ k' C', RD fork flipperBytecode I g s0 ret (UInt256.mul x y :: R)
       mem aw rdata σ k' C' := by
   have rd6314 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -254,9 +256,9 @@ theorem flipperCheckedMulRevert {σ I} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256}
     (hov : R.length + 10 ≤ 1024)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (h : RD flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
+    (h : RD fork flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
       mem aw rdata σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have hy0 : y ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : x.toNat * y.toNat = 0 := by simp [hzero]

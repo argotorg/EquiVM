@@ -20,6 +20,8 @@ import Benchmarks.Dss.Flipper.Wards
 import Benchmarks.Dss.Flipper.YankBody
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flipper benchmark correctness stub
 
@@ -79,8 +81,8 @@ theorem flipperNoSelectorMatches {I : ExecutionEnv}
 
 theorem flipperCorrect :
     runtimeRefinement config flipperBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
     · exact flipperBegBodyCore hcode hsize hwv hbeg

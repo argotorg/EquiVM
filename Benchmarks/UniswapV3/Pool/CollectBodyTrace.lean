@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CollectPaymentsTrace
 import Benchmarks.UniswapV3.Pool.CollectPositionTrace
 import Benchmarks.UniswapV3.Pool.CollectFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,12 +14,12 @@ theorem collectPaymentsBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p key lower upper amount0 amount1 junk req0 req1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (recipient : AccountAddress) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7762⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7762⟩
       (amount1 :: solcMappingSlot ⟨7⟩ key :: junk :: amount0 :: req1 :: req0 ::
         positionTickWord upper :: positionTickWord lower :: EVM.word recipient.val :: ⟨690⟩ :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
-    (hprefix : ExecBlock config (collectFrame v recipient lower upper req0 req1) evm0
+    (hprefix : ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm0
       (collectTransition.body.take 9)
       (.ok {contract := contract, locals := locals, immutables := immStore v} evm))
     (hvalues : CollectValues locals recipient lower upper key amount0 amount1)
@@ -25,16 +27,16 @@ theorem collectPaymentsBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 140 ≤ 2 ^ 200) (hov : R.length + 29 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecTransitionBody config contract evm0 (collectLocals recipient lower upper req0 req1)
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecTransitionBody fork config contract evm0 (collectLocals recipient lower upper req0 req1)
         collectTransition.body .reverted (immStore v)) ∨
     ∃ (evm' : EVM.State) (locals' : Store),
-      ExecTransitionBody config contract evm0 (collectLocals recipient lower upper req0 req1)
+      ExecTransitionBody fork config contract evm0 (collectLocals recipient lower upper req0 req1)
         collectTransition.body
         (.returned {contract := contract, locals := locals', immutables := immStore v}
           (storeSlot0Unlocked evm' true)
           (some [.int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)])) (immStore v) ∧
-      RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm' true).accountMap
+      RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm' true).accountMap
         (amount0.toByteArray ++ amount1.toByteArray) := by
   rcases collectPaymentX (v := v) false recipient locals rd hs hperm hvalues hfit0 hfit1
       hm hmem hzero (by omega) (by evm_ov) with

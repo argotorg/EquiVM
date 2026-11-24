@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepRecalcTraceModel
 import Benchmarks.UniswapV3.Pool.SwapStepFinishModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem swapStepCapGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12827⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12827⟩
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepAmount a false) ++ R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12843⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12843⟩
       ((swapStepCap a).toUInt256 :: swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepAmount a false) ++ R) mem aw rdata σ k' C' := by
   cases hi : swapStepExactIn a
@@ -39,11 +41,11 @@ theorem swapStepCapGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapStepCapX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12827⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12827⟩
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepAmount a false) ++ R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12855⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12855⟩
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepOutput a) ++ R) mem aw rdata σ k' C' := by
   obtain ⟨kg, Cg, rg⟩ := swapStepCapGuardX (v := v) a rd hov

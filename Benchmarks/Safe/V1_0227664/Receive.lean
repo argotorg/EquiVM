@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.Dispatch
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -16,19 +18,19 @@ theorem safeReceiveArgs (evm : State) (frame : Frame) :
 
 theorem safeReceiveSource (evm : State)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ receiveTransition.body
+    ExecTransitionBody fork config contract evm ∅ receiveTransition.body
       (.returned { contract := contract, locals := ∅ } evm none) := by
   exact .execBlockOK (.consNormal (.emit (hperm := hperm) (safeReceiveArgs evm _)) .nil)
 
 theorem safeReceiveSourceStatic (evm : State) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ receiveTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm ∅ receiveTransition.body .staticViolation := by
   exact .execBlockStatic (.consStatic (.emitStatic (safeReceiveArgs evm _) hperm))
 
 theorem safeReceiveTraceStatic {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : Nat}
     (hperm : I.perm = false)
-    (h : RD safeBytecode I g s0 ⟨481⟩ [] mem aw rdata σ k C) :
-    RDstatic safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨481⟩ [] mem aw rdata σ k C) :
+    RDstatic fork safeBytecode g s0 := by
   -- The provided summary of PC 481 includes LOG2 and requires write permission.
   -- Its static branch stops just before that instruction.
   have hstore := evm_run h with [push1 ⟨64⟩, genMload, callvalue, dup2, genMstore]
@@ -43,7 +45,7 @@ theorem safeReceiveTraceStatic {g : Sat256} {s0 : State}
 theorem safeReceiveBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size = 0) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨k, C, h475⟩ := safeReachShort (g := Sat256.ofUInt256 g)
     (σ := σ) (σ₀ := σ₀) (A := A) hcode (by omega)
   have h481 := safeRuntime_block_475_fallthrough (by decide) (by rw [hsize]) h475
@@ -58,14 +60,14 @@ theorem safeReceiveBodyCore
   | true =>
       have hret := safeRuntime_block_481 (by decide) hperm h481
       exact RDret.reEquivElim hcode hret fun _ _ hsuccess ↦
-        reEquiv_receiveExecution hreceive rfl rfl (safeReceiveSource (hperm := by assumption) _)
+        reEquiv_receiveExecution hreceive rfl rfl (safeReceiveSource (fork := fork) (hperm := by assumption) _)
           (.success hsuccess rfl rfl (.abi (.fallthrough rfl rfl encodeReturnValues_nil)))
 
 /-- Empty calldata follows receive, including its LOG2 static-mode halt. -/
 theorem safeReceiveRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size = 0) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeReceiveBodyCore hcode hsize
 
 end Benchmarks.Safe.V1_0227664

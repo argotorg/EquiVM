@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_025
 import Benchmarks.EAS.EAS.WordSequence
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,8 +18,8 @@ theorem easAllocate320_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 5 ≤ 1024)
     (hguard : allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4854⟩ (heap :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4854⟩ (heap :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 320))) aw' rdata σ k' C' :=
   easFixedAllocate_ok v .bytes320 hstack hguard hvalid rd
 
@@ -26,8 +28,8 @@ theorem easAllocate320_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {heap : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hguard : ¬ (allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4854⟩ (heap :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 :=
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4854⟩ (heap :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 :=
   easFixedAllocate_revert v .bytes320 hstack hguard rd
 
 theorem allocate320_bounds {heap : Nat}
@@ -67,8 +69,8 @@ theorem easDefaultAttestation_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hh : memLoad ⟨64⟩ mem = heap)
     (hg : allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6335⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6335⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap :: R)
       (defaultAttestationMemory mem heap) aw' rdata σ k' C' := by
   have rd1 := easBlocks.eas_block_6335 (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -87,8 +89,8 @@ theorem easDefaultAttestation_revert {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 7 ≤ 1024)
     (hh : memLoad ⟨64⟩ mem = heap)
     (hg : ¬ (allocateNext heap.toNat 320 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 320))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6335⟩ (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6335⟩ (ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := easBlocks.eas_block_6335 (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   change memLoad (UInt256.ofNat 64) mem = heap at hh

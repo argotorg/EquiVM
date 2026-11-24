@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.KickRevertEVM
 import Benchmarks.Dss.Clipper.KickStateEquiv
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -20,7 +22,7 @@ theorem clipperKickCallAligned_transport
     {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
     {out : ByteArray} {A' : Substate} {callPerm : Bool}
     (halign : ClipperKickCallAligned s0 σ I evm)
-    (hcall : typedCallViaEVM config
+    (hcall : typedCallViaEVM fork config
       {s0 with accountMap := σ, executionEnv := I}
       tgt name value args
       (z, { {s0 with accountMap := σ, executionEnv := I} with
@@ -28,7 +30,7 @@ theorem clipperKickCallAligned_transport
       callPerm) :
     ∃ (σStele : AccountMap) (AStele : Substate) (evm' : EVM.State),
       evm' = { evm with accountMap := σStele, substate := AStele } ∧
-      typedCallViaEVM config evm tgt name value args (z, evm', out) callPerm ∧
+      typedCallViaEVM fork config evm tgt name value args (z, evm', out) callPerm ∧
       ClipperKickCallAligned s0 σ' I evm' := by
   have hInputAccounts : ({s0 with accountMap := σ, executionEnv := I} : EVM.State).accountMap =
       evm.accountMap := by simpa using halign.accounts

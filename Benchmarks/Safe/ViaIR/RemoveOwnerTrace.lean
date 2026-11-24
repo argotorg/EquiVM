@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.CheckedDecrement
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_005
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_006
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -56,11 +58,11 @@ theorem safeRemoveOwnerLinksEnv (evm : EVM.State) (prev key : UInt256) :
 
 theorem safeRemoveOwnerCountReach {I g s0 σ k C aw mem rdata} {key prev threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨649⟩
+    (h : RD fork safeBytecode I g s0 ⟨649⟩
       (solcSlotWordAt ⟨3⟩ σ I :: key :: prev :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (hle : threshold.toNat ≤ (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩).toNat) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨663⟩ (key :: prev :: threshold :: R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨663⟩ (key :: prev :: threshold :: R)
       mem aw rdata (removeOwnerCountAccounts σ I) k' C' := by
   obtain ⟨_, _, h663⟩ := safeRuntime_block_649_fallthrough hov hperm
     (by rw [lnot_zero_add]; exact ult_zero hle) h
@@ -68,11 +70,11 @@ theorem safeRemoveOwnerCountReach {I g s0 σ k C aw mem rdata} {key prev thresho
 
 theorem safeRemoveOwnerCountRevert {I g s0 σ k C aw mem rdata} {key prev threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨649⟩
+    (h : RD fork safeBytecode I g s0 ⟨649⟩
       (solcSlotWordAt ⟨3⟩ σ I :: key :: prev :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (hle : ¬threshold.toNat ≤ (UInt256.sub (solcSlotWordAt ⟨3⟩ σ I) ⟨1⟩).toNat) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h874⟩ := safeRuntime_block_649_taken hov hperm
     (by rw [lnot_zero_add, ult_one (by omega)]; decide) (by jump_dest) h
   have h9502 := safeRuntime_block_874
@@ -81,21 +83,21 @@ theorem safeRemoveOwnerCountRevert {I g s0 σ k C aw mem rdata} {key prev thresh
 
 theorem safeRemoveOwnerCountStatic {I g s0 σ k C aw mem rdata}
     {count key prev threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨649⟩ (count :: key :: prev :: threshold :: R)
+    (h : RD fork safeBytecode I g s0 ⟨649⟩ (count :: key :: prev :: threshold :: R)
       mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hstore := evm_run h with [dup4, swap1, push0, not, add, dup1, push1 ⟨3⟩]
   exact hstore.sstoreStatic hperm (by native_decide) (by simp; omega)
 
 theorem safeRemoveOwnerLinksTrace {I g s0 σ k C aw mem rdata} {prev key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨672⟩ (key :: prev :: threshold :: ⟨0⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨672⟩ (key :: prev :: threshold :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) (hm : mem.size = 96)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hperm : I.perm = true) :
-    ∃ mem' aw' k' C', RD safeBytecode I g s0 ⟨748⟩
+    ∃ mem' aw' k' C', RD fork safeBytecode I g s0 ⟨748⟩
       (key :: threshold :: ⟨0⟩ :: R) mem' aw' rdata
       (removeOwnerLinkAccounts σ I prev key) k' C' := by
   obtain ⟨aw', k', C', h'⟩ := safeRuntime_block_672_packed (by omega) hperm h
@@ -129,9 +131,9 @@ theorem safeRemoveOwnerLinksTrace {I g s0 σ k C aw mem rdata} {prev key thresho
 -- Split the generated block after the second store so the source and EVM states align.
 theorem safeRemoveOwnerThresholdCheck {I g s0 σ k C aw mem rdata}
     {key threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨792⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨792⟩
       (⟨796⟩ :: UInt256.sub (solcSlotWordAt ⟨4⟩ σ I) threshold :: threshold :: ⟨0⟩ :: R)
       mem aw' rdata σ k' C' := by
   have r4 := h.pushConst
@@ -146,10 +148,10 @@ theorem safeRemoveOwnerThresholdCheck {I g s0 σ k C aw mem rdata}
 
 theorem safeRemoveOwnerThresholdUnchanged {I g s0 σ k C aw mem rdata}
     {key threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ σ I = threshold) :
-    RDret safeBytecode g s0 σ ByteArray.empty := by
+    RDret fork safeBytecode g s0 σ ByteArray.empty := by
   obtain ⟨_, _, _, h792⟩ := safeRemoveOwnerThresholdCheck h hov hperm
   have h793 := h792.jumpiNT (by native_decide) (u256_sub_eq_zero_iff_eq.mpr ht) (by evm_ov)
   simpa only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, byteArray_readWithPadding_zero] using
@@ -157,10 +159,10 @@ theorem safeRemoveOwnerThresholdUnchanged {I g s0 σ k C aw mem rdata}
 
 theorem safeRemoveOwnerThresholdChanged {I g s0 σ k C aw mem rdata}
     {key threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨748⟩ (key :: threshold :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ σ I ≠ threshold) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨796⟩ (threshold :: ⟨0⟩ :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨796⟩ (threshold :: ⟨0⟩ :: R)
       mem aw' rdata σ k' C' := by
   obtain ⟨_, _, _, h792⟩ := safeRemoveOwnerThresholdCheck h hov hperm
   exact ⟨_, _, _, h792.jumpiT (by native_decide) (u256_sub_ne_zero_of_ne ht)
@@ -168,10 +170,10 @@ theorem safeRemoveOwnerThresholdChanged {I g s0 σ k C aw mem rdata}
 
 theorem safeRemoveOwnerThresholdTrace {I g s0 σ k C aw mem rdata} {value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨804⟩ (value :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨804⟩ (value :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true)
     (hle : value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) (hnz : value ≠ ⟨0⟩) :
-    RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨4⟩ value) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨4⟩ value) ByteArray.empty := by
   obtain ⟨_, _, h814⟩ := safeRuntime_block_804_fallthrough (by simp; omega) (ugt_zero hle) h
   have h820 := safeRuntime_block_814_fallthrough (by simp; omega)
     (isZero_eq_zero_of_ne hnz) h814
@@ -179,9 +181,9 @@ theorem safeRemoveOwnerThresholdTrace {I g s0 σ k C aw mem rdata} {value : UInt
     safeRuntime_block_820 hov hperm h820
 
 theorem safeRemoveOwnerThresholdTooLarge {I g s0 σ k C aw mem rdata} {value : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨804⟩ (value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨804⟩ (value :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024)
-    (hle : ¬ value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) : RDrev safeBytecode g s0 := by
+    (hle : ¬ value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h874⟩ := safeRuntime_block_804_taken (by omega)
     (by
       change UInt256.gt value (solcSlotWordAt ⟨3⟩ σ I) ≠ ⟨0⟩
@@ -190,8 +192,8 @@ theorem safeRemoveOwnerThresholdTooLarge {I g s0 σ k C aw mem rdata} {value : U
   exact safeRuntime_block_9502 (by simp; omega) h9502
 
 theorem safeRemoveOwnerThresholdZero {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨804⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨804⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h814⟩ := safeRuntime_block_804_fallthrough (by omega)
     (ugt_zero (show (⟨0⟩ : UInt256).toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat
       from Nat.zero_le _)) h

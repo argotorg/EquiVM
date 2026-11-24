@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TransientSource
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -17,7 +19,7 @@ theorem syncReserves_lookup : lookupCallable? contract "CurrencyReserves_syncCur
 
 theorem currencyZeroBody {f : Frame} {evm : EVM.State} {currency : AccountAddress}
     (hc : f.locals.get? "currency" = some (.address currency)) :
-    ExecFuncBody config f evm currencyZeroFunction.body
+    ExecFuncBody fork config f evm currencyZeroFunction.body
       (.returned f evm (some [.bool (decide (currency = AccountAddress.ofNat 0))])) := by
   apply ExecFuncBody.execBlockRet
   exact ABlock.start.returns (evalEqAddress (evalLocalValue hc)
@@ -25,7 +27,7 @@ theorem currencyZeroBody {f : Frame} {evm : EVM.State} {currency : AccountAddres
 
 theorem currencyZeroCall {f : Frame} {evm : EVM.State} {e : Expr} {currency : AccountAddress}
     (hf : f.contract = contract) (hc : evalExpr? config f evm e = .ok (.address currency)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyLibrary_isAddressZero" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyLibrary_isAddressZero" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (decide (currency = AccountAddress.ofNat 0)))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address currency])
     (value := some [.bool (decide (currency = AccountAddress.ofNat 0))])
@@ -48,7 +50,7 @@ def syncReservesPost (evm : EVM.State) (currency : AccountAddress) (value : UInt
   Stele.EVM.transientStore (syncReservesCurrencyPost evm currency) evm.executionEnv.codeOwner reservesSlot value
 
 theorem resetCurrencyBody {f : Frame} {evm : EVM.State} (hf : f.contract = contract) :
-    ExecFuncBody config f evm resetCurrencyFunction.body
+    ExecFuncBody fork config f evm resetCurrencyFunction.body
       (if evm.executionEnv.perm = false then .staticViolation else .returned f (resetCurrencyPost evm) none) := by
   have he : evalExpr? config f evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     simp only [evalExpr?, pure]; rfl
@@ -57,13 +59,13 @@ theorem resetCurrencyBody {f : Frame} {evm : EVM.State} (hf : f.contract = contr
   · rw [if_pos hp]
     exact .execBlockStatic (ExecBlock.consStatic (ExecStmt.assignTransientStatic he hw hp))
   · rw [if_neg hp]
-    exact .execBlockOK (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw) ExecBlock.nil)
+    exact .execBlockOK (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw) ExecBlock.nil)
 
 theorem resetCurrencyCall {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyReserves_resetCurrency" [] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyReserves_resetCurrency" [] retVar)
       (if evm.executionEnv.perm = false then .staticViolation
        else .ok {f with locals := f.locals.insert retVar .unit} (resetCurrencyPost evm)) := by
-  have hb := resetCurrencyBody (f := {f with locals := ∅}) (evm := evm) hf
+  have hb := resetCurrencyBody (fork := fork) (f := {f with locals := ∅}) (evm := evm) hf
   have hh := internalCallFunctionExec (caller := f) (name := "CurrencyReserves_resetCurrency")
     (retVar := retVar) (args := []) (argVals := []) rfl (by rw [hf]; exact resetCurrency_lookup) rfl hb
   simpa only [resumeCallResult_ite, resumeCallResult_static, resumeCallResult_returned] using hh
@@ -71,7 +73,7 @@ theorem resetCurrencyCall {f : Frame} {evm : EVM.State} (hf : f.contract = contr
 theorem syncReservesBody {f : Frame} {evm : EVM.State} {currency : AccountAddress} {value : UInt256}
     (hf : f.contract = contract) (hc : f.locals.get? "currency" = some (.address currency))
     (hv : f.locals.get? "value" = some (.int (Int.ofNat value.toNat))) :
-    ExecFuncBody config f evm syncReservesFunction.body
+    ExecFuncBody fork config f evm syncReservesFunction.body
       (if evm.executionEnv.perm = false then .staticViolation
        else .returned f (syncReservesPost evm currency value) none) := by
   have he := evalExpr_cast_int (intType := .uint ⟨256, by decide⟩)
@@ -87,16 +89,16 @@ theorem syncReservesBody {f : Frame} {evm : EVM.State} {currency : AccountAddres
       simp only [syncReservesCurrencyPost, transientStore_executionEnv]
     rw [hI] at hw2
     apply ExecFuncBody.execBlockOK
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [transientStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (evalLocalValue hv) hw2) ExecBlock.nil)
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [transientStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (evalLocalValue hv) hw2) ExecBlock.nil)
 
 theorem syncReservesCall {f : Frame} {evm : EVM.State} {ec ev : Expr} {currency : AccountAddress} {value : UInt256}
     (hf : f.contract = contract) (hc : evalExpr? config f evm ec = .ok (.address currency))
     (hv : evalExpr? config f evm ev = .ok (.int (Int.ofNat value.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyReserves_syncCurrencyAndReserves" [ec, ev] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyReserves_syncCurrencyAndReserves" [ec, ev] retVar)
       (if evm.executionEnv.perm = false then .staticViolation
        else .ok {f with locals := f.locals.insert retVar .unit} (syncReservesPost evm currency value)) := by
-  have hb := syncReservesBody (f := {f with locals := (((∅ : Store).insert "value"
+  have hb := syncReservesBody (fork := fork) (f := {f with locals := (((∅ : Store).insert "value"
     (.int (Int.ofNat value.toNat))).insert "currency" (.address currency))}) (evm := evm) hf
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("currency" == "value") = false)).trans (store_get_self _ _ _))

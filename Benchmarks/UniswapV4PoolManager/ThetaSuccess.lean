@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -20,7 +22,7 @@ theorem thetaCode_success_Xi {fork : Ethereum.Fork}
     (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     ∃ (inputAccounts : AccountMap) (I : ExecutionEnv) (accounts : AccountMap) (substate : Substate),
-      Ξ inputAccounts σ₀ g A I = .ok (.success (accounts, g', substate) out) := by
+      Ξ fork inputAccounts σ₀ g A I = .ok (.success (accounts, g', substate) out) := by
   let σ'₁ := match σ.get? r with
     | none => if v != UInt256.ofNat 0 then σ.insert r {(default : Account) with balance := v} else σ
     | some acc => σ.insert r {acc with balance := acc.balance+v}
@@ -30,17 +32,17 @@ theorem thetaCode_success_Xi {fork : Ethereum.Fork}
   let I : ExecutionEnv :=
     { codeOwner := r, sender := o, gasPrice := p.toNat, calldata := d,
       source := s, weiValue := v', depth := e, perm := perm, code := code,
-      header := H, blobVersionedHashes := blob, blocks := blocks, fork := fork }
+      header := H, blobVersionedHashes := blob, blocks := blocks }
   unfold Ethereum.EVM.Θ at h
   change (let answer : AccountMap × UInt256 × Substate × ByteArray :=
-      match Ξ σ₁ σ₀ g A I with
+      match Ξ fork σ₁ σ₀ g A I with
       | .error _ => (∅, ⟨0⟩, A, .empty)
       | .ok (.revert gas data) => (∅, gas, A, data)
       | .ok (.success (acc, gas, sub) data) => (acc, gas, sub, data)
     (if answer.1 == ∅ then σ else answer.1, answer.2.1,
       if answer.1 == ∅ then A else answer.2.2.1,
       if answer.1 == ∅ then false else true, answer.2.2.2)) = (σ', g', A', true, out) at h
-  generalize hxi : Ξ σ₁ σ₀ g A I = res at h
+  generalize hxi : Ξ fork σ₁ σ₀ g A I = res at h
   cases res with
   | error err => simp at h
   | ok result =>

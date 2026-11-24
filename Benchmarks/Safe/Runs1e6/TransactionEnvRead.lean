@@ -1,5 +1,7 @@
 import Reasoning.Reach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -30,7 +32,7 @@ theorem transactionEnvReadStep (field : TransactionEnvField)
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pc)
     (hdec : decode code pc = some (field.op, .none))
     (hstk : s.machineState.stack = stk) (hov : stk.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
       else .ok (transactionEnvReadState field s, .none) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (field.op, .none) := by
@@ -51,14 +53,14 @@ theorem transactionEnvRead (field : TransactionEnvField)
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
-    (h : RD code I g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code I g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (field.op, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code I g s0 (pc + ⟨1⟩) (field.word I :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD fork code I g s0 (pc + ⟨1⟩) (field.word I :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
   rcases h with hoog |
     ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have st := transactionEnvReadStep field hcode hpc hdec hstk hov
+  · have st := transactionEnvReadStep (fork := fork) field hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨transactionEnvReadState field s,

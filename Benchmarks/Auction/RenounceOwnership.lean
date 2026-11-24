@@ -1,6 +1,8 @@
 import Benchmarks.Auction.OwnershipRoutine
 import Benchmarks.Auction.AddressSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -10,13 +12,13 @@ namespace Auction
 theorem renounceOwnershipBodySplit (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody auctionConfig auctionContract evm ∅ renounceOwnershipTransition.body
+    (evm.executionEnv.perm = true → ExecTransitionBody fork auctionConfig auctionContract evm ∅ renounceOwnershipTransition.body
       (.returned { contract := auctionContract, locals := ∅ }
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨151⟩
           (setAddressOffset0Word
             (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) ⟨0⟩)) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody auctionConfig auctionContract evm ∅
+        ExecTransitionBody fork auctionConfig auctionContract evm ∅
           renounceOwnershipTransition.body .staticViolation) := by
   have howner := evalOwnerEq_true evm ∅ (by simp) ho
   have hvalue := evalZeroAddr auctionConfig { contract := auctionContract, locals := ∅ } evm
@@ -33,7 +35,7 @@ theorem renounceOwnershipBody (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody auctionConfig auctionContract evm ∅ renounceOwnershipTransition.body
+    ExecTransitionBody fork auctionConfig auctionContract evm ∅ renounceOwnershipTransition.body
       (.returned { contract := auctionContract, locals := ∅ }
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨151⟩
           (setAddressOffset0Word
@@ -43,8 +45,8 @@ theorem renounceOwnershipBody (evm : EVM.State)
 theorem renounceOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 8))
-    (hreach : EntryReached 8 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 8 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 8 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 8) (entryBytes_size 8) hsel
@@ -66,14 +68,14 @@ theorem renounceOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
           ((renounceOwnershipBodySplit
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho).2 hperm)
       obtain ⟨_, _, rd413⟩ := auctionInternalReturn rd1163 (by jump_dest) (by evm_ov)
-      have hbody := renounceOwnershipBody (hperm := _hperm)
+      have hbody := renounceOwnershipBody (fork := fork) (hperm := _hperm)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho
       exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
         hcode hd hdec hbody (by
           rw [storageStore_accountMap]
           rfl)
         (.fallthrough rfl rfl (by native_decide))
-    · have hbody : ExecTransitionBody auctionConfig auctionContract
+    · have hbody : ExecTransitionBody fork auctionConfig auctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           renounceOwnershipTransition.body .reverted := by
         apply ownerBodyReverts _ _ _ hwv

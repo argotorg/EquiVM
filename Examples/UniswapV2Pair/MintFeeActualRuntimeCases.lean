@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeRootRuntimeCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -12,7 +14,7 @@ theorem uniswapMintFeeActualRootRuntimeCases
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (evmFeeS : EVM.State) (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (evmFeeS : EVM.State) (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeToWord,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
@@ -26,18 +28,18 @@ theorem uniswapMintFeeActualRootRuntimeCases
     (hrootKLastNonneg : 0 ≤ rootKLast) (hrootKLastSize : rootKLast.toNat < UInt256.size)
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ frame' evm' σ' mem' k' C',
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
         [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
           toWord, ⟨861⟩, sel] mem' feeToStaticcallActiveWords rdata σ' k' C' ∧

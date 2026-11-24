@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_055
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,8 +17,8 @@ theorem tickClampUpperTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw step tick : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024)
     (hc : int24Canonical tick) (htick : memLoad (step+UInt256.ofNat 32) mem = tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨19423⟩ (step :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19442⟩ (step :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19423⟩ (step :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19442⟩ (step :: R)
       (if EVM.signed tick ≥ 887272 then writeWord mem (step+UInt256.ofNat 32).toNat tickMaxWord else mem)
       (M aw (step+UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' := by
   have hclean : UInt256.signextend (UInt256.ofNat 2) tick = tick := (signextend24_eq_iff _).mpr hc

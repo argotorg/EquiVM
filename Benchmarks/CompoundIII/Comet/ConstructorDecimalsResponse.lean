@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ConstructorDecimalsMemory
 import Benchmarks.CompoundIII.Comet.CreationBlocks_005
 import Benchmarks.CompoundIII.Comet.CreationBlocks_006
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -14,9 +16,9 @@ theorem cometCreationAllocateSmall {tail : ByteArray} {ee : ExecutionEnv} {g : S
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hlen : len.toNat ≤ 32) (hptr : ptr.toNat + 32 < 2^64)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2711⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2711⟩
       (ptr :: len :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret R
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret R
       (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C' := by
   have hg : constructorAllocationGuard ptr len = ⟨0⟩ :=
     allocationEnd_bounded_guard (bound := 1) hlen hptr
@@ -27,19 +29,19 @@ theorem cometConstructorDecimalsResponse {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {σ : AccountMap} {c : ConstructorConfig} {out : ByteArray} {z : Bool}
     {aw : UInt256} {k C : Nat}
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64) (hhi : out.size < 2^138)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨734⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨734⟩
       ((if z then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) ::
         UInt256.ofNat (constructorRecordBase c) ::
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorDecimalsCopyMemory c out) aw out σ k C) :
     if z = true ∧ DecimalsReturnValid out then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
         ee g s0 ⟨750⟩
         (⟨672⟩ :: calldataWord out 0 :: UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)
         (constructorDecimalsReturnMemory c out) aw' out σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
   have hsize : out.size < UInt256.size := by change _ < 2^256; omega
   have hout : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hsize
   have hp : (UInt256.ofNat (constructorAssetFree c c.assetConfigs.length)).toNat =
@@ -90,7 +92,7 @@ theorem cometConstructorDecimalsResponse {ee : ExecutionEnv} {g : Sat256} {s0 : 
       have hread : memLoad (UInt256.ofNat (constructorAssetFree c c.assetConfigs.length))
           (constructorDecimalsReturnMemory c out) = calldataWord out 0 :=
         constructorDecimalsReturnMemory_word hfree hlo hsize
-      change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0
+      change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0
         ⟨2810⟩ (UInt256.ofNat (constructorAssetFree c c.assetConfigs.length) :: ⟨2478⟩ ::
           UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)

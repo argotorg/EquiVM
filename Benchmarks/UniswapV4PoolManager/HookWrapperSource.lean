@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.HookCallSource
 import Benchmarks.UniswapV4PoolManager.Slot0Source
 import Benchmarks.UniswapV4PoolManager.TransientSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -54,8 +56,8 @@ theorem hookPayloadBlock {f : Frame} {evm post : State} {hook : AccountAddress}
     {payload : Expr} {data out : ByteArray} {z : Bool}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (.address hook))
     (hp : evalExpr? config f evm payload = .ok (.bytes data)) (hlen : 4 ≤ data.size)
-    (hcall : callViaEVM evm hook 0 data (z, post, out)) :
-    ExecBlock config f evm [.letDecl "payload" (some .bytes) payload,
+    (hcall : callViaEVM fork evm hook 0 data (z, post, out)) :
+    ExecBlock fork config f evm [.letDecl "payload" (some .bytes) payload,
       .internalCall "Hooks_callHook" [.var "self", .var "payload"] "ignored"]
       (hookPayloadResult f post z data out) := by
   let f1 : Frame := {f with locals := f.locals.insert "payload" (.bytes data)}
@@ -76,8 +78,8 @@ theorem conditionalHookBody {f : Frame} {evm evm' : EVM.State} {hook : AccountAd
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (.address hook))
     (hc : evalExpr? config f evm condition = .ok (.bool (decide enabled)))
     (hp : evalExpr? config f evm payload = .ok (.bytes data)) (hlen : 4 ≤ data.size)
-    (hcall : enabled → callViaEVM evm hook 0 data (z, evm', out)) :
-    ∃ f', ExecFuncBody config f evm
+    (hcall : enabled → callViaEVM fork evm hook 0 data (z, evm', out)) :
+    ∃ f', ExecFuncBody fork config f evm
       [.ite condition [.letDecl "payload" (some .bytes) payload,
         .internalCall "Hooks_callHook" [.var "self", .var "payload"] "ignored"] []]
       (hookInvocationResult f' evm evm' enabled z data out) := by

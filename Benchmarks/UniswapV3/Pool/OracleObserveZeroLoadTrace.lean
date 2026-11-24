@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveReturnTrace
 import Benchmarks.UniswapV3.Pool.ObservationCoverage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,11 +12,11 @@ set_option maxRecDepth 10000
 theorem oracleObserveZeroLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free ptr z0 z1 : UInt256} {obs : OracleObservation}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13340⟩ (ptr :: z0 :: z1 :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13340⟩ (ptr :: z0 :: z1 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hb : free.toNat ≤ 2 ^ 200)
     (hobs : ObservationMemory mem ptr obs) (hend : ptr.toNat + 128 ≤ free.toNat)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 6 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0 ⟨13584⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨13584⟩
       (obs.secondsPerLiquidity :: EVM.wordOfInt obs.tickCumulative :: R)
       mem aw rdata σ (k + 16) (C + 48) := by
   have hbound : ptr.toNat + 128 < UInt256.size := by change _ < 2 ^ 256; omega

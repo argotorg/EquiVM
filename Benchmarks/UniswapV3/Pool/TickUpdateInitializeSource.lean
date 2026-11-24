@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateCheckedSource
 import Benchmarks.UniswapV3.Pool.TickHistoryStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -46,7 +48,7 @@ def tickUpdateOutsideBody : List Stmt :=
 
 theorem tickUpdateOutsideSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (tickUpdateFlippedFrame imms a evm) evm tickUpdateOutsideBody
+    ExecBlock fork config (tickUpdateFlippedFrame imms a evm) evm tickUpdateOutsideBody
       (.ok (tickUpdateFlippedFrame imms a evm) (tickUpdateOutsideState a evm)) := by
   let frame := tickUpdateFlippedFrame imms a evm
   have hg : frame.locals.get? "info" = some (tickAlias a.tick) := by dsimp only [frame]; tick_update_get
@@ -54,30 +56,30 @@ theorem tickUpdateOutsideSource (imms : Store) (evm : EVM.State) (a : TickUpdate
   let e1 := tickFeeOutsideState e0 a.tick true a.global1
   let e2 := tickHistoryState e1 a.tick .secondsPerLiquidity a.secondsPerLiquidity
   let e3 := tickHistoryState e2 a.tick .cumulative (EVM.wordOfInt a.cumulative)
-  have h0 : ExecStmt config frame evm
+  have h0 : ExecStmt fork config frame evm
       (.assign .storage ⟨"info", [.field "feeGrowthOutside0X128"]⟩ (.var "feeGrowthGlobal0X128"))
       (.ok frame e0) :=
     ExecStmt.assign (hperm := Or.inr hperm) (evalExpr_var_get (by dsimp only [frame]; tick_update_get))
       (assignTickFeeOutside frame.locals imms evm "info" a.tick false a.global0 hg)
-  have h1 : ExecStmt config frame e0
+  have h1 : ExecStmt fork config frame e0
       (.assign .storage ⟨"info", [.field "feeGrowthOutside1X128"]⟩ (.var "feeGrowthGlobal1X128"))
       (.ok frame e1) :=
     ExecStmt.assign (hperm := Or.inr (by simpa only [e0, e1, e2, e3, tickFeeOutsideState_executionEnv, tickHistoryState_executionEnv] using hperm)) (evalExpr_var_get (by dsimp only [frame]; tick_update_get))
       (assignTickFeeOutside frame.locals imms e0 "info" a.tick true a.global1 hg)
-  have h2 : ExecStmt config frame e1
+  have h2 : ExecStmt fork config frame e1
       (.assign .storage ⟨"info", [.field "secondsPerLiquidityOutsideX128"]⟩
         (.var "secondsPerLiquidityCumulativeX128")) (.ok frame e2) :=
     ExecStmt.assign (hperm := Or.inr (by simpa only [e0, e1, e2, e3, tickFeeOutsideState_executionEnv, tickHistoryState_executionEnv] using hperm)) (evalExpr_var_get (by dsimp only [frame]; tick_update_get))
       (assignTickHistory frame.locals imms e1 "info" a.tick .secondsPerLiquidity
         (.int (Int.ofNat a.secondsPerLiquidity.toNat)) a.secondsPerLiquidity hg
         (by simp only [valueToWord, wordOfInt_ofNat_toNat, pure]))
-  have h3 : ExecStmt config frame e2
+  have h3 : ExecStmt fork config frame e2
       (.assign .storage ⟨"info", [.field "tickCumulativeOutside"]⟩ (.var "tickCumulative"))
       (.ok frame e3) :=
     ExecStmt.assign (hperm := Or.inr (by simpa only [e0, e1, e2, e3, tickFeeOutsideState_executionEnv, tickHistoryState_executionEnv] using hperm)) (evalExpr_var_get (by dsimp only [frame]; tick_update_get))
       (assignTickHistory frame.locals imms e2 "info" a.tick .cumulative (.int a.cumulative)
         (EVM.wordOfInt a.cumulative) hg rfl)
-  have h4 : ExecStmt config frame e3
+  have h4 : ExecStmt fork config frame e3
       (.assign .storage ⟨"info", [.field "secondsOutside"]⟩ (.var "time"))
       (.ok frame (tickUpdateOutsideState a evm)) :=
     ExecStmt.assign (hperm := Or.inr (by simpa only [e0, e1, e2, e3, tickFeeOutsideState_executionEnv, tickHistoryState_executionEnv] using hperm)) (evalExpr_var_get (by dsimp only [frame]; tick_update_get))
@@ -110,31 +112,31 @@ theorem evalTickUpdateInitConditions (imms : Store) (evm : EVM.State) (a : TickU
 
 theorem tickUpdateInitializedSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (tickUpdateFlippedFrame imms a evm) evm (tickUpdateFunction.body[6]!)
+    ExecStmt fork config (tickUpdateFlippedFrame imms a evm) evm (tickUpdateFunction.body[6]!)
       (.ok (tickUpdateFlippedFrame imms a evm) (tickUpdateInitializedState a evm)) := by
   have hc := evalTickUpdateInitConditions imms evm a
   by_cases hz : tickUpdateGrossBefore a evm = 0
   · simp only [tickUpdateInitializedState, if_pos hz]
     apply ExecStmt.iteTrue (by simpa only [hz, decide_true] using hc.1)
-    have hout : ExecStmt config (tickUpdateFlippedFrame imms a evm) evm
+    have hout : ExecStmt fork config (tickUpdateFlippedFrame imms a evm) evm
         (.ite (.binary .le (.var "tick") (.var "tickCurrent")) tickUpdateOutsideBody [])
         (.ok (tickUpdateFlippedFrame imms a evm)
           (if a.tick ≤ a.current then tickUpdateOutsideState a evm else evm)) := by
       by_cases ht : a.tick ≤ a.current
       · rw [if_pos ht]
         exact ExecStmt.iteTrue (by simpa only [ht, decide_true] using hc.2)
-          (tickUpdateOutsideSource (hperm := by assumption) imms evm a)
+          (tickUpdateOutsideSource (fork := fork) (hperm := by assumption) imms evm a)
       · rw [if_neg ht]
         exact ExecStmt.iteFalse (by simpa only [ht, decide_false] using hc.2) ExecBlock.nil
     refine ExecBlock.consNormal hout ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by split_ifs <;> simpa only [tickUpdateOutsideState_executionEnv] using hperm)) (by simp only [evalExpr?, pure])
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by split_ifs <;> simpa only [tickUpdateOutsideState_executionEnv] using hperm)) (by simp only [evalExpr?, pure])
       (assignTickHistory (tickUpdateFlippedFrame imms a evm).locals imms _ "info" a.tick
         .initialized (.bool true) ⟨1⟩ (by tick_update_get) rfl)) ExecBlock.nil
   · simp only [tickUpdateInitializedState, if_neg hz]
     exact ExecStmt.iteFalse (by simpa only [hz, decide_false] using hc.1) ExecBlock.nil
 
 theorem tickUpdateGrossSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs) :
-    ExecStmt config (tickUpdateFlippedFrame imms a evm) (tickUpdateInitializedState a evm)
+    ExecStmt fork config (tickUpdateFlippedFrame imms a evm) (tickUpdateInitializedState a evm)
       (tickUpdateFunction.body[7]!)
       (if (tickUpdateInitializedState a evm).executionEnv.perm then
         .ok (tickUpdateFlippedFrame imms a evm) (tickUpdateGrossState a evm) else .staticViolation) := by
@@ -147,12 +149,12 @@ theorem tickUpdateStoresSource (imms : Store) (evm : EVM.State) (a : TickUpdateA
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta)
     (hm : tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 8)
+    ExecBlock fork config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 8)
       (.ok (tickUpdateFlippedFrame imms a evm) (tickUpdateGrossState a evm)) := by
-  change ExecBlock config (tickUpdateFrame imms a) evm
+  change ExecBlock fork config (tickUpdateFrame imms a) evm
     (tickUpdateFunction.body.take 6 ++ [tickUpdateFunction.body[6]!, tickUpdateFunction.body[7]!]) _
   exact execBlock_append_ok (tickUpdateCheckedSource imms evm a hv hm)
-    (ExecBlock.consNormal (tickUpdateInitializedSource (hperm := by assumption) imms evm a)
+    (ExecBlock.consNormal (tickUpdateInitializedSource (fork := fork) (hperm := by assumption) imms evm a)
       (ExecBlock.consNormal (by simpa only [tickUpdateInitializedState_executionEnv, hperm, if_true] using (tickUpdateGrossSource imms evm a)) ExecBlock.nil))
 
 end Benchmarks.UniswapV3.Pool

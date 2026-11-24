@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.Selectors
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -31,9 +33,9 @@ namespace Benchmarks.WETH9
 theorem weth9ReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨19⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨19⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  have h5 := (RD.initState (σ := σ) (σ₀ := σ₀)
+  have h5 := (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     |>.push1 ⟨128⟩ (by native_decide) (by decide)
     |>.push1 ⟨64⟩ (by native_decide) (by decide)
@@ -78,9 +80,9 @@ theorem weth9ReachUpperArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hb : UInt256.gt (armSelNat weth9Bytecode ⟨19⟩) (weth9SelWord I) = ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨30⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨30⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h19⟩ := weth9ReachSplit (σ := σ)
+  obtain ⟨_, _, h19⟩ := weth9ReachSplit (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   exact ⟨_, _, RD.selectorSplitNotTakenAuto h19 weth9RootSplitWellFormed hb (by simp)⟩
 
@@ -90,9 +92,9 @@ theorem weth9ReachLowerArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hb : UInt256.gt (armSelNat weth9Bytecode ⟨19⟩) (weth9SelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨101⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨101⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h19⟩ := weth9ReachSplit (σ := σ)
+  obtain ⟨_, _, h19⟩ := weth9ReachSplit (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have h100 := RD.selectorSplitTakenAuto h19 weth9RootSplitWellFormed hb (by jump_dest) (by simp)
   exact ⟨_, _, h100.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
@@ -106,11 +108,11 @@ Each reach derives the concrete selector word from the `selIs` byte match, picks
 theorem weth9ReachDecimals {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 5)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨529⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨529⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨826074471⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨826074471⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨529⟩ 0 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by omega) (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
@@ -119,11 +121,11 @@ theorem weth9ReachDecimals {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachBalanceOf {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 6)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨572⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨572⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨1889567281⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x70 0xa0 0x82 0x31 ⟨1889567281⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨572⟩ 1 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -133,11 +135,11 @@ theorem weth9ReachBalanceOf {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachSymbol {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 7)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨2514000705⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x95 0xd8 0x9b 0x41 ⟨2514000705⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨623⟩ 2 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -147,11 +149,11 @@ theorem weth9ReachSymbol {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachTransfer {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 8)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨644⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨644⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨2835717307⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨2835717307⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨644⟩ 3 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -161,11 +163,11 @@ theorem weth9ReachTransfer {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachDepositEntry {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 9)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨3504541104⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd0 0xe3 0x0d 0xb0 ⟨3504541104⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨156⟩ 4 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -175,11 +177,11 @@ theorem weth9ReachDepositEntry {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachAllowance {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 10)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨701⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨701⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨3714247998⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xdd 0x62 0xed 0x3e ⟨3714247998⟩ (by native_decide) hsel
-  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (σ := σ)
+  obtain ⟨_, _, h30⟩ := weth9ReachUpperArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨701⟩ 5 h30 (fun j hj => weth9UpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -189,11 +191,11 @@ theorem weth9ReachAllowance {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachName {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 0)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨166⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨166⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨117300739⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x06 0xfd 0xde 0x03 ⟨117300739⟩ (by native_decide) hsel
-  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (σ := σ)
+  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨166⟩ 0 h101 (fun j hj => weth9LowerArmsWellFormed j (by omega))
     (fun j hj => by omega) (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
@@ -202,11 +204,11 @@ theorem weth9ReachName {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachApprove {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 1)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨304⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨304⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨157198259⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x09 0x5e 0xa7 0xb3 ⟨157198259⟩ (by native_decide) hsel
-  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (σ := σ)
+  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨304⟩ 1 h101 (fun j hj => weth9LowerArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -216,11 +218,11 @@ theorem weth9ReachApprove {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachTotalSupply {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 2)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨381⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨381⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨404098525⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨404098525⟩ (by native_decide) hsel
-  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (σ := σ)
+  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨381⟩ 2 h101 (fun j hj => weth9LowerArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -230,11 +232,11 @@ theorem weth9ReachTotalSupply {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachTransferFrom {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 3)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨420⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨420⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨599290589⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨599290589⟩ (by native_decide) hsel
-  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (σ := σ)
+  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨420⟩ 3 h101 (fun j hj => weth9LowerArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
@@ -244,11 +246,11 @@ theorem weth9ReachTransferFrom {σ σ₀ A I} {g : Sat256}
 theorem weth9ReachWithdraw {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 4)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨487⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨487⟩
       [weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : weth9SelWord I = ⟨773487949⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2e 0x1a 0x7d 0x4d ⟨773487949⟩ (by native_decide) hsel
-  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (σ := σ)
+  obtain ⟨_, _, h101⟩ := weth9ReachLowerArm (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨487⟩ 4 h101 (fun j hj => weth9LowerArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)

@@ -1,16 +1,18 @@
 import Benchmarks.UniswapV3.Pool.ReachFuel
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
 -- LIBRARY CANDIDATE: restart a reached cursor with its remaining gas and zero local cost.
 theorem rdLocalize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {pc aw : UInt256} {stack : List UInt256} {mem rdata : ByteArray} {σ : AccountMap}
-    {k C : Nat} (rd : RD code ee g s0 pc stack mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+    {k C : Nat} (rd : RD fork code ee g s0 pc stack mem aw rdata σ k C) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
       ∃ s : EVM.State, s.σ₀ = s0.σ₀ ∧ C ≤ g.toNat ∧
-        X (g.toNat + 1) (D_J code 0) s0 = X ((g.subNat C).toNat + 1) (D_J code 0) s ∧
-        RD code ee (g.subNat C) s pc stack mem aw rdata σ 0 0 := by
+        X fork (g.toNat + 1) (D_J code 0) s0 = X fork ((g.subNat C).toNat + 1) (D_J code 0) s ∧
+        RD fork code ee (g.subNat C) s pc stack mem aw rdata σ 0 0 := by
   rcases rd with hoog | ⟨s, hx, hc, hp, hs, hg, hk, hC, hm, haw, hr, hσ, he, hworld⟩
   · exact Or.inl hoog
   · refine Or.inr ⟨s, hworld, hC, ?_, ?_⟩
@@ -24,9 +26,9 @@ theorem rdLocalize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM
 theorem rdGlobalize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 s : EVM.State}
     {pc aw : UInt256} {stack : List UInt256} {mem rdata : ByteArray} {σ : AccountMap}
     {C k' C' : Nat} (hworld : s.σ₀ = s0.σ₀) (hC : C ≤ g.toNat)
-    (hx : X (g.toNat + 1) (D_J code 0) s0 = X ((g.subNat C).toNat + 1) (D_J code 0) s)
-    (rd : RD code ee (g.subNat C) s pc stack mem aw rdata σ k' C') :
-    RD code ee g s0 pc stack mem aw rdata σ (C + k') (C + C') := by
+    (hx : X fork (g.toNat + 1) (D_J code 0) s0 = X fork ((g.subNat C).toNat + 1) (D_J code 0) s)
+    (rd : RD fork code ee (g.subNat C) s pc stack mem aw rdata σ k' C') :
+    RD fork code ee g s0 pc stack mem aw rdata σ (C + k') (C + C') := by
   rcases rd with hoog | ⟨next, hx', hc, hp, hs, hg, hk, hC', hm, haw, hr, hσ, he, hworld'⟩
   · exact Or.inl (hx.trans hoog)
   · have hcost : C + C' ≤ g.toNat := by

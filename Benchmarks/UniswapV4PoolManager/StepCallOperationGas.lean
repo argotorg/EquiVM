@@ -1,13 +1,15 @@
 import Benchmarks.UniswapV4PoolManager.RecursiveOperationGas
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
 -- GENERALIZES the CALL cases of step_gas_decreases_of_cost_eq_C' to retain 100 gas.
 theorem step_call_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (hcost : gasCost = C' s .CALL)
-    (h : step gasCost (.CALL, arg) s = .ok s') :
+    (hcost : gasCost = C' fork s .CALL)
+    (h : step fork gasCost (.CALL, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+100 ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,
@@ -22,14 +24,14 @@ theorem step_call_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' 
   have hidx := Stack.pop7_get! hPop'
   rcases hidx with ⟨h0, h1, h2⟩
   have hnet :
-      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -47,8 +49,8 @@ theorem step_call_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' 
 
 theorem step_callcode_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (hcost : gasCost = C' s .CALLCODE)
-    (h : step gasCost (.CALLCODE, arg) s = .ok s') :
+    (hcost : gasCost = C' fork s .CALLCODE)
+    (h : step fork gasCost (.CALLCODE, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+100 ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,
@@ -63,15 +65,15 @@ theorem step_callcode_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s
   have hidx := Stack.pop7_get! hPop'
   rcases hidx with ⟨h0, h1, h2⟩
   have hnet :
-      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 (UInt256.ofNat s.executionEnv.codeOwner.val))
         vPop.2.2.2.1 vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -90,8 +92,8 @@ theorem step_callcode_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s
 
 theorem step_delegatecall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (hcost : gasCost = C' s .DELEGATECALL)
-    (h : step gasCost (.DELEGATECALL, arg) s = .ok s') :
+    (hcost : gasCost = C' fork s .DELEGATECALL)
+    (h : step fork gasCost (.DELEGATECALL, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+100 ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,
@@ -106,15 +108,15 @@ theorem step_delegatecall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)
   have hidx := Stack.pop6_get! hPop'
   rcases hidx with ⟨h0, h1⟩
   have hnet :
-      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 (UInt256.ofNat s.executionEnv.codeOwner.val))
         (⟨0⟩ : UInt256) vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -133,8 +135,8 @@ theorem step_delegatecall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)
 
 theorem step_staticcall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (hcost : gasCost = C' s .STATICCALL)
-    (h : step gasCost (.STATICCALL, arg) s = .ok s') :
+    (hcost : gasCost = C' fork s .STATICCALL)
+    (h : step fork gasCost (.STATICCALL, arg) s = .ok s') :
     s'.machineState.gasAvailable.toNat+100 ≤ s.machineState.gasAvailable.toNat := by
   rw [step.eq_1] at h
   simp [bind, Except.bind, pure, Except.pure,
@@ -149,15 +151,15 @@ theorem step_staticcall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} 
   have hidx := Stack.pop6_get! hPop'
   rcases hidx with ⟨h0, h1⟩
   have hnet :
-      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 vPop.2.2.1)
         (⟨0⟩ : UInt256) vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _

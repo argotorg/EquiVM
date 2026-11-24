@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.HealthyPriceSource
 import Benchmarks.Morpho.MorphoBlue.RepayMathReach
 import Benchmarks.Morpho.MorphoBlue.SupplyPositionRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -44,9 +46,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoHealthyPriceReachAssets (hstack : R.length + 28 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
       ([mpos, id, account, price, ret] ++ R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15445)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15445)
       ([positionFieldWord σ ee id account 1, marketFieldWord σ ee id 2, marketFieldWord σ ee id 3,
         UInt256.ofNat 14328, account, UInt256.ofNat 0, UInt256.ofNat 64, UInt256.ofNat 1, price,
         UInt256.ofNat 14355, oraclePriceScale, UInt256.ofNat 128, mpos, UInt256.ofNat 14365, wad, id, ret] ++ R)
@@ -59,7 +61,7 @@ theorem morphoHealthyPriceReachAssets (hstack : R.length + 28 ≤ 1024)
   rw [hmask] at rd1
   have hh1 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 2) mem) =
       solcMappingSlot ⟨2⟩ id := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 2) mem)) (twoWordHashMem id (UInt256.ofNat 2) mem)) + UInt256.ofNat 1) σ ee) uint128Mask,
@@ -77,7 +79,7 @@ theorem morphoHealthyPriceReachAssets (hstack : R.length + 28 ≤ 1024)
       (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 2) mem)) (twoWordHashMem id (UInt256.ofNat 2) mem))) _ _ _ _ _ at rd1
   rw [hh1] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (supplyPositionMem id account mem) + UInt256.ofNat 1) σ ee) uint128Mask,
       UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
@@ -94,11 +96,11 @@ theorem morphoHealthyPriceReachAssets (hstack : R.length + 28 ≤ 1024)
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoHealthyPriceReachCollateral (hstack : R.length + 28 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14328)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14328)
       ([borrowed, account, UInt256.ofNat 0, UInt256.ofNat 64, UInt256.ofNat 1, price,
         UInt256.ofNat 14355, oraclePriceScale, UInt256.ofNat 128, mpos, UInt256.ofNat 14365, wad, id, ret] ++ R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([positionFieldWord σ ee id account 2, price, UInt256.ofNat 14355, oraclePriceScale, UInt256.ofNat 128,
         mpos, UInt256.ofNat 14365, wad, borrowed, ret] ++ R)
       (supplyPositionMem id account mem) aw' out σ k' C' := by
@@ -107,7 +109,7 @@ theorem morphoHealthyPriceReachCollateral (hstack : R.length + 28 ≤ 1024)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   have hh1 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 2) mem) =
       solcMappingSlot ⟨2⟩ id := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 2) mem)) (twoWordHashMem id (UInt256.ofNat 2) mem)) + UInt256.ofNat 1) σ ee) (UInt256.ofNat 128),
@@ -115,7 +117,7 @@ theorem morphoHealthyPriceReachCollateral (hstack : R.length + 28 ≤ 1024)
     (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 2) mem)) (twoWordHashMem id (UInt256.ofNat 2) mem)) _ _ _ _ _ at rd1
   rw [hh1] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (supplyPositionMem id account mem) + UInt256.ofNat 1) σ ee) (UInt256.ofNat 128),
       price, UInt256.ofNat 14355, oraclePriceScale, UInt256.ofNat 128, mpos, UInt256.ofNat 14365, wad, borrowed, ret] ++ R)

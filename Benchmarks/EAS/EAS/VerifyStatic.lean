@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.Common
 import Benchmarks.EAS.EAS.RuntimeBlocks_041
 import Benchmarks.EAS.EAS.RuntimeBlocks_042
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,8 +13,8 @@ theorem easVerifyRevokeStatic {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 14 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13806⟩ (x0::R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13806⟩ (x0::R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13806⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push20 (UInt256.ofNat 1461501637330902918203684832716283019655932542975) (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13807⟩ : UInt256), UInt8.ofNat 115, .Push .PUSH20, some ((UInt256.ofNat 1461501637330902918203684832716283019655932542975), 20), easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -60,8 +62,8 @@ theorem easVerifyAttestStatic {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 15 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13494⟩ (x0::R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13494⟩ (x0::R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13494⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push20 (UInt256.ofNat 1461501637330902918203684832716283019655932542975) (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨13495⟩ : UInt256), UInt8.ofNat 115, .Push .PUSH20, some ((UInt256.ofNat 1461501637330902918203684832716283019655932542975), 20), easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)

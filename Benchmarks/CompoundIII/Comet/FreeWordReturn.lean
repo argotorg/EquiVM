@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,8 +18,8 @@ theorem freeWordReturnData (mem : ByteArray) (w : UInt256) :
 theorem cometReturnWord {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw w : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨1504⟩ (w :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ w.toByteArray := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨1504⟩ (w :: ⟨32⟩ :: R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ w.toByteArray := by
   have hr := cometWithExtendedAssetList_block_1504
     (immWords := wordsOf (immStore v)) hstack h
   exact freeWordReturnData mem w ▸ hr

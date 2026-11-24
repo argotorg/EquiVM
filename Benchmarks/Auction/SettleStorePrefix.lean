@@ -1,14 +1,16 @@
 import Benchmarks.Auction.SettleStorage
 import Benchmarks.Auction.SettleGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem settleStorePrefix {I g s0 s ptr ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4397⟩ (ptr :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4397⟩ (ptr :: ret :: R) mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw ptr) (hperm : I.perm = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4434⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4434⟩
       (⟨4536⟩ :: s.bidderWord :: ptr :: ret :: R) mem aw rdata
       (settledAccounts σ I) k' C' := by
   have rd4401 := evm_run h with [jumpdest, push1 ⟨211⟩, dup1]

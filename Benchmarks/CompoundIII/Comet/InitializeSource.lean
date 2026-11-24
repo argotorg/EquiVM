@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.InitializeState
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -43,7 +45,7 @@ theorem initializeReady (evm : EVM.State) (imms : Store)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (hz : lastAccrualWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) = ⟨0⟩)
     (ht : (timestampWord evm.executionEnv).toNat < 2^40) :
-    ABlock config evm { contract := contract, locals := ∅, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := ∅, immutables := imms }
       initializeStorageTransition.body (initializeReadyFrame evm imms) initializeWrites := by
   rw [initializeStorage_body]
   refine ⟨fun h ↦ (calldataPrologue_ok hv hhi).run ?_⟩
@@ -54,7 +56,7 @@ theorem initializeReady (evm : EVM.State) (imms : Store)
     (ExecBlock.consNormal (now_call_ok _ evm "__c0" rfl ht) h)
 
 theorem initializeTimeAssign (evm : EVM.State) (imms : Store) :
-    ExecStmt config (initializeReadyFrame evm imms) evm
+    ExecStmt fork config (initializeReadyFrame evm imms) evm
       (.assign .storage ⟨"lastAccrualTime", []⟩ (.var "__c0"))
       (if evm.executionEnv.perm then .ok (initializeReadyFrame evm imms)
         (storeLastAccrual evm (timestampWord evm.executionEnv)) else .staticViolation) := by
@@ -70,13 +72,13 @@ theorem initializeStorage_returns (evm : EVM.State) (imms : Store)
     (hz : lastAccrualWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) = ⟨0⟩)
     (ht : (timestampWord evm.executionEnv).toNat < 2^40)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ initializeStorageTransition.body
+    ExecTransitionBody fork config contract evm ∅ initializeStorageTransition.body
       (.returned (initializeReadyFrame evm imms) (initializeSourceState evm) none) imms := by
   apply ExecFuncBody.execBlockOK
   apply (initializeReady evm imms hv hhi hz ht).run
   apply ExecBlock.consNormal (by simpa only [hperm, if_true] using initializeTimeAssign evm imms)
   have hs (state : EVM.State) (b : Bool) (hp : state.executionEnv.perm = true) :
-      ExecStmt config (initializeReadyFrame evm imms) state
+      ExecStmt fork config (initializeReadyFrame evm imms) state
         (.assign .storage ⟨totalsIndexName b, []⟩ (.intLit 1000000000000000))
         (.ok (initializeReadyFrame evm imms) (storeTotalsIndex state b ⟨1000000000000000⟩)) := by
     apply ExecStmt.assign (hperm := Or.inr hp) (value := .int (Int.ofNat (⟨1000000000000000⟩ : UInt256).toNat))
@@ -92,7 +94,7 @@ theorem initializeStorage_static (evm : EVM.State) (imms : Store)
     (hz : lastAccrualWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) = ⟨0⟩)
     (ht : (timestampWord evm.executionEnv).toNat < 2^40)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ initializeStorageTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm ∅ initializeStorageTransition.body .staticViolation imms := by
   apply ExecFuncBody.execBlockStatic
   apply (initializeReady evm imms hv hhi hz ht).run
   exact ExecBlock.consStatic (execStmt_assign_static (initializeTimeAssign evm imms) hperm)
@@ -102,7 +104,7 @@ theorem initializeStorage_reverts (evm : EVM.State) (imms : Store)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (hinvalid : ¬ (lastAccrualWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) = ⟨0⟩ ∧
       (timestampWord evm.executionEnv).toNat < 2^40)) :
-    ExecTransitionBody config contract evm ∅ initializeStorageTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm ∅ initializeStorageTransition.body .reverted imms := by
   rw [initializeStorage_body]
   apply ExecFuncBody.execBlockRevert
   apply (calldataPrologue_ok hv hhi).run

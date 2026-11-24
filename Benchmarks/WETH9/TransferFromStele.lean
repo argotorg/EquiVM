@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.TransferFromDefs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `transferFrom` source-level (Stele) body
 
@@ -443,10 +445,10 @@ theorem weth9TFSteleSkipSenderSplit {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsrcCaller : AccountAddress.ofNat (tfSrcWord I).toNat = I.source)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat) :
-    (I.perm = true → ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    (I.perm = true → ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap = wtfPostMap I σ (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)) ∧
-      (I.perm = false → ExecTransitionBody config contract (initState σ σ₀ g A I)
+      (I.perm = false → ExecTransitionBody fork config contract (initState σ σ₀ g A I)
         (tfStore I) transferFromTransition.body .staticViolation) := by
   have hsrc : (initState σ σ₀ g A I).executionEnv = I := rfl
   have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
@@ -456,9 +458,9 @@ theorem weth9TFSteleSkipSenderSplit {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
       = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := tfStore I }
+      (htail : ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) (transferFromTransition.body.drop 3) result) :
-      ExecBlock config { contract := contract, locals := tfStore I }
+      ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) transferFromTransition.body result := by
     simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv')) ?_
@@ -476,15 +478,15 @@ theorem weth9TFSteleSkipSenderSplit {σ σ₀ A I} {g : Sat256}
     exact htail
   constructor
   · intro hperm
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
         transferFromTransition.body
         (.returned { contract := contract, locals := tfStore I }
           (tfDstSt (tfSrcSt (initState σ σ₀ g A I) I) I) (some [.bool true])) := by
       refine ExecFuncBody.execBlockRet (hprefix ?_)
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
       exact ExecBlock.consReturn
         (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
     exact ⟨_, _, hbody, tfSkip_accountMap⟩
@@ -498,7 +500,7 @@ theorem weth9TFSteleSkipSender {σ σ₀ A I} {g : Sat256}
     (hsrcCaller : AccountAddress.ofNat (tfSrcWord I).toNat = I.source)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat)
     (hperm : I.perm = true) :
-    ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap = wtfPostMap I σ (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)
       :=
@@ -510,10 +512,10 @@ theorem weth9TFSteleSkipMaxSplit {σ σ₀ A I} {g : Sat256}
     (hsrcNe : AccountAddress.ofNat (tfSrcWord I).toNat ≠ I.source)
     (hmax : (tfAllowWord I σ).toNat = UInt256.size - 1)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat) :
-    (I.perm = true → ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    (I.perm = true → ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap = wtfPostMap I σ (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)) ∧
-      (I.perm = false → ExecTransitionBody config contract (initState σ σ₀ g A I)
+      (I.perm = false → ExecTransitionBody fork config contract (initState σ σ₀ g A I)
         (tfStore I) transferFromTransition.body .staticViolation) := by
   have hsrc : (initState σ σ₀ g A I).executionEnv = I := rfl
   have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
@@ -526,9 +528,9 @@ theorem weth9TFSteleSkipMaxSplit {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfAllowSlot I (tfSrcMasked I))
       = tfAllowWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := tfStore I }
+      (htail : ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) (transferFromTransition.body.drop 3) result) :
-      ExecBlock config { contract := contract, locals := tfStore I }
+      ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) transferFromTransition.body result := by
     simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv')) ?_
@@ -546,15 +548,15 @@ theorem weth9TFSteleSkipMaxSplit {σ σ₀ A I} {g : Sat256}
     exact htail
   constructor
   · intro hperm
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
         transferFromTransition.body
         (.returned { contract := contract, locals := tfStore I }
           (tfDstSt (tfSrcSt (initState σ σ₀ g A I) I) I) (some [.bool true])) := by
       refine ExecFuncBody.execBlockRet (hprefix ?_)
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
       refine ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
       exact ExecBlock.consReturn
         (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
     exact ⟨_, _, hbody, tfSkip_accountMap⟩
@@ -569,7 +571,7 @@ theorem weth9TFSteleSkipMax {σ σ₀ A I} {g : Sat256}
     (hmax : (tfAllowWord I σ).toNat = UInt256.size - 1)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat)
     (hperm : I.perm = true) :
-    ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap = wtfPostMap I σ (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)
       :=
@@ -582,11 +584,11 @@ theorem weth9TFSteleSpendSplit {σ σ₀ A I} {g : Sat256}
     (hnotMax : (tfAllowWord I σ).toNat ≠ UInt256.size - 1)
     (hallowEnough : (tfWadWord I).toNat ≤ (tfAllowWord I σ).toNat)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat) :
-    (I.perm = true → ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    (I.perm = true → ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap
           = wtfPostMap I (tfAllowDebitMap I σ) (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)) ∧
-      (I.perm = false → ExecTransitionBody config contract (initState σ σ₀ g A I)
+      (I.perm = false → ExecTransitionBody fork config contract (initState σ σ₀ g A I)
         (tfStore I) transferFromTransition.body .staticViolation) := by
   have hsrc : (initState σ σ₀ g A I).executionEnv = I := rfl
   have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
@@ -599,9 +601,9 @@ theorem weth9TFSteleSpendSplit {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfAllowSlot I (tfSrcMasked I))
       = tfAllowWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := tfStore I }
+      (htail : ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) (transferFromTransition.body.drop 2) result) :
-      ExecBlock config { contract := contract, locals := tfStore I }
+      ExecBlock fork config { contract := contract, locals := tfStore I }
         (initState σ σ₀ g A I) transferFromTransition.body result := by
     simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv')) ?_
@@ -618,7 +620,7 @@ theorem weth9TFSteleSpendSplit {σ σ₀ A I} {g : Sat256}
   have hassign := tfAssignAllow (initState σ σ₀ g A I) I hsrc
   constructor
   · intro hperm
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
         transferFromTransition.body
         (.returned { contract := contract, locals := tfStore I }
           (tfDstSt (tfSrcSt (tfAllowSt (initState σ σ₀ g A I) I) I) I) (some [.bool true])) := by
@@ -627,9 +629,9 @@ theorem weth9TFSteleSpendSplit {σ σ₀ A I} {g : Sat256}
         (ExecStmt.iteTrue (result := .ok { contract := contract, locals := tfStore I }
           (tfAllowSt (initState σ σ₀ g A I) I)) hcond
           (ExecBlock.consNormal (ExecStmt.requireTrue hallow)
-            (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) hvalue hassign) ExecBlock.nil))) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
+            (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) hvalue hassign) ExecBlock.nil))) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalSrcSubRaw _ I) (tfAssignSrc _ I)) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [tfAllowSt, tfSrcSt, initState] using hperm)) (tfEvalDstAddRaw _ I) (tfAssignDst _ I)) ?_
       exact ExecBlock.consReturn
         (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
     exact ⟨_, _, hbody, tfSpend_accountMap⟩
@@ -646,7 +648,7 @@ theorem weth9TFSteleSpend {σ σ₀ A I} {g : Sat256}
     (hallowEnough : (tfWadWord I).toNat ≤ (tfAllowWord I σ).toNat)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat)
     (hperm : I.perm = true) :
-    ∃ evmPost cs, ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    ∃ evmPost cs, ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true]))
       ∧ evmPost.accountMap
           = wtfPostMap I (tfAllowDebitMap I σ) (tfSrcMasked I) (tfDstMasked I) (tfWadWord I)
@@ -657,7 +659,7 @@ theorem weth9TFSteleSpend {σ σ₀ A I} {g : Sat256}
 theorem weth9TFSteleRevBal {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlt : (tfBalSrcWord I σ).toNat < (tfWadWord I).toNat) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body .reverted := by
   have hsrc : (initState σ σ₀ g A I).executionEnv = I := rfl
   have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
@@ -679,7 +681,7 @@ theorem weth9TFSteleRevAllow {σ σ₀ A I} {g : Sat256}
     (hnotMax : (tfAllowWord I σ).toNat ≠ UInt256.size - 1)
     (henough : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat)
     (hallowLt : (tfAllowWord I σ).toNat < (tfWadWord I).toNat) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body .reverted := by
   have hsrc : (initState σ σ₀ g A I).executionEnv = I := rfl
   have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl

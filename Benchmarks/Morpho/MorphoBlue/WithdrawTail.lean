@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.MarketLiquidity
 import Benchmarks.Morpho.MorphoBlue.MarketTransferPair
 import Benchmarks.Morpho.MorphoBlue.MarketTransferEvents
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,7 +14,7 @@ set_option maxRecDepth 1000
 theorem withdrawEmit (p : MarketParamsWords) (assets shares account receiver : UInt256)
     (locals imms : Store) (evm : EVM.State) (hl : MarketTransferLocals p assets shares account receiver locals)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       withdrawTransition.body[20]! (.ok { contract := contract, locals := locals, immutables := imms } evm) := hl.emit imms evm "Withdraw" hperm
 
 theorem morphoWithdrawTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
@@ -24,11 +26,11 @@ theorem morphoWithdrawTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     (hget : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 64))))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
       ([UInt256.ofNat 585, UInt256.isZero (UInt256.lt (marketFieldWord σ ee p.id 0)
         (marketFieldWord σ ee p.id 2)), UInt256.ofNat 7950] ++
         withdrawEventTail p.id assets shares account receiver []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawTransition.body.drop 19) withdrawTransition.returnType := by
   have hg := marketLiquidityGuard_eval p locals imms evm hl.toMarketLocals
@@ -38,13 +40,13 @@ theorem morphoWithdrawTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
       (by have hb := hm.space; omega) h with ⟨hbad, hrev⟩ | ⟨hgood, a1, k1, C1, rd1, hm1, had⟩
   · exact .reverted (ExecBlock.consRevert (ExecStmt.requireFalse (by
       simpa only [decide_eq_false (Nat.not_le_of_gt hbad)] using hg))) hrev
-  · have hguard : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  · have hguard : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
         evm withdrawTransition.body[19]! (.ok { contract := contract, locals := locals, immutables := imms } evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hgood] using hg)
-    have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+    have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
         (withdrawTransition.body.drop 19) { contract := contract, locals := locals, immutables := imms } evm
         (withdrawTransition.body.drop 21) :=
-      (StateBlock.start.step hguard).step (withdrawEmit (hperm := (congrArg ExecutionEnv.perm hs.env).trans hp) p assets shares account receiver locals imms evm hl)
+      (StateBlock.start.step hguard).step (withdrawEmit (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs.env).trans hp) p assets shares account receiver locals imms evm hl)
     have hm2 := hm1.event (UInt256.ofNat ee.source.val) assets shares
     have hpe := hm1.eventPrefix (UInt256.ofNat ee.source.val) assets shares
     have hpref := had.preserves.trans (hpe.mono (by rw [had.cursor]; omega))
@@ -58,7 +60,7 @@ theorem morphoWithdrawTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
       exact htoken
     obtain ⟨a2, k2, C2, rd2⟩ := morphoBlocks.morpho_block_7950_packed (immWords := wordsOf (immStore v))
       (by decide) hp (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       [UInt256.land (memLoad (UInt256.ofNat 128)
         (accrueEventMem (morphoLiquidityMem mem) (UInt256.ofNat ee.source.val) assets shares)) solcAddrMask,
         receiver, assets, UInt256.ofNat 2752, shares, assets, UInt256.ofNat 64]

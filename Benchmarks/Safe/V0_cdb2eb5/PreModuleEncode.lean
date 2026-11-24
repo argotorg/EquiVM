@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_049
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_050
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -13,7 +15,7 @@ set_option maxHeartbeats 1000000 in
 theorem safePreModuleEncode (words : List UInt256)
     {I g s0 σ k C aw mem rdata base src len} {target value operation sender ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11639⟩
+    (h : RD fork safeBytecode I g s0 ⟨11639⟩
       (UInt256.ofNat base :: sender :: operation :: UInt256.ofNat src :: value ::
         target :: ret :: R) mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -23,7 +25,7 @@ theorem safePreModuleEncode (words : List UInt256)
     (hb : base + 224 + 32 * words.length < UInt256.size)
     (ho : operation.toNat < 2) (hov : R.length + 21 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (base + 192 + 32 * words.length) :: R)
       (preModuleArgsMemory mem base len target value operation sender words)
       aw' rdata σ k' C' := by

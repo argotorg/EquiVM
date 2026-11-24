@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestAccess
 import Benchmarks.EAS.EAS.ArrayTableAllocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,12 +11,12 @@ theorem easMultiDelegatedAttestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n : Nat}
     {base heap : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hn : n ≤ 2^64-1) (hh : heap.toNat ≤ 2^64-1) (hf : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2722⟩ (UInt256.ofNat n::base::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2722⟩ (UInt256.ofNat n::base::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat (32+32*n) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*n) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2777⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2777⟩
         (multiDelegatedAttestLoopStack n 0 base ee.weiValue ⟨0⟩ heap R)
         (arrayTableAllocationMemory mem heap n) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hn' : (UInt256.ofNat n).toNat = n := ulit_toNat' _ (by change n < 2^256; omega)
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_2722_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -34,8 +36,8 @@ theorem easMultiDelegatedAttestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem easMultiDelegatedAttestDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C n : Nat}
     {base table available count : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12≤1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2777⟩ (multiDelegatedAttestLoopStack n n base available count table R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11975⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2777⟩ (multiDelegatedAttestLoopStack n n base available count table R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11975⟩
       (table::count::⟨2797⟩::⟨398⟩::multiDelegatedAttestLoopStack n n base available count table R) mem aw' out σ k' C' := by
   simp only [multiDelegatedAttestLoopStack,List.cons_append,List.nil_append] at rd ⊢
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_2777_fallthrough_packed (immWords := wordsOf (immStore v))

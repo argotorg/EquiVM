@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepFeeWords
 import Benchmarks.UniswapV4PoolManager.FullMathRoundSource
 import Benchmarks.UniswapV4PoolManager.WordWrappingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,14 +31,14 @@ theorem swapStepComputedFeeSource {f : Frame} {evm : EVM.State} {amount fee : UI
     (ha : f.locals.get? "amountIn" = some (.int (Int.ofNat amount.toNat)))
     (hp : f.locals.get? "_feePips" = some (.int (Int.ofNat fee.toNat)))
     (ho : f.locals.get? "feeAmount" = some old) (hne : (name == "feeAmount") = false) :
-    ExecBlock config f evm (swapStepComputedFeeStmts name)
+    ExecBlock fork config f evm (swapStepComputedFeeStmts name)
       (if swapStepFeeFits amount fee then .ok (swapStepComputedFeeFrame f name amount fee) evm else .reverted) := by
-  have hc := fullMathRoundCall (f := f) (evm := evm) (a := amount) (b := fee)
+  have hc := fullMathRoundCall (fork := fork) (f := f) (evm := evm) (a := amount) (b := fee)
     (d := swapStepFeeComplement fee) hf (evalLocalValue ha) (evalLocalValue hp) (swapStepFeeComplementSource hp) name
   by_cases hfit : swapStepFeeFits amount fee
   · rw [if_pos hfit] at hc ⊢
     exact ExecBlock.consNormal hc (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _ hne).trans ho))) ExecBlock.nil)
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _ hne).trans ho))) ExecBlock.nil)
   · rw [if_neg hfit] at hc ⊢
     exact ExecBlock.consRevert hc
 
@@ -53,10 +55,10 @@ theorem swapStepTargetFeeSource {f : Frame} {evm : EVM.State} {amount fee : UInt
     (ha : f.locals.get? "amountIn" = some (.int (Int.ofNat amount.toNat)))
     (hp : f.locals.get? "_feePips" = some (.int (Int.ofNat fee.toNat)))
     (ho : f.locals.get? "feeAmount" = some old) :
-    ExecBlock config f evm swapStepTargetFeeStmts
+    ExecBlock fork config f evm swapStepTargetFeeStmts
       (if swapStepTargetFeeFits amount fee then .ok (swapStepTargetFeeFrame f amount fee) evm else .reverted) := by
   let f0 := wordLocal f "feeAmount" amount
-  have h0 : ExecStmt config f evm (.assign .localVar {base := "feeAmount"} (.var "amountIn")) (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm (.assign .localVar {base := "feeAmount"} (.var "amountIn")) (.ok f0 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue ha) (assignLocalValue ho)
   have ha0 : f0.locals.get? "amountIn" = some (.int (Int.ofNat amount.toNat)) :=
     (store_get_ne _ _ (by decide : ("feeAmount" == "amountIn") = false)).trans ha
@@ -70,7 +72,7 @@ theorem swapStepTargetFeeSource {f : Frame} {evm : EVM.State} {amount fee : UInt
     exact ExecBlock.consNormal h0 (ExecBlock.consNormal
       (ExecStmt.iteFalse (by simpa only [heq, ne_eq, not_true_eq_false, decide_false] using hg) ExecBlock.nil) ExecBlock.nil)
   · simp only [swapStepTargetFeeFits, heq, false_or, swapStepTargetFeeFrame, if_false]
-    have hc := swapStepComputedFeeSource (f := f0) (evm := evm) "computedFee" hf ha0 hp0
+    have hc := swapStepComputedFeeSource (fork := fork) (f := f0) (evm := evm) "computedFee" hf ha0 hp0
       (store_get_self _ _ _) (by decide)
     have ht : evalExpr? config f0 evm (.binary .ne (.var "_feePips") (.intLit 1000000)) = .ok (.bool true) := by
       simpa only [decide_eq_true heq] using hg

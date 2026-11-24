@@ -1,36 +1,38 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyMathRefine
 import Benchmarks.Morpho.MorphoBlue.RepayMathReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive RepayMathRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive RepayMathRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (σ : AccountMap) (mem : ByteArray) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (repayTransition.body.drop 11) .reverted → RDrev (deployedRuntime v) g s0 →
-      RepayMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (repayTransition.body.drop 11) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      RepayMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem R
   | ok {assets' shares' locals' aw' k' C' out'} :
-      ABlock config evm { contract := contract, locals := locals, immutables := imms }
+      ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (repayTransition.body.drop 11) { contract := contract, locals := locals', immutables := imms }
         (repayTransition.body.drop 12) → SupplyLocals p assets' shares' account data locals' →
       locals'.get? "__memory" = locals.get? "__memory" →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10609)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10609)
         (repayUpdateTail p.id assets' shares' account srcOff len R)
         (twoWordHashMem p.id (UInt256.ofNat 3) mem) aw' out' σ k' C' →
-      RepayMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem R
+      RepayMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem R
 
 theorem morphoRepayMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw assets shares account srcOff len : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (p : MarketParamsWords) (data : ByteArray)
     (locals imms : Store) (hstack : R.length + 28 ≤ 1024)
     (hl : SupplyLocals p assets shares account data locals) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10571)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10571)
       (repayAccrueTail p.id assets shares account srcOff len R) mem aw out σ k C) :
-    RepayMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem R := by
+    RepayMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem R := by
   have hea := hl.evalAssets imms evm
   have hes := hl.evalShares imms evm
   have het : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
@@ -58,9 +60,9 @@ theorem morphoRepayMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
       (by change R.length + 1 + 12 ≤ 1024; omega)
       (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd2
     let value := assetsUpWord shares (marketFieldWord σ ee p.id 2) (marketFieldWord σ ee p.id 3)
-    have hcall := morphoAssetsUpCallOk _ _ _ evm locals imms _ _ _ "__c4" hes het heq hf
+    have hcall := morphoAssetsUpCallOk (fork := fork) _ _ _ evm locals imms _ _ _ "__c4" hes het heq hf
     have hl1 := hl.insert "__c4" (.int (Int.ofNat value.toNat)) (by decide) (by decide)
-    have hass : ExecStmt config
+    have hass : ExecStmt fork config
         { contract := contract, locals := locals.insert "__c4" (.int (Int.ofNat value.toNat)), immutables := imms }
         evm (.assign .localVar ⟨"assets", []⟩ (.var "__c4"))
         (.ok { contract := contract, immutables := imms,
@@ -83,9 +85,9 @@ theorem morphoRepayMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     have rd3 := morphoBlocks.morpho_block_10607 (immWords := wordsOf (immStore v))
       (by change R.length + 2 + 10 ≤ 1024; omega) rd2
     let value := sharesDownWord assets (marketFieldWord σ ee p.id 2) (marketFieldWord σ ee p.id 3)
-    have hcall := morphoSharesDownCallOk _ _ _ evm locals imms _ _ _ "__c3" hea het heq hf
+    have hcall := morphoSharesDownCallOk (fork := fork) _ _ _ evm locals imms _ _ _ "__c3" hea het heq hf
     have hl1 := hl.insert "__c3" (.int (Int.ofNat value.toNat)) (by decide) (by decide)
-    have hass : ExecStmt config
+    have hass : ExecStmt fork config
         { contract := contract, locals := locals.insert "__c3" (.int (Int.ofNat value.toNat)), immutables := imms }
         evm (.assign .localVar ⟨"shares", []⟩ (.var "__c3"))
         (.ok { contract := contract, immutables := imms,

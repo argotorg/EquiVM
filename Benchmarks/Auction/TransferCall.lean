@@ -3,6 +3,8 @@ import Benchmarks.Auction.CallOutput
 import Benchmarks.Auction.RevertData
 import Benchmarks.Auction.ABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -44,7 +46,7 @@ def transferCallWords (aw ptr : UInt256) : UInt256 :=
   callActiveWords (callWords2 aw ptr) ptr ⟨68⟩ ptr ⟨32⟩
 
 theorem transferCall {I g s0 amount recipient ret oldTarget R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3449⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
@@ -52,10 +54,10 @@ theorem transferCall {I g s0 amount recipient ret oldTarget R mem aw ptr rdata �
     (hov : R.length + 18 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
         (transferData recipient amount) (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨3518⟩
+      RD fork auctionBytecode I g s0 ⟨3518⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨68⟩) :: ⟨0xa9059cbb⟩ ::
           wethWord σ I :: amount :: recipient :: ret :: R)
         (transferCallMem mem out ptr recipient amount) (transferCallWords aw ptr)
@@ -86,21 +88,21 @@ theorem transferCall_prefix {mem aw ptr} (hm : HeapMemory mem aw ptr) (recipient
     (callOutput32_prefix _ out ptr ho (by omega))
 
 theorem transferAfterSuccess {I g s0 amount recipient ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨3518⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3518⟩
       (⟨1⟩ :: (ptr + ⟨68⟩) :: ⟨0xa9059cbb⟩ :: target :: amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [iszero, dup1, iszero, push2 ⟨3532⟩,
     jumpiT (by decide) (by jump_dest), jumpdest, pop, pop, pop, pop]⟩
 
 set_option synthInstance.maxSize 1024 in
 theorem transferAfterFailure {I g s0 amount recipient ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨3518⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3518⟩
       (⟨0⟩ :: (ptr + ⟨68⟩) :: ⟨0xa9059cbb⟩ :: target :: amount :: recipient :: ret :: R)
       mem aw out acc k C)
-    (hov : R.length + 11 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hov : R.length + 11 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd3525 := evm_run h with [iszero, dup1, iszero, push2 ⟨3532⟩, jumpiNT (by decide)]
   exact rd3525.revertData (by unfold revertDataWf; native_decide) (by evm_ov)
 

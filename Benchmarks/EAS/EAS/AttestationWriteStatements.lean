@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationWriteSource
 import Benchmarks.EAS.EAS.AliasStorage
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -7,9 +9,9 @@ namespace Benchmarks.EAS.EAS
 theorem execScalarAssignments {cfg : Config} {frame : Frame} (fs : List ScalarFieldWrite)
     (ref : ScalarFieldWrite → StorageRef) (expr : ScalarFieldWrite → Expr) (evm : EVM.State)
     (hstep : ∀ f ∈ fs, ∀ e, e.executionEnv.perm = true →
-      ExecStmt cfg frame e (.assign .storage (ref f) (expr f)) (.ok frame (f.apply e)))
+      ExecStmt fork cfg frame e (.assign .storage (ref f) (expr f)) (.ok frame (f.apply e)))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock cfg frame evm (fs.map fun f => .assign .storage (ref f) (expr f))
+    ExecBlock fork cfg frame evm (fs.map fun f => .assign .storage (ref f) (expr f))
       (.ok frame (writeScalarFields fs evm)) := by
   induction fs generalizing evm with
   | nil => exact ExecBlock.nil
@@ -49,7 +51,7 @@ theorem attestationScalarWrites_value (slot : UInt256) (a : AttestationRecord) :
 theorem attestationScalarStmtRun {L imms : Store} {evm : EVM.State} {word : UInt256} {a : AttestationRecord}
     (hd : L.get? "_db" = none) (hu : L.get? "uid" = some (wordBytes32Value word))
     (ha : L.get? "attestation" = some a.value) {f : ScalarFieldWrite} (hf : f ∈ attestationScalarWrites (dbSlot word) a) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (attestationWriteStmt f.name)
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (attestationWriteStmt f.name)
       (if evm.executionEnv.perm then .ok {contract := contract,locals := L,immutables := imms} (f.apply evm) else .staticViolation) := by
   apply execStmt_assign_storage (attestationRecord_field ha _ _ (attestationScalarWrites_value _ _ _ hf))
   apply assignStorageRef_resolved_value
@@ -63,7 +65,7 @@ theorem attestationScalarAssignmentsRun {L imms : Store} {evm : EVM.State} {word
     (ha : L.get? "attestation" = some a.value) (fs : List ScalarFieldWrite)
     (hfs : ∀ f ∈ fs, f ∈ attestationScalarWrites (dbSlot word) a)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm
       (fs.map fun f => attestationWriteStmt f.name)
       (.ok {contract := contract,locals := L,immutables := imms} (writeScalarFields fs evm)) := by
   exact execScalarAssignments fs (fun f => attestationFieldRef f.name) (fun f => .field (.var "attestation") f.name) evm
@@ -73,9 +75,9 @@ theorem attestationScalarAssignmentsRun {L imms : Store} {evm : EVM.State} {word
 theorem attestationWriteStatic {L imms : Store} {evm : EVM.State} {word : UInt256} {a : AttestationRecord} {rest : Body}
     (hd : L.get? "_db" = none) (hu : L.get? "uid" = some (wordBytes32Value word))
     (ha : L.get? "attestation" = some a.value) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm
       (attestationWriteStmt "uid" :: rest) .staticViolation := by
-  have h := attestationScalarStmtRun (evm := evm) (imms := imms) hd hu ha
+  have h := attestationScalarStmtRun (fork := fork) (evm := evm) (imms := imms) hd hu ha
     (f := attestationWordWrite "uid" (dbSlot word) a.uid) List.mem_cons_self
   exact ExecBlock.consStatic (execStmt_assign_static h hp)
 

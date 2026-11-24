@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BalanceTransfer
 import Benchmarks.UniswapV4PoolManager.DeltaCount
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source proof of the internal ERC6909 mint helper. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -25,7 +27,7 @@ theorem balanceMintBodyExec {f : Frame} {evm : EVM.State} {receiver id amount : 
     (hi : f.locals.get? "id" = some (.int (Int.ofNat id.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "balanceOf" = none) :
-    ExecFuncBody config f evm balanceMintFunction.body (balanceMintResult f evm receiver id amount) := by
+    ExecFuncBody fork config f evm balanceMintFunction.body (balanceMintResult f evm receiver id amount) := by
   have hread := balanceOfRead (evm := evm) receiver id hf hcr hb (evalLocalValue hr) (evalLocalValue hi)
   rw [balanceMintResult]
   by_cases hfit : (balanceWord evm receiver id).toNat + amount.toNat < UInt256.size
@@ -38,7 +40,7 @@ theorem balanceMintBodyExec {f : Frame} {evm : EVM.State} {receiver id amount : 
       exact ExecFuncBody.execBlockStatic (ExecBlock.consStatic (ExecStmt.assignStatic heval hwrite hp))
     · rw [if_neg hp]
       apply ExecFuncBody.execBlockOK
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) heval hwrite) (ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [balancePost_env] using Bool.eq_true_of_not_eq_false hp)
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) heval hwrite) (ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [balancePost_env] using Bool.eq_true_of_not_eq_false hp)
         (vals := [.address evm.executionEnv.source, .address (AccountAddress.ofNat 0),
           .address (AccountAddress.ofNat receiver.toNat), .int (Int.ofNat id.toNat), .int (Int.ofNat amount.toNat)]) ?_) ExecBlock.nil)
       simp only [evalExprs?, evalExpr?, hr, hi, ha, EvalResult.ofOption, bind, EvalResult.bind,
@@ -59,11 +61,11 @@ theorem balanceMintCall {f : Frame} {evm : EVM.State} {receiver id amount : UInt
     (hr : evalExpr? config f evm er = .ok (.address (AccountAddress.ofNat receiver.toNat)))
     (hi : evalExpr? config f evm ei = .ok (.int (Int.ofNat id.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "_mint" [er, ei, ea] retVar)
+    ExecStmt fork config f evm (.internalCall "_mint" [er, ei, ea] retVar)
       (balanceMintCallResult f evm receiver id amount retVar) := by
   let locals := (((∅ : Store).insert "amount" (.int (Int.ofNat amount.toNat))).insert "id" (.int (Int.ofNat id.toNat))).insert
     "receiver" (.address (AccountAddress.ofNat receiver.toNat))
-  have hbody := balanceMintBodyExec (f := {f with locals := locals}) (evm := evm) hf hcr
+  have hbody := balanceMintBodyExec (fork := fork) (f := {f with locals := locals}) (evm := evm) hf hcr
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("receiver" == "id") = false)).trans (store_get_self _ _ _))
     ((store_get_ne _ _ (by decide : ("receiver" == "amount") = false)).trans

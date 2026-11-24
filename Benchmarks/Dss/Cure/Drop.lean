@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cure.DropSource
 import Benchmarks.Dss.Cure.Srcs
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -11,14 +13,14 @@ abbrev cureSrcNotDefinedRawWord : UInt256 :=
 theorem RD.cureDropPosZeroRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) = ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 8 ≤ 1024) :
-    RDrev cureBytecode g s0 := by
+    RDrev fork cureBytecode g s0 := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -93,13 +95,13 @@ theorem RD.cureDropPosZeroRevert {g : Sat256} {s0 : State}
 theorem RD.cureDropLoadedPosLenPrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3068⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3068⟩
       (solcSlotWord σ ee ⟨2⟩ :: solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ::
         key :: ret :: R)
       (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -145,7 +147,7 @@ theorem RD.cureDropLoadedPosLenPrefix {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rdLoad'⟩ := rdSlot.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLoad⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2988⟩
+  obtain ⟨_, _, rdLoad⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨2988⟩
       (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) :: key :: ret :: R)
       (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdLoad'⟩
@@ -157,7 +159,7 @@ theorem RD.cureDropLoadedPosLenPrefix {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLenLoad'⟩ := rdLenPrefix.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLenLoad⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3068⟩
+  obtain ⟨_, _, rdLenLoad⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3068⟩
       (solcSlotWord σ ee ⟨2⟩ :: solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ::
         key :: ret :: R)
       (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -167,7 +169,7 @@ theorem RD.cureDropLoadedPosLenPrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapPrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -176,7 +178,7 @@ theorem RD.cureDropNoSwapPrefix {g : Sat256} {s0 : State}
         (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)).toNat)
     (hmem : mem.size = 96)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3197⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3197⟩
       (solcSlotWord σ ee ⟨2⟩ :: solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ::
         key :: ret :: R)
       (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -210,11 +212,11 @@ theorem RD.cureDropNoSwapPrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapBranchEntered {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3068⟩ (len :: pos :: key :: ret :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨3068⟩ (len :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hswap : pos.toNat < len.toNat)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3076⟩ (len :: pos :: key :: ret :: R)
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3076⟩ (len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   have rdCmp := evm_run h with [
     raw dup1 (by native_decide) (by evm_ov),
@@ -234,12 +236,12 @@ theorem RD.cureDropSwapBranchEntered {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3076⟩ (len :: pos :: key :: ret :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨3076⟩ (len :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hlen : solcSlotWord σ ee ⟨2⟩ = len)
     (hlenPos : 0 < len.toNat)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3106⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3106⟩
       (solcSlotWord σ ee (dropSrcsSlotForIndex (dropLastIndex len)) ::
         ⟨0⟩ :: len :: pos :: key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -277,7 +279,7 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
   have rdLenSlot := rdIndexRaw.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rdLenLoaded'⟩ := rdLenSlot.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3086⟩
+  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3086⟩
       (len :: dropLastIndex len :: ⟨2⟩ :: ⟨0⟩ :: len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
@@ -308,13 +310,13 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapMaskMovePrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3106⟩
+    (h : RD fork cureBytecode ee g s0 ⟨3106⟩
         (solcSlotWord σ ee (dropSrcsSlotForIndex (dropLastIndex len)) ::
           ⟨0⟩ :: len :: pos :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hlen : solcSlotWord σ ee ⟨2⟩ = len)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3123⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3123⟩
       (⟨2⟩ :: len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hmaskLiteral :
@@ -331,7 +333,7 @@ theorem RD.cureDropSwapMaskMovePrefix {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLenLoaded'⟩ := rdRaw.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3110⟩
+  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3110⟩
       (len :: ⟨2⟩ :: solcSlotWord σ ee (dropSrcsSlotForIndex (dropLastIndex len)) ::
         ⟨0⟩ :: len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
@@ -353,19 +355,19 @@ theorem RD.cureDropSwapMaskMovePrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapStoreMoveElemPrefixSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3123⟩
+    (h : RD fork cureBytecode ee g s0 ⟨3123⟩
         (⟨2⟩ :: len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hswap : pos.toNat < len.toNat)
     (hposNat : 0 < pos.toNat)
     (hov : R.length + 20 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD cureBytecode ee g s0 ⟨3179⟩
+      ∃ k' C', RD fork cureBytecode ee g s0 ⟨3179⟩
         (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
           len :: pos :: key :: ret :: R)
         (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
         (dropMoveElemAccountMapFor σ ee pos len) k' C') ∨
-      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   have hdstIndex : pos + UInt256.lnot ⟨0⟩ = dropDstIndex pos := by
     simpa [dropDstIndex] using u256_add_lnot_zero_eq_pred_of_pos pos hposNat
   have hdstLt :
@@ -464,7 +466,7 @@ theorem RD.cureDropSwapStoreMoveElemPrefixSplit {g : Sat256} {s0 : State}
   rw [hslot] at rdSlotRaw
   obtain ⟨_, _, rdOldLoaded'⟩ := rdSlotRaw.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdOldLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3155⟩
+  obtain ⟨_, _, rdOldLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3155⟩
       (solcSlotWord σ ee (dropSrcsSlotForIndex (dropDstIndex pos)) ::
         dropSrcsSlotForIndex (dropDstIndex pos) :: ⟨32⟩ :: ⟨0⟩ ::
         dropMoveWordFor σ ee len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
@@ -507,14 +509,14 @@ theorem RD.cureDropSwapStoreMoveElemPrefixSplit {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3123⟩
+    (h : RD fork cureBytecode ee g s0 ⟨3123⟩
         (⟨2⟩ :: len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hswap : pos.toNat < len.toNat)
     (hposNat : 0 < pos.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3179⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3179⟩
       (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
         len :: pos :: key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
@@ -524,7 +526,7 @@ theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3179⟩
+    (h : RD fork cureBytecode ee g s0 ⟨3179⟩
         (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
           len :: pos :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata
@@ -532,7 +534,7 @@ theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
     (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3197⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3197⟩
       (len :: pos :: key :: ret :: R)
       (twoWordHashMem (dropMoveWordFor σ ee len) ⟨5⟩ mem)
       (UInt256.ofNat 3) rdata
@@ -583,17 +585,17 @@ theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen popLen pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hlen : solcSlotWord σ ee ⟨2⟩ = popLen)
     (hlenPos : 0 < popLen.toNat)
     (hov : R.length + 20 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD cureBytecode ee g s0 ⟨3247⟩
+      ∃ k' C', RD fork cureBytecode ee g s0 ⟨3247⟩
         (⟨32⟩ :: ⟨0⟩ :: oldLen :: pos :: key :: ret :: R)
         (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
         (dropPopAccountMap σ ee popLen) k' C') ∨
-      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   have hsrcsSlot :
       UInt256.ofNat
           (fromByteArrayBigEndian (KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
@@ -620,7 +622,7 @@ theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLenLoaded'⟩ := rdLoadLenPrefix.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3202⟩
+  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3202⟩
       (popLen :: ⟨2⟩ :: oldLen :: pos :: key :: ret :: R) mem (UInt256.ofNat 3)
       rdata σ k' C' := by
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
@@ -658,7 +660,7 @@ theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
   rw [hlastSlotRaw] at rdLastSlotRaw
   obtain ⟨_, _, rdLastLoaded'⟩ := rdLastSlotRaw.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLastLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3229⟩
+  obtain ⟨_, _, rdLastLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3229⟩
       (solcSlotWord σ ee (dropSrcsLastSlot popLen) :: dropSrcsLastSlot popLen ::
         UInt256.lnot ⟨0⟩ :: ⟨32⟩ :: ⟨0⟩ :: popLen :: ⟨2⟩ :: oldLen :: pos ::
         key :: ret :: R)
@@ -695,7 +697,7 @@ theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdCleared'⟩ := rdClearRaw.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdCleared⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3241⟩
+  obtain ⟨_, _, rdCleared⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3241⟩
       (UInt256.lnot ⟨0⟩ :: ⟨32⟩ :: ⟨0⟩ :: popLen :: ⟨2⟩ :: oldLen :: pos ::
         key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
@@ -715,13 +717,13 @@ theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen popLen pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hlen : solcSlotWord σ ee ⟨2⟩ = popLen)
     (hlenPos : 0 < popLen.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3247⟩
+    ∃ k' C', RD fork cureBytecode ee g s0 ⟨3247⟩
       (⟨32⟩ :: ⟨0⟩ :: oldLen :: pos :: key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (dropPopAccountMap σ ee popLen) k' C' :=
@@ -730,18 +732,18 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
 theorem RD.cureDropPopEmptyInvalid {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hlen : solcSlotWord σ ee ⟨2⟩ = ⟨0⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDinvalid cureBytecode g s0 := by
+    RDinvalid fork cureBytecode g s0 := by
   have rdLoadLenPrefix := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLenLoaded'⟩ := rdLoadLenPrefix.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3202⟩
+  obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3202⟩
       (⟨0⟩ :: ⟨2⟩ :: oldLen :: pos :: key :: ret :: R) mem (UInt256.ofNat 3)
       rdata σ k' C' := by
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
@@ -755,7 +757,7 @@ theorem RD.cureDropPopEmptyInvalid {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3247⟩
+    (h : RD fork cureBytecode ee g s0 ⟨3247⟩
         (⟨32⟩ :: ⟨0⟩ :: len :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
@@ -764,7 +766,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret R
+    ∃ k' C', RD fork cureBytecode ee g s0 ret R
       (wordAt32Mem ⟨6⟩ (twoWordHashMem key ⟨5⟩ mem)) (UInt256.ofNat 3) rdata
       (dropDeleteAmtAccountMapFor (dropDeletePosAccountMapFor σ ee key) ee key) k' C' := by
   have hmask : UInt256.land key solcAddrMask = key :=
@@ -807,7 +809,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdPosStored'⟩ := rdPosStoreReady.sstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdPosStored⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3272⟩
+  obtain ⟨_, _, rdPosStored⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3272⟩
       (⟨64⟩ :: key :: ⟨32⟩ :: ⟨0⟩ :: len :: pos :: key :: ret :: R)
       (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata
       (dropDeletePosAccountMapFor σ ee key) k' C' := by
@@ -830,7 +832,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdAmtStored'⟩ := rdAmtStoreReady.sstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdAmtStored⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3283⟩
+  obtain ⟨_, _, rdAmtStored⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨3283⟩
       (key :: ⟨64⟩ :: ⟨0⟩ :: len :: pos :: key :: ret :: R)
       (wordAt32Mem ⟨6⟩ (twoWordHashMem key ⟨5⟩ mem)) (UInt256.ofNat 3) rdata
       (dropDeleteAmtAccountMapFor (dropDeletePosAccountMapFor σ ee key) ee key) k' C' := by
@@ -868,7 +870,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapStoreAndLogReturnSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -880,10 +882,10 @@ theorem RD.cureDropNoSwapStoreAndLogReturnSplit {g : Sat256} {s0 : State}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
     (ee.perm = true ∧
-      RDret cureBytecode g s0
+      RDret fork cureBytecode g s0
         (dropNoSwapFinalAccountMapFor σ ee key (solcSlotWord σ ee ⟨2⟩))
         ByteArray.empty) ∨
-      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   obtain ⟨_, _, rd3197⟩ := RD.cureDropNoSwapPrefix
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     h hcanonKey hpos hnoswap hmem (by omega)
@@ -915,7 +917,7 @@ theorem RD.cureDropNoSwapStoreAndLogReturnSplit {g : Sat256} {s0 : State}
 theorem RD.cureDropNoSwapPopEmptyInvalid {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -925,7 +927,7 @@ theorem RD.cureDropNoSwapPopEmptyInvalid {g : Sat256} {s0 : State}
     (hlenZero : solcSlotWord σ ee ⟨2⟩ = ⟨0⟩)
     (hmem : mem.size = 96)
     (hov : R.length + 20 ≤ 1024) :
-    RDinvalid cureBytecode g s0 := by
+    RDinvalid fork cureBytecode g s0 := by
   obtain ⟨_, _, rd3197⟩ := RD.cureDropNoSwapPrefix
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     h hcanonKey hpos hnoswap hmem (by omega)
@@ -936,7 +938,7 @@ theorem RD.cureDropNoSwapPopEmptyInvalid {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -954,7 +956,7 @@ theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 24 ≤ 1024) :
-    RDret cureBytecode g s0
+    RDret fork cureBytecode g s0
       (dropSwapFinalAccountMapFor σ ee key
         (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)) (solcSlotWord σ ee ⟨2⟩))
       ByteArray.empty := by
@@ -1038,7 +1040,7 @@ theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapPopEmptyInvalidSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -1051,8 +1053,8 @@ theorem RD.cureDropSwapPopEmptyInvalidSplit {g : Sat256} {s0 : State}
       (dropSwapPopLenAccountMapFor σ ee
           (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key))
           (solcSlotWord σ ee ⟨2⟩) = ⟨0⟩ →
-      RDinvalid cureBytecode g s0)) ∨
-      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
+      RDinvalid fork cureBytecode g s0)) ∨
+      (ee.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   let len := solcSlotWord σ ee ⟨2⟩
   let pos := solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)
   let popLen := dropSwapPopLenAccountMapFor σ ee pos len
@@ -1107,7 +1109,7 @@ theorem RD.cureDropSwapPopEmptyInvalidSplit {g : Sat256} {s0 : State}
 theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+    (h : RD fork cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
@@ -1121,7 +1123,7 @@ theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
         (solcSlotWord σ ee ⟨2⟩) = ⟨0⟩)
     (hmem : mem.size = 96)
     (hov : R.length + 24 ≤ 1024) :
-    RDinvalid cureBytecode g s0 :=
+    RDinvalid fork cureBytecode g s0 :=
   permSplit_true hperm (RD.cureDropSwapPopEmptyInvalidSplit
     h hcanonKey hpos hswap hmem hov) hpopLenZero
 
@@ -1217,14 +1219,14 @@ theorem cureDropSwapSourceBodyForRefinement
     let evmPop := dropAfterPopState evmMovePos popLen
     let evmPos := dropAfterDeletePosState evmPop I
     let evmAmt := dropAfterDeleteAmtState evmPos I
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body
+    ExecTransitionBody fork config contract evm0 (dropLocals I) dropTransition.body
       (.returned { contract := contract, locals := localsDst } evmAmt none) := by
   intro evm0 posWord lenWord lastIndex dstIndex localsPos localsLast localsLastIndex
     localsMove localsDst evmMoveElem evmMovePos popLen evmPop evmPos evmAmt
   simpa [evm0, posWord, lenWord, lastIndex, dstIndex, localsPos, localsLast,
     localsLastIndex, localsMove, localsDst, evmMoveElem, evmMovePos, popLen, evmPop, evmPos,
     evmAmt] using
-    (cureDropSourceBodyOkSwap (hperm := hperm) (σ := σ)
+    (cureDropSourceBodyOkSwap (fork := fork) (hperm := hperm) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hwv hauth hlive hposNe hlenPos hswap hpopLenPos)
 
@@ -1273,14 +1275,14 @@ theorem cureDropReturnRuntimeEquiv
       config.externalABI.decodeCalldata? (dropTransition.params.map Param.name)
         (transitionSignature dropTransition).paramTypes I.calldata = some (dropLocals I))
     (hret :
-      RDret cureBytecode (Sat256.ofUInt256 g)
+      RDret fork cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
         dropTransition.body (.returned fr evm' none))
     (haccounts : acc = evm'.accountMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none dropTransition.returnType := by
     rw [show dropTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -1303,7 +1305,7 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
     (hliveStele : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
     (hposStele : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
     (hafterLive :
-      RD cureBytecode I (Sat256.ofUInt256 g)
+      RD fork cureBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2962⟩ (key :: ⟨484⟩ :: [sel]) mem (UInt256.ofNat 3) rdata
         σ k C)
@@ -1325,7 +1327,7 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (solcSlotWordAt (dropPosSlotFor I) σ I)
           (solcSlotWordAt ⟨2⟩ σ I)).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hposEvm : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
     intro hz
     apply hposStele
@@ -1343,7 +1345,7 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
       (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
         (solcSlotWordAt ⟨2⟩ σ I).toNat := by
     exact hswap
-  have hbody := cureDropSwapSourceBodyForRefinement (hperm := hperm)
+  have hbody := cureDropSwapSourceBodyForRefinement (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g)
     hwv hauthStele hliveStele hposStele hlenPosStele hswapStele hpopLenPosStele
@@ -1377,7 +1379,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 3))
     (_hStorageWF : cureStorageWF σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let key := dropKey I
   let callerSlot := cureCallerWardsSlot I
@@ -1386,7 +1388,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (cureSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dropTransition :=
     cureDispatchDrop hsel
-  have hreach := cureReachDropBody (σ := σ)
+  have hreach := cureReachDropBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1441,7 +1443,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
         · have hposStele : solcSlotWordAt (dropPosSlotFor I) σ I = ⟨0⟩ := by
             exact hposEvm
           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-          have hbody : ExecTransitionBody config contract evm0 locals dropTransition.body .reverted := by
+          have hbody : ExecTransitionBody fork config contract evm0 locals dropTransition.body .reverted := by
             simpa [evm0, locals] using
               (cureDropSourceBodyPosZeroRevert
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1503,7 +1505,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
               omega
             have hpopLenEq : popLenEvm = popLenStele := by
               simpa [popLenEvm, popLenStele] using
-                (cureDropSwapPopLenAccountMapEq (σ := σ) (I := I))
+                (cureDropSwapPopLenAccountMapEq (fork := fork) (σ := σ) (I := I))
             have hlenPosStele : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
               exact hlenPos
             have hswapStele :
@@ -1536,10 +1538,10 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hpopLenZero
               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
               have hbody :
-                  ExecTransitionBody config contract evm0 (dropLocals I)
+                  ExecTransitionBody fork config contract evm0 (dropLocals I)
                     dropTransition.body .reverted := by
                 simpa [evm0] using
-                  (cureDropSourceBodySwapPopZeroRevert (hperm := _hperm)
+                  (cureDropSourceBodySwapPopZeroRevert (fork := fork) (hperm := _hperm)
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     hwv hauthStele hliveStele hposStele hlenPosStele hswapStele
                     hpopLenZeroSteleState)
@@ -1606,7 +1608,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hlenZeroEvm
               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
               have hbody :
-                  ExecTransitionBody config contract evm0 (dropLocals I)
+                  ExecTransitionBody fork config contract evm0 (dropLocals I)
                     dropTransition.body .reverted := by
                 simpa [evm0] using
                   (cureDropSourceBodyNoSwapPopZeroRevert
@@ -1633,7 +1635,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
               let evmPop := dropAfterPopState evm0 lenStele
               let evmPos := dropAfterDeletePosState evmPop I
               let evmAmt := dropAfterDeleteAmtState evmPos I
-              have hbodySplit := cureDropSourceBodyOkNoSwapSplit
+              have hbodySplit := cureDropSourceBodyOkNoSwapSplit (fork := fork)
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthStele hliveStele hposStele hlenPosStele hnoswapStele
               have hfirstWrite := RD.cureDropNoSwapStoreAndLogReturnSplit
@@ -1667,7 +1669,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
           intro hstele
           exact hliveEvm hstele
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hbody : ExecTransitionBody config contract evm0 locals dropTransition.body .reverted := by
+        have hbody : ExecTransitionBody fork config contract evm0 locals dropTransition.body .reverted := by
           have hguardAuth := cureAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
@@ -1677,7 +1679,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals, dropLocals]) hliveStele
           have hblock :
-              ExecBlock config { contract := contract, locals := locals } evm0
+              ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1727,12 +1729,12 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
         intro hstele
         exact hauthEvm hstele
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals dropTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals dropTransition.body .reverted := by
         have hguard := cureAuthGuardEval_false
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals, dropLocals]) hauthStele
-        have hblock := nonpayableSecondRequireReverts
+        have hblock := nonpayableSecondRequireReverts (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))

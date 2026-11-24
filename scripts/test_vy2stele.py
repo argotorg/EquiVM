@@ -92,7 +92,7 @@ private def result : Option (List Value) := do
   let t ← c.transitions.find? (fun t => t.name == "exercise" && t.params.length == 1)
   let locals : Store := (∅ : Store).insert "n" (.int 2)
   let .result (.returned _ _ vs) :=
-    (Interp.execTransitionBody 2000 Interp.thetaOracle () cfg c evm locals t.body ∅).1 | none
+    (Interp.execTransitionBody .cancun 2000 (Interp.thetaOracle .cancun) () cfg c evm locals t.body ∅).1 | none
   vs
 #guard result = some [.int 10, .int 6, .int 3, .int 4]
 #guard VyperDraft.Syntax.contractSyntax.transitions.map (·.params.length) = [1, 2, 1]

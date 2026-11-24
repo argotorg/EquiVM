@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolSetSlot0Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,7 +23,7 @@ def poolSetFeeResult (f : Frame) (evm : EVM.State) (id fee : UInt256) : ExecResu
 theorem poolSetFeeBody {f : Frame} {evm : EVM.State} {id fee : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id))
     (he : f.locals.get? "lpFee" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm poolSetFeeFunction.body
+    ExecFuncBody fork config f evm poolSetFeeFunction.body
       (poolSetFeeResult (poolSetFeeFrame f evm id fee) evm id fee) := by
   exact poolSetSlot0BodyExec poolSetFeeAlias "lpFee" "Slot0Library_setLpFee"
     (by decide) (by decide) (by decide) hf hs he
@@ -34,9 +36,9 @@ theorem poolSetFeeCall {f : Frame} {evm : EVM.State} {ep ef : Expr} {id fee : UI
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (hp : evalExpr? config f evm ep = .ok (poolRefValue id))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_setLPFee" [ep, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Pool_setLPFee" [ep, ef] retVar)
       (poolSetFeeCallResult f evm id fee retVar) := by
-  have hb := poolSetFeeBody (f := {f with locals := ((∅ : Store).insert "lpFee" (.int (Int.ofNat fee.toNat))).insert "self" (poolRefValue id)})
+  have hb := poolSetFeeBody (fork := fork) (f := {f with locals := ((∅ : Store).insert "lpFee" (.int (Int.ofNat fee.toNat))).insert "self" (poolRefValue id)})
     (evm := evm) hf (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("self" == "lpFee") = false)).trans (store_get_self _ _ _)) hc
   have hcall := internalCallFunctionExec (caller := f) (name := "Pool_setLPFee") (retVar := retVar)

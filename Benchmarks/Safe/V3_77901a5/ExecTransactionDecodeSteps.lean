@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.CalldataDecodeArithmetic
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_043
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -53,12 +55,12 @@ set_option maxRecDepth 100000
 
 theorem safeExecDecodeTargetStart {I g s0 σ k C aw mem rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9917⟩
+    (h : RD fork safeBytecode I g s0 ⟨9917⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat 320) = ⟨0⟩)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9096⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9096⟩
       (⟨4⟩ :: ⟨9953⟩ :: execDecodeTargetSaved I.calldata ret R) mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_9917_taken (by simp; omega)
     (by rw [hc]; decide) (by jump_dest) h
@@ -67,11 +69,11 @@ theorem safeExecDecodeTargetStart {I g s0 σ k C aw mem rdata} {ret : UInt256}
 
 theorem safeExecDecodeDataStart {I g s0 σ k C aw mem rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9953⟩
+    (h : RD fork safeBytecode I g s0 ⟨9953⟩
       (calldataWord I.calldata 4 :: execDecodeTargetSaved I.calldata ret R) mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9154⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9154⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) ::
         UInt256.ofNat I.calldata.size :: ⟨9998⟩ :: execDecodeDataSaved I.calldata ret R)
       mem aw rdata σ k' C' := by
@@ -87,7 +89,7 @@ theorem safeExecDecodeDataStart {I g s0 σ k C aw mem rdata} {ret : UInt256}
       wordOfNatAdd 4 (calldataWord I.calldata 68).toNat (by change _ < 2 ^ 256; omega)
   simp only [safeRuntime_block_9986_stack, safeRuntime_block_9953_taken_stack] at h₂
   change (⟨4⟩ : UInt256) + calldataWord I.calldata 68 = _ at hoff
-  change RD safeBytecode I g s0 ⟨9154⟩
+  change RD fork safeBytecode I g s0 ⟨9154⟩
     (((⟨4⟩ : UInt256) + calldataWord I.calldata 68) :: UInt256.ofNat I.calldata.size ::
       ⟨9998⟩ :: execDecodeDataSaved I.calldata ret R) mem aw rdata σ _ _ at h₂
   rw [hoff] at h₂
@@ -95,11 +97,11 @@ theorem safeExecDecodeDataStart {I g s0 σ k C aw mem rdata} {ret : UInt256}
 
 theorem safeExecDecodeOperationStart {I g s0 σ k C aw mem rdata len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9998⟩
+    (h : RD fork safeBytecode I g s0 ⟨9998⟩
       (UInt256.ofNat len :: UInt256.ofNat (execTransactionDataStart I.calldata) ::
         execDecodeDataSaved I.calldata ret R) mem aw rdata σ k C)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9618⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9618⟩
       (⟨100⟩ :: ⟨10017⟩ :: execDecodeOperationSaved I.calldata len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_9998 (by simp; omega) (by jump_dest) h
@@ -107,11 +109,11 @@ theorem safeExecDecodeOperationStart {I g s0 σ k C aw mem rdata len} {ret : UIn
 
 theorem safeExecDecodeTokenStart {I g s0 σ k C aw mem rdata len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10017⟩
+    (h : RD fork safeBytecode I g s0 ⟨10017⟩
       (calldataWord I.calldata 100 :: execDecodeOperationSaved I.calldata len ret R)
       mem aw rdata σ k C)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9096⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9096⟩
       (⟨228⟩ :: ⟨10052⟩ :: execDecodeTokenSaved I.calldata len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10017 (by simp; omega) (by jump_dest) h
@@ -119,11 +121,11 @@ theorem safeExecDecodeTokenStart {I g s0 σ k C aw mem rdata len} {ret : UInt256
 
 theorem safeExecDecodeReceiverStart {I g s0 σ k C aw mem rdata len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10052⟩
+    (h : RD fork safeBytecode I g s0 ⟨10052⟩
       (calldataWord I.calldata 228 :: execDecodeTokenSaved I.calldata len ret R)
       mem aw rdata σ k C)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9096⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9096⟩
       (⟨260⟩ :: ⟨10067⟩ :: execDecodeReceiverSaved I.calldata len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10052 (by simp; omega) (by jump_dest) h
@@ -131,12 +133,12 @@ theorem safeExecDecodeReceiverStart {I g s0 σ k C aw mem rdata len} {ret : UInt
 
 theorem safeExecDecodeSignaturesStart {I g s0 σ k C aw mem rdata len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10067⟩
+    (h : RD fork safeBytecode I g s0 ⟨10067⟩
       (calldataWord I.calldata 260 :: execDecodeReceiverSaved I.calldata len ret R)
       mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 292).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9242⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9242⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 292).toNat) ::
         UInt256.ofNat I.calldata.size :: ⟨10106⟩ :: execDecodeSignaturesSaved I.calldata len ret R)
       mem aw rdata σ k' C' := by
@@ -151,7 +153,7 @@ theorem safeExecDecodeSignaturesStart {I g s0 σ k C aw mem rdata len} {ret : UI
     simpa only [u256_ofNat_toNat] using
       wordOfNatAdd 4 (calldataWord I.calldata 292).toNat (by change _ < 2 ^ 256; omega)
   simp only [safeRuntime_block_10094_stack, safeRuntime_block_10067_taken_stack] at h₂
-  change RD safeBytecode I g s0 ⟨9242⟩
+  change RD fork safeBytecode I g s0 ⟨9242⟩
     (((⟨4⟩ : UInt256) + calldataWord I.calldata 292) :: UInt256.ofNat I.calldata.size ::
       ⟨10106⟩ :: execDecodeSignaturesSaved I.calldata len ret R) mem aw rdata σ _ _ at h₂
   rw [hoff] at h₂
@@ -159,10 +161,10 @@ theorem safeExecDecodeSignaturesStart {I g s0 σ k C aw mem rdata len} {ret : UI
 
 theorem safeExecDecodeFinish {I g s0 σ k C aw mem rdata len} {ptr ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10106⟩
+    (h : RD fork safeBytecode I g s0 ⟨10106⟩
       (ptr :: execDecodeSignaturesSaved I.calldata len ret R) mem aw rdata σ k C)
     (hov : R.length + 26 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (execTransactionDecodedStack I.calldata len ptr R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret (execTransactionDecodedStack I.calldata len ptr R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10106 (by change R.length + 16 ≤ 1024; omega) hret h
   exact ⟨_, _, h₁⟩

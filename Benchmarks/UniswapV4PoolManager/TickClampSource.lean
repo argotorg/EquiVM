@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapStepWords
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 import Benchmarks.UniswapV4PoolManager.PoolSwapSyntax
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -30,7 +32,7 @@ def tickClampFrame (f : Frame) (s : PoolSwapStepWords) : Frame :=
 
 theorem tickClampLowerSource {cfg : Config} {f : Frame} {evm : State} {s : PoolSwapStepWords}
     (hs : f.locals.get? "step" = some (poolSwapStepValue s)) :
-    ExecStmt cfg f evm tickClampLowerStmt (.ok (tickClampLowerFrame f s) evm) := by
+    ExecStmt fork cfg f evm tickClampLowerStmt (.ok (tickClampLowerFrame f s) evm) := by
   have he : evalExpr? cfg f evm (.unary .neg (.intLit 887272)) = .ok (.int (-887272)) := by
     simp only [evalExpr?, bind, EvalResult.bind, pure, evalUnaryOp?, EvalResult.ofOption]
   have hguard : evalExpr? cfg f evm
@@ -48,7 +50,7 @@ theorem tickClampLowerSource {cfg : Config} {f : Frame} {evm : State} {s : PoolS
 
 theorem tickClampUpperSource {cfg : Config} {f : Frame} {evm : State} {s : PoolSwapStepWords}
     (hs : f.locals.get? "step" = some (poolSwapStepValue s)) :
-    ExecStmt cfg f evm tickClampUpperStmt (.ok (tickClampUpperFrame f s) evm) := by
+    ExecStmt fork cfg f evm tickClampUpperStmt (.ok (tickClampUpperFrame f s) evm) := by
   have he : evalExpr? cfg f evm (.intLit 887272) = .ok (.int 887272) := by
     simp only [evalExpr?, pure]
   have hguard : evalExpr? cfg f evm
@@ -77,7 +79,7 @@ theorem tickClampLowerFrame_step {f : Frame} {s : PoolSwapStepWords}
 
 theorem tickClampSource {cfg : Config} {f : Frame} {evm : State} {s : PoolSwapStepWords}
     (hs : f.locals.get? "step" = some (poolSwapStepValue s)) (hc : int24Canonical s.tickNext) :
-    ExecBlock cfg f evm [tickClampLowerStmt, tickClampUpperStmt] (.ok (tickClampFrame f s) evm) :=
+    ExecBlock fork cfg f evm [tickClampLowerStmt, tickClampUpperStmt] (.ok (tickClampFrame f s) evm) :=
   ExecBlock.consNormal (tickClampLowerSource hs)
     (execBlock_singleton (tickClampUpperSource (tickClampLowerFrame_step hs hc)))
 

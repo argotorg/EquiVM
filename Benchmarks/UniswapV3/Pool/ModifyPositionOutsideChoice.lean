@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -10,9 +12,9 @@ theorem modifyPositionOutsideChoiceSource (imms : Store) (a : ModifyPositionArgs
     (hrange : if second then a.upper ≤ slot0TickValue evm.accountMap evm.executionEnv
       else slot0TickValue evm.accountMap evm.executionEnv < a.lower)
     (ht : validTicks a.lower a.upper)
-    (hout : ExecBlock config (modifyPositionUpdatedFrame imms a evm) evm'
+    (hout : ExecBlock fork config (modifyPositionUpdatedFrame imms a evm) evm'
       (modifyPositionOutsideBody second) result) :
-    ExecStmt config (modifyPositionUpdatedFrame imms a evm) evm'
+    ExecStmt fork config (modifyPositionUpdatedFrame imms a evm) evm'
       modifyPositionFunction.body[8]! result := by
   apply ExecStmt.iteTrue (by simpa only [decide_eq_true hz] using
     evalModifyPositionNonzero imms a evm evm')
@@ -39,7 +41,7 @@ theorem modifyPositionOutsideChoiceSource (imms : Store) (a : ModifyPositionArgs
 
 theorem modifyPositionOutsideReturnSource (imms : Store) (a : ModifyPositionArgs)
     (evm evm' : EVM.State) (second : Bool) :
-    ExecStmt config (modifyPositionOutsideFinalFrame imms a evm second) evm'
+    ExecStmt fork config (modifyPositionOutsideFinalFrame imms a evm second) evm'
       (.return [.var "position", .var "amount0", .var "amount1"])
       (.returned (modifyPositionOutsideFinalFrame imms a evm second) evm'
         (some [modifyPositionKeyValue a,

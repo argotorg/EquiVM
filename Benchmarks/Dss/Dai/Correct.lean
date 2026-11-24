@@ -22,6 +22,8 @@ import Benchmarks.Dss.Dai.TransferFrom
 import Benchmarks.Dss.Dai.Version
 import Benchmarks.Dss.Dai.Wards
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -66,7 +68,7 @@ attribute [local simp]
 
 theorem daiBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
@@ -74,8 +76,8 @@ theorem daiBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
 
 theorem daiX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ)
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)
   have h12 := h0
@@ -89,8 +91,8 @@ theorem daiX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem daiX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ)
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -176,11 +178,11 @@ theorem daiDispatch_none_nomatch {cd : ByteArray}
 
 theorem daiJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {pc : UInt256}
-    (h : RD daiBytecode I g (initState σ σ₀ g A I) pc [daiSelWord I]
+    (h : RD fork daiBytecode I g (initState σ σ₀ g A I) pc [daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode daiBytecode pc = some (.Push .PUSH2, some (⟨322⟩, 2)))
     (hjump : decode daiBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   have h322 := h.push2 ⟨322⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -191,7 +193,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   have hselectorNoMatch (i : ℕ) (hi : i < 22) (c0 c1 c2 c3 : UInt8) (sel : UInt256)
       (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
       (hbytes : daiSelBytes i = (⟨#[c0, c1, c2, c3]⟩ : ByteArray)) :
@@ -251,7 +253,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
       UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) = ⟨0⟩
   · by_cases hhigh :
         UInt256.gt (armSelNat daiBytecode daiHighSplitPc) (daiSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, h54⟩ := daiReachVeryHighFirstArm
+    · obtain ⟨_, _, h54⟩ := daiReachVeryHighFirstArm (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hhigh
       have h124 := h54
@@ -268,7 +270,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (daiVeryHighArmsWellFormed 5 (by omega))
             (heqVeryHigh 5 (by omega)) (by simp)
       exact daiJumpToNoMatchRevert h124 (by native_decide) (by native_decide)
-    · obtain ⟨_, _, h125⟩ := daiReachHighFirstArm
+    · obtain ⟨_, _, h125⟩ := daiReachHighFirstArm (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hhigh
       have h181 := h125
@@ -285,7 +287,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
       exact daiJumpToNoMatchRevert h181 (by native_decide) (by native_decide)
   · by_cases hlow :
         UInt256.gt (armSelNat daiBytecode daiLowSplitPc) (daiSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, h196⟩ := daiReachLowFirstArm
+    · obtain ⟨_, _, h196⟩ := daiReachLowFirstArm (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       have h263 := h196
@@ -302,7 +304,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (daiLowArmsWellFormed 5 (by omega))
             (heqLow 5 (by omega)) (by simp)
       exact daiJumpToNoMatchRevert h263 (by native_decide) (by native_decide)
-    · obtain ⟨_, _, h267⟩ := daiReachVeryLowFirstArm
+    · obtain ⟨_, _, h267⟩ := daiReachVeryLowFirstArm (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       have h322 := h267
@@ -323,7 +325,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue != 0` reverts on both sides for every Dai transition. -/
 theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (daiX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -346,7 +348,7 @@ theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
 theorem daiShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (daiX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (daiDispatch_none_short hsz)
 
@@ -355,7 +357,7 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (daiX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (daiDispatch_none_nomatch hnm)
@@ -365,8 +367,8 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
 
 theorem daiCorrect :
     runtimeRefinement config daiBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I (daiSelBytes 0)

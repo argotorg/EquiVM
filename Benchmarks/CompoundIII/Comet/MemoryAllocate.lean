@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_036
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -39,9 +41,9 @@ theorem cometAllocateBounded {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 6 ≤ 1024) (hlen : len.toNat ≤ 32 * bound)
     (hptr : ptr.toNat + 32 * bound < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6982⟩ (ptr :: len :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6982⟩ (ptr :: len :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C' := by
   have rd1 := cometWithExtendedAssetList_block_6982_fallthrough
     (immWords := wordsOf (immStore v))
@@ -68,9 +70,9 @@ theorem cometAllocate160 {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 6 ≤ 1024) (hlen : len.toNat ≤ 160)
     (hptr : ptr.toNat + 160 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6982⟩ (ptr :: len :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6982⟩ (ptr :: len :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (writeWord mem 64 (allocationEnd ptr len)) aw' rdata σ k' C' :=
   cometAllocateBounded (bound := 5) hstack hlen hptr hret h
 

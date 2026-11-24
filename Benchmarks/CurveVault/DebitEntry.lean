@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitInternal
 import Benchmarks.CurveVault.MutationEntry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,7 +20,7 @@ theorem vaultDebitEntry (isWithdraw : Bool) {σ σ₀ A I} {g : UInt256} {t : Tr
       (transitionSignature t).paramTypes I.calldata = some decoded)
     (hbody : t.body = stmts ++ vaultDebitEntryBody isWithdraw)
     (hretTy : t.returnType = [.elem (.int (.uint ⟨256, by decide⟩))])
-    (hprefix : ExecBlock config {contract := contract, locals := decoded}
+    (hprefix : ExecBlock fork config {contract := contract, locals := decoded}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stmts
       (.ok {contract := contract, locals := locals} (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
     (ha : locals.get? (if isWithdraw then "_assets" else "_shares") = some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
@@ -27,9 +29,9 @@ theorem vaultDebitEntry (isWithdraw : Bool) {σ σ₀ A I} {g : UInt256} {t : Tr
     (hmo : memLoad (UInt256.ofNat 608) mem = owner) (hocanon : owner.toNat < EVM.addressModulus)
     (hsize : 640 ≤ mem.size) (hmr : memLoad (UInt256.ofNat 576) mem = receiver)
     (hcanon : receiver.toNat < EVM.addressModulus) (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (h : RD fork vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (UInt256.ofNat (if isWithdraw then 4178 else 5080)) R mem aw rdata σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hentryPc : (vaultDebitFlow isWithdraw).lockEntry = (if isWithdraw then 4178 else 5080) := by
     cases isWithdraw <;> rfl
   have hbodyPc : (vaultDebitFlow isWithdraw).bodyEntry = (if isWithdraw then 4188 else 5090) := by

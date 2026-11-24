@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.PrincipalValueEvm
 import Benchmarks.CompoundIII.Comet.WithdrawAmountsEvm
 import Benchmarks.CompoundIII.Comet.RepayAmountsEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,17 +18,17 @@ theorem cometTransferBasePrincipals {v : CometWithExtendedAssetListImmutables}
     {aw srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 22 ≤ 1024) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14798⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14798⟩
       (transferBaseBalanceStack evm srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret R)
       mem aw rdata σ k C) :
     ((PrincipalValueFits evm (withdrawBaseBalance evm srcPrincipal amount) ∧
       PrincipalValueFits evm (supplyBaseBalance evm dstPrincipal amount)) ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨14818⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨14818⟩
         (transferBasePrincipalStack evm srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret R)
         mem aw rdata σ k' C') ∨
     (¬ (PrincipalValueFits evm (withdrawBaseBalance evm srcPrincipal amount) ∧
       PrincipalValueFits evm (supplyBaseBalance evm dstPrincipal amount)) ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_14798 (immWords := wordsOf (immStore v))
     (by change R.length + 5 + 7 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -48,17 +50,17 @@ theorem cometTransferBaseAmounts {v : CometWithExtendedAssetListImmutables}
     {aw srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14818⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14818⟩
       (transferBasePrincipalStack evm srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret R)
       mem aw rdata σ k C) :
     ((WithdrawAmountsFits srcPrincipal (withdrawBasePrincipal evm srcPrincipal amount) ∧
       RepayAmountsFits dstPrincipal (supplyBasePrincipal evm dstPrincipal amount)) ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨14841⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨14841⟩
         (transferBaseMathStack evm srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret R)
         mem aw rdata σ k' C') ∨
     (¬ (WithdrawAmountsFits srcPrincipal (withdrawBasePrincipal evm srcPrincipal amount) ∧
       RepayAmountsFits dstPrincipal (supplyBasePrincipal evm dstPrincipal amount)) ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_14818 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 12 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -91,16 +93,16 @@ theorem cometTransferBaseMath {v : CometWithExtendedAssetListImmutables}
     {aw srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 22 ≤ 1024) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14741⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14741⟩
       (UInt256.signextend (UInt256.ofNat 12) dstPrincipal :: dstPtr :: amount :: srcPtr :: src ::
         UInt256.signextend (UInt256.ofNat 12) srcPrincipal :: dst :: ret :: R)
       mem aw rdata σ k C) :
     (TransferBaseMathFits evm srcPrincipal dstPrincipal amount ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨14841⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨14841⟩
         (transferBaseMathStack evm srcPrincipal dstPrincipal srcPtr dstPtr src dst amount ret R)
         mem aw rdata σ k' C') ∨
     (¬ TransferBaseMathFits evm srcPrincipal dstPrincipal amount ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   rcases cometTransferBaseBalances (by omega) hs h with ⟨hb, k1, C1, r1⟩ | ⟨hb, hr⟩
   · rcases cometTransferBasePrincipals hstack hs r1 with ⟨hp, k2, C2, r2⟩ | ⟨hp, hr⟩
     · rcases cometTransferBaseAmounts (by omega) r2 with ⟨ha, k3, C3, r3⟩ | ⟨ha, hr⟩

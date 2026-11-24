@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0FeeSource
 import Benchmarks.UniswapV4PoolManager.InitializeHookABI
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -31,7 +33,7 @@ theorem beforeSwapFeeSource {f : Frame} {evm : State} {key : PoolKeyWords} {out 
     (hk : f.locals.get? "key" = some (poolKeyValue key))
     (hr : f.locals.get? "result" = some (.bytes out))
     (hf : f.locals.get? "lpFeeOverride" = some old) (hsize : 96 ≤ out.size) :
-    ExecStmt config f evm beforeSwapFeeStmt (.ok (beforeSwapFeeFrame f key out) evm) := by
+    ExecStmt fork config f evm beforeSwapFeeStmt (.ok (beforeSwapFeeFrame f key out) evm) := by
   have hfee := evalStructField (evalLocalValue (cfg := config) (evm := evm) hk) (field := "fee") rfl
   have hcondition := evalEqWords hfee
     (show evalExpr? config f evm (.intLit 8388608) = .ok (.int (Int.ofNat (⟨8388608⟩ : UInt256).toNat)) by
@@ -44,7 +46,7 @@ theorem beforeSwapFeeSource {f : Frame} {evm : State} {key : PoolKeyWords} {out 
     have hcast := evalExpr_cast_int (intType := .uint ⟨24, by decide⟩) hdecode
     rw [normalizeUintWord ⟨24, by decide⟩ _ ⟨16777215⟩ rfl] at hcast
     exact ExecStmt.iteTrue (hcondition.trans (by rw [decide_eq_true hd]))
-      (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hcast (assignLocalValue hf)))
+      (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hcast (assignLocalValue hf)))
   · rw [beforeSwapFeeFrame, if_neg hd]
     exact ExecStmt.iteFalse (hcondition.trans (by rw [decide_eq_false hd])) ExecBlock.nil
 

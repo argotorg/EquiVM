@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.GasBound
 import Benchmarks.CompoundIII.Comet.AbsorbEvm
 import Benchmarks.CompoundIII.Comet.AbsorbSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `absorb(address,address[])`
 
@@ -23,7 +25,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListAbsorbBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 38)) (hgas : cometGasBound g) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 38) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some absorbTransition :=
     cometSelectorDispatch ⟨38, by decide⟩ hsel
@@ -31,7 +33,7 @@ theorem cometWithExtendedAssetListAbsorbBody {σ σ₀ A I} {g : UInt256} (v : C
       (absorbTransition.params.map Param.name) (transitionSignature absorbTransition).paramTypes
       I.calldata = decodeCalldataWithMode .solc0815 ["absorber", "accounts"]
         [.elem .address, .dynamicArray (.elem .address)] I.calldata := rfl
-  have hX := absorbX (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+  have hX := absorbX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
     v hcode hsz hsize hsel hgas
   by_cases hargs : AbsorbCalldataValid I.calldata
   · obtain ⟨accounts, endOffset, hread, hlen, hdec⟩ := absorbCalldata_decode_valid hargs

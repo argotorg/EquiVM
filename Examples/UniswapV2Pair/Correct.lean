@@ -33,6 +33,8 @@ import Examples.UniswapV2Pair.TransferFromSuccess
 import Examples.UniswapV2Pair.TransferFromDecode
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV2Pair benchmark correctness stub
 
@@ -46,7 +48,7 @@ namespace UniswapV2Pair
 
 theorem uniswapV2PairCorrect :
     runtimeRefinement config uniswapV2PairBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases hswap : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Storage
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -24,7 +26,7 @@ theorem hasPermissionCallable_lookup :
 
 theorem hasPermissionCallable_returns (evm : EVM.State) (imms : Store)
     (owner manager : AccountAddress) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := permissionLocals owner manager, immutables := imms }
       evm hasPermissionCallable.body
       (.returned { contract := contract, locals := permissionLocals owner manager, immutables := imms }
@@ -60,9 +62,9 @@ theorem hasPermission_call (frame : Frame) (evm : EVM.State) (owner manager : Ac
     (ownerExpr managerExpr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (ho : evalExpr? config frame evm ownerExpr = .ok (.address owner))
     (hm : evalExpr? config frame evm managerExpr = .ok (.address manager)) :
-    ExecStmt config frame evm (.internalCall "hasPermission_body" [ownerExpr, managerExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "hasPermission_body" [ownerExpr, managerExpr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.bool (permissionBool evm owner manager)) } evm) := by
-  exact ExecStmt.internalCallReturn (callee := hasPermissionCallable)
+  exact ExecStmt.internalCallReturn (fork := fork) (callee := hasPermissionCallable)
     (cfg := config) (stele := frame) (evm := evm)
     (args := [ownerExpr, managerExpr]) (argVals := [.address owner, .address manager])
     (by simp only [evalExprs?, ho, hm, pure, bind, EvalResult.bind])

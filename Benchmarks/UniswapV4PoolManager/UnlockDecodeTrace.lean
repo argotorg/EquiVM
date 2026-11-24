@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BytesSliceTrace
 import Benchmarks.UniswapV4PoolManager.WordArrayDecode
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_025
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,9 +14,9 @@ theorem unlockDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024)
     (hs : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨8816⟩ R mem aw rdata σ k C) :
-    (¬BytesCalldataBounds I.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
-    (BytesCalldataBounds I.calldata ∧ ∃ k' C', C+197 ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨8889⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8816⟩ R mem aw rdata σ k C) :
+    (¬BytesCalldataBounds I.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (BytesCalldataBounds I.calldata ∧ ∃ k' C', C+197 ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨8889⟩
       (calldataWord I.calldata (4+(calldataWord I.calldata 4).toNat) ::
        (⟨4⟩+(calldataWord I.calldata 4)+⟨32⟩) :: R) mem aw rdata σ k' C') := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by

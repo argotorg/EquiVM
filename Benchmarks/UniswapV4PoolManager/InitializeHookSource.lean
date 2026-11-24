@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.InitializeHookABI
 import Benchmarks.UniswapV4PoolManager.HookWrapperSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -42,8 +44,8 @@ theorem beforeInitializeBody {f : Frame} {evm evm' : EVM.State} {hook : AccountA
     (hp : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)))
     (hc : PoolKeyCanonical key) (hprice : price.toNat < 2^160)
     (hcall : hookEnabled evm.executionEnv.source hook ⟨8192⟩ →
-      callViaEVM evm hook 0 (beforeInitializePayload evm.executionEnv.source key price) (z, evm', out)) :
-    ∃ f', ExecFuncBody config f evm beforeInitializeFunction.body
+      callViaEVM fork evm hook 0 (beforeInitializePayload evm.executionEnv.source key price) (z, evm', out)) :
+    ∃ f', ExecFuncBody fork config f evm beforeInitializeFunction.body
       (hookInvocationResult f' evm evm' (hookEnabled evm.executionEnv.source hook ⟨8192⟩) z
         (beforeInitializePayload evm.executionEnv.source key price) out) := by
   have hcaller : evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) := by
@@ -65,8 +67,8 @@ theorem afterInitializeBody {f : Frame} {evm evm' : EVM.State} {hook : AccountAd
     (ht : f.locals.get? "tick" = some (.int (EVM.signed tick)))
     (hc : PoolKeyCanonical key) (hprice : price.toNat < 2^160) (htick : int24Canonical tick)
     (hcall : hookEnabled evm.executionEnv.source hook ⟨4096⟩ →
-      callViaEVM evm hook 0 (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out)) :
-    ∃ f', ExecFuncBody config f evm afterInitializeFunction.body
+      callViaEVM fork evm hook 0 (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out)) :
+    ∃ f', ExecFuncBody fork config f evm afterInitializeFunction.body
       (hookInvocationResult f' evm evm' (hookEnabled evm.executionEnv.source hook ⟨4096⟩) z
         (afterInitializePayload evm.executionEnv.source key price tick) out) := by
   have hcaller : evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) := by

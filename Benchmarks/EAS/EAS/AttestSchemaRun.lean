@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.AttestInitialControl
 import Benchmarks.EAS.EAS.AttestSchemaSource
 import Benchmarks.EAS.EAS.AttestSchemaMemory
 import Benchmarks.EAS.EAS.GetSchemaCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -32,12 +34,12 @@ theorem attestSchemaRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 :
     (hh : ptr.toNat ≤ 2^64-1) (hin : ptr.toNat ≤ mem.size)
     (hpayload : mem.readWithPadding ptr.toNat 36 = getSchemaPayload schema)
     (hcd : ee.calldata.size < UInt256.size) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0
       (schemaCallPC (attestCallSchemaSite kind schema available last.toUInt256 ret (UInt256.ofNat rs.length)))
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::ptr::⟨36⟩::ptr::⟨0⟩::
         schemaCallSaved (attestCallSchemaSite kind schema available last.toUInt256 ret (UInt256.ofNat rs.length)) ptr
           (attestCallSchemaSaved kind data (UInt256.ofNat attester.val) available ret result R)) mem aw rdata σ k C) :
-    AttestReturnRun v ee g s0
+    AttestReturnRun fork v ee g s0
       (attestInitialLocals (attestArgs schema rs attester available last initial) rs.length first ptr.toNat)
       evm (attestSchemaBody ++ attestFromSchemaBody) result uidPtr available rs.length ret R mem result.toNat ptr.toNat := by
   let L := attestInitialLocals (attestArgs schema rs attester available last initial) rs.length first ptr.toNat
@@ -85,7 +87,7 @@ theorem attestSchemaRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 :
         UInt256.ofNat (allocateNext (UInt256.ofNat heap1).toNat (32+352*rs.length)) := by
       rw [hnorm]
       cases kind <;> rfl
-    have hafter : RD (deployedRuntime v) ee g s0 (schemaDonePC (attestSchemaSite site schema))
+    have hafter : RD fork (deployedRuntime v) ee g s0 (schemaDonePC (attestSchemaSite site schema))
         (schemaDoneStack v (attestSchemaSite site schema) (requestSchemaPtr site) (attestSchemaSaved site R)) m1 a1 out σ1 k1 C1 := by
       cases kind <;> exact r1
     have hrun := attestFromSchemaRun (heap := UInt256.ofNat heap1) (t3 := UInt256.ofNat heap1)

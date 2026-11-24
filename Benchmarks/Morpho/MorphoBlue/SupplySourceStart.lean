@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCollateralSourceStart
 import Benchmarks.Morpho.MorphoBlue.SupplyGuards
 import Benchmarks.Morpho.MorphoBlue.AccrueCapturedMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -64,7 +66,7 @@ theorem supplyBeforeAccrue_locals (p : MarketParamsWords) (assets shares account
 theorem morphoSupplyPrelude (p : MarketParamsWords) (assets shares account : UInt256) (data : ByteArray)
     (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ABlock config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
       supplyTransition.body (supplyFrame p assets shares account data evm.executionEnv.calldata imms)
       (supplyTransition.body.drop 4) := by
   refine ⟨fun h ↦ (calldataPrelude_ok hcv hsize).run (ExecBlock.consNormal ?_ h)⟩
@@ -73,7 +75,7 @@ theorem morphoSupplyPrelude (p : MarketParamsWords) (assets shares account : UIn
 
 theorem morphoSupplyExactlyOneZero (p : MarketParamsWords) (assets shares account : UInt256)
     (data : ByteArray) (evm : EVM.State) (imms : Store) :
-    ExecStmt config (supplyFrame p assets shares account data evm.executionEnv.calldata imms) evm
+    ExecStmt fork config (supplyFrame p assets shares account data evm.executionEnv.calldata imms) evm
       supplyTransition.body[5]!
       (.ok (supplyInputFrame p assets shares account data evm.executionEnv.calldata imms) evm) := by
   have hl := supplyFrame_locals p assets shares account data evm.executionEnv.calldata imms
@@ -87,11 +89,11 @@ theorem morphoSupplySourceInput (p : MarketParamsWords) (assets shares account :
     (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : marketFieldWord evm.accountMap evm.executionEnv p.id 4 ≠ ⟨0⟩) :
-    ABlock config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
       supplyTransition.body (supplyInputFrame p assets shares account data evm.executionEnv.calldata imms)
       (supplyTransition.body.drop 6) := by
   have hl := supplyFrame_locals p assets shares account data evm.executionEnv.calldata imms
-  have pref := (morphoSupplyPrelude p assets shares account data hc evm imms hcv hsize).requireStep
+  have pref := (morphoSupplyPrelude (fork := fork) p assets shares account data hc evm imms hcv hsize).requireStep
     (by simpa only [decide_eq_true hg] using evalWordNeZero (hl.evalField imms evm ⟨4, by decide⟩))
   exact ⟨fun h ↦ pref.run (ExecBlock.consNormal (morphoSupplyExactlyOneZero p assets shares account data evm imms) h)⟩
 
@@ -105,7 +107,7 @@ theorem morphoSupplySourceGuards (p : MarketParamsWords) (assets shares account 
     (hc : p.Canonical) (ha : account.toNat < EVM.addressModulus) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : SupplyGuards evm.accountMap evm.executionEnv p assets shares account) :
-    ABlock config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := supplyArgs p assets shares account data, immutables := imms }
       supplyTransition.body (supplyBeforeAccrue p assets shares account data evm imms)
       (supplyTransition.body.drop 9) := by
   have hl := supplyInputFrame_locals p assets shares account data evm.executionEnv.calldata imms
@@ -118,7 +120,7 @@ theorem morphoSupplySourceReject (p : MarketParamsWords) (assets shares account 
     (hc : p.Canonical) (ha : account.toNat < EVM.addressModulus) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : ¬ SupplyGuards evm.accountMap evm.executionEnv p assets shares account) :
-    ExecTransitionBody config contract evm (supplyArgs p assets shares account data)
+    ExecTransitionBody fork config contract evm (supplyArgs p assets shares account data)
       supplyTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   by_cases hcreated : marketFieldWord evm.accountMap evm.executionEnv p.id 4 ≠ ⟨0⟩
@@ -126,7 +128,7 @@ theorem morphoSupplySourceReject (p : MarketParamsWords) (assets shares account 
   · have hl := supplyFrame_locals p assets shares account data evm.executionEnv.calldata imms
     exact (morphoSupplyPrelude p assets shares account data hc evm imms hcv hsize).requireRevert
       (by simpa only [decide_eq_false hcreated] using evalWordNeZero (hl.evalField imms evm ⟨4, by decide⟩))
-  have pref := morphoSupplySourceInput p assets shares account data hc evm imms hcv hsize hcreated
+  have pref := morphoSupplySourceInput (fork := fork) p assets shares account data hc evm imms hcv hsize hcreated
   by_cases hz : exactlyOneZero assets shares = true
   swap
   · exact pref.requireRevert (by rw [supplyInputFrame_eval_c1, Bool.eq_false_iff.mpr hz])

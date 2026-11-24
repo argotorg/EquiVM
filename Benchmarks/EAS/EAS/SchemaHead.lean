@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.SchemaABI
 import Benchmarks.EAS.EAS.RuntimeBlocks_028
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -23,12 +25,12 @@ theorem easSchemaHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {ptr ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+8 ≤ 1024) (hptr : ptr.toNat ≤ 2^64-1) (hout : out.size < 2^138)
     (hword : 32 ≤ out.size → memLoad ptr mem = calldataWord out 0)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7332⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7332⟩
       (ptr::(ptr+UInt256.ofNat out.size)::ret::R) mem aw out σ k C) :
     if 32 ≤ out.size ∧ schemaReturnOffset out ≤ solcMaxU64 ∧ schemaReturnOffset out+128 ≤ out.size then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7373⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7373⟩
         ((ptr+UInt256.ofNat out.size)::(ptr+UInt256.ofNat (schemaReturnOffset out))::ret::R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hb : ptr.toNat+out.size < UInt256.size := by change ptr.toNat+out.size < 2^256; omega
   have hp : UInt256.ofNat ptr.toNat = ptr := u256_ofNat_toNat ptr
   have hlen : UInt256.sub (ptr+UInt256.ofNat out.size) ptr = UInt256.ofNat out.size := word_add_sub_left _ _

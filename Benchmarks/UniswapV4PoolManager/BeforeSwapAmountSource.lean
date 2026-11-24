@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SignedArithmetic
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,7 +29,7 @@ def beforeSwapAmountStmts : List Stmt :=
 theorem beforeSwapAmountSource {f : Frame} {evm : State} {amount delta : UInt256}
     (ha : f.locals.get? "amountToSwap" = some (.int (EVM.signed amount)))
     (hd : f.locals.get? "hookDeltaSpecified" = some (.int (EVM.signed delta))) :
-    ExecBlock config f evm beforeSwapAmountStmts (beforeSwapAmountResult f evm amount delta) := by
+    ExecBlock fork config f evm beforeSwapAmountStmts (beforeSwapAmountResult f evm amount delta) := by
   let f1 := valueLocal f "exactInput" (.bool (decide (EVM.signed amount < 0)))
   have hinput : evalExpr? config f evm (.binary .lt (.var "amountToSwap") (.intLit 0)) =
       .ok (.bool (decide (EVM.signed amount < 0))) := by
@@ -56,11 +58,11 @@ theorem beforeSwapAmountSource {f : Frame} {evm : State} {amount delta : UInt256
     by_cases hvalid : beforeSwapDirectionValid amount (amount+delta)
     · rw [if_pos hvalid]
       exact ExecBlock.consNormal (ExecStmt.letDecl hinput)
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLocalValue ha1))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLocalValue ha1))
           (execBlock_singleton (ExecStmt.requireTrue (hguard.trans (by rw [decide_eq_true hvalid])))))
     · rw [if_neg hvalid]
       exact ExecBlock.consNormal (ExecStmt.letDecl hinput)
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLocalValue ha1))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLocalValue ha1))
           (ExecBlock.consRevert (ExecStmt.requireFalse (hguard.trans (by rw [decide_eq_false hvalid])))))
   · rw [if_neg hfit] at hadd
     rw [beforeSwapAmountResult, if_neg hfit]

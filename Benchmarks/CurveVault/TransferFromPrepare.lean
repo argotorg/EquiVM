@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.TransferFromApprove
 import Benchmarks.CurveVault.AllowanceMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -28,11 +30,11 @@ theorem vaultTransferFromPrepare {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hold : codeOwnerStorageWord I (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩)
       (vaultAllowanceSlot (AccountAddress.ofNat sender.toNat) I.source) = old)
     (hperm : I.perm = true) (hstack : R.length + 4 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 5726) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 5726) R mem aw rdata σ k C) :
     ∃ (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       288 ≤ mem'.size ∧ WordMemoryRange mem mem' 192 256 ∧
       memLoad (UInt256.ofNat 256) mem' = old ∧
-      RD vaultBytecode I g s0
+      RD fork vaultBytecode I g s0
         (if old = UInt256.ofNat (UInt256.size - 1) then UInt256.ofNat 5845 else UInt256.ofNat 5804)
         R mem' aw' rdata (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
   let scratch := vaultTransferFromRawMemory I σ mem
@@ -53,7 +55,7 @@ theorem vaultTransferFromPrepare {I : ExecutionEnv} {g : Sat256} {s0 : State}
     exact memLoad_write_back _ _ 256 (by decide +kernel) hgap
   have hc : UInt256.eq (memLoad (UInt256.ofNat 256) scratch) (UInt256.ofNat (UInt256.size - 1)) =
       UInt256.eq old (UInt256.ofNat (UInt256.size - 1)) := by rw [hread]
-  have rd : ∃ aw' k' C', RD vaultBytecode I g s0
+  have rd : ∃ aw' k' C', RD fork vaultBytecode I g s0
       (if old = UInt256.ofNat (UInt256.size - 1) then UInt256.ofNat 5845 else UInt256.ofNat 5804)
       R scratch aw' rdata (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) k' C' := by
     by_cases hmax : old = UInt256.ofNat (UInt256.size - 1)

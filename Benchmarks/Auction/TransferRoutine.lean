@@ -2,6 +2,8 @@ import Benchmarks.Auction.TransferCall
 import Benchmarks.Auction.TransferReturn
 import Benchmarks.Auction.ReturnABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -15,7 +17,7 @@ def transferFinalWords (aw ptr : UInt256) : UInt256 :=
 
 /-- WETH's raw transfer call, its required success bit, and its strict ABI bool decoder. -/
 theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3449⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
@@ -23,11 +25,11 @@ theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdat
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
         (transferData recipient amount) (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧ out.size < 2 ^ 138 ∧
       ((z = true ∧ BoolReturnValid out ∧
-          (∃ k' C', RD auctionBytecode I g s0 ret R
+          (∃ k' C', RD fork auctionBytecode I g s0 ret R
             (transferFinalMem mem out ptr recipient amount) (transferFinalWords aw ptr)
             out σ' k' C') ∧
           MemoryCursor (transferFinalMem mem out ptr recipient amount) (transferFinalWords aw ptr)
@@ -35,7 +37,7 @@ theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdat
           MemoryPrefix mem (transferFinalMem mem out ptr recipient amount) ptr.toNat ∧
           ptr.toNat ≤ (returnReservePtr ptr out.size).toNat ∧
           (returnReservePtr ptr out.size).toNat ≤ ptr.toNat + 2 ^ 139) ∨
-        ((z = false ∨ ¬ BoolReturnValid out) ∧ RDrev auctionBytecode g s0)) := by
+        ((z = false ∨ ¬ BoolReturnValid out) ∧ RDrev fork auctionBytecode g s0)) := by
   have hb68 : ptr.toNat + 68 ≤ 2 ^ 200 := by omega
   obtain ⟨evm', σ', z, out, _, _, hc, hs', rd3518, ho⟩ :=
     transferCall h hs hperm hm hb68 hov

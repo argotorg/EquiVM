@@ -1,6 +1,8 @@
 import Examples.BlindAuction.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +15,7 @@ def blindAuctionRevealEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "revealEnd" = none) :
-    ExecTransitionBody blindAuctionConfig blindAuctionContract evm locals revealEndGetter.body
+    ExecTransitionBody fork blindAuctionConfig blindAuctionContract evm locals revealEndGetter.body
       (.returned { contract := blindAuctionContract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))])) := by
@@ -33,10 +35,10 @@ theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
 
 theorem blindAuctionX_revealEnd {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD blindAuctionBytecode I g
+    (hreach : ∃ k C, RD fork blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨468⟩ [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret blindAuctionBytecode g (initState σ σ₀ g A I) σ
+    RDret fork blindAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (blindAuctionRevealEndWord σ I)) := by
   obtain ⟨_, _, rd468⟩ := hreach
   have rd486 := evm_run rd468 with [
@@ -45,7 +47,7 @@ theorem blindAuctionX_revealEnd {σ σ₀ A I} {g : Sat256}
     jumpdest, pop, push2 ⟨373⟩, push1 ⟨2⟩]
   obtain ⟨_, _, rd487₀⟩ := rd486.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd487⟩ :
-      ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨487⟩
+      ∃ k C, RD fork blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨487⟩
         [blindAuctionRevealEndWord σ I, ⟨373⟩, blindAuctionSelWord I]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [blindAuctionRevealEndWord, initState] using rd487₀⟩
@@ -59,10 +61,10 @@ theorem blindAuctionX_revealEnd {σ σ₀ A I} {g : Sat256}
 
 theorem blindAuctionX_revealEnd_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD blindAuctionBytecode I g
+    (hreach : ∃ k C, RD fork blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨468⟩ [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd468⟩ := hreach
   have rd476 := evm_run rd468 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨479⟩,
@@ -109,11 +111,11 @@ theorem blindAuctionRevealEndBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩)
-    (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨468⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
 
@@ -122,7 +124,7 @@ theorem blindAuctionRevealEndBodyCore {σ σ₀ A I}
   have hdec := blindAuctionDecode_revealEnd (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hbody :
-        ExecTransitionBody blindAuctionConfig blindAuctionContract
+        ExecTransitionBody fork blindAuctionConfig blindAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           revealEndGetter.body
           (.returned { contract := blindAuctionContract, locals := ∅ }
@@ -136,7 +138,7 @@ theorem blindAuctionRevealEndBodyCore {σ σ₀ A I}
       |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (returnEquiv_of_encode (uint256ReturnEncoding (blindAuctionRevealEndWord σ I)))
   · have hbody :
-        ExecTransitionBody blindAuctionConfig blindAuctionContract
+        ExecTransitionBody fork blindAuctionConfig blindAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           revealEndGetter.body .reverted := by
       simpa [revealEndGetter, initState] using

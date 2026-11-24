@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.Flux
 
+variable {fork : Ethereum.Fork}
+
 namespace Benchmarks.Dss.Vat
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -521,15 +523,15 @@ theorem vatMoveSourceStoreSrcSplit
     evalExpr? config { contract := contract, locals := moveStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     (moveRadWord I).toNat ≤ srcOld.toNat →
-    (I.perm = true → ∀ r, ExecBlock config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew } evm1
+    (I.perm = true → ∀ r, ExecBlock fork config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew } evm1
         [ .letDecl "dstDaiNew" (some uint256)
             (add256 (.storage (daiRef (.var "dst"))) (.var "rad")),
           .require (.binary .ge (.var "dstDaiNew")
             (.storage (daiRef (.var "dst")))),
           .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ] r →
-      ExecBlock config { contract := contract, locals := moveStore I } evm0 moveTransition.body r) ∧
+      ExecBlock fork config { contract := contract, locals := moveStore I } evm0 moveTransition.body r) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+      ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body
         .staticViolation) := by
   intro evm0 srcOld srcDaiNew evm1 hwish hsrcEnough
   have hsrcLoad :
@@ -580,7 +582,7 @@ theorem vatMoveSourceStoreSrcSplit
         .ok ({ contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew }, evm1) :=
     assignStorageRef_move_src_dai (evm := evm0) (evm' := evm1) (I := I)
       (srcDaiNew := srcDaiNew) (by simp [evm1])
-  have hpre : ∀ r, ExecBlock config
+  have hpre : ∀ r, ExecBlock fork config
       { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew } evm0
       (.assign .storage (daiRef (.var "src")) (.var "srcDaiNew") ::
         [ .letDecl "dstDaiNew" (some uint256)
@@ -588,10 +590,10 @@ theorem vatMoveSourceStoreSrcSplit
           .require (.binary .ge (.var "dstDaiNew")
             (.storage (daiRef (.var "dst")))),
           .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ]) r →
-      ExecBlock config { contract := contract, locals := moveStore I } evm0
+      ExecBlock fork config { contract := contract, locals := moveStore I } evm0
         moveTransition.body r := by
     intro r hrest
-    change ExecBlock config { contract := contract, locals := moveStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := moveStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (wishExpr (.var "src") sender),
         .letDecl "srcDaiNew" (some uint256)
@@ -610,7 +612,7 @@ theorem vatMoveSourceStoreSrcSplit
     refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
     exact hrest
-  refine ⟨fun hperm r h => hpre r (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsrcDaiNewEval hassignSrc) h),
+  refine ⟨fun hperm r h => hpre r (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsrcDaiNewEval hassignSrc) h),
     fun hpf => ExecFuncBody.execBlockStatic (hpre _ (ExecBlock.consStatic
       (ExecStmt.assignStatic hsrcDaiNewEval hassignSrc (by simp [evm0, initState]; exact hpf))))⟩
 
@@ -629,7 +631,7 @@ theorem vatMoveSourceOk
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     (moveRadWord I).toNat ≤ srcOld.toNat →
     dstOld.toNat + (moveRadWord I).toNat < UInt256.size →
-    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+    ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body
       (.returned { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
         (Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
           (moveDstDaiSlot I) dstDaiNew) none) := by
@@ -694,7 +696,7 @@ theorem vatMoveSourceOk
     ((vatMoveSourceStoreSrcSplit (g := g) hwv hwish hsrcEnough).1 hperm _
       (ExecBlock.consNormal (ExecStmt.letDecl hadd)
         (ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd)
-          (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) hdstDaiNewEval hassignDst) ExecBlock.nil))))
+          (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) hdstDaiNewEval hassignDst) ExecBlock.nil))))
 
 theorem vatMoveSourceRevertWish
     {σ σ₀ A I} {g : UInt256}
@@ -702,10 +704,10 @@ theorem vatMoveSourceRevertWish
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     evalExpr? config { contract := contract, locals := moveStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool false) →
-    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body .reverted := by
   intro evm0 hwish
   have hblock :
-      ExecBlock config { contract := contract, locals := moveStore I } evm0
+      ExecBlock fork config { contract := contract, locals := moveStore I } evm0
         (nonpayable ++
           [ .require (wishExpr (.var "src") sender) ] ++
           checkedSubUintInto "srcDaiNew" (.storage (daiRef (.var "src")))
@@ -715,7 +717,7 @@ theorem vatMoveSourceRevertWish
             (.var "rad") ++
           [ .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ])
         .reverted := by
-    change ExecBlock config { contract := contract, locals := moveStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := moveStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (wishExpr (.var "src") sender),
         .letDecl "srcDaiNew" (some uint256)
@@ -744,7 +746,7 @@ theorem vatMoveSourceRevertSrcUnderflow
     evalExpr? config { contract := contract, locals := moveStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     srcOld.toNat < (moveRadWord I).toNat →
-    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body .reverted := by
   intro evm0 srcOld hwish hunder
   have hsrcLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
@@ -765,7 +767,7 @@ theorem vatMoveSourceRevertSrcUnderflow
           (sub256 (.storage (daiRef (.var "src"))) (.var "rad")) = .revert :=
     vatEvalExpr_sub256_revert hsrc hrad hunder
   have hblock :
-      ExecBlock config { contract := contract, locals := moveStore I } evm0
+      ExecBlock fork config { contract := contract, locals := moveStore I } evm0
         (nonpayable ++
           [ .require (wishExpr (.var "src") sender) ] ++
           checkedSubUintInto "srcDaiNew" (.storage (daiRef (.var "src")))
@@ -775,7 +777,7 @@ theorem vatMoveSourceRevertSrcUnderflow
             (.var "rad") ++
           [ .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ])
         .reverted := by
-    change ExecBlock config { contract := contract, locals := moveStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := moveStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (wishExpr (.var "src") sender),
         .letDecl "srcDaiNew" (some uint256)
@@ -811,7 +813,7 @@ theorem vatMoveSourceRevertDstOverflow
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     (moveRadWord I).toNat ≤ srcOld.toNat →
     UInt256.size ≤ dstOld.toNat + (moveRadWord I).toNat →
-    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body .reverted := by
   intro evm0 srcOld srcDaiNew evm1 dstOld hwish hsrcEnough hover
   have hsrcLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
@@ -883,7 +885,7 @@ theorem vatMoveSourceRevertDstOverflow
         .revert :=
     fluxEvalExpr_add256_revert hdst hradAfterSrc hover
   have hblock :
-      ExecBlock config { contract := contract, locals := moveStore I } evm0
+      ExecBlock fork config { contract := contract, locals := moveStore I } evm0
         (nonpayable ++
           [ .require (wishExpr (.var "src") sender) ] ++
           checkedSubUintInto "srcDaiNew" (.storage (daiRef (.var "src")))
@@ -893,7 +895,7 @@ theorem vatMoveSourceRevertDstOverflow
             (.var "rad") ++
           [ .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ])
         .reverted := by
-    change ExecBlock config { contract := contract, locals := moveStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := moveStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (wishExpr (.var "src") sender),
         .letDecl "srcDaiNew" (some uint256)
@@ -912,7 +914,7 @@ theorem vatMoveSourceRevertDstOverflow
     refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsrcDaiNewEval hassignSrc) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsrcDaiNewEval hassignSrc) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
   simpa [ExecTransitionBody, moveTransition, evm0, nonpayable, checkedSubUintInto,
     checkedAddUintInto, List.append_assoc] using ExecFuncBody.execBlockRevert hblock
@@ -962,7 +964,7 @@ theorem vatReachMoveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 19)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨1303⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0xbb35783b⟩ :=
@@ -993,10 +995,10 @@ theorem vatReachMoveBody {σ σ₀ A I} {g : Sat256}
 
 theorem vatMoveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1303⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨5874⟩
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5874⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -1024,10 +1026,10 @@ theorem vatMoveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem vatMoveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1303⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1045,10 +1047,10 @@ theorem vatMoveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveWishLoaded
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5874⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5874⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
       [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
@@ -1161,13 +1163,13 @@ theorem RD.vatMoveWishLoaded
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveWishBranchOk
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
       [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwish : moveWishWord σ I ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd6608pre := evm_run h with [
@@ -1205,7 +1207,7 @@ theorem RD.vatMoveWishBranchOk
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveWishBranchRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
       [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
@@ -1213,7 +1215,7 @@ theorem RD.vatMoveWishBranchRevert
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hwish : moveWishWord σ I = ⟨0⟩) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have rd6608pre := evm_run h with [
     raw swap2 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
@@ -1257,14 +1259,14 @@ theorem RD.vatMoveWishBranchRevert
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveSourceSubSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hle :
       (moveRadWord I).toNat ≤
         (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I))).toNat) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨5986⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5986⟩
       (UInt256.sub (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I)))
           (moveRadWord I) ::
         moveRadWord I :: moveDstMaskedWord I :: moveSrcMaskedWord I :: ⟨524⟩ :: sel :: [])
@@ -1338,14 +1340,14 @@ theorem RD.vatMoveSourceSubSuccess
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveSourceSubRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5951⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hlt :
       (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I))).toNat <
         (moveRadWord I).toNat) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let slot := solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I)
   let old := solcSlotWord σ I slot
   have rd5961raw := evm_run h with [
@@ -1417,19 +1419,19 @@ theorem RD.vatMoveSourceStoreValueSplit
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {srcDaiNew rad dst src ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨5986⟩
+    (h : RD fork vatBytecode ee g s0 ⟨5986⟩
       (srcDaiNew :: rad :: dst :: src :: ret :: R)
       (twoWordHashMem src ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hsrcCanon : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD vatBytecode ee g s0 ⟨6017⟩
+    ∃ k' C', RD fork vatBytecode ee g s0 ⟨6017⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: rad :: dst :: src :: ret :: R)
       (twoWordHashMem src ⟨5⟩ (twoWordHashMem src ⟨5⟩ mem))
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨5⟩ src) srcDaiNew) k' C') ∨
-      (ee.perm = false ∧ RDstatic vatBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork vatBytecode g s0) := by
   simpa [solcSingleMappingStoreDebitOutPc] using
     RD.solcSingleMappingStoreDebitMemSplit
       (code := vatBytecode) (pc := ⟨5986⟩) (baseSlot := ⟨5⟩)
@@ -1445,7 +1447,7 @@ theorem RD.vatMoveDestAddSuccess
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {rad dst src ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6017⟩
+    (h : RD fork vatBytecode ee g s0 ⟨6017⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: rad :: dst :: src :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hslot :
@@ -1455,7 +1457,7 @@ theorem RD.vatMoveDestAddSuccess
     (hdstCanon : dst.toNat < EVM.addressModulus)
     (hfit : (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ dst)).toNat + rad.toNat < UInt256.size)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD vatBytecode ee g s0 ⟨6033⟩
+    ∃ k' C', RD fork vatBytecode ee g s0 ⟨6033⟩
       ((solcSlotWord σ ee (solcMappingSlot ⟨5⟩ dst) + rad) ::
         rad :: dst :: src :: ret :: R)
       (wordAt0Mem dst mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -1503,7 +1505,7 @@ theorem RD.vatMoveDestAddRevert
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {rad dst src ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6017⟩
+    (h : RD fork vatBytecode ee g s0 ⟨6017⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: rad :: dst :: src :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hslot :
@@ -1514,7 +1516,7 @@ theorem RD.vatMoveDestAddRevert
     (hover : UInt256.size ≤
       (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ dst)).toNat + rad.toNat)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev vatBytecode g s0 := by
+    RDrev fork vatBytecode g s0 := by
   let slot := solcMappingSlot ⟨5⟩ dst
   let old := solcSlotWord σ ee slot
   have rd6019raw := evm_run h with [
@@ -1559,7 +1561,7 @@ theorem RD.vatMoveDestStoreReturn
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {dstDaiNew rad dst src ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6033⟩
+    (h : RD fork vatBytecode ee g s0 ⟨6033⟩
       (dstDaiNew :: rad :: dst :: src :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
@@ -1567,7 +1569,7 @@ theorem RD.vatMoveDestStoreReturn
     (hperm : ee.perm = true)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD vatBytecode ee g s0 ret R
+    ∃ k' C', RD fork vatBytecode ee g s0 ret R
       (twoWordHashMem dst ⟨5⟩ mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨5⟩ dst) dstDaiNew) k' C' := by
   have rd6034 := h.jumpdest (by native_decide) (by evm_ov)
@@ -1635,18 +1637,18 @@ theorem vatMoveAuthorizedPath
         { contract := contract, locals := moveStore I }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (wishExpr (.var "src") sender) = .ok (.bool true))
-    (h5951 : RD vatBytecode I (Sat256.ofUInt256 g)
+    (h5951 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5951⟩
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩,
         vatSelWord I]
       memWish (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let srcOld := solcSlotWordAt (moveSrcDaiSlot I) σ I
   let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
   by_cases hsrcUnder : srcOld.toNat < (moveRadWord I).toNat
   · have hbody :
-        ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body .reverted := by
+        ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body .reverted := by
       exact vatMoveSourceRevertSrcUnderflow
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hwv
@@ -1680,7 +1682,7 @@ theorem vatMoveAuthorizedPath
       ⟨hperm, _, _, h6017⟩ | ⟨hpf, hstatic⟩
     swap
     · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
-        ((vatMoveSourceStoreSrcSplit (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+        ((vatMoveSourceStoreSrcSplit (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
           (by simpa [evm0] using hwishStele) (by simpa [srcOld] using hsrcEnough)).2 hpf)
     let σSrc := sstoreAccountMap I.codeOwner σ (moveSrcDaiSlot I) srcDaiNew
     have hsrcSlotEq :
@@ -1749,7 +1751,7 @@ theorem vatMoveAuthorizedPath
           simpa [dstOld] using hdstOverflow
         exact htmp
       have hbody :
-          ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+          ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body
             .reverted := by
         exact vatMoveSourceRevertDstOverflow (hperm := hperm)
           (σ := σ) (σ₀ := σ₀)
@@ -1798,7 +1800,7 @@ theorem vatMoveAuthorizedPath
       rw [hdstSlotEq] at hretPc
       have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
       have hret :
-          RDret vatBytecode (Sat256.ofUInt256 g)
+          RDret fork vatBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σSrc (moveDstDaiSlot I) dstDaiNew)
             ByteArray.empty := by
@@ -1820,7 +1822,7 @@ theorem vatMoveAuthorizedPath
                 (moveRadWord I).toNat < UInt256.size := by
           simpa [dstOld] using hdstFit
         exact htmp
-      have hbody := vatMoveSourceOk (hperm := hperm)
+      have hbody := vatMoveSourceOk (fork := fork) (hperm := hperm)
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hwv
         (by simpa [evm0] using hwishStele)
@@ -1880,21 +1882,21 @@ theorem vatMoveBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsel : selIs I (vatSelBytes 19))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1303⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (vatMoveX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchMove hsel)
       (vatDecode_move_none_short hsz4 hshort)
 
-theorem vatMoveBodyCore : VatBodyTheoremAnyPerm 19 := by
+theorem vatMoveBodyCore : VatBodyTheoremAnyPerm fork 19 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 19) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some moveTransition :=
     vatDispatchMove hsel
-  have hreach := vatReachMoveBody (σ := σ)
+  have hreach := vatReachMoveBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
@@ -1967,7 +1969,7 @@ theorem vatMoveBodyCore : VatBodyTheoremAnyPerm 19 := by
           evalExpr_move_wish_false (evm := evm0) (I := I)
             (by simp [evm0, initState]) hsrcEq hcanStele
         have hbody :
-            ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+            ExecTransitionBody fork config contract evm0 (moveStore I) moveTransition.body
               .reverted :=
           vatMoveSourceRevertWish
             (σ := σ) (σ₀ := σ₀)

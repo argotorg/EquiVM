@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SimpleMulDivSource
 import Benchmarks.UniswapV4PoolManager.WordBoolean
 import Benchmarks.UniswapV4PoolManager.WordBorrowSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -38,7 +40,7 @@ theorem poolDonateGrowthSource {f : Frame} {evm : State} {id amount liquidity : 
     (hs : f.locals.get? "state" = some (poolRefValue id))
     (ha : f.locals.get? (poolDonateAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat))) :
-    ExecStmt config f evm (poolDonateGrowthStmt second)
+    ExecStmt fork config f evm (poolDonateGrowthStmt second)
       (if amount ≠ ⟨0⟩ ∧ evm.executionEnv.perm = false then .staticViolation else
         .ok (poolDonateGrowthFrame f second amount liquidity) (poolDonateStep evm id second amount liquidity)) := by
   have hg : evalExpr? config f evm (.binary .gt (.var (poolDonateAmountName second)) (.intLit 0)) =
@@ -52,7 +54,7 @@ theorem poolDonateGrowthSource {f : Frame} {evm : State} {id amount liquidity : 
     simp only [poolDonateGrowthFrame, poolDonateStep, if_pos hz]
     exact ExecStmt.iteFalse (by simpa only [hz, ne_eq, not_true_eq_false, decide_false] using hg) ExecBlock.nil
   · let f1 := wordLocal f (poolDonateGrowthCallName second) (poolDonateGrowth amount liquidity)
-    have hcall := simpleMulDivCall hf (evalLocalValue (cfg := config) (evm := evm) ha)
+    have hcall := simpleMulDivCall (fork := fork) hf (evalLocalValue (cfg := config) (evm := evm) ha)
       (show evalExpr? config f evm (.intLit (2^128)) = .ok (.int (Int.ofNat (UInt256.ofNat (2^128)).toNat)) by
         simp only [evalExpr?, pure]; rfl)
       (evalLocalValue hl) (poolDonateGrowthCallName second)
@@ -68,6 +70,6 @@ theorem poolDonateGrowthSource {f : Frame} {evm : State} {id amount liquidity : 
     · rw [if_neg (fun hh => hperm hh.2)]
       simp only [poolDonateGrowthFrame, poolDonateStep, if_neg hz]
       exact ExecStmt.iteTrue (by simpa only [decide_eq_true hz] using hg)
-        (ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) he hw)))
+        (ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) he hw)))
 
 end Benchmarks.UniswapV4PoolManager

@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.TransferInternal
 import Benchmarks.CurveVault.MutatingLock
 import Benchmarks.CurveVault.RuntimeBlocks_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,14 +20,14 @@ theorem vaultTransferFromTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (ht : locals.get? "_to" = some (.address (AccountAddress.ofNat recipient.toNat)))
     (hv : locals.get? "_value" = some (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 5845) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 5845) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultTransferFromFunction.body.drop 2)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultTransferFromFunction.body.drop 2)
         (.returned {contract := contract, locals := locals.insert "__c1" .unit} evm' (some [.bool true])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultTransferFromFunction.body.drop 2)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray) ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultTransferFromFunction.body.drop 2)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let value := calldataWord I.calldata 68
   let copied := mem.write 192 mem 64 64
   let argsMem := value.toByteArray.write 0 copied 128 32
@@ -44,7 +46,7 @@ theorem vaultTransferFromTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       memLoad_copyWindow mem mem 192 64 64 32 (by omega) hsize (by omega) (by omega) (by decide +kernel) (by decide +kernel), hmt]
   have hvArgs : memLoad (UInt256.ofNat 128) argsMem = value := memLoad_write_back _ _ 128 (by decide +kernel) hgap
   have rd8133 := vaultBlocks.vault_block_5845 (by omega) (by native_decide) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8133) (UInt256.ofNat 5866 :: R) argsMem _ rdata σ _ _ at rd8133
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8133) (UInt256.ofNat 5866 :: R) argsMem _ rdata σ _ _ at rd8133
   have hargs : evalExprs? config {contract := contract, locals := locals} evm
       [.var "_from", .var "_to", .var "_value"] =
       .ok [.address (AccountAddress.ofNat sender.toNat), .address (AccountAddress.ofNat recipient.toNat),
@@ -59,7 +61,7 @@ theorem vaultTransferFromTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := locals})
     (callee := vaultTransferFunction) (name := "_transfer") (retVar := "__c1") hargs rfl rfl hcallee
   have hret := vaultBlocks.vault_block_5866 (by omega) hperm rd5866
-  change RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
+  change RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
     (((⟨1⟩ : UInt256).toByteArray.write 0 _ 288 32).readWithPadding 288 32) at hret
   rw [toByteArray_write_read_back_of_gap _ _ _
     (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 288 (by omega)))] at hret

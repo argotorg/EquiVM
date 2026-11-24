@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnAmountsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ theorem uniswapBurnAmountsRuntimeCases
     {mem rdata : ByteArray} {feeOn totalSupply liquidity balance0 balance1
       token0 token1 reserve0 reserve1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
-    (rd4479 : RD uniswapV2PairBytecode I g s0 ⟨4479⟩
+    (rd4479 : RD fork uniswapV2PairBytecode I g s0 ⟨4479⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: ⟨0⟩ :: ⟨0⟩ :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
@@ -22,14 +24,14 @@ theorem uniswapBurnAmountsRuntimeCases
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock fork config { contract := contract, locals := locals } evm
         [burnAmount0Stmt, burnAmount1Stmt] .reverted ∧
-      (RDrev uniswapV2PairBytecode g s0 ∨ RDinvalid uniswapV2PairBytecode g s0)) ∨
+      (RDrev fork uniswapV2PairBytecode g s0 ∨ RDinvalid fork uniswapV2PairBytecode g s0)) ∨
     (∃ k' C',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [burnAmount0Stmt, burnAmount1Stmt]
         (.ok { contract := contract, locals := burnAmountsStore locals liquidity balance0 balance1 totalSupply } evm) ∧
-      RD uniswapV2PairBytecode I g s0 ⟨4533⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨4533⟩
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: burnAmountWord liquidity balance1 totalSupply ::
           burnAmountWord liquidity balance0 totalSupply :: R)
@@ -40,7 +42,7 @@ theorem uniswapBurnAmountsRuntimeCases
   · obtain ⟨_, _, rd4495⟩ := RD.uniswapSafeMathMulSuccess rdMul0 hfit0
       (by jump_dest) (by simp only [List.length_cons]; omega)
     by_cases hz : totalSupply = ⟨0⟩
-    · have hsource : ExecBlock config { contract := contract, locals := locals } evm
+    · have hsource : ExecBlock fork config { contract := contract, locals := locals } evm
           [burnAmount0Stmt, burnAmount1Stmt] .reverted :=
         ExecBlock.consRevert (ExecStmt.letDeclRevert
           (evalExpr_burn_amount_divZero evm "balance0" liquidity balance0 hliq hb0

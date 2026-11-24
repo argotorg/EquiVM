@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsReturn
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,10 +12,10 @@ set_option maxRecDepth 1000
 theorem morphoExtSloadsFinish {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n : Nat}
     (ho : (calldataWord ee.calldata 4).toNat ≤ solcMaxU64) (hn : n ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6955)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6955)
       (extSloadsReadStack (calldataWord ee.calldata 4) n 0
         [calldataWord ee.calldata 4, UInt256.ofNat 0]) (extSloadsHeaderMem n) aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat n] ++ wordArrayWords (extSloadsWords σ ee) 0 n)) := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoExtSloadsReadLoop (v := v) (by simp) ho hn n (by omega) h
   let words := wordArrayWords (extSloadsWords σ ee) 0 n

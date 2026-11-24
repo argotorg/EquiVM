@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorAssetLoopMemory
 import Benchmarks.CompoundIII.Comet.CreationBlocks_003
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -34,14 +36,14 @@ theorem cometConstructorAssetStep {σ σ₀ A I} {g : Sat256} {c : ConstructorCo
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hi : i < c.assetConfigs.length) (hfree : constructorAssetFree c i < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨664⟩ (constructorAssetLoopStack c i)
       (constructorAssetLoopMemory c i) aw ByteArray.empty σ k C) :
     if constructorAssetFree c (i + 1) < 2^64 then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨664⟩ (constructorAssetLoopStack c (i + 1))
         (constructorAssetLoopMemory c (i + 1)) aw' ByteArray.empty σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
   have hrecord : constructorRecordBase c < 2^64 := by
     unfold constructorAssetFree constructorArrayEnd constructorArrayBase at hfree
@@ -139,10 +141,10 @@ theorem cometConstructorAssetStep {σ σ₀ A I} {g : Sat256} {c : ConstructorCo
 theorem cometConstructorAssetExit {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨664⟩ (constructorAssetLoopStack c c.assetConfigs.length)
       (constructorAssetLoopMemory c c.assetConfigs.length) aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨685⟩ (constructorAssetLoopStack c c.assetConfigs.length)
       (constructorAssetLoopMemory c c.assetConfigs.length) aw' ByteArray.empty σ k' C' := by
   have r := cometWithExtendedAssetListCreation_block_664_fallthrough
@@ -158,14 +160,14 @@ theorem cometConstructorAssetLoop {σ σ₀ A I} {g : Sat256} {c : ConstructorCo
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hi : i ≤ c.assetConfigs.length) (hfree : constructorAssetFree c i < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨664⟩ (constructorAssetLoopStack c i)
       (constructorAssetLoopMemory c i) aw ByteArray.empty σ k C) :
     if constructorAssetFree c c.assetConfigs.length < 2^64 then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨685⟩ (constructorAssetLoopStack c c.assetConfigs.length)
         (constructorAssetLoopMemory c c.assetConfigs.length) aw' ByteArray.empty σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
   induction hremaining : c.assetConfigs.length - i generalizing i aw k C with
   | zero =>
@@ -192,12 +194,12 @@ theorem cometConstructorDecode {σ σ₀ A I} {g : Sat256} {c : ConstructorConfi
     (hcode : I.code = cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
     (hv : I.weiValue = ⟨0⟩) (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size) :
     if constructorAssetFree c c.assetConfigs.length < 2^64 then
-      ∃ aw k C, RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw k C, RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨685⟩ (constructorAssetLoopStack c c.assetConfigs.length)
         (constructorAssetLoopMemory c c.assetConfigs.length) aw ByteArray.empty σ k C
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
-  have head := cometConstructorDecodeToAssets (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+  have head := cometConstructorDecodeToAssets (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcode hv hsize
   by_cases harray : constructorArrayEnd c < 2^64
   · rw [if_pos harray] at head

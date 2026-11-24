@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.DomainEVM
 import Benchmarks.EAS.EAS.HeapCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -43,8 +45,8 @@ theorem domainCallRun {L : Store} {heapExpr : Expr} {retVar : Ident}
     (hstack : R.length+8 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13959⟩ (ret::R) mem aw rdata σ k C) :
-    HeapCallRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13959⟩ (ret::R) mem aw rdata σ k C) :
+    HeapCallRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm "_domainSeparatorV4" [heapExpr] retVar (wordBytes32Value (domainWord v ee.codeOwner))
       ret (domainWord v ee.codeOwner::R) mem heap.toNat := by
   by_cases hg : domainCacheHit v ee.codeOwner ∨
@@ -54,7 +56,7 @@ theorem domainCallRun {L : Store} {heapExpr : Expr} {retVar : Ident}
     refine Or.inl ⟨evm,σ,domainMemory v ee.codeOwner mem heap.toNat,rdata,aw1,k1,C1,
       domainNext v ee.codeOwner heap.toNat,hs,hb.1,hb.2,domainMemory_prefix v ee.codeOwner mem heap.toNat,
       domainMemory_free v ee.codeOwner mem heap hh,?_,r1⟩
-    have hc := domainCall_ok (cfg := config) (retVar := retVar) v he (by simpa only [hs.env] using hg)
+    have hc := domainCall_ok (fork := fork) (cfg := config) (retVar := retVar) v he (by simpa only [hs.env] using hg)
     simpa only [hs.env] using hc
   · have hn : ¬ domainCacheHit v ee.codeOwner := fun h => hg (Or.inl h)
     have ha : ¬ (allocateNext heap.toNat 192 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 192) := fun h => hg (Or.inr h)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ObservationCoverage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_045
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,7 +15,7 @@ theorem oracleInterpolationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free beforePtr afterPtr targetRaw target z0 z1 : UInt256}
     {before after : OracleObservation} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13471⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13471⟩
       (afterPtr :: beforePtr :: targetRaw :: z0 :: z1 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hb : free.toNat ≤ 2 ^ 200)
     (hbefore : ObservationMemory mem beforePtr before) (hafter : ObservationMemory mem afterPtr after)
@@ -22,9 +24,9 @@ theorem oracleInterpolationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (htarget : UInt256.land targetRaw (UInt256.ofNat (2 ^ 32 - 1)) = target)
     (hov : R.length + 16 ≤ 1024) :
     ((oracleDelta after.timestamp before.timestamp).toNat = 0 ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
+      RDinvalid fork (deployedRuntime v) g s0) ∨
     ((oracleDelta after.timestamp before.timestamp).toNat ≠ 0 ∧
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ⟨13584⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ⟨13584⟩
         (oracleInterpolationSecondsRaw before after target ::
           oracleInterpolationTickRaw before after target :: R) mem aw rdata σ k' C') := by
   have hbb : beforePtr.toNat + 128 < UInt256.size := by change _ < 2 ^ 256; omega

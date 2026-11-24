@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.Storage
 
+variable {fork : Ethereum.Fork}
+
 -- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
 set_option allowUnsafeReducibility true in
 attribute [local semireducible] ByteArray.zeroes
@@ -110,14 +112,14 @@ macro "uniswap_two_address_external_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressExternalLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapTwoAddressExternalEntryWf entry ret routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapTwoAddressExternalDecodedPc entry) = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapTwoAddressExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
@@ -133,7 +135,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressExternalMaskAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapTwoAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapTwoAddressExternalEntryWf entry ret routine)
@@ -141,7 +143,7 @@ theorem RD.uniswapTwoAddressExternalMaskAndJump {g : Sat256} {s0 : State} {ee : 
     (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -245,14 +247,14 @@ macro "uniswap_address_uint256_external_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.addressUint256ExternalLenOk {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapAddressUint256ExternalEntryWf entry ret routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapAddressUint256ExternalDecodedPc entry) = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapAddressUint256ExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
@@ -268,14 +270,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.addressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapAddressUint256ExternalEntryWf entry ret routine)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -289,13 +291,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.addressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapAddressUint256ExternalEntryWf entry ret routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 36 :: UInt256.land solcAddrMask (calldataWord ee.calldata 4) ::
         ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
@@ -420,14 +422,14 @@ macro "uniswap_address_address_uint256_external_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.addressAddressUint256ExternalLenOk {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapAddressAddressUint256ExternalEntryWf entry ret routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapAddressAddressUint256ExternalDecodedPc entry) = true)
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapAddressAddressUint256ExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
@@ -447,7 +449,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.addressAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapAddressAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapAddressAddressUint256ExternalEntryWf entry ret routine)
@@ -455,7 +457,7 @@ theorem RD.addressAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 68 :: calldataWord ee.calldata 36 ::
         calldataWord ee.calldata 4 :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
@@ -474,12 +476,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathSubSuccess {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
       mem aw rdata acc k C)
     (hle : b.toNat ≤ a.toNat)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UInt256.sub a b :: R) mem aw rdata acc k' C' := by
   exact RD.solcCheckedSubSuccess (pc := ⟨6879⟩) (okPc := ⟨2911⟩) h
     (by
@@ -492,13 +494,13 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ} {a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hlt : a.toNat < b.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
     usub_toNat_underflow hlt
   have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
@@ -567,12 +569,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathAddSuccess {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
       mem aw rdata acc k C)
     (hfit : a.toNat + b.toNat < UInt256.size)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       ((a + b) :: R) mem aw rdata acc k' C' := by
   exact RD.solcCheckedAddSuccess (pc := ⟨8515⟩) (okPc := ⟨2911⟩) h
     (by
@@ -584,12 +586,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathMulSuccess {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6780⟩ (b :: a :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6780⟩ (b :: a :: ret :: R)
       mem aw rdata acc k C)
     (hfit : a.toNat * b.toNat < UInt256.size)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UInt256.mul a b :: R) mem aw rdata acc k' C' := by
   by_cases hb : b = ⟨0⟩
   · subst b
@@ -648,13 +650,13 @@ theorem RD.uniswapTransferInternalFromBalanceLoadMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
         (value :: toWord :: src :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩) ::
         ⟨7551⟩ :: value :: toWord :: src :: ret :: R)
       (twoWordHashMem src ⟨1⟩ mem)
@@ -675,12 +677,12 @@ theorem RD.uniswapTransferInternalFromBalanceLoad {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
         (value :: toWord :: src :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩) ::
         ⟨7551⟩ :: value :: toWord :: src :: ret :: R)
       (twoWordHashMem src ⟨1⟩ solcFreePtrMem)
@@ -693,7 +695,7 @@ theorem RD.uniswapTransferInternalAfterDebitMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
         (value :: toWord :: src :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
@@ -701,7 +703,7 @@ theorem RD.uniswapTransferInternalAfterDebitMem {g : Sat256} {s0 : State}
     (hbalance :
       value.toNat ≤ (uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩)).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
       (UInt256.sub (uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩)) value ::
         value :: toWord :: src :: ret :: R)
       (twoWordHashMem src ⟨1⟩ mem)
@@ -725,14 +727,14 @@ theorem RD.uniswapTransferInternalAfterDebit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
         (value :: toWord :: src :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hbalance :
       value.toNat ≤ (uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩)).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
       (UInt256.sub (uniswapCodeOwnerStorageWord ee σ (mapSlot src ⟨1⟩)) value ::
         value :: toWord :: src :: ret :: R)
       (twoWordHashMem src ⟨1⟩ solcFreePtrMem)
@@ -762,14 +764,14 @@ theorem RD.uniswapTransferInternalStoreDebitMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {debit value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
         (debit :: value :: toWord :: src :: ret :: R)
         (twoWordHashMem src ⟨1⟩ mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMemOf src mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (mapSlot src ⟨1⟩) debit) k' C' := by
@@ -789,13 +791,13 @@ theorem RD.uniswapTransferInternalStoreDebit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {debit value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
         (debit :: value :: toWord :: src :: ret :: R)
         (twoWordHashMem src ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMem src) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (mapSlot src ⟨1⟩) debit) k' C' := by
@@ -807,14 +809,14 @@ theorem RD.uniswapTransferInternalStoreDebitStatic {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {debit value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
         (debit :: value :: toWord :: src :: ret :: R)
         (twoWordHashMem src ⟨1⟩ mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hperm : ee.perm = false)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    RDstatic UniswapV2Pair.uniswapV2PairBytecode g s0 :=
+    RDstatic fork UniswapV2Pair.uniswapV2PairBytecode g s0 :=
   permSplit_false hperm
     (RD.solcSingleMappingStoreDebitMemSplit (pc := ⟨7551⟩) (baseSlot := ⟨1⟩) h
       (by
@@ -930,13 +932,13 @@ theorem RD.uniswapTransferInternalToBalanceLoadMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMemOf src mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hcanonTo : toWord.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩) ::
         ⟨7604⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferToHashMemOf src toWord mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -957,12 +959,12 @@ theorem RD.uniswapTransferInternalToBalanceLoad {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMem src) (UInt256.ofNat 3) rdata σ k C)
     (hcanonTo : toWord.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩) ::
         ⟨7604⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferToHashMem src toWord) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -975,7 +977,7 @@ theorem RD.uniswapTransferInternalAfterCreditCalcMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMemOf src mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
@@ -983,7 +985,7 @@ theorem RD.uniswapTransferInternalAfterCreditCalcMem {g : Sat256} {s0 : State}
     (hfit : (uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩)).toNat +
       value.toNat < UInt256.size)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
       ((uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩) + value) ::
         value :: toWord :: src :: ret :: R)
       (uniswapTransferToHashMemOf src toWord mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -1007,14 +1009,14 @@ theorem RD.uniswapTransferInternalAfterCreditCalc {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferDebitHashMem src) (UInt256.ofNat 3) rdata σ k C)
     (hcanonTo : toWord.toNat < EVM.addressModulus)
     (hfit : (uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩)).toNat +
       value.toNat < UInt256.size)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
       ((uniswapCodeOwnerStorageWord ee σ (mapSlot toWord ⟨1⟩) + value) ::
         value :: toWord :: src :: ret :: R)
       (uniswapTransferToHashMem src toWord) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -1045,13 +1047,13 @@ theorem RD.uniswapTransferInternalStoreCredit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {newTo value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
       (newTo :: value :: toWord :: src :: ret :: R)
       (uniswapTransferToHashMem src toWord) (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hcanonTo : toWord.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferCreditHashMem src toWord) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (mapSlot toWord ⟨1⟩) newTo) k' C' := by
@@ -1220,14 +1222,14 @@ theorem RD.uniswapTransferInternalEmitAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferCreditHashMem src toWord) (UInt256.ofNat 3) rdata acc k C)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       (uniswapTransferLogMem src toWord value) (UInt256.ofNat 5) rdata acc k' C' := by
   simpa [uniswapTransferLogMem] using
     RD.solcMaskedTransferLog3AndJump
@@ -1247,11 +1249,11 @@ theorem RD.uniswapInternalTransferReturnTrue {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {discard a b ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2907⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2907⟩
       (discard :: a :: b :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (⟨1⟩ :: R) mem aw rdata acc k' C' := by
   exact RD.solcDiscard2ReturnTrue (pc := ⟨2907⟩) h
     (by
@@ -1304,7 +1306,7 @@ theorem RD.uniswapTransferFromAllowanceMaxBranch {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
       (value :: toWord :: src :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
@@ -1313,7 +1315,7 @@ theorem RD.uniswapTransferFromAllowanceMaxBranch {g : Sat256} {s0 : State}
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat =
         UInt256.size - 1)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3071⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3071⟩
       (⟨0⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapApproveHashMem src (uniswapSourceWord ee))
       (UInt256.ofNat 3) rdata σ k' C' := by
@@ -1353,10 +1355,10 @@ theorem RD.uniswapTransferFromMaxAllowanceToInternal {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret discard : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3071⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3071⟩
       (discard :: value :: toWord :: src :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7510⟩
       (value :: toWord :: src :: ⟨3082⟩ :: discard :: value :: toWord :: src :: ret :: R)
       mem aw rdata acc k' C' := by
   exact RD.solcInternalCallSetup3
@@ -1470,12 +1472,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapApproveInternalInnerHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
         (value :: spender :: owner :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask :: value ::
         spender :: owner :: ret :: R)
       (twoWordHashMem owner ⟨2⟩ solcFreePtrMem)
@@ -1494,7 +1496,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapApproveInternalStore {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       (twoWordHashMem owner ⟨2⟩ solcFreePtrMem)
@@ -1502,7 +1504,7 @@ theorem RD.uniswapApproveInternalStore {g : Sat256} {s0 : State} {ee : Execution
     (hperm : ee.perm = true)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender (mapSlot owner ⟨2⟩)
         (twoWordHashMem owner ⟨2⟩ solcFreePtrMem))
@@ -1525,7 +1527,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapApproveInternalStoreStatic {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       (twoWordHashMem owner ⟨2⟩ solcFreePtrMem)
@@ -1533,7 +1535,7 @@ theorem RD.uniswapApproveInternalStoreStatic {g : Sat256} {s0 : State} {ee : Exe
     (hperm : ee.perm = false)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    RDstatic UniswapV2Pair.uniswapV2PairBytecode g s0 :=
+    RDstatic fork UniswapV2Pair.uniswapV2PairBytecode g s0 :=
   permSplit_false hperm
     (RD.solcNestedMappingStoreOuterSstoreSplit (pc := ⟨7441⟩) h
       (by
@@ -1545,13 +1547,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapApproveInternalEmitAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (uniswapApproveHashMem owner spender) (UInt256.ofNat 3) rdata acc k C)
     (hperm : ee.perm = true)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       (uniswapApproveLogMem owner spender value) (UInt256.ofNat 5) rdata acc k' C' := by
   simpa [uniswapApproveLogMem] using
     RD.solcPlainLog3AndJump
@@ -1569,7 +1571,7 @@ theorem RD.uniswapApproveInternalEmitAndJump {g : Sat256} {s0 : State} {ee : Exe
 theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val : UInt256} {R : List UInt256} {mem memout rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨797⟩ (val :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨797⟩ (val :: R)
       mem (UInt256.ofNat 5) rdata acc k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -1588,7 +1590,7 @@ theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : Execution
       memout.readWithPadding 128 32 =
         UInt256.toByteArray (UInt256.isZero (UInt256.isZero val)))
     (hov : R.length + 5 ≤ 1024) :
-    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc
+    RDret fork UniswapV2Pair.uniswapV2PairBytecode g s0 acc
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) := by
   exact RD.solcReturnBoolFromMem h
     (by

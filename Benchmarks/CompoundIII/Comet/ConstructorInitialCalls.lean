@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ConstructorFirstPhase
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedCheck
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,17 +15,17 @@ set_option maxRecDepth 2000
 theorem cometConstructorInitialCalls {σ σ₀ A I} {g : UInt256} {c : ConstructorConfig}
     (hcode : I.code = cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
     (hv : I.weiValue = ⟨0⟩) (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size) :
-    typedConstructorRefinementFor config contract [c.value] σ σ₀ g A I
+    typedConstructorRefinementFor fork config contract [c.value] σ σ₀ g A I
       (immutableLayout.deployed cometWithExtendedAssetListBytecode) ∨
     ∃ evm' σ' out feed aw k C,
       constructorAssetFree c c.assetConfigs.length < 2^64 ∧ ConstructorChecksValid c ∧
       SourceState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I σ' evm' ∧
       out.size < 2^138 ∧ 32 ≤ out.size ∧ (calldataWord out 0).toNat ≤ 18 ∧
       feed.size < 2^138 ∧ 32 ≤ feed.size ∧ calldataWord feed 0 = ⟨8⟩ ∧
-      ExecBlock config (constructorSourceEntry c) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecBlock fork config (constructorSourceEntry c) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (contract.ctor.body.take 9)
         (.ok (constructorSourcePriceFeed c (calldataWord out 0) (calldataWord feed 0)) evm') ∧
-      RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I
+      RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I
         (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨902⟩
         (calldataWord out 0 :: UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)
@@ -41,10 +43,10 @@ theorem cometConstructorInitialCalls {σ σ₀ A I} {g : UInt256} {c : Construct
       obtain ⟨evm'', σ'', z, feed, _, _, _, hc, hs', hf, hcall⟩ :=
         cometConstructorPriceFeedCall hfree hout hs henter
       have finish
-          (hr : RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
+          (hr : RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
             (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           (hbad : ¬ (z = true ∧ 32 ≤ feed.size ∧ calldataWord feed 0 = ⟨8⟩)) :
-          typedConstructorRefinementFor config contract [c.value] σ σ₀ g A I
+          typedConstructorRefinementFor fork config contract [c.value] σ σ₀ g A I
             (immutableLayout.deployed cometWithExtendedAssetListBytecode) := by
         apply cometConstructorRevert hcode hr
         refine .intro rfl rfl (constructorSourceArgs_bind c) (.execBlockRevert ?_)

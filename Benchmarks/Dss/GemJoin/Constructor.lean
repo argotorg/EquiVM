@@ -4,6 +4,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorSource
 import Benchmarks.Dss.GemJoin.ConstructorTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor correctness
 -/
@@ -77,7 +79,7 @@ theorem gemJoinCtorPrefixAccountMapEquiv
 
 theorem gemJoinConstructorCorrect :
     typedConstructorRefinement config gemJoinCreationBytecode contract (fun _ => gemJoinBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases gemJoinCtorDeployment_shape hdeploy with ⟨vat, ilk, gem, hargs, hdeployed⟩
   subst args
@@ -136,7 +138,7 @@ theorem gemJoinConstructorCorrect :
             extCodeSizeWord_zero_lookup_code_zero (σ := evm5s.accountMap)
               (target := gemTarget) (addr := gem) htargetAddr hcodeSizeStele
         refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
-          (gemJoinSteleCtorExecReverts_noCode (hperm := hperm)
+          (gemJoinSteleCtorExecReverts_noCode (fork := fork) (hperm := hperm)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv
             (by
@@ -192,7 +194,7 @@ theorem gemJoinConstructorCorrect :
             accountMap := σCall
             substate := ATheta }
         have hcallEvm :
-            typedCallViaEVM config evm5e (EVM.address gem) "decimals" 0 []
+            typedCallViaEVM fork config evm5e (EVM.address gem) "decimals" 0 []
               (z, evmCallEvm, out) false := by
           refine callCoincides (A_in := Ain) (g'' := gTheta) (callGas := callGas)
             (callPerm := false) (targetWord := gemTarget)
@@ -216,7 +218,7 @@ theorem gemJoinConstructorCorrect :
             storageStore_σ₀, storageStore_accountMap,
             storageStore_executionEnv, initState]
         have hcallStele :
-            typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
+            typedCallViaEVM fork config evm5s (EVM.address gem) "decimals" 0 []
               (z, evmCallEvm, out) false := by
           simpa [hstate] using hcallEvm
         let evmDecimalsStele := evmCallEvm
@@ -225,7 +227,7 @@ theorem gemJoinConstructorCorrect :
           rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
           · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
           · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
-              (gemJoinSteleCtorExecReverts_decimalsFailure (hperm := hperm)
+              (gemJoinSteleCtorExecReverts_decimalsFailure (fork := fork) (hperm := hperm)
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmDecimals := evmDecimalsStele) (outDecimals := out)
                 vat ilk gem hwv
@@ -320,7 +322,7 @@ theorem gemJoinConstructorCorrect :
                     initState]
                 rw [howner]
               refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
-                (gemJoinSteleCtorExecSuccess (hperm := hperm)
+                (gemJoinSteleCtorExecSuccess (fork := fork) (hperm := hperm)
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsStele) (outDecimals := out) (dec := retWord)
                   vat ilk gem hwv
@@ -369,7 +371,7 @@ theorem gemJoinConstructorCorrect :
                 simp [config, externalABI, decodeReturn?]
                 exact decodeReturnValueWithMode_legacy_uint256_none_short hshort
               refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
-                (gemJoinSteleCtorExecReverts_decimalsDecode (hperm := hperm)
+                (gemJoinSteleCtorExecReverts_decimalsDecode (fork := fork) (hperm := hperm)
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsStele) (outDecimals := out)
                   vat ilk gem hwv
@@ -393,10 +395,10 @@ theorem gemJoinConstructorCorrect :
           (z := false) rfl houtEmpty rd200
         rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
         · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-        · let A_dec := (Ethereum.EVM.callSubstate evm5s.executionEnv.fork evm5s.accountMap
+        · let A_dec := (Ethereum.EVM.callSubstate fork evm5s.accountMap
           (EVM.address gem) evm5s.substate)
           have hcallDepth :
-              typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
+              typedCallViaEVM fork config evm5s (EVM.address gem) "decimals" 0 []
                 (false, { evm5s with substate := A_dec }, ByteArray.empty) false := by
             simpa [A_dec, evm5s, evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
               gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
@@ -411,7 +413,7 @@ theorem gemJoinConstructorCorrect :
                     gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
                     gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, initState] using hdepthEq))
           refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
-            (gemJoinSteleCtorExecReverts_decimalsFailure (hperm := hperm)
+            (gemJoinSteleCtorExecReverts_decimalsFailure (fork := fork) (hperm := hperm)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmDecimals := { evm5s with substate := A_dec }) (outDecimals := ByteArray.empty)
               vat ilk gem hwv
@@ -423,7 +425,7 @@ theorem gemJoinConstructorCorrect :
                   evm5s] using hcallDepth))
             ?_
           exact ctorResultEquiv.revert rfl rfl
-  · have hrd := gemJoinInitcodeNonpayableRevert
+  · have hrd := gemJoinInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat ilk gem hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TimeArrayFinish
 import Benchmarks.EAS.EAS.TimestampSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,22 +19,22 @@ theorem timestampArrayIteration_ok {evm : EVM.State} {locals imms : Store}
     (hw : lookupNth? words i = some word) (hlen : words.length < UInt256.size)
     (hz : timestampWord evm word = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration
       (.ok {contract := contract, locals := timeArrayNext locals heap i, immutables := imms} (timestampStore evm word time)) := by
-  exact timeArrayFinish h hi hlen (timestampCall_ok (hperm := hperm) (timeArrayArgs_eval h hi hw) hz)
+  exact timeArrayFinish h hi hlen (timestampCall_ok (fork := fork) (hperm := hperm) (timeArrayArgs_eval h hi hw) hz)
 
 theorem timestampArrayIteration_revert {evm : EVM.State} {locals imms : Store}
     {words : List UInt256} {time word : UInt256} {heap i : Nat}
     (h : TimeArrayInv locals words time heap i) (hi : i < words.length)
     (hw : lookupNth? words i = some word) (hz : timestampWord evm word ≠ ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration .reverted :=
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration .reverted :=
   ExecBlock.consRevert (timestampCall_revert (timeArrayArgs_eval h hi hw) hz)
 
 theorem timestampArrayIteration_static {evm : EVM.State} {locals imms : Store}
     {words : List UInt256} {time word : UInt256} {heap i : Nat}
     (h : TimeArrayInv locals words time heap i) (hi : i < words.length)
     (hw : lookupNth? words i = some word) (hz : timestampWord evm word = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration .staticViolation :=
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayIteration .staticViolation :=
   ExecBlock.consStatic (timestampCall_static (timeArrayArgs_eval h hi hw) hz hp)
 
 theorem timestampStore_env (evm : EVM.State) (word time : UInt256) :

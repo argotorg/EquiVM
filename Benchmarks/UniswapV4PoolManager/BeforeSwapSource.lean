@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapBranchSource
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -44,8 +46,8 @@ theorem beforeSwapSelectedSource {f : Frame} {evm post : State} {hook : AccountA
     (hf : f.locals.get? "lpFeeOverride" = some oldFee)
     (hkey : PoolKeyCanonical key) (hlimit : p.priceLimit.toNat < 2^160)
     (hcall : beforeSwapActive hook →
-      callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
-    ExecStmt config f evm beforeSwapFunction.body[4]!
+      callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
+    ExecStmt fork config f evm beforeSwapFunction.body[4]!
       (beforeSwapSelectedResult f evm post hook key p data z out) := by
   have hflag := hookPermission_eval (evalLocalValue (cfg := config) (evm := evm) hs) ⟨128⟩ (by decide)
   change evalExpr? config f evm _ = .ok (.bool (decide (beforeSwapActive hook))) at hflag
@@ -60,7 +62,7 @@ theorem beforeSwapReturnSource {f : Frame} {evm : State} {amount hookReturn fee 
     (ha : f.locals.get? "amountToSwap" = some (.int (EVM.signed amount)))
     (hh : f.locals.get? "hookReturn" = some (.int (EVM.signed hookReturn)))
     (hf : f.locals.get? "lpFeeOverride" = some (.int (Int.ofNat fee.toNat))) :
-    ExecBlock config f evm [.return [.var "amountToSwap", .var "hookReturn", .var "lpFeeOverride"]]
+    ExecBlock fork config f evm [.return [.var "amountToSwap", .var "hookReturn", .var "lpFeeOverride"]]
       (.returned f evm (some (beforeSwapReturnValues amount hookReturn fee))) := by
   exact ExecBlock.consReturn (ExecStmt.return (by
     simp only [evalExprs?, evalLocalValue ha, evalLocalValue hh, evalLocalValue hf,
@@ -72,7 +74,7 @@ theorem beforeSwapSelectedReturn {f f' : Frame} {evm post next : State} {hook : 
     (hh : f.locals.get? "hookReturn" = some (.int 0))
     (hf : f.locals.get? "lpFeeOverride" = some (.int 0))
     (hr : beforeSwapSelectedResult f evm post hook key p data z out = .ok f' next) :
-    ExecBlock config f' next [.return [.var "amountToSwap", .var "hookReturn", .var "lpFeeOverride"]]
+    ExecBlock fork config f' next [.return [.var "amountToSwap", .var "hookReturn", .var "lpFeeOverride"]]
       (beforeSwapReturnResult f' next hook key p.amountSpecified out) := by
   by_cases he : beforeSwapActive hook
   · rw [beforeSwapSelectedResult, if_pos he] at hr
@@ -98,8 +100,8 @@ theorem beforeSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
     (hd : f.locals.get? "hookData" = some (.bytes data))
     (hkey : PoolKeyCanonical key) (hlimit : p.priceLimit.toNat < 2^160)
     (hcall : evm.executionEnv.source ≠ hook → beforeSwapActive hook →
-      callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
-    ExecFuncBody config f evm beforeSwapFunction.body (beforeSwapResult f evm post hook key p data z out) := by
+      callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
+    ExecFuncBody fork config f evm beforeSwapFunction.body (beforeSwapResult f evm post hook key p data z out) := by
   let f0 := beforeSwapPreludeFrame f p
   have hget := beforeSwapPrelude_get f p
   have hself : f0.locals.get? "self" = some (.address hook) :=
@@ -110,7 +112,7 @@ theorem beforeSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
   have hhook : f0.locals.get? "hookReturn" = some (.int 0) :=
     (store_get_ne _ _ (by decide : ("lpFeeOverride" == "hookReturn") = false)).trans (store_get_self _ _ _)
   have hfee : f0.locals.get? "lpFeeOverride" = some (.int 0) := store_get_self _ _ _
-  have hpre : ExecBlock config f evm (beforeSwapFunction.body.take 3) (.ok f0 evm) := by
+  have hpre : ExecBlock fork config f evm (beforeSwapFunction.body.take 3) (.ok f0 evm) := by
     have hfield := evalStructField (evalLocalValue (cfg := config) (evm := evm) hp) (field := "amountSpecified") rfl
     exact ExecBlock.consNormal (ExecStmt.letDecl hfield)
       (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
@@ -131,7 +133,7 @@ theorem beforeSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
       ((hget "params" (by decide) (by decide) (by decide)).trans hp)
       ((hget "hookData" (by decide) (by decide) (by decide)).trans hd)
       hamount hhook hfee hkey hlimit (hcall hcaller)
-    have htail : ExecBlock config f0 evm (beforeSwapFunction.body.drop 4)
+    have htail : ExecBlock fork config f0 evm (beforeSwapFunction.body.drop 4)
         (continueBlockResult (fun f' next => beforeSwapReturnResult f' next hook key p.amountSpecified out)
           (beforeSwapSelectedResult f0 evm post hook key p data z out)) := by
       apply execBlock_continue (execBlock_singleton hsel)

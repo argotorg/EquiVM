@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.StoredBytesWrite
 import Benchmarks.EAS.EAS.AttestationWriteStatements
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -24,10 +26,10 @@ theorem recordDataSource {L imms : Store} {evm : EVM.State} {word : UInt256} {a 
     (ha : L.get? "attestation" = some a.value)
     (hperm : evm.executionEnv.perm = true) :
     if storedBytesValid (attestationHeader evm word) then
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm (attestationWriteStmt "data")
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (attestationWriteStmt "data")
         (.ok {contract := contract,locals := L,immutables := imms}
           (bytesWriteState evm (dbSlot word+⟨6⟩) a.data (storedBytesLengthWord (attestationHeader evm word)).toNat))
-    else ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    else ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (attestationWriteStmt "data") .reverted := by
   have he := attestationRecord_field (cfg := config) (evm := evm)
     (frame := {contract := contract,locals := L,immutables := imms}) ha "data" (.bytes a.data) rfl

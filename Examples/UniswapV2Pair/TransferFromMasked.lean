@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.TransferFrom
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -65,10 +67,10 @@ theorem transferFromToSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     calldata words and jumps to the transferFrom routine at pc 2938. -/
 theorem uniswapTransferFromX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2938⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2938⟩
       [transferFromValueWord I, transferFromToMaskedWord I, transferFromFromMaskedWord I, ⟨797⟩,
         sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -88,10 +90,10 @@ theorem uniswapTransferFromX_allowanceMaxBranch_masked {σ σ₀ A I} {g : Sat25
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3071⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3071⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
         transferFromFromMaskedWord I :: ⟨797⟩ :: [sel])
       (uniswapApproveHashMem (transferFromFromMaskedWord I) (uniswapSourceWord I))
@@ -113,10 +115,10 @@ theorem uniswapTransferFromX_allowanceMaxToInternal_masked {σ σ₀ A I} {g : S
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
         ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
         transferFromFromMaskedWord I :: ⟨797⟩ :: [sel])
@@ -136,10 +138,10 @@ theorem uniswapTransferFromX_allowanceFiniteToInternal_masked {σ σ₀ A I} {g 
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
         ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
         transferFromFromMaskedWord I :: ⟨797⟩ :: [sel])
@@ -195,10 +197,10 @@ theorem uniswapTransferFromX_allowanceFailure_masked {σ σ₀ A I} {g : Sat256}
       UInt256.size - 1)
     (hlt : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2938⟩ := uniswapTransferFromX_decoded_masked hsz100 hsize hreach
   have hAllowanceWord :
       transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I =
@@ -229,10 +231,10 @@ theorem uniswapTransferFromX_balanceMaxAllowance_masked {σ σ₀ A I} {g : Sat2
       UInt256.size - 1)
     (hlt : (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd7510⟩ := uniswapTransferFromX_allowanceMaxToInternal_masked
     hsz100 hsize hmax hreach
   have hbalanceWord :
@@ -259,7 +261,7 @@ theorem uniswapTransferFromX_balanceMaxAllowance_masked {σ σ₀ A I} {g : Sat2
     simp only [List.length_cons, List.length_nil]
     omega
   obtain ⟨k6879, C6879, rd6879⟩ :
-      ∃ k' C', RD uniswapV2PairBytecode I g
+      ∃ k' C', RD fork uniswapV2PairBytecode I g
         (initState σ σ₀ g A I) ⟨6879⟩
         (transferFromValueWord I ::
           uniswapCodeOwnerStorageWord I σ (mapSlot (transferFromFromMaskedWord I) ⟨1⟩) ::
@@ -303,10 +305,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterDebit_masked {σ σ₀ A I}
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
       (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
         ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
@@ -357,10 +359,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterSenderStore_masked {σ σ₀ A I}
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferFromValueWord I ::
         transferFromToMaskedWord I :: transferFromFromMaskedWord I :: ⟨3082⟩ :: ⟨0⟩ ::
         transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
@@ -391,10 +393,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc_masked {σ σ₀ A I}
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
       (transferFromNewToWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
         ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
@@ -452,10 +454,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditStore_masked {σ σ₀ A I}
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
       (⟨64⟩ :: transferFromToMaskedWord I :: solcAddrMask :: ⟨32⟩ ::
         transferFromValueWord I :: transferFromToMaskedWord I :: transferFromFromMaskedWord I ::
         ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
@@ -489,10 +491,10 @@ theorem uniswapTransferFromX_allowanceMaxAfterTransferEvent_masked {σ σ₀ A I
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToMaskedWord I ::
         transferFromFromMaskedWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferLogMemOf (transferFromFromMaskedWord I) (transferFromToMaskedWord I)
@@ -525,10 +527,10 @@ theorem uniswapX_transferFrom_maxAllowance_masked {σ σ₀ A I} {g : Sat256}
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromMaskedWord I) ⟨1⟩)
           (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I))
@@ -593,10 +595,10 @@ theorem uniswapTransferFromX_overflowMaxAllowance_masked {σ σ₀ A I}
       (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hover : UInt256.size ≤
       transferFromNewToNatMax (initState σ σ₀ g A I) I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd7582⟩ := uniswapTransferFromX_allowanceMaxAfterSenderStore_masked
     hsz100 hsize hperm hmax hbalance hreach
   let σDebit := sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromMaskedWord I) ⟨1⟩)
@@ -629,7 +631,7 @@ theorem uniswapTransferFromX_overflowMaxAllowance_masked {σ σ₀ A I}
     simp only [List.length_cons, List.length_nil]
     omega
   obtain ⟨k8515, C8515, rd8515⟩ :
-      ∃ k' C', RD uniswapV2PairBytecode I g
+      ∃ k' C', RD fork uniswapV2PairBytecode I g
         (initState σ σ₀ g A I) ⟨8515⟩
         (transferFromValueWord I ::
           uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToMaskedWord I) ⟨1⟩) ::
@@ -684,17 +686,17 @@ theorem uniswapTransferFromBodyCoreRevert_allowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hltS : (transferFromCurrentAllowanceWord evmS I).toNat <
       (transferFromValueWord I).toNat := by
     simpa [evmE, evmS] using hlt
   have hbody :
-      ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
+      ExecTransitionBody fork config contract evmS (transferFromStore I) transferFromTransition.body
         .reverted := by
     exact uniswapTransferFromBodyReverts_allowance evmS I
       (by simp only [evmS, initState]; exact hwv) hltS
@@ -719,7 +721,7 @@ theorem uniswapTransferFromBodyRevert_allowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreRevert_allowance_masked hcode hsize hwv hsz100 hnotMax hlt
@@ -742,10 +744,10 @@ theorem uniswapTransferFromBodyCoreRevert_balance_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hmaxS : (transferFromCurrentAllowanceWord evmS I).toNat = UInt256.size - 1 := by
@@ -753,7 +755,7 @@ theorem uniswapTransferFromBodyCoreRevert_balance_maxAllowance_masked
   have hltS : (transferFromFromBalanceWord evmS I).toNat < (transferFromValueWord I).toNat := by
     simpa [evmE, evmS] using hlt
   have hbody :
-      ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
+      ExecTransitionBody fork config contract evmS (transferFromStore I) transferFromTransition.body
         .reverted := by
     exact uniswapTransferFromBodyReverts_balance_maxAllowance evmS I
       (by simp only [evmS, initState]; exact hwv) hmaxS hltS
@@ -778,7 +780,7 @@ theorem uniswapTransferFromBodyRevert_balance_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreRevert_balance_maxAllowance_masked hcode hsize hwv hsz100
@@ -803,10 +805,10 @@ theorem uniswapTransferFromBodyCoreRevert_overflow_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hmaxS : (transferFromCurrentAllowanceWord evmS I).toNat = UInt256.size - 1 := by
@@ -817,7 +819,7 @@ theorem uniswapTransferFromBodyCoreRevert_overflow_maxAllowance_masked
   have hoverS : UInt256.size ≤ transferFromNewToNatMax evmS I := by
     simpa [evmE, evmS] using hover
   have hbody :
-      ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
+      ExecTransitionBody fork config contract evmS (transferFromStore I) transferFromTransition.body
         .reverted := by
     exact uniswapTransferFromBodyReverts_overflow_maxAllowance (hperm := by assumption) evmS I
       (by simp only [evmS, initState]; exact hwv) hmaxS hbalanceS hoverS
@@ -844,7 +846,7 @@ theorem uniswapTransferFromBodyRevert_overflow_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreRevert_overflow_maxAllowance_masked hcode hsize hperm hwv
@@ -870,10 +872,10 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hmaxS : (transferFromCurrentAllowanceWord evmS I).toNat = UInt256.size - 1 := by
@@ -884,7 +886,7 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance_masked
   have hfitS : transferFromNewToNatMax evmS I < UInt256.size := by
     simpa [evmE, evmS] using hfit
   have hbody :
-      ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
+      ExecTransitionBody fork config contract evmS (transferFromStore I) transferFromTransition.body
         (.returned { contract := contract, locals := transferFromStoreToBalanceMax evmS I }
           (transferFromPostStateMax evmS I) (some [(.bool true)])) := by
     exact uniswapTransferFromBodyReturns_maxAllowance (hperm := by assumption) evmS I
@@ -924,7 +926,7 @@ theorem uniswapTransferFromBodyOk_maxAllowance_masked
     (hdecode :
       config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreOk_maxAllowance_masked hcode hsize hperm hwv hsz100 hmax

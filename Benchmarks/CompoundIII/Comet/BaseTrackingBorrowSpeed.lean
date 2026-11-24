@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_025
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `baseTrackingBorrowSpeed()`
 
@@ -24,7 +26,7 @@ theorem baseTrackingBorrowSpeedX {σ σ₀ A I} {g : Sat256} (v : CometWithExten
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 42)) :
-    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    GetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       v.baseTrackingBorrowSpeed.toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachBaseTrackingBorrowSpeedBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -56,7 +58,7 @@ theorem baseTrackingBorrowSpeedX {σ σ₀ A I} {g : Sat256} (v : CometWithExten
 theorem cometWithExtendedAssetListBaseTrackingBorrowSpeedBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 42)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 42) rfl hsel
   exact immutableGetter_refines (t := baseTrackingBorrowSpeedTransition) hcode hsz (cometDecode_empty hsz)

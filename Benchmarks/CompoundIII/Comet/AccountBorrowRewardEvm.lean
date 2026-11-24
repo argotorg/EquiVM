@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AccountDeltaEvm
 import Benchmarks.CompoundIII.Comet.AccountRewardFinishEvm
 import Benchmarks.CompoundIII.Comet.Negate104Evm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,16 +18,16 @@ theorem cometAccountBorrowReward {v : CometWithExtendedAssetListImmutables}
     {basic : UserBasicData} {R : List UInt256}
     (hstack : R.length + 23 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hs : SourceState s0 ee σ evm) (hneg : signed104 principal < 0)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12003⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12003⟩
       (⟨0⟩ :: ptr :: UInt256.signextend (UInt256.ofNat 12) principal ::
         a :: b :: c :: d :: e :: ptr :: R) mem aw rdata σ k C) :
     let reward := accountReward v evm basic principal true
     if AccountRewardValid v evm basic principal true then
       ∃ aw' k' C', UserBasicMemory (accountAccruedMemory mem ptr (basic.accrued + reward)) ptr
           (userBasicWithAccrued basic (basic.accrued + reward)) ∧
-        RD (deployedRuntime v) ee g s0 ⟨11931⟩ (a :: b :: c :: d :: e :: ptr :: R)
+        RD fork (deployedRuntime v) ee g s0 ⟨11931⟩ (a :: b :: c :: d :: e :: ptr :: R)
           (accountAccruedMemory mem ptr (basic.accrued + reward)) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   have hcurrent : UInt256.shiftRight
       (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac ↦ ac.storage.getD ⟨0⟩ ⟨0⟩))

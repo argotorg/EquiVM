@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V3_77901a5.SetupContext
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -33,30 +35,30 @@ theorem safeSetupEventValues (p : SetupInput) (evm : EVM.State) :
 
 theorem safeSetupPrefix (p : SetupInput) (evm : EVM.State) {result : ExecResult}
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
-    (ht : ExecBlock config p.frame evm (setupTransition.body.drop 2) result)
+    (ht : ExecBlock fork config p.frame evm (setupTransition.body.drop 2) result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config p.frame evm setupTransition.body result :=
+    ExecBlock fork config p.frame evm setupTransition.body result :=
   .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consNormal (.emit (hperm := hperm) (safeSetupEventValues p evm)) ht)
 
 theorem safeSetupStatic (p : SetupInput) (evm : EVM.State)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config p.frame evm setupTransition.body .staticViolation :=
+    ExecBlock fork config p.frame evm setupTransition.body .staticViolation :=
   .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consStatic (.emitStatic (safeSetupEventValues p evm) hp))
 
 theorem safeSetupOwnersCall (p : SetupInput) (evm : EVM.State) {locals : Store}
     {result : ExecResult} (hl : SetupLocals p locals)
-    (hb : ExecFuncBody config p.ownersInput.frame evm setupOwnersFunction.body result) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    (hb : ExecFuncBody fork config p.ownersInput.frame evm setupOwnersFunction.body result) :
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "setupOwners" [.var "_owners", .var "_threshold"] "_ownersSetup")
       (internalCallResult { contract := contract, locals := locals } "_ownersSetup" result) :=
   safeInternalSetupOwners rfl rfl (evalLocalValue hl.owners) (evalLocalValue hl.threshold) hb
 
 theorem safeSetupModulesCall (p : SetupInput) (evm : EVM.State) {locals : Store}
     {result : ExecResult} (hl : SetupLocals p locals)
-    (hb : ExecFuncBody config p.modulesInput.frame evm setupModulesFunction.body result) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    (hb : ExecFuncBody fork config p.modulesInput.frame evm setupModulesFunction.body result) :
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "setupModules" [.var "to", .var "data"] "_modulesSetup")
       (internalCallResult { contract := contract, locals := locals } "_modulesSetup" result) :=
   safeInternalSetupModules (p := p.modulesInput) rfl rfl
@@ -65,7 +67,7 @@ theorem safeSetupModulesCall (p : SetupInput) (evm : EVM.State) {locals : Store}
 theorem safeSetupFallbackSkip (p : SetupInput) (evm : EVM.State) {locals : Store}
     (hl : SetupLocals p locals) (hc : p.fallbackHandler.toNat < EVM.addressModulus)
     (hz : p.fallbackHandler = ⟨0⟩) :
-    ExecStmt config { contract := contract, locals := locals } evm setupFallbackStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm setupFallbackStmt
       (.ok { contract := contract, locals := locals } evm) := by
   exact .iteFalse (by simpa only [hz, ne_self_iff_false, decide_false] using
     safeSetupFallbackCondition evm hl hc) .nil
@@ -73,9 +75,9 @@ theorem safeSetupFallbackSkip (p : SetupInput) (evm : EVM.State) {locals : Store
 theorem safeSetupFallbackCall (p : SetupInput) (evm : EVM.State) {locals : Store}
     {result : ExecResult} (hl : SetupLocals p locals)
     (hc : p.fallbackHandler.toNat < EVM.addressModulus) (hn : p.fallbackHandler ≠ ⟨0⟩)
-    (hb : ExecFuncBody config (fallbackHandlerFrame p.fallbackHandler) evm
+    (hb : ExecFuncBody fork config (fallbackHandlerFrame p.fallbackHandler) evm
       internalSetFallbackHandlerFunction.body result) :
-    ExecStmt config { contract := contract, locals := locals } evm setupFallbackStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm setupFallbackStmt
       (internalCallResult { contract := contract, locals := locals } "_fallbackSet" result) := by
   apply ExecStmt.iteTrue (by
     have he := safeSetupFallbackCondition evm hl hc
@@ -86,15 +88,15 @@ theorem safeSetupFallbackCall (p : SetupInput) (evm : EVM.State) {locals : Store
 
 theorem safeSetupPaymentSkip (p : SetupInput) (evm : EVM.State) {locals : Store}
     (hl : SetupLocals p locals) (hz : p.payment = ⟨0⟩) :
-    ExecStmt config { contract := contract, locals := locals } evm setupPaymentStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm setupPaymentStmt
       (.ok { contract := contract, locals := locals } evm) := by
   exact .iteFalse (by simpa only [hz, ne_self_iff_false, decide_false] using
     safeSetupPaymentCondition evm hl) .nil
 
 theorem safeSetupPaymentCall (p : SetupInput) (evm : EVM.State) {locals : Store}
     {result : ExecResult} (hl : SetupLocals p locals) (hn : p.payment ≠ ⟨0⟩)
-    (hb : ExecFuncBody config p.paymentInput.frame evm handlePaymentFunction.body result) :
-    ExecStmt config { contract := contract, locals := locals } evm setupPaymentStmt
+    (hb : ExecFuncBody fork config p.paymentInput.frame evm handlePaymentFunction.body result) :
+    ExecStmt fork config { contract := contract, locals := locals } evm setupPaymentStmt
       (internalCallResult { contract := contract, locals := locals } "_paymentDone" result) := by
   apply ExecStmt.iteTrue (by
     have he := safeSetupPaymentCondition evm hl

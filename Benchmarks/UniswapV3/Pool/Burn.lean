@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BurnBodyTrace
 import Benchmarks.UniswapV3.Pool.BurnCalldata
 import Benchmarks.UniswapV3.Pool.BurnLockTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `burn(int24,int24,uint128)`
 
@@ -23,7 +25,7 @@ theorem uniswapV3PoolBurnBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolImm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 17) rfl hsel
   have hd : dispatchMsg contract I.calldata = some burnTransition := by
     apply uniswapV3PoolDispatch_burn <;>

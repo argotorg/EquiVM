@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapCrossTickSource
 import Benchmarks.UniswapV3.Pool.SwapTickStore
 import Benchmarks.UniswapV3.Pool.SwapIterationStartTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,13 +15,13 @@ theorem swapCrossTickLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3893⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3893⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem q d)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3917⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3917⟩
         ((if a.zeroForOne then UInt256.sub (EVM.wordOfInt d.tickNext) (UInt256.ofNat 1)
             else EVM.wordOfInt d.tickNext) :: q ::
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
@@ -57,7 +59,7 @@ theorem swapCrossTickX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3893⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3893⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -66,7 +68,7 @@ theorem swapCrossTickX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hp : 96 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
     ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3993⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3993⟩
         (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free ∧
       SwapStateMemory mem' p (swapCrossTickState a.zeroForOne s d) ∧

@@ -1,5 +1,7 @@
 import Reasoning.ExternalCall
 import Examples.UniswapV2Pair.UpdateSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -77,14 +79,14 @@ theorem uniswapSyncLockEnterPrefix (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm lockEnter
+    ExecBlock fork config { contract := contract, locals := ∅ } evm lockEnter
       (.ok { contract := contract, locals := ∅ } (uniswapLockEnteredState evm)) := by
   exact uniswapLockEnterPrefix (hperm := by assumption) evm ∅ hwv (by simp) hunlocked
 
 theorem uniswapSyncNonpayableSource (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hlock := uniswapLockEnterNonpayableRevert evm ∅ hwv
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hlock := uniswapLockEnterNonpayableRevert (fork := fork) evm ∅ hwv
   simpa [syncTransition, List.append_assoc] using
     (execBlock_append_term
       (s2 := syncBalanceCallsBody ++
@@ -94,8 +96,8 @@ theorem uniswapSyncNonpayableSource (evm : EVM.State)
 theorem uniswapSyncLockedSource (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hlock := uniswapLockEnterLockedRevert evm ∅ hwv (by simp) hlocked
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hlock := uniswapLockEnterLockedRevert (fork := fork) evm ∅ hwv (by simp) hlocked
   simpa [syncTransition, List.append_assoc] using
     (execBlock_append_term
       (s2 := syncBalanceCallsBody ++
@@ -107,21 +109,21 @@ theorem uniswapSyncBalanceOfCallsPrefix (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [balance1])
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       (.ok (uniswapBalanceOfFrame ∅ balance0 balance1) evm1) := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
   have hcalls := uniswapCheckedTokenBalanceOfThisCallsPrefix
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (evm1 := evm1) (locals := ∅)
     (balance0 := balance0) (balance1 := balance1)
@@ -132,15 +134,15 @@ theorem uniswapSyncBalanceOfFirstCallFailure (evm evm0 : EVM.State) {out0 : Byte
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (false, evm0, out0) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       .reverted := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
   have hfail := uniswapCheckedTokenBalanceOfThisFirstCallFailure
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (locals := ∅)
     hguard0 (by simp) hcall0
@@ -151,11 +153,11 @@ theorem uniswapSyncBalanceOfFirstCallNoCode (evm : EVM.State)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardFalse evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       .reverted := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
-  have hfail := uniswapCheckedTokenBalanceOfThisFirstCallNoCode
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
+  have hfail := uniswapCheckedTokenBalanceOfThisFirstCallNoCode (fork := fork)
     (evm := uniswapLockEnteredState evm) (locals := ∅) hguard0
   simpa [syncBalanceCallsBody] using execBlock_append hlock hfail
 
@@ -163,16 +165,16 @@ theorem uniswapSyncBalanceOfFirstCallDecodeRevert (evm evm0 : EVM.State) {out0 :
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       .reverted := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
   have hfail := uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (locals := ∅)
     hguard0 (by simp) hcall0 hdec0
@@ -183,20 +185,20 @@ theorem uniswapSyncBalanceOfSecondCallFailure (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       .reverted := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
   have hfail := uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (evm1 := evm1) (locals := ∅)
     (balance0 := balance0)
@@ -208,21 +210,21 @@ theorem uniswapSyncBalanceOfSecondCallDecodeRevert (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
+    ExecBlock fork config { contract := contract, locals := ∅ } evm
       (lockEnter ++ syncBalanceCallsBody)
       .reverted := by
-  have hlock := uniswapSyncLockEnterPrefix (hperm := by assumption) evm hwv hunlocked
+  have hlock := uniswapSyncLockEnterPrefix (fork := fork) (hperm := by assumption) evm hwv hunlocked
   have hfail := uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (evm1 := evm1) (locals := ∅)
     (balance0 := balance0)
@@ -233,13 +235,13 @@ theorem uniswapSyncFirstCallFailureSource (evm evm0 : EVM.State) {out0 : ByteArr
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (false, evm0, out0) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hprefix := uniswapSyncBalanceOfFirstCallFailure (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hprefix := uniswapSyncBalanceOfFirstCallFailure (fork := fork) (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0
   simpa [syncTransition, syncBalanceCallsBody, List.append_assoc] using
     (execBlock_append_term
       (s2 := updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit)
@@ -250,8 +252,8 @@ theorem uniswapSyncFirstCallNoCodeSource (evm : EVM.State)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardFalse evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hprefix := uniswapSyncBalanceOfFirstCallNoCode (hperm := by assumption) evm hwv hunlocked hguard0
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hprefix := uniswapSyncBalanceOfFirstCallNoCode (fork := fork) (hperm := by assumption) evm hwv hunlocked hguard0
   simpa [syncTransition, syncBalanceCallsBody, List.append_assoc] using
     (execBlock_append_term
       (s2 := updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit)
@@ -261,13 +263,13 @@ theorem uniswapSyncFirstCallDecodeRevertSource (evm evm0 : EVM.State) {out0 : By
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
   have hprefix :=
     uniswapSyncBalanceOfFirstCallDecodeRevert (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0 hdec0
   simpa [syncTransition, syncBalanceCallsBody, List.append_assoc] using
@@ -280,17 +282,17 @@ theorem uniswapSyncSecondCallFailureSource (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
   have hprefix :=
     uniswapSyncBalanceOfSecondCallFailure (hperm := by assumption) evm evm0 evm1 hwv hunlocked
       hguard0 hcall0 hdec0 hguard1 hcall1
@@ -304,19 +306,19 @@ theorem uniswapSyncSecondCallDecodeRevertSource (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hprefix := uniswapSyncBalanceOfSecondCallDecodeRevert (hperm := by assumption)
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hprefix := uniswapSyncBalanceOfSecondCallDecodeRevert (fork := fork) (hperm := by assumption)
     evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   simpa [syncTransition, syncBalanceCallsBody, List.append_assoc] using
     (execBlock_append_term
@@ -328,27 +330,27 @@ theorem uniswapSyncFirstBoundFailureSource (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
       some [uniswapUint256Value balance1])
     (hbound0 : maxUint112 < Int.ofNat balance0.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hbalances := uniswapSyncBalanceOfCallsPrefix (hperm := by assumption)
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hbalances := uniswapSyncBalanceOfCallsPrefix (fork := fork) (hperm := by assumption)
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
     (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   have hupdate :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+      ExecBlock fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
         (updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit) .reverted := by
     exact ExecBlock.consRevert
       (uniswapSyncUpdateCallReverts_firstBound evm1 balance0 balance1 hbound0)
@@ -360,14 +362,14 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -375,13 +377,13 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hbalances := uniswapSyncBalanceOfCallsPrefix (hperm := by assumption)
+    ExecBlock fork config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
+  have hbalances := uniswapSyncBalanceOfCallsPrefix (fork := fork) (hperm := by assumption)
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
     (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   have hupdate :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+      ExecBlock fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
         (updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit) .reverted := by
     exact ExecBlock.consRevert
       (uniswapSyncUpdateCallReverts_secondBound evm1 balance0 balance1 hbound0 hbound1)
@@ -392,21 +394,21 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
 
 theorem uniswapSyncBodyReverts_nonpayable (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (uniswapSyncNonpayableSource evm hwv)
 
 theorem uniswapSyncBodyReverts_locked (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (uniswapSyncLockedSource evm hwv hlocked)
 
 theorem uniswapSyncBodyStatic (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .staticViolation := by
-  have hlock := uniswapLockEnterStatic evm ∅ hwv (by simp) hunlocked hperm
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .staticViolation := by
+  have hlock := uniswapLockEnterStatic (fork := fork) evm ∅ hwv (by simp) hunlocked hperm
   exact ExecFuncBody.execBlockStatic (by
     simpa [syncTransition, List.append_assoc] using
       (execBlock_append_term
@@ -419,55 +421,55 @@ theorem uniswapSyncBodyReverts_firstNoCode (evm : EVM.State)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardFalse evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncFirstCallNoCodeSource (hperm := by assumption) evm hwv hunlocked hguard0)
+    (uniswapSyncFirstCallNoCodeSource (fork := fork) (hperm := by assumption) evm hwv hunlocked hguard0)
 
 theorem uniswapSyncBodyReverts_firstCallFailure (evm evm0 : EVM.State) {out0 : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (false, evm0, out0) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncFirstCallFailureSource (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0)
+    (uniswapSyncFirstCallFailureSource (fork := fork) (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0)
 
 theorem uniswapSyncBodyReverts_firstCallDecode (evm evm0 : EVM.State) {out0 : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncFirstCallDecodeRevertSource (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0 hdec0)
+    (uniswapSyncFirstCallDecodeRevertSource (fork := fork) (hperm := by assumption) evm evm0 hwv hunlocked hguard0 hcall0 hdec0)
 
 theorem uniswapSyncBodyReverts_secondCallFailure (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 : Value}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncSecondCallFailureSource (hperm := by assumption) evm evm0 evm1 hwv hunlocked
+    (uniswapSyncSecondCallFailureSource (fork := fork) (hperm := by assumption) evm evm0 evm1 hwv hunlocked
       hguard0 hcall0 hdec0 hguard1 hcall1)
 
 theorem uniswapSyncBodyReverts_secondCallDecode (evm evm0 evm1 : EVM.State)
@@ -475,20 +477,20 @@ theorem uniswapSyncBodyReverts_secondCallDecode (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : syncToken1GuardTrue evm0 balance0)
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncSecondCallDecodeRevertSource (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
+    (uniswapSyncSecondCallDecodeRevertSource (fork := fork) (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
       hguard1 hcall1 hdec1)
 
 theorem uniswapSyncBodyReverts_firstBoundFailure (evm evm0 evm1 : EVM.State)
@@ -496,23 +498,23 @@ theorem uniswapSyncBodyReverts_firstBoundFailure (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
       some [uniswapUint256Value balance1])
     (hbound0 : maxUint112 < Int.ofNat balance0.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncFirstBoundFailureSource (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
+    (uniswapSyncFirstBoundFailureSource (fork := fork) (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
       hguard1 hcall1 hdec1 hbound0)
 
 theorem uniswapSyncBodyReverts_secondBoundFailure (evm evm0 evm1 : EVM.State)
@@ -520,14 +522,14 @@ theorem uniswapSyncBodyReverts_secondBoundFailure (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -535,9 +537,9 @@ theorem uniswapSyncBodyReverts_secondBoundFailure (evm evm0 evm1 : EVM.State)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert
-    (uniswapSyncSecondBoundFailureSource (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
+    (uniswapSyncSecondBoundFailureSource (fork := fork) (hperm := by assumption) evm evm0 evm1 hwv hunlocked hguard0 hcall0 hdec0
       hguard1 hcall1 hdec1 hbound0 hbound1)
 
 theorem uniswapSyncBodyReturns_conditionFalse (evm evm0 evm1 : EVM.State)
@@ -545,14 +547,14 @@ theorem uniswapSyncBodyReturns_conditionFalse (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -570,26 +572,26 @@ theorem uniswapSyncBodyReturns_conditionFalse (evm evm0 evm1 : EVM.State)
             (.binary .ne (.var "_reserve1") (.intLit 0)))) = .ok (.bool false))
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm2 : EVM.State,
-      ExecTransitionBody config contract evm ∅ syncTransition.body
+      ExecTransitionBody fork config contract evm ∅ syncTransition.body
         (.returned
           (syncAfterUpdateFrame balance0 balance1)
           (uniswapLockExitedState evm2) none) := by
   have hperm1 : evm1.executionEnv.perm = true := by
     rw [typedCallViaEVM_executionEnv_eq hcall1, typedCallViaEVM_executionEnv_eq hcall0]
     simpa [uniswapLockEnteredState, uniswapUnlockedState] using hperm
-  have hbalances := uniswapSyncBalanceOfCallsPrefix (hperm := by assumption)
+  have hbalances := uniswapSyncBalanceOfCallsPrefix (fork := fork) (hperm := by assumption)
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
     (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   obtain ⟨evm2, henv2, hupdateStmt⟩ :=
     uniswapSyncUpdateCallReturns_conditionFalse (hperm := by assumption) evm1 balance0 balance1 hbound0 hbound1 hcond
   have hupdateBlock :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+      ExecBlock fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
         (updateReservesStmts (.var "balance0") (.var "balance1"))
         (.ok (syncAfterUpdateFrame balance0 balance1) evm2) := by
     simpa [updateReservesStmts] using
       (ExecBlock.consNormal hupdateStmt ExecBlock.nil)
-  have hlock := uniswapLockExitSuffix (hperm := by simpa only [henv2] using hperm1) evm2 (syncAfterUpdateStore balance0 balance1)
+  have hlock := uniswapLockExitSuffix (fork := fork) (hperm := by simpa only [henv2] using hperm1) evm2 (syncAfterUpdateStore balance0 balance1)
     (by simp [syncAfterUpdateStore, syncBalanceStore, uniswapBalanceOfStore])
   have htail := execBlock_append hupdateBlock hlock
   have hbody := execBlock_append hbalances htail
@@ -601,14 +603,14 @@ theorem uniswapSyncBodyReturns_elapsedZero (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -618,7 +620,7 @@ theorem uniswapSyncBodyReturns_elapsedZero (evm evm0 evm1 : EVM.State)
     (helapsed : syncTimeElapsedInt evm1 = 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm2 : EVM.State,
-      ExecTransitionBody config contract evm ∅ syncTransition.body
+      ExecTransitionBody fork config contract evm ∅ syncTransition.body
         (.returned
           (syncAfterUpdateFrame balance0 balance1)
           (uniswapLockExitedState evm2) none) := by
@@ -631,14 +633,14 @@ theorem uniswapSyncBodyReturns_conditionTrue (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -650,14 +652,14 @@ theorem uniswapSyncBodyReturns_conditionTrue (evm evm0 evm1 : EVM.State)
     (hreserve1 : Int.ofNat (uniswapReserve1Word evm1).toNat ≠ 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm2 : EVM.State,
-      ExecTransitionBody config contract evm ∅ syncTransition.body
+      ExecTransitionBody fork config contract evm ∅ syncTransition.body
         (.returned
           (syncAfterUpdateFrame balance0 balance1)
           (uniswapLockExitedState evm2) none) := by
   have hperm1 : evm1.executionEnv.perm = true := by
     rw [typedCallViaEVM_executionEnv_eq hcall1, typedCallViaEVM_executionEnv_eq hcall0]
     simpa [uniswapLockEnteredState, uniswapUnlockedState] using hperm
-  have hbalances := uniswapSyncBalanceOfCallsPrefix (hperm := by assumption)
+  have hbalances := uniswapSyncBalanceOfCallsPrefix (fork := fork) (hperm := by assumption)
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
     (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
@@ -665,12 +667,12 @@ theorem uniswapSyncBodyReturns_conditionTrue (evm evm0 evm1 : EVM.State)
     uniswapSyncUpdateCallReturns_conditionTrue (hperm := by assumption) evm1 balance0 balance1 hbound0 hbound1
       helapsed hreserve0 hreserve1
   have hupdateBlock :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+      ExecBlock fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
         (updateReservesStmts (.var "balance0") (.var "balance1"))
         (.ok (syncAfterUpdateFrame balance0 balance1) evm2) := by
     simpa [updateReservesStmts] using
       (ExecBlock.consNormal hupdateStmt ExecBlock.nil)
-  have hlock := uniswapLockExitSuffix (hperm := by simpa only [henv2] using hperm1) evm2 (syncAfterUpdateStore balance0 balance1)
+  have hlock := uniswapLockExitSuffix (fork := fork) (hperm := by simpa only [henv2] using hperm1) evm2 (syncAfterUpdateStore balance0 balance1)
     (by simp [syncAfterUpdateStore, syncBalanceStore, uniswapBalanceOfStore])
   have htail := execBlock_append hupdateBlock hlock
   have hbody := execBlock_append hbalances htail
@@ -682,14 +684,14 @@ theorem uniswapSyncBodyReturns (evm evm0 evm1 : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
       some [uniswapUint256Value balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
@@ -698,7 +700,7 @@ theorem uniswapSyncBodyReturns (evm evm0 evm1 : EVM.State)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm2 : EVM.State,
-      ExecTransitionBody config contract evm ∅ syncTransition.body
+      ExecTransitionBody fork config contract evm ∅ syncTransition.body
         (.returned
           (syncAfterUpdateFrame balance0 balance1)
           (uniswapLockExitedState evm2) none) := by
@@ -731,10 +733,10 @@ theorem uniswapSyncBodyCoreRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedStele :
       Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
@@ -742,7 +744,7 @@ theorem uniswapSyncBodyCoreRevert_locked
       Account.lookupStorage] using hlocked
   have hdecode := uniswapDecode_sync (I := I) hsz4
   have hbody :
-      ExecTransitionBody config contract evmS ∅ syncTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS ∅ syncTransition.body .reverted := by
     exact uniswapSyncBodyReverts_locked evmS
       (by simp only [evmS, initState]; exact hwv)
       hlockedStele
@@ -763,7 +765,7 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
           (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hunlockedStele :
       Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
@@ -772,7 +774,7 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
   have hguard0 : syncToken0GuardFalse evmS :=
     syncToken0GuardFalse_initState_of_noCode htoken0NoCode
   have hbody :
-      ExecTransitionBody config contract evmS ∅ syncTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS ∅ syncTransition.body .reverted := by
     exact uniswapSyncBodyReverts_firstNoCode (hperm := by assumption) evmS
       (by simp only [evmS, initState]; exact hwv)
       hunlockedStele hguard0
@@ -792,7 +794,7 @@ theorem uniswapSyncBodyRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
   exact uniswapSyncBodyCoreRevert_locked hcode hwv hsz4 hlocked hdispatch
@@ -812,7 +814,7 @@ theorem uniswapSyncBodyRevert_firstNoCode
           (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact uniswapSyncBodyCoreRevert_firstNoCode hcode hsize hperm hwv hsel
     hunlocked htoken0NoCode hdispatch
 

@@ -2,23 +2,25 @@ import Benchmarks.Auction.BidSource
 import Benchmarks.Auction.BidErrors
 import Benchmarks.Auction.BidSnapshot
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem bidInitialChecks {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨1282⟩ (ptr :: Snapshot.nounId s :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1282⟩ (ptr :: Snapshot.nounId s :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hm : SnapshotMemory s mem aw ptr)
     (hv : BidValues locals s noun) (hov : R.length + 10 ≤ 1024) :
     (∃ k' C',
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         bidInitialGuardStmts (.ok { contract := auctionContract, locals := locals } evm) ∧
       (UInt256.ofNat I.header.timestamp).toNat < s.endTime.toNat ∧
-      RD auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
         mem aw rdata σ k' C') ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      bidInitialGuardStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      bidInitialGuardStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have he := bidNounGuardSource (evm := evm) hv
   have rd1288 := evm_run h with [swap1, dup3, eq, push2 ⟨1360⟩]
   by_cases hn : s.nounId = noun
@@ -39,7 +41,7 @@ theorem bidInitialChecks {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals
       have hr := bidReserveGuardSource hs hv
       have rd1432 := evm_run rd1429 with [jumpdest, push1 ⟨204⟩]
       obtain ⟨_, _, rd1433⟩ := rd1432.sload (by native_decide) (by evm_ov)
-      change RD _ _ _ _ ⟨1433⟩ (solcSlotWord σ I ⟨204⟩ :: ptr :: noun :: ret :: R)
+      change RD fork _ _ _ _ ⟨1433⟩ (solcSlotWord σ I ⟨204⟩ :: ptr :: noun :: ret :: R)
         mem aw rdata σ _ _ at rd1433
       have rd1439 := evm_run rd1433 with [callvalue, lt, iszero, push2 ⟨1511⟩]
       by_cases hres : (solcSlotWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat

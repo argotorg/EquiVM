@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestLoopLocals
 import Benchmarks.EAS.EAS.AttestIterationSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -22,11 +24,11 @@ theorem attestFinishSource {L imms : Store} {evm evm' : EVM.State} {old heap : N
     {uids : List UInt256} {oldUsed used : UInt256}
     (hr : L.get? "res" = some (attestationsResultValue uids oldUsed))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat old)))
-    (hc : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    (hc : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "_resolveAttestations" attestResolveArgs "__c5$allocation")
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} "__c5$allocation"
         (some [.int (Int.ofNat used.toNat),.int (Int.ofNat heap)])) evm')) :
-    ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm attestFinishBody
+    ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm attestFinishBody
       (.returned {contract := contract,locals := attestFinishLocals L uids used heap,immutables := imms} evm'
         (some [attestationsResultValue uids used,.int (Int.ofNat heap)])) := by
   have hcall := heapResultBlock_ok (result := "__c5") hc hh (by decide) (by decide) (by decide)
@@ -37,10 +39,10 @@ theorem attestFinishSource {L imms : Store} {evm evm' : EVM.State} {old heap : N
     (heapResultLocals_get _ _ _ _ _ _ _ (by decide) (by decide) (by decide)).trans hr
   have hv1 : L1.get? "__c5" = some (.int (Int.ofNat used.toNat)) := heapResultLocals_result _ _ _ _ _ _ (by decide)
   have hh1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) := heapResultLocals_heap _ _ _ _ _ _
-  change ExecBlock config {contract := contract,locals := L1,immutables := imms} evm' _
+  change ExecBlock fork config {contract := contract,locals := L1,immutables := imms} evm' _
     (.returned {contract := contract,locals := L1.insert "res" (attestationsResultValue uids used),immutables := imms}
       evm' (some [attestationsResultValue uids used,.int (Int.ofNat heap)]))
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat used.toNat))
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat used.toNat))
     (stele' := {contract := contract,locals := L1.insert "res" (attestationsResultValue uids used),immutables := imms})
     (evm' := evm')
     (by simp only [evalExpr?,hv1,EvalResult.ofOption]) ?_) ?_

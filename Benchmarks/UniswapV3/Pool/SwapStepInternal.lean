@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepSource
 import Benchmarks.UniswapV3.Pool.SwapStepTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem swapStepInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (a : SwapStepArgs) (caller : Frame) (evm : EVM.State) (args : List Expr) (retVar : Ident)
     (hf : caller = {contract := contract, locals := caller.locals, immutables := immStore v})
     (he : evalExprs? config caller evm args = .ok a.values)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12447⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12447⟩
       (swapStepRawWords a currentRaw targetRaw liquidityRaw feeRaw ++ ret :: R)
       mem aw rdata σ k C)
     (ha : a.Fits)
@@ -21,14 +23,14 @@ theorem swapStepInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hfee : UInt256.land feeRaw (UInt256.ofNat (2 ^ 24 - 1)) = a.fee)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 50 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "SwapMath_computeSwapStep" args retVar) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall "SwapMath_computeSwapStep" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "SwapMath_computeSwapStep" args retVar) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall "SwapMath_computeSwapStep" args retVar)
       (.ok (resumeAfterInternalCall caller retVar (some (swapStepResults a))) evm) ∧
       swapStepValid a ∧
       UInt256.land (swapStepRawPrice a currentRaw targetRaw) (UInt256.ofNat (2 ^ 160 - 1)) =
         swapStepPrice a ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (swapStepRawResults a currentRaw targetRaw ++ R) mem aw rdata σ k' C') := by
   have hframe : {caller with locals := swapStepLocals a} = swapStepFrame (immStore v) a := by
     rw [hf]

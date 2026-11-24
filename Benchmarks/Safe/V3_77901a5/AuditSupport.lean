@@ -1,6 +1,10 @@
 import Benchmarks.Safe.V3_77901a5.Bytecode
 import Stele.Refine
 
+
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 Executable differential-audit support, not a proof of refinement. The bytecode side uses EVM
 `Xstep`; the AST side uses Stele's expression, storage, dispatch, and ABI implementations. Calls
@@ -30,7 +34,7 @@ def trace (initial : State) (fuel : Nat := 100000) : Trace := Id.run do
   let mut gas := []
   for _ in [:fuel] do
     let opcode := (decode state.executionEnv.code state.machineState.pc).map Prod.fst
-    match Xstep jumps state with
+    match Xstep fork jumps state with
     | .error e => return { result := .error e, calls := calls.reverse, gas := gas.reverse }
     | .ok (next, halt) =>
       if opcode == some .GAS then

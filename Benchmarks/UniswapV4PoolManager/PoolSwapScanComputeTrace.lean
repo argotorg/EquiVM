@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapScanMemoryTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapComputeMemoryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,7 +20,7 @@ theorem poolSwapScanComputeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (htc : int24Canonical r.tick) (hspacing : int24Canonical p.tickSpacing)
     (hprice : r.price.toNat < 2^160) (hlimit : p.priceLimit.toNat < 2^160)
     (hliq : r.liquidity.toNat < 2^128) (hfee : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨19169⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19169⟩
       ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
         step, poolSlot id, state] ++ R) mem aw rdata evm.accountMap k C) :
     let scan := poolSwapScanStep s evm id r p
@@ -26,14 +28,14 @@ theorem poolSwapScanComputeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     let w := swapStepWord r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee
     (swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee →
       ∃ mem' k' C', C ≤ C' ∧
-        RD (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
+        RD fork (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
           ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
             step, poolSlot id, state] ++ R) mem' (poolSwapScanComputeAW aw step state params) rdata evm.accountMap k' C' ∧
         PoolSwapMemoryView mem' step state params
           (poolSwapComputeStep {scan with tickNext := tickClampWord scan.tickNext} next w) {r with price := w.next} p ∧
         MemoryWindowEq mem mem' 64 (min step.toNat state.toNat)) ∧
     (¬swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee →
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   dsimp only
   let scan := poolSwapScanStep s evm id r p
   let next := tickSqrtPrice (EVM.signed (tickClampWord scan.tickNext))

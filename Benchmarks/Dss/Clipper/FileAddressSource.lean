@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.FileAddressBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -12,7 +14,7 @@ theorem clipperFileAddressAuthSourceReverts {σ σ₀ A I} {g : UInt256}
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩) :
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
@@ -22,7 +24,7 @@ theorem clipperFileAddressAuthSourceReverts {σ σ₀ A I} {g : UInt256}
       State.lookupAccount] using
       evalExpr_clipperFileAddress_auth_false v evm0 I (by simp [evm0, initState]) hauth
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body .reverted := by
     simpa [fileAddressTransition, nonpayable, auth, lockPrefix] using
       nonpayableSecondRequireReverts
@@ -51,7 +53,7 @@ theorem clipperFileAddressLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
@@ -66,7 +68,7 @@ theorem clipperFileAddressLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [locals, evm0, solcSlotWord, initState, Stele.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperFileAddress_locked_zero_false v evm0 I hlocked
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -83,10 +85,10 @@ theorem clipperFileAddressSpotterSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨3⟩ (clipperFileAddressDataMaskedWord I)
     (I.perm = true → clipperFileAddressWhat I = clipperFileAddressSpotterBytes →
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals
+      ExecTransitionBody fork config contract evm0 locals
         fileAddressTransition.body .staticViolation (immStore v)) := by
   intro locals evm0 evm2
   let evmLock := clipperFileAddressLockedState evm0
@@ -115,9 +117,9 @@ theorem clipperFileAddressSpotterSourceBodySplit {σ σ₀ A I} {g : UInt256}
     simpa [locals, evmLock, clipperFileAddressLockedState] using
       assign_clipperFileAddress_locked v evm0 I ⟨1⟩
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         (fileAddressTransition.body.drop 3) result) :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -145,10 +147,10 @@ theorem clipperFileAddressSpotterSourceBodySplit {σ σ₀ A I} {g : UInt256}
             .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmStore) := by
       simpa [locals, evmStore] using assign_clipperFileAddress_spotter v evmLock I
     have hthen :
-        ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+        ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
           [.assign .storage spotterRef (.var "data")]
           (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hspotterAssign) ExecBlock.nil
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hspotterAssign) ExecBlock.nil
     have hunlockRhs :
         evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmStore (.intLit 0) =
           .ok (.int 0) := by
@@ -161,7 +163,7 @@ theorem clipperFileAddressSpotterSourceBodySplit {σ σ₀ A I} {g : UInt256}
         storageStore_executionEnv, clipperFileAddressLockedState] using
         assign_clipperFileAddress_locked v evmStore I ⟨0⟩
     have hrest :
-        ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+        ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
           [.ite (.binary .eq (.var "what") spotterParamLit)
             [.assign .storage spotterRef (.var "data")]
             [.ite (.binary .eq (.var "what") dogParamLit)
@@ -174,12 +176,12 @@ theorem clipperFileAddressSpotterSourceBodySplit {σ σ₀ A I} {g : UInt256}
             .assign .storage lockedRef (.intLit 0)]
           (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
       exact ExecBlock.consNormal (ExecStmt.iteTrue hspotterCond hthen)
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
     have hblock :
-        ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
           fileAddressTransition.body (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
       apply hprefix
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
     simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
   · intro hperm
     exact ExecFuncBody.execBlockStatic (hprefix
@@ -195,7 +197,7 @@ theorem clipperFileAddressSpotterSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨3⟩ (clipperFileAddressDataMaskedWord I)
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) :=
   (clipperFileAddressSpotterSourceBodySplit v hwv hauth hlocked).1 hperm hwhat
 
@@ -210,7 +212,7 @@ theorem clipperFileAddressDogSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨1⟩ (clipperFileAddressDataMaskedWord I)
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
   intro locals evm0 evm2
   let evmLock := clipperFileAddressLockedState evm0
@@ -264,12 +266,12 @@ theorem clipperFileAddressDogSourceBody {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmStore) := by
     simpa [locals, evmStore] using assign_clipperFileAddress_dog v evmLock I
   have hthen :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.assign .storage dogRef (.var "data")]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hdogAssign) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hdogAssign) ExecBlock.nil
   have hdogElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") dogParamLit)
           [.assign .storage dogRef (.var "data")]
           [.ite (.binary .eq (.var "what") vowParamLit)
@@ -291,7 +293,7 @@ theorem clipperFileAddressDogSourceBody {σ σ₀ A I} {g : UInt256}
       storageStore_executionEnv, clipperFileAddressLockedState] using
       assign_clipperFileAddress_locked v evmStore I ⟨0⟩
   have hrest :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") spotterParamLit)
           [.assign .storage spotterRef (.var "data")]
           [.ite (.binary .eq (.var "what") dogParamLit)
@@ -304,15 +306,15 @@ theorem clipperFileAddressDogSourceBody {σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     exact ExecBlock.consNormal (ExecStmt.iteFalse hspotterCond hdogElse)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
@@ -327,7 +329,7 @@ theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨2⟩ (clipperFileAddressDataMaskedWord I)
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
   intro locals evm0 evm2
   let evmLock := clipperFileAddressLockedState evm0
@@ -388,12 +390,12 @@ theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmStore) := by
     simpa [locals, evmStore] using assign_clipperFileAddress_vow v evmLock I
   have hthen :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.assign .storage vowRef (.var "data")]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hvowAssign) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hvowAssign) ExecBlock.nil
   have hvowElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") vowParamLit)
           [.assign .storage vowRef (.var "data")]
           [.ite (.binary .eq (.var "what") calcParamLit)
@@ -402,7 +404,7 @@ theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
     exact ExecBlock.consNormal (ExecStmt.iteTrue hvowCond hthen) ExecBlock.nil
   have hdogElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") dogParamLit)
           [.assign .storage dogRef (.var "data")]
           [.ite (.binary .eq (.var "what") vowParamLit)
@@ -424,7 +426,7 @@ theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
       storageStore_executionEnv, clipperFileAddressLockedState] using
       assign_clipperFileAddress_locked v evmStore I ⟨0⟩
   have hrest :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") spotterParamLit)
           [.assign .storage spotterRef (.var "data")]
           [.ite (.binary .eq (.var "what") dogParamLit)
@@ -437,15 +439,15 @@ theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     exact ExecBlock.consNormal (ExecStmt.iteFalse hspotterCond hdogElse)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
@@ -461,7 +463,7 @@ theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨4⟩ (clipperFileAddressDataMaskedWord I)
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
   intro locals evm0 evm2
   let evmLock := clipperFileAddressLockedState evm0
@@ -529,19 +531,19 @@ theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmStore) := by
     simpa [locals, evmStore] using assign_clipperFileAddress_calc v evmLock I
   have hthen :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.assign .storage calcRef (.var "data")]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hcalcAssign) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hdata hcalcAssign) ExecBlock.nil
   have hcalcElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") calcParamLit)
           [.assign .storage calcRef (.var "data")]
           [.require (.boolLit false)]]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
     exact ExecBlock.consNormal (ExecStmt.iteTrue hcalcCond hthen) ExecBlock.nil
   have hvowElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") vowParamLit)
           [.assign .storage vowRef (.var "data")]
           [.ite (.binary .eq (.var "what") calcParamLit)
@@ -550,7 +552,7 @@ theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := locals, immutables := immStore v } evmStore) := by
     exact ExecBlock.consNormal (ExecStmt.iteFalse hvowCond hcalcElse) ExecBlock.nil
   have hdogElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") dogParamLit)
           [.assign .storage dogRef (.var "data")]
           [.ite (.binary .eq (.var "what") vowParamLit)
@@ -572,7 +574,7 @@ theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
       storageStore_executionEnv, clipperFileAddressLockedState] using
       assign_clipperFileAddress_locked v evmStore I ⟨0⟩
   have hrest :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") spotterParamLit)
           [.assign .storage spotterRef (.var "data")]
           [.ite (.binary .eq (.var "what") dogParamLit)
@@ -585,15 +587,15 @@ theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     exact ExecBlock.consNormal (ExecStmt.iteFalse hspotterCond hdogElse)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hunlockRhs hunlockAssign) ExecBlock.nil)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body (.ok { contract := contract, locals := locals, immutables := immStore v } evm2) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmStore, evmLock, clipperFileAddressLockedState, storageStore_executionEnv, evm0, initState] using hperm)) hlockRhs hlockAssign) hrest
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
@@ -608,7 +610,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       .reverted (immStore v) := by
   intro locals evm0
   let evmLock := clipperFileAddressLockedState evm0
@@ -666,7 +668,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         (.boolLit false) = .ok (.bool false) := by
     simp [evalExpr?, pure]
   have hcalcElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") calcParamLit)
           [.assign .storage calcRef (.var "data")]
           [.require (.boolLit false)]]
@@ -674,7 +676,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.iteFalse hcalcCond
       (ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)))
   have hvowElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") vowParamLit)
           [.assign .storage vowRef (.var "data")]
           [.ite (.binary .eq (.var "what") calcParamLit)
@@ -683,7 +685,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.iteFalse hvowCond hcalcElse)
   have hdogElse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") dogParamLit)
           [.assign .storage dogRef (.var "data")]
           [.ite (.binary .eq (.var "what") vowParamLit)
@@ -694,7 +696,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.iteFalse hdogCond hvowElse)
   have hrest :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evmLock
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evmLock
         [.ite (.binary .eq (.var "what") spotterParamLit)
           [.assign .storage spotterRef (.var "data")]
           [.ite (.binary .eq (.var "what") dogParamLit)
@@ -708,13 +710,13 @@ theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.iteFalse hspotterCond hdogElse)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) hrest
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) hrest
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 end Benchmarks.Dss.Clipper

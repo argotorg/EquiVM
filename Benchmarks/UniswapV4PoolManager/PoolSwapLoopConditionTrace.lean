@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapLoopCondition
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,9 +17,9 @@ theorem poolSwapLoopConditionTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hm : PoolSwapMemoryView mem step state params q.step q.result p)
     (hprice : q.result.price.toNat < 2^160) (hlimit : p.priceLimit.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨19155⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19155⟩
       (poolSwapLoopStack q p id step state params x1 tag fee protocol R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
       (if poolSwapLoopContinues p q then ⟨19169⟩ else ⟨21536⟩)
       (poolSwapLoopStack q p id step state params x1 tag fee protocol R)
       mem (poolSwapConditionAW aw state params q.remaining) rdata σ k' C' := by

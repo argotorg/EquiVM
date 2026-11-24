@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralMathModel
 import Benchmarks.CompoundIII.Comet.IndexAccrual
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -11,13 +13,13 @@ theorem absorbCollateralMath_source (frame : Frame) (evm : State)
     (hn : frame.locals.get? "seizeAmount" = some (.int seized.toNat))
     (hp : frame.locals.get? "__c5" = some (.int price.toNat))
     (hd : frame.locals.get? "deltaValue" = some (.int delta.toNat)) :
-    ExecBlock config frame evm absorbCollateralMathBlock
+    ExecBlock fork config frame evm absorbCollateralMathBlock
       (if AbsorbCollateralMathValid delta seized price out then
         .ok (absorbCollateralMathFrame frame delta seized price out) evm else .reverted) := by
   have hs : evalExpr? config frame evm (.field (.var "assetInfo") "scale") =
       .ok (.int (calldataWord out 96).toNat) := by
     simp only [evalExpr?, ha, EvalResult.ofOption, bind, EvalResult.bind]; rfl
-  have hprice := mulPrice_call frame evm seized price (calldataWord out 96)
+  have hprice := mulPrice_call (fork := fork) frame evm seized price (calldataWord out 96)
     (.var "seizeAmount") (.var "__c5") (.field (.var "assetInfo") "scale") "value" hc
     (by simp only [evalExpr?, hn, EvalResult.ofOption])
     (by simp only [evalExpr?, hp, EvalResult.ofOption]) hs
@@ -36,7 +38,7 @@ theorem absorbCollateralMath_source (frame : Frame) (evm : State)
       simp only [evalExpr?, ha1, EvalResult.ofOption, bind, EvalResult.bind]; rfl
     by_cases hv2 : (absorbCollateralValue seized price out).toNat *
         (calldataWord out 192).toNat < UInt256.size
-    · have hfactor := mulFactor_call_ok f1 evm (absorbCollateralValue seized price out)
+    · have hfactor := mulFactor_call_ok (fork := fork) f1 evm (absorbCollateralValue seized price out)
         (calldataWord out 192) (.var "value")
         (.field (.var "assetInfo") "liquidationFactor") "__c7" hc hv hf hv2
       let f2 := absorbCollateralFactorFrame frame seized price out
@@ -52,7 +54,7 @@ theorem absorbCollateralMath_source (frame : Frame) (evm : State)
       by_cases hv3 : delta.toNat + (absorbCollateralContribution seized price out).toNat < UInt256.size
       · rw [if_pos (show AbsorbCollateralMathValid delta seized price out from ⟨hv1, hv2, hv3⟩)]
         exact ExecBlock.consNormal hprice (ExecBlock.consNormal hfactor
-          (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (checkedAddSourceOk hed hc7 hv3)
+          (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (checkedAddSourceOk hed hc7 hv3)
             (assignLocalFrame hd2)) .nil))
       · rw [if_neg (fun h : AbsorbCollateralMathValid delta seized price out ↦ hv3 h.2.2)]
         exact ExecBlock.consNormal hprice (ExecBlock.consNormal hfactor

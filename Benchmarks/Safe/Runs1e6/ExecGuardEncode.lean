@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.CalldataLengthRounding
 import Benchmarks.Safe.Runs1e6.ExecGuardEncodingMemory
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -10,7 +12,7 @@ namespace Benchmarks.Safe.Runs1e6
 set_option maxRecDepth 100000 in
 theorem safeExecGuardEncode (tx : SafeTransaction) (signatures : ByteArray)
     {I g s0 σ k C aw mem rdata base src sigPtr} {sender ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨14007⟩
+    (h : RD fork safeBytecode I g s0 ⟨14007⟩
       (UInt256.ofNat base :: sender :: UInt256.ofNat sigPtr ::
         UInt256.ofNat tx.refundReceiver.val :: UInt256.ofNat tx.gasToken.val ::
         tx.gasPrice :: tx.baseGas :: tx.safeTxGas :: tx.operation ::
@@ -25,7 +27,7 @@ theorem safeExecGuardEncode (tx : SafeTransaction) (signatures : ByteArray)
     (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ words aw' k' C', words.length = (signatures.size + 31) / 32 ∧
       (wordBytes words).extract 0 signatures.size = signatures ∧
-      RD safeBytecode I g s0 ret
+      RD fork safeBytecode I g s0 ret
         (UInt256.ofNat (base + 416 + ABI.paddedSize tx.payload.size +
           ABI.paddedSize signatures.size) :: R)
         (execGuardArgsMemory I.calldata mem base src tx sender signatures.size words)

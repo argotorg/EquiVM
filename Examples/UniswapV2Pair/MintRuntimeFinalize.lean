@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.MintLiquidityFinalizeRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +15,7 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOffReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3762 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -67,7 +69,7 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOffReturns
     let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
@@ -87,7 +89,7 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3762 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -158,7 +160,7 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
     let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σPacked ⟨11⟩
@@ -182,7 +184,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -210,7 +212,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
     (hfail0 : reserve112Mask.toNat < balance0.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
@@ -250,7 +252,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -279,7 +281,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
     (hfail1 : reserve112Mask.toNat < balance1.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
@@ -320,7 +322,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOffReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -376,7 +378,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOffReturns
     let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
@@ -396,7 +398,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -449,7 +451,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
             (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (uniswapUpdateCumulativeReturnMapWith
         σAfterMint I balance0 balance1 reserve0 reserve1)
@@ -508,7 +510,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -585,7 +587,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
             (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
@@ -659,7 +661,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOnReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -732,7 +734,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOnReturns
     let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σPacked ⟨11⟩
@@ -755,7 +757,7 @@ theorem uniswapMintRuntimeAfterMintFeeInitialSmallRootReverts
     {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -765,7 +767,7 @@ theorem uniswapMintRuntimeAfterMintFeeInitialSmallRootReverts
     (hsmall : (UInt256.mul amount0 amount1).toNat ≤ 3)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3713⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyZero rd3701 htotalZero
@@ -779,7 +781,7 @@ theorem uniswapMintRuntimeAfterMintFeeInitialLargeRootLoopEntry
     {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -787,7 +789,7 @@ theorem uniswapMintRuntimeAfterMintFeeInitialLargeRootLoopEntry
     (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hlarge : 3 < (UInt256.mul amount0 amount1).toNat) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
       [UInt256.div (UInt256.mul amount0 amount1) ⟨2⟩ + ⟨1⟩,
         UInt256.mul amount0 amount1, UInt256.mul amount0 amount1, ⟨2531⟩, ⟨1000⟩,

@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.StringReturn
 import Benchmarks.CurveVault.StringMalformed
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,12 +20,12 @@ theorem vaultStringRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hs : SourceState s0 I σ evm) (hpaid : memoryPaidByGas s0)
     (hvalue : I.weiValue = ⟨0⟩) (hcd : I.calldata.size < UInt256.size)
     (hmem : mem.size ≤ 64) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (vaultStringPc isName 6437) R mem aw rdata σ k C) :
     (∃ bytes out locals',
-      ExecTransitionBody config contract evm ∅ (vaultStringBody isName)
+      ExecTransitionBody fork config contract evm ∅ (vaultStringBody isName)
         (.returned {contract := contract, locals := locals'} evm (some [.bytes bytes])) ∧
-      encodeReturnValue? .string (.bytes bytes) = some out ∧ RDret vaultBytecode g s0 σ out) ∨
-    (ExecTransitionBody config contract evm ∅ (vaultStringBody isName) .reverted ∧ RDrev vaultBytecode g s0) := by
+      encodeReturnValue? .string (.bytes bytes) = some out ∧ RDret fork vaultBytecode g s0 σ out) ∨
+    (ExecTransitionBody fork config contract evm ∅ (vaultStringBody isName) .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let length := codeOwnerStorageWord I σ (vaultStringSlot isName)
   have hstorage : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (vaultStringSlot isName) = length :=
     hs.storageRead _
@@ -46,7 +48,7 @@ theorem vaultStringRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     have hencode := vaultStringOutputNormal I front
       (vyperReadDataWords evm (vaultStringSlot isName) 0 ((length.toNat + 31) / 32)) length
       hcd hfront hnormal hdata
-    have hsource := vaultStringSourceReturns evm isName hvalueS (by rw [hstorage]; exact hnormal)
+    have hsource := vaultStringSourceReturns (fork := fork) evm isName hvalueS (by rw [hstorage]; exact hnormal)
     simp only [vaultStringBytes, hstorage] at hsource
     exact Or.inl ⟨_, _, _, hsource, hencode, hret⟩
   · by_cases hwrap : UInt256.size - 63 ≤ length.toNat ∧ length.toNat ≤ UInt256.size - 32
@@ -55,10 +57,10 @@ theorem vaultStringRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       obtain ⟨aw', k', C', rdEnd⟩ := vaultStringPrefix isName (by change (vyperStringWords length).toNat ≤ 3; rw [hcount]; omega) hstack h
       rw [hcount, vaultStringCopyMemory, hoff] at rdEnd
       have hret := vaultStringFinish isName (by omega) rdEnd
-      have hsource := vaultStringSourceWrapped evm isName hvalueS
+      have hsource := vaultStringSourceWrapped (fork := fork) evm isName hvalueS
         (by rw [hstorage]; exact hwrap.1) (by rw [hstorage]; exact hwrap.2)
       exact Or.inl ⟨_, _, _, hsource, vaultStringOutputEmpty I front hfront, hret⟩
-    · have hsource := vaultStringSourceReverts evm isName hvalueS
+    · have hsource := vaultStringSourceReverts (fork := fork) evm isName hvalueS
         (by rw [hstorage]; omega) (by rw [hstorage]; exact hwrap)
       refine Or.inr ⟨hsource, ?_⟩
       by_cases htop : UInt256.size - 31 ≤ length.toNat

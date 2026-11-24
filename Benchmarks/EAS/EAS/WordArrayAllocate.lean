@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ArrayAllocationHead
 import Benchmarks.EAS.EAS.RuntimeBlocks_027
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,13 +29,13 @@ theorem easWordArrayAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hcd : ee.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7240⟩ (len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7240⟩ (len::ret::R) mem aw rdata σ k C) :
     if len.toNat ≤ 2^64-1 then
       if allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
           (wordArrayAllocationMemory mem ee.calldata heap len.toNat) aw' rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hhead := easArrayAllocationHead v .words hstack hheap rd
   by_cases hl : len.toNat ≤ 2^64-1
   · rw [if_pos hl] at hhead ⊢

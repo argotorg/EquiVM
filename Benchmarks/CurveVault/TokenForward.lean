@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.TokenInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -17,14 +19,14 @@ theorem vaultTokenForward {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         .int (Int.ofNat recipient.toNat), .int (Int.ofNat amount.toNat)])
     (hperm : I.perm = true) (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7556) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm (.internalCall "tkn_transfer_from" args retVar)
+      ExecStmt fork config {contract := contract, locals := locals} evm (.internalCall "tkn_transfer_from" args retVar)
         (.ok {contract := contract, locals := locals.insert retVar .unit} evm') ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem mem' 352 UInt256.size ∧
-      RD vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm (.internalCall "tkn_transfer_from" args retVar)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm (.internalCall "tkn_transfer_from" args retVar)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let calleeLocals := vaultTokenLocals (AccountAddress.ofUInt256 token) sender recipient amount
   rcases vaultTokenRoutine (locals := calleeLocals) hs hsize hmt hmf hmr hma
     (by simp [calleeLocals, vaultTokenLocals])

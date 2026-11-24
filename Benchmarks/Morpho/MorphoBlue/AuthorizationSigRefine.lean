@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigVerifySource
 import Benchmarks.Morpho.MorphoBlue.RawReturnBlockRefines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,12 +15,12 @@ theorem morphoAuthorizationSignatureRefine {v : MorphoImmutables} {ee : Executio
     (hc : a.Canonical) (hcd : 260 ≤ ee.calldata.size)
     (hl : AuthorizationLocals a ee.calldata locals) (hs : SourceState s0 ee σ evm)
     (hstack : R.length + 24 ≤ 1024) (hperm : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6120)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6120)
       (authorizationHashTail R) (authorizationCheckedMem a) aw out σ k C) :
-    RawReturnBlockRefines config (deployedRuntime v) ee g s0
+    RawReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := immStore v } evm
       (setAuthorizationWithSigTransition.body.drop 14) := by
-  have p0 := morphoAuthorizationHashSource v a ee.calldata locals evm hc hl
+  have p0 := morphoAuthorizationHashSource (fork := fork) v a ee.calldata locals evm hc hl
   have hl0 := authorizationHashLocals_authorization (v := v) hl
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationStruct (v := v) a hc hstack h
   obtain ⟨a2, k2, C2, rd2⟩ := morphoAuthorizationDigest (v := v) a hstack rd1
@@ -26,7 +28,7 @@ theorem morphoAuthorizationSignatureRefine {v : MorphoImmutables} {ee : Executio
   swap
   · exact .reverted (p0.run (morphoAuthorizationSignatureSourceRevert hl0 (immStore v) evm hcd hv))
       (morphoAuthorizationSignatureDecodeRevert (v := v) a hstack hv rd2)
-  have p1 := morphoAuthorizationSignatureSource hl0 (immStore v) evm hcd hv
+  have p1 := morphoAuthorizationSignatureSource (fork := fork) hl0 (immStore v) evm hcd hv
   let l1 := authorizationSignatureLocals (authorizationHashLocals locals v a) ee.calldata
   have hl1 : AuthorizationLocals a ee.calldata l1 :=
     (hl0.insert "signature" _ (by decide)).insert "precompile" _ (by decide)
@@ -44,7 +46,7 @@ theorem morphoAuthorizationSignatureRefine {v : MorphoImmutables} {ee : Executio
     morphoAuthorizationRecoveryCall (v := v) a hs hstack rd4
   have p2 := morphoAuthorizationRecoverySource v a ee.calldata l1 (immStore v)
     evm evm5 z ret hd hsig hp hcall
-  have p3 : StateBlock config { contract := contract, locals := locals, immutables := immStore v }
+  have p3 : StateBlock fork config { contract := contract, locals := locals, immutables := immStore v }
       evm (setAuthorizationWithSigTransition.body.drop 14)
       { contract := contract, locals := authorizationRecoveredLocals l1 z ret, immutables := immStore v }
       evm5 (setAuthorizationWithSigTransition.body.drop 19) :=
@@ -59,13 +61,13 @@ theorem morphoAuthorizationSignatureRefine {v : MorphoImmutables} {ee : Executio
   cases z
   · exact .reverted (p3.run (morphoAuthorizationSourceRecoveryFailed _ _ evm5 hz))
       (morphoAuthorizationRecoveryFailed (v := v) a ho hstack rd5)
-  · have ps := morphoAuthorizationSourceVerify hl5 (immStore v) evm5 ret ho hc hz hret
+  · have ps := morphoAuthorizationSourceVerify (fork := fork) hl5 (immStore v) evm5 ret ho hc hz hret
     have pe := morphoAuthorizationSignatureVerify (v := v) a hc ho hstack rd5
     by_cases hv : AuthorizationSignatureValid a ret
     · rw [if_pos hv] at ps pe
       obtain ⟨a6, k6, C6, rd6⟩ := pe
       have hl6 := authorizationSignatoryLocals_authorization hl5 ret
-      exact .ok (p3.run (ps.run (morphoAuthorizationSourceFinish (hperm := (congrArg ExecutionEnv.perm hs5.env).trans hperm) hl6 (immStore v) evm5 hc)))
+      exact .ok (p3.run (ps.run (morphoAuthorizationSourceFinish (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs5.env).trans hperm) hl6 (immStore v) evm5 hc)))
         (authorizationFinalSourceState hs5 a)
         (morphoAuthorizationFinish (v := v) a hc ho hstack hperm rd6)
     · rw [if_neg hv] at ps pe

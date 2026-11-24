@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.HealthyFunctionRefine
 import Benchmarks.Morpho.MorphoBlue.SafeTransferSourceAllocation
 import Benchmarks.Morpho.MorphoBlue.MarketTransferLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -17,14 +19,14 @@ def healthyCaptureStmt (ex : Expr) : Stmt :=
 theorem healthyCaptureMemory {frame : Frame} {evm : EVM.State} {ex : Expr} {word : UInt256}
     {base : Nat} (hx : evalExpr? config frame evm ex = .ok (.int (Int.ofNat word.toNat)))
     (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat base))) :
-    ExecStmt config frame evm (healthyCaptureStmt ex)
+    ExecStmt fork config frame evm (healthyCaptureStmt ex)
       (.ok { frame with locals := healthyCapturedLocals frame.locals base word } evm) := by
   have he := evalWordNeZero hx
   by_cases hz : word = ⟨0⟩
   · rw [decide_eq_false (not_not.mpr hz)] at he
     simpa only [healthyCapturedLocals, if_pos hz] using ExecStmt.iteFalse he ExecBlock.nil
   · rw [decide_eq_true hz] at he
-    have ha : ExecStmt config frame evm
+    have ha : ExecStmt fork config frame evm
         (.assign .localVar ⟨"__memory", []⟩ (.binary .add (.var "__memory") (.intLit 32)))
         (.ok { frame with locals := frame.locals.insert "__memory" (.int (Int.ofNat (base + 32))) } evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (safeTransferMemoryAdd_eval hm 32) (assignLocalWord hm)

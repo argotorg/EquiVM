@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.Tend
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -86,7 +88,7 @@ theorem flipperTendSourceBodyBidNotHigher {σ σ₀ A I} {g : UInt256}
     (hle : (tendBid I).toNat ≤ (bidBidWord (tendId I) σ I).toNat) :
     let locals := tendLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -126,7 +128,7 @@ theorem flipperTendSourceBodyBidNotHigher {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hle
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 tendTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -149,9 +151,9 @@ abbrev flipperTendBidNotHigherWord : UInt256 :=
 theorem flipperTendX_bidGuardPrefix {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
-    (h : RD flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3257⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3257⟩
       (UInt256.gt (tendBid I) (bidBidWord (tendId I) σ I) :: tendBid I ::
         tendLot I :: tendId I :: ret :: sel :: [])
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
@@ -175,7 +177,7 @@ theorem flipperTendX_bidGuardPrefix {σ I} {g : Sat256} {s0 : State}
         twoWordHashMem_solcMappingSlot ⟨1⟩ (tendId I) hmemSize)
       (by decide) (by evm_ov)]
   obtain ⟨k3254, C3254, rd3254raw⟩ := rd3254.sload (by native_decide) (by evm_ov)
-  have rd3255 : RD flipperBytecode I g s0 ⟨3255⟩
+  have rd3255 : RD fork flipperBytecode I g s0 ⟨3255⟩
       (bidBidWord (tendId I) σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k3254 C3254 := by
@@ -188,9 +190,9 @@ theorem flipperTendX_bidHigherOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hgt : (bidBidWord (tendId I) σ I).toNat < (tendBid I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3330⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3330⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -207,9 +209,9 @@ theorem flipperTendX_bidNotHigher {σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hle : (tendBid I).toNat ≤ (bidBidWord (tendId I) σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3239⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   let memBid := twoWordHashMem (tendId I) ⟨1⟩ mem
   have hmemBidSize : memBid.size = 96 := by
     dsimp [memBid]
@@ -226,7 +228,7 @@ theorem flipperTendX_bidNotHigher {σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨3330⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
-  obtain ⟨_, _, rd3261'⟩ : ∃ k' C', RD flipperBytecode I g s0 ⟨3261⟩
+  obtain ⟨_, _, rd3261'⟩ : ∃ k' C', RD fork flipperBytecode I g s0 ⟨3261⟩
       [tendBid I, tendLot I, tendId I, ret, sel] memBid
       (UInt256.ofNat 3) ByteArray.empty σ k' C' :=
     ⟨_, _, by simpa [memBid] using rd3261⟩

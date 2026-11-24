@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ScalarDecode
 import Benchmarks.EAS.EAS.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS `getNonce(address)` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,13 +17,13 @@ theorem getNonceEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {word : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024) (hcanon : word.toNat < EVM.addressModulus)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3969⟩ (word :: solcAddrMask :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ word)).toByteArray := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3969⟩ (word :: solcAddrMask :: R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ word)).toByteArray := by
   have hr := easBlocks.eas_block_3969 (immWords := wordsOf (immStore v)) hstack rd
   rw [solcAddrMask_clean hcanon] at hr
   rw [show (UInt256.ofNat 32).toNat = 32 from rfl,
     ← Reasoning.Theory.writeWord, writeWord_sparse_read_back] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     (solcSlotWord σ ee (UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((twoWordHashMem word ⟨0⟩ mem).readWithPadding 0 64))))).toByteArray at hr
   rw [twoWordHashMem_solcMappingSlot_any] at hr
@@ -30,7 +32,7 @@ theorem getNonceEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easGetNonceBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 2) rfl hsel
   have hd : dispatchMsg contract I.calldata = some getNonceTransition := by
     apply easDispatch_getNonce (hsel := hsel)
@@ -38,7 +40,7 @@ theorem easGetNonceBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       change ¬ (_ == I.calldata.extract 0 4) = true
       rw [← byteArray_eq_of_beq hsel]
       decide +kernel
-  obtain ⟨k, C, rd⟩ := easReachGetNonceBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachGetNonceBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_3893_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

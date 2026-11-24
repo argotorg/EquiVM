@@ -2,6 +2,8 @@ import Benchmarks.Dss.Flopper.ConstructorSource
 import Benchmarks.Dss.Flopper.ConstructorTrace
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper constructor correctness
 -/
@@ -188,14 +190,14 @@ private theorem flopperCtorStateEquiv
 set_option maxHeartbeats 2000000 in
 theorem flopperConstructorCorrect :
     typedConstructorRefinement config flopperCreationBytecode contract (fun _ => flopperBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases flopperCtorDeployment_shape hdeploy with ⟨vat, gem, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = flopperCtorCode vat gem := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := flopperInitcodeSuccess
+  · have hrd := flopperInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -263,7 +265,7 @@ theorem flopperConstructorCorrect :
         ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
       exact hAccountsFinal
-  · have hrd := flopperInitcodeNonpayableRevert
+  · have hrd := flopperInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩

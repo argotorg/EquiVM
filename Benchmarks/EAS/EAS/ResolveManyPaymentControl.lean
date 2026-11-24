@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ResolveManyLoad
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,12 +17,12 @@ theorem resolveManyRead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {array target values available last total : UInt256} {words : List UInt256} {i limit : Nat} {R : List UInt256}
     (v : EASImmutables) (rev : Bool) (hstack : R.length+16 ≤ 1024)
     (hv : WordArrayMemoryView mem values words limit) (hi : i < words.length) (hlimit : limit < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
       (resolveManyLoopStack rev i array target values available last total words.length R) mem aw rdata σ k C) :
     if words[i] = ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableCheckedPC (resolveManyPayableSite rev))
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableCheckedPC (resolveManyPayableSite rev))
         (resolveManyCheckedStack rev i array target values available last total words[i] words.length R) mem aw' rdata σ k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableEntryPC (resolveManyPayableSite rev))
+    else ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableEntryPC (resolveManyPayableSite rev))
         (⟨1⟩::resolveManyCheckedStack rev i array target values available last total words[i] words.length R) mem aw' rdata σ k' C' := by
   have hlen : words.length < UInt256.size := by have := hv.span; omega
   have hprod : 32*i < UInt256.size := by have := hv.span; omega
@@ -78,13 +80,13 @@ theorem resolveManyAmount {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C i len : Nat}
     {array target values available last total value : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+14 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (payableCheckedPC (resolveManyPayableSite rev))
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableCheckedPC (resolveManyPayableSite rev))
       (resolveManyCheckedStack rev i array target values available last total value len R) mem aw rdata σ k C) :
     if value.toNat ≤ available.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
         (resolveManyLoopStack rev (i+1) array target values (UInt256.sub available value) last (total+value) len R)
         mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hi : UInt256.ofNat i+UInt256.ofNat 1 = UInt256.ofNat (i+1) := by
     rw [u256_add_comm]; exact u256_one_add_ofNat i
   by_cases hb : value.toNat ≤ available.toNat

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.LiquidityStructEncodeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,11 +15,11 @@ theorem afterLiquidityKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024)
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+228 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨14227⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14227⟩
       ((free+UInt256.ofNat 36) :: accountWord sender :: keyPtr :: paramsPtr :: delta :: fees :: src :: len :: R)
       (writeWord mem (free+UInt256.ofNat 32).toNat selector) aw rdata σ k C) :
     ∃ aw' k' C', C+200+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨14354⟩
+      RD fork (deployedRuntime v) I g s0 ⟨14354⟩
         (paramsPtr :: UInt256.ofNat 14401 :: delta :: fees :: (free+UInt256.ofNat 36) :: UInt256.ofNat 416 ::
           len :: src :: UInt256.ofNat 13903 :: R)
         (wordCallMemory mem (free.toNat+32) selector (accountWord sender :: poolKeyWordList key))
@@ -28,7 +30,7 @@ theorem afterLiquidityKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
   simp only [poolManager_block_14227_stack] at rd1
   have rd2 := poolManager_block_14351 (by simp only [List.length_cons]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-  change RD _ _ _ _ _ _ (poolManager_block_14027_memory
+  change RD fork _ _ _ _ _ _ (poolManager_block_14027_memory
     (mem := writeWord mem (free+UInt256.ofNat 32).toNat selector)
     (x0 := free+UInt256.ofNat 36) (x1 := accountWord sender) (x2 := keyPtr)) _ _ _ _ _ at rd2
   rw [hm] at rd2
@@ -46,10 +48,10 @@ theorem afterLiquidityParamsEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hb : ptr.toNat+128 ≤ dest.toNat+192)
     (hp : ptr.toNat+128 < UInt256.size) (hf : dest.toNat+320 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14354⟩ (ptr :: ret :: delta :: fees :: dest :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14354⟩ (ptr :: ret :: delta :: fees :: dest :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C+118+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ret (delta :: fees :: dest :: R)
+      RD fork (deployedRuntime v) I g s0 ret (delta :: fees :: dest :: R)
         (wordSequenceMemory mem (dest.toNat+192) (modifyLiquidityWords p)) aw' rdata σ k' C' := by
   have hm : poolManager_block_14354_memory (mem := mem) (x0 := ptr) (x4 := dest) =
       wordSequenceMemory mem (dest.toNat+192) (modifyLiquidityWords p) :=

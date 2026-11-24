@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_026
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `getSupplyRate(uint256)`
 
@@ -26,7 +28,7 @@ theorem getSupplyRateX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 60)) :
-    UintFunctionResult (RateValid (rateParams v false) (calldataWord I.calldata 4))
+    UintFunctionResult fork (RateValid (rateParams v false) (calldataWord I.calldata 4))
       (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (rateWord (rateParams v false) (calldataWord I.calldata 4)).toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetSupplyRateBody
@@ -86,7 +88,7 @@ theorem getSupplyRateX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
 theorem cometWithExtendedAssetListGetSupplyRateBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 60)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 60) rfl hsel
   let w := rateWord (rateParams v false) (calldataWord I.calldata 4)
   apply uintFunction_refines (t := getSupplyRateTransition) (value := .int w.toNat)

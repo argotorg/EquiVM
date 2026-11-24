@@ -80,7 +80,7 @@ theorem execTriOp_potential {f : Primop.Ternary} {s s' : State}
 
 theorem step_stoparith_potential {gasCost : Nat} {op : Operation.SAOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.StopArith op, arg) s = .ok s') :
+    (h : step fork gasCost (.StopArith op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   cases op <;> rw [step.eq_1] at h
   all_goals first
@@ -90,7 +90,7 @@ theorem step_stoparith_potential {gasCost : Nat} {op : Operation.SAOp}
 
 theorem step_compbit_potential {gasCost : Nat} {op : Operation.CBLOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.CompBit op, arg) s = .ok s') :
+    (h : step fork gasCost (.CompBit op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   cases op <;> rw [step.eq_1] at h
   all_goals first

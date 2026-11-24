@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Amount0Trace
 import Benchmarks.UniswapV4PoolManager.Amount1Trace
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,17 +20,17 @@ theorem amountDeltaCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (use0 roundUp : Bool) (hstack : R.length+16 ≤ 1024)
     (ha : a.toNat < 2^160) (hb : b.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 (amountDeltaPC use0 roundUp)
+    (h : RD fork (deployedRuntime v) I g s0 (amountDeltaPC use0 roundUp)
       (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
     if amountDeltaFits a b liquidity use0 roundUp then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (amountDeltaWord a b liquidity use0 roundUp :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (amountDeltaWord a b liquidity use0 roundUp :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have run : ∀ {budget : Sat256} {start : State} {ki Ci : Nat},
-      RD (deployedRuntime v) I budget start (amountDeltaPC use0 roundUp)
+      RD fork (deployedRuntime v) I budget start (amountDeltaPC use0 roundUp)
       (a :: b :: liquidity :: ret :: R) mem aw rdata σ ki Ci →
       if amountDeltaFits a b liquidity use0 roundUp then ∃ k' C',
-        RD (deployedRuntime v) I budget start ret (amountDeltaWord a b liquidity use0 roundUp :: R) mem aw rdata σ k' C'
-      else RDrev (deployedRuntime v) budget start := by
+        RD fork (deployedRuntime v) I budget start ret (amountDeltaWord a b liquidity use0 roundUp :: R) mem aw rdata σ k' C'
+      else RDrev fork (deployedRuntime v) budget start := by
     intro budget start ki Ci hin
     cases use0 with
     | false => exact amount1Trace v (by omega) ha hb hl hret hin

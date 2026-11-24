@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RefundRun
 import Benchmarks.EAS.EAS.RefundStatic
 import Benchmarks.EAS.EAS.HeapStatic
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,8 +16,8 @@ theorem refundRunAny {cfg : Config} {locals imms : Store} {args : List Expr} {re
     (he : evalExprs? cfg {contract := contract,locals := locals,immutables := imms} evm args =
       .ok [.int (Int.ofNat value.toNat),.int (Int.ofNat ptr.toNat)])
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16342⟩ (value::ret::R) mem aw rdata σ k C) :
-    HeapCallOrStatic cfg (deployedRuntime v) ee g s0 {contract := contract,locals := locals,immutables := imms}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16342⟩ (value::ret::R) mem aw rdata σ k C) :
+    HeapCallOrStatic fork cfg (deployedRuntime v) ee g s0 {contract := contract,locals := locals,immutables := imms}
       evm "_refund" args retVar (.tuple []) ret R mem ptr.toNat := by
   by_cases hp : ee.perm = true
   · exact Or.inl (refundRun v hstack hp hs hheap hlo hh he hret rd)

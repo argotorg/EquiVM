@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PriceSource
 import Benchmarks.CompoundIII.Comet.AddressGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -12,11 +14,11 @@ theorem getPriceTransition_body : getPriceTransition.body = calldataPrologue
 theorem getPrice_returns {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 pricePayload
         (true, evm', out) false)
     (hsize : out.size < 2^255) (hvalid : PriceValid out) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "priceFeed" I) getPriceTransition.body
       (.returned frame evm' (some [.int (calldataWord out 32).toNat])) (immStore v) := by
   let addr := AccountAddress.ofNat (calldataWord I.calldata 4).toNat
@@ -43,11 +45,11 @@ theorem getPrice_returns {σ σ₀ A I} {g : Sat256}
 theorem getPrice_reverts {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (evm' : EVM.State) (out : ByteArray) (z : Bool)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (hc : callViaEVM (initState σ σ₀ g A I)
+    (hc : callViaEVM fork (initState σ σ₀ g A I)
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) 0 pricePayload
         (z, evm', out) false)
     (hsize : out.size < 2^255) (hvalid : ¬ (z = true ∧ PriceValid out)) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "priceFeed" I) getPriceTransition.body .reverted (immStore v) := by
   let addr := AccountAddress.ofNat (calldataWord I.calldata 4).toNat
   let frame := calldataLocalFrame

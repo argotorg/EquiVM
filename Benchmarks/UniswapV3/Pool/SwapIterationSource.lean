@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapLoopGuardSource
 import Benchmarks.UniswapV3.Pool.SwapIterationAllocation
 import Benchmarks.UniswapV3.Pool.SourceStructs
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -39,7 +41,7 @@ def swapIterationFrame (frame : Frame) (d : SwapIterationData) : Frame :=
   {frame with locals := frame.locals.insert "step" d.value}
 
 theorem swapIterationZeroSource (frame : Frame) (evm : EVM.State) :
-    ExecStmt config frame evm swapLoopBody[0]!
+    ExecStmt fork config frame evm swapLoopBody[0]!
       (.ok (swapIterationFrame frame (swapIterationInitial ⟨0⟩)) evm) := by
   apply ExecStmt.letDecl
   change evalExpr? config frame evm
@@ -54,7 +56,7 @@ theorem swapIterationStartSource {frame : Frame} {evm : EVM.State}
     (s : SwapStateData) (d : SwapIterationData)
     (hs : frame.locals.get? "state" = some s.value)
     (hd : frame.locals.get? "step" = some d.value) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.assign .localVar ⟨"step", [.field "sqrtPriceStartX96"]⟩
         (.field (.var "state") "sqrtPriceX96"))
       (.ok (swapIterationFrame frame {d with priceStart := s.price}) evm) := by

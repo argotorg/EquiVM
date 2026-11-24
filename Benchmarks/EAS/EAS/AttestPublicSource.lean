@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.AttestDecode
 import Benchmarks.EAS.EAS.AllocateBlock
 import Benchmarks.EAS.EAS.LocalArrayStore
 import Benchmarks.EAS.EAS.AttestCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -14,7 +16,7 @@ def easPayableEntryPrefix : Body := [
 theorem easPayableEntryPrefix_ok {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hsz : 4 ≤ evm.executionEnv.calldata.size) (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : evm.executionEnv.calldata.size-4 < 2^255) :
-    ExecBlock cfg frame evm easPayableEntryPrefix
+    ExecBlock fork cfg frame evm easPayableEntryPrefix
       (.ok {frame with locals := easEntryLocals frame.locals evm.executionEnv.calldata} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 224) (by simp only [evalExpr?,pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .bytes evm.executionEnv.calldata) (by simp only [evalExpr?,pure,envValue])) ?_
@@ -55,10 +57,10 @@ theorem attestPublic_body : attestTransition.body = attestPublicPrefix ++ [attes
 theorem attestPublicPrefixSource {L imms : Store} {evm : EVM.State}
     (hsz : 4 ≤ evm.executionEnv.calldata.size) (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : evm.executionEnv.calldata.size-4 < 2^255) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestPublicPrefix
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestPublicPrefix
       (.ok {contract := contract,locals := attestPublicPrefixLocals L evm.executionEnv.calldata,immutables := imms} evm) := by
   apply execBlock_append (easPayableEntryPrefix_ok hsz hsize hguard)
-  have ha := allocateBlock_ok (cfg := config) (evm := evm) (locals := easEntryLocals L evm.executionEnv.calldata)
+  have ha := allocateBlock_ok (fork := fork) (cfg := config) (evm := evm) (locals := easEntryLocals L evm.executionEnv.calldata)
     (imms := imms) (size := .intLit 256) (n := 256) (heap := 224)
     (by simp only [evalExpr?,pure,Int.ofNat_eq_natCast]; norm_num) (by simp (disch := decide) only [easEntryLocals,store_get_ne,store_get_self,Int.ofNat_eq_natCast]; norm_num) (by decide)
   simpa only [show allocateNext 224 256 = 480 by native_decide] using ha
@@ -66,7 +68,7 @@ theorem attestPublicPrefixSource {L imms : Store} {evm : EVM.State}
 theorem attestPublicRequestsSource {L imms : Store} {evm : EVM.State}
     {schema : UInt256} {r : AttestationRequestRecord}
     (hreq : L.get? "request" = some (.tuple [wordBytes32Value schema,r.tuple])) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestPublicRequests
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestPublicRequests
       (.ok {contract := contract,locals := attestPublicRequestsLocals L r,immutables := imms} evm) := by
   have hd : defaultValue? requestDataType = .ok defaultRequestRecord.struct := by native_decide
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
@@ -74,7 +76,7 @@ theorem attestPublicRequestsSource {L imms : Store} {evm : EVM.State}
     simp only [evalExpr?,pure,bind,EvalResult.bind,show ¬ (1 : Int) < 0 by decide,if_false,hd]
     rfl
   apply ExecBlock.consNormal (ExecStmt.letDecl he)
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := r.tuple) ?_ ?_) ExecBlock.nil
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := r.tuple) ?_ ?_) ExecBlock.nil
   · simp only [evalExpr?,store_get_ne _ _ (by decide : ("requests" == "request") = false),hreq,EvalResult.ofOption,EvalResult.bind,bind]
     rfl
   · exact assignLocalArrayExpr (cfg := config) (evm := evm)
@@ -85,11 +87,11 @@ theorem attestPublicRequestsSource {L imms : Store} {evm : EVM.State}
 theorem attestPublicFinishSource {L imms : Store} {evm : EVM.State} {uid used : UInt256} {heap : Nat} {old : Value}
     (hr : L.get? "__c0$allocation" = some (.tuple [attestationsResultValue [uid] used,.int (Int.ofNat heap)]))
     (hh : L.get? "$EAS.freeMemory" = some old) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestPublicFinish
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestPublicFinish
       (.returned {contract := contract,locals := (unpackHeapLocals L "__c0" "$EAS.freeMemory" (attestationsResultValue [uid] used) heap),immutables := imms} evm (some [wordBytes32Value uid])) := by
-  have hu := unpackHeapResult (cfg := config) (evm := evm) (frame := {contract := contract,locals := L,immutables := imms})
+  have hu := unpackHeapResult (fork := fork) (cfg := config) (evm := evm) (frame := {contract := contract,locals := L,immutables := imms})
     (result := "__c0") hr hh (by decide) (by decide)
-  change ExecBlock _ _ _ ([.letDecl "__c0" none (.tupleGet (.var "__c0$allocation") 0),
+  change ExecBlock fork _ _ _ ([.letDecl "__c0" none (.tupleGet (.var "__c0$allocation") 0),
     .assign .localVar {base := "$EAS.freeMemory"} (.tupleGet (.var "__c0$allocation") 1)] ++
     [.return [.index (.field (.var "__c0") "uids") (.intLit 0)]]) _
   apply execBlock_append hu

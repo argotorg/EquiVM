@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -16,10 +18,10 @@ theorem poolSwapTickBranchTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hpc : price.toNat < 2^160) (hnc : next.toNat < 2^160)
     (hp : memLoad state mem = price) (hn : memLoad (step+UInt256.ofNat 96) mem = next)
-    (h : RD (deployedRuntime v) I g s0 ⟨19833⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19833⟩
       ([x0, tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 (if price = next then ⟨19894⟩ else ⟨20162⟩)
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 (if price = next then ⟨19894⟩ else ⟨20162⟩)
       ([price, tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
       mem (poolSwapTickBranchAW aw step state) rdata σ k' C' := by
   have hpm : UInt256.land price (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = price :=

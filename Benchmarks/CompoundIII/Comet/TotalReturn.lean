@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CurrentIndicesEvm
 import Benchmarks.CompoundIII.Comet.TotalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,10 +18,10 @@ theorem cometTotalReturn {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (indexS indexB w1 : UInt256)
     (hstack : R.length + 9 ≤ 1024)
     (hi : (if borrow then indexB else indexS).toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 (totalIndicesReturnPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (totalIndicesReturnPc borrow)
       (indexB :: indexS :: w1 :: ⟨1738⟩ :: ⟨1000000000000000⟩ :: ⟨32⟩ :: R)
       solcFreePtrMem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    RDret fork (deployedRuntime v) g s0 σ
       (presentValueWord (if borrow then indexB else indexS) (totalsPrincipalWord w1 borrow)).toByteArray := by
   let mask104 := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
     (UInt256.ofNat 1)
@@ -27,7 +29,7 @@ theorem cometTotalReturn {v : CometWithExtendedAssetListImmutables}
       totalsPrincipalWord w1 b := by
     rw [u256_land_comm]
     exact (totalsPrincipalWord_eq w1 b).symm
-  have hm : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7799⟩
+  have hm : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7799⟩
       (totalsPrincipalWord w1 borrow :: (if borrow then indexB else indexS) ::
         ⟨1738⟩ :: ⟨1000000000000000⟩ :: ⟨32⟩ :: R) solcFreePtrMem aw rdata σ k' C' := by
     cases borrow
@@ -35,7 +37,7 @@ theorem cometTotalReturn {v : CometWithExtendedAssetListImmutables}
         (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
       simp only [cometWithExtendedAssetList_block_1713_stack, mask64Clean indexS hi] at r1
-      change RD _ _ _ _ _ (UInt256.land mask104 w1 :: indexS :: ⟨1738⟩ ::
+      change RD fork _ _ _ _ _ (UInt256.land mask104 w1 :: indexS :: ⟨1738⟩ ::
         ⟨1000000000000000⟩ :: ⟨32⟩ :: R) _ _ _ _ _ _ at r1
       rw [show UInt256.land mask104 w1 = totalsPrincipalWord w1 false from hp false] at r1
       exact ⟨_, _, r1⟩
@@ -43,7 +45,7 @@ theorem cometTotalReturn {v : CometWithExtendedAssetListImmutables}
         (immWords := wordsOf (immStore v)) (by simpa using hstack)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
       simp only [cometWithExtendedAssetList_block_4299_stack, mask64Clean indexB hi] at r1
-      change RD _ _ _ _ _ (UInt256.land mask104 (UInt256.shiftRight w1 ⟨104⟩) :: indexB ::
+      change RD fork _ _ _ _ _ (UInt256.land mask104 (UInt256.shiftRight w1 ⟨104⟩) :: indexB ::
         ⟨1738⟩ :: ⟨1000000000000000⟩ :: ⟨32⟩ :: R) _ _ _ _ _ _ at r1
       rw [show UInt256.land mask104 (UInt256.shiftRight w1 ⟨104⟩) =
         totalsPrincipalWord w1 true from hp true] at r1

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BeforeLiquidityBranchTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -7,18 +9,18 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def beforeLiquidityTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def beforeLiquidityTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm post : State) (mem rdata : ByteArray) (free src params len keyPtr a b : UInt256)
     (key : PoolKeyWords) (p : ModifyLiquidityWords) (hook : AccountAddress) (z : Bool) (out : ByteArray)
     (R : List UInt256) : Prop :=
-  let old := beforeLiquidityContinuation v I g s0 mem rdata evm.accountMap src params len keyPtr a b R
+  let old := beforeLiquidityContinuation fork v I g s0 mem rdata evm.accountMap src params len keyPtr a b R
   let called := fun add =>
     if z = true ∧ hookReplyValid (beforeLiquidityPayload add I.source key p
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) out then
-      beforeLiquidityContinuation v I g s0
+      beforeLiquidityContinuation fork v I g s0
         (beforeLiquidityReplyMemory add I.calldata mem src.toNat free len I.source key p out) out
         post.accountMap src params len keyPtr a b R
-    else RDrev (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0
   if I.source = hook then old
   else if beforeLiquidityEnabled hook p true then called true
   else if beforeLiquidityEnabled hook p false then called false
@@ -40,12 +42,12 @@ theorem beforeLiquidityHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     -- The first block pays 46 gas before entering the hook-selection routine.
     (hpaid : Cₘ aw ≤ C+46)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨5474⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5474⟩
       (src :: paramsPtr :: len :: keyPtr :: a :: b :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
       (∀ add, I.source ≠ hook → beforeLiquidityEnabled hook p add →
-        callViaEVM evm hook 0 (beforeLiquidityPayload add I.source key p
+        callViaEVM fork evm hook 0 (beforeLiquidityPayload add I.source key p
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out)) ∧
       (∀ add, I.source ≠ hook → beforeLiquidityEnabled hook p add →
         AllocationBounds free (beforeLiquidityAllocationSize len)) ∧
@@ -54,7 +56,7 @@ theorem beforeLiquidityHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) out →
         (beforeLiquidityFree free len).toNat+out.size+4096 ≤ solcMaxU64) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      beforeLiquidityTraceResult v I g s0 evm post mem rdata free src paramsPtr len keyPtr a b key p hook z out R := by
+      beforeLiquidityTraceResult fork v I g s0 evm post mem rdata free src paramsPtr len keyPtr a b key p hook z out R := by
   have hload : memLoad (keyPtr+UInt256.ofNat 128) mem = accountWord hook :=
     (hk.load (i := 4) (word := key.hooks) rfl).trans hw.symm
   have hclean : UInt256.land (accountWord hook) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) =

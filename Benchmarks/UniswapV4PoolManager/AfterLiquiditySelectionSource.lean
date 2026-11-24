@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquidityBranchSource
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -43,9 +45,9 @@ theorem afterLiquiditySelectedBody {f : Frame} {evm post : State} {hook : Accoun
     (hcaller : f.locals.get? "callerDelta" = some (.int (EVM.signed delta)))
     (hhook : f.locals.get? "hookDelta" = some old)
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
-    (hcall : afterLiquidityActive hook p → callViaEVM evm hook 0
+    (hcall : afterLiquidityActive hook p → callViaEVM fork evm hook 0
       (afterLiquidityPayload (afterLiquidityAdd p) evm.executionEnv.source key p delta fees data) (z, post, out)) :
-    ExecStmt config f evm afterLiquiditySelectedStmt
+    ExecStmt fork config f evm afterLiquiditySelectedStmt
       (afterLiquiditySelectedResult f evm post hook key p delta fees data z out) := by
   have hdelta := evalStructField (evalLocalValue (cfg := config) (evm := evm) hp) (field := "liquidityDelta") rfl
   have hpos : evalExpr? config f evm
@@ -55,7 +57,7 @@ theorem afterLiquiditySelectedBody {f : Frame} {evm post : State} {hook : Accoun
   have hflag := hookPermission_eval (evalLocalValue (cfg := config) (evm := evm) hs)
     (afterLiquidityFlag (afterLiquidityAdd p)) (by cases afterLiquidityAdd p <;> decide)
   change evalExpr? config f evm _ = .ok (.bool (decide (afterLiquidityActive hook p))) at hflag
-  have hbranch : ExecStmt config f evm
+  have hbranch : ExecStmt fork config f evm
       (.ite (hookPermissionExpr (.var "self") (afterLiquidityFlag (afterLiquidityAdd p)))
         (afterLiquidityBranch (afterLiquidityAdd p)) [])
       (afterLiquiditySelectedResult f evm post hook key p delta fees data z out) := by
@@ -78,7 +80,7 @@ theorem afterLiquiditySelectedReturn {f f' : Frame} {evm post next : State} {hoo
     (hd : f.locals.get? "callerDelta" = some (.int (EVM.signed delta)))
     (hh : f.locals.get? "hookDelta" = some (.int 0))
     (hr : afterLiquiditySelectedResult f evm post hook key p delta fees data z out = .ok f' next) :
-    ExecBlock config f' next [.return [.var "callerDelta", .var "hookDelta"]]
+    ExecBlock fork config f' next [.return [.var "callerDelta", .var "hookDelta"]]
       (afterLiquidityReturnResult f' next hook p delta out) := by
   by_cases ha : afterLiquidityActive hook p
   · rw [afterLiquiditySelectedResult, if_pos ha, afterLiquidityBranchResult] at hr

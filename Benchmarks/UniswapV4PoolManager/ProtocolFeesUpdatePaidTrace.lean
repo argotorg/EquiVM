@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolFeesUpdateTrace
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -28,10 +30,10 @@ theorem protocolFeesUpdatePaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I) (hperm : I.perm = true)
     (hpaid : Cₘ aw+6 ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨2003⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨2003⟩
       ([accountWord currency, amount, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11,
         x12, x13, x14, UInt256.ofNat 32, x16]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', Cₘ (protocolFeesUpdateAW aw) ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨1766⟩
+    ∃ k' C', Cₘ (protocolFeesUpdateAW aw) ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨1766⟩
       ([x16, x16, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14,
         UInt256.ofNat 32, x16]++R)
       (protocolFeesUpdateMemory mem currency) (protocolFeesUpdateAW aw) rdata

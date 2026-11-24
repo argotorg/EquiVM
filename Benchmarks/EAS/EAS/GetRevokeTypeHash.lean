@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Entry
+
+variable {fork : Ethereum.Fork}
 /-! # EAS `getRevokeTypeHash()` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,7 +24,7 @@ private theorem getRevokeTypeHash_body :
 theorem easGetRevokeTypeHashBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 10) rfl hsel
   have hd : dispatchMsg contract I.calldata = some getRevokeTypeHashTransition := by
     apply easDispatch_getRevokeTypeHash (hsel := hsel)
@@ -36,14 +38,14 @@ theorem easGetRevokeTypeHashBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables
     by
       change decodeCalldataWithMode Syntax.abiDecodeMode [] [] I.calldata = some (∅ : Store)
       exact decodeCalldataWithMode_empty_ok hsz
-  obtain ⟨k, C, rd⟩ := easReachGetRevokeTypeHashBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k, C, rd⟩ := easReachGetRevokeTypeHashBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_2331_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd
     by_cases hs : I.calldata.size - 4 < 2^255
     · have rd2 := easBlocks.eas_block_2337_fallthrough (immWords := wordsOf (immStore v)) (by simp)
         (easCalldataSizeCheck_ok hsz hsize hs) rd1
       have hr := easBlocks.eas_block_2379 (immWords := wordsOf (immStore v)) (by simp) rd2
-      have hout : RDret (deployedRuntime v) (Sat256.ofUInt256 g)
+      have hout : RDret fork (deployedRuntime v) (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ revokeTypeHashWord.toByteArray := by
         rw [show (UInt256.ofNat 32).toNat = 32 from rfl,
           ← Reasoning.Theory.writeWord, writeWord_sparse_read_back] at hr

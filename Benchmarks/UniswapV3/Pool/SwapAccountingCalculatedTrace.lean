@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapAccountingMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem swapAccountingCalculatedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     {s0 : EVM.State} {k C : Nat} {aw p q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (s : SwapStateData) (d : SwapIterationData) (value : Int)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3435⟩ else ⟨3498⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3435⟩ else ⟨3498⟩)
       (EVM.wordOfInt value :: q :: p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (hp : 96 ≤ p.toNat)
@@ -19,7 +21,7 @@ theorem swapAccountingCalculatedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     (hov : R.length + 5 ≤ 1024) :
     let m := writeWord mem (p.toNat + 32) (EVM.wordOfInt value)
     ∃ k' C', C + 1 + (Cₘ (M aw (p + UInt256.ofNat 32) ⟨32⟩) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R)
         m (M aw (p + UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' ∧
       HeapMemory m (M aw (p + UInt256.ofNat 32) ⟨32⟩) free ∧
       SwapStateMemory m p {s with calculated := value} ∧

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.CageBodyRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -21,7 +23,7 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (rd3115 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd3115 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc I :: R)
       mem (UInt256.ofNat 6) outDai2 acc k C)
@@ -44,7 +46,7 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
       let evmLive := Stele.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Stele.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Stele.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
-      typedCallViaEVM config evmAsh (EVM.address (cageVatAddressOf evmAsh))
+      typedCallViaEVM fork config evmAsh (EVM.address (cageVatAddressOf evmAsh))
         "dai" 0 [.address (flapFlapperAddressOf evmAsh)] (true, evmDai, outDai)
         false)
     (hdecDai :
@@ -55,7 +57,7 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
         ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallFlap :
-      typedCallViaEVM config evmDai (EVM.address (flapFlapperAddressOf evmDai))
+      typedCallViaEVM fork config evmDai (EVM.address (flapFlapperAddressOf evmDai))
         "cage" 0 [.int (Int.ofNat flapperDai.toNat)] (true, evmFlap, outFlap)
         true)
     (hflopperCode :
@@ -63,14 +65,14 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
         ((evmFlap.lookupAccount (flopFlopperAddressOf evmFlap)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallFlop :
-      typedCallViaEVM config evmFlap (EVM.address (flopFlopperAddressOf evmFlap))
+      typedCallViaEVM fork config evmFlap (EVM.address (flopFlopperAddressOf evmFlap))
         "cage" 0 [] (true, evmFlop, outFlop) true)
     (hvatCode2 :
       0 < (UInt256.ofNat
         ((evmFlop.lookupAccount (cageVatAddressOf evmFlop)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai2 :
-      typedCallViaEVM config evmFlop (EVM.address (cageVatAddressOf evmFlop))
+      typedCallViaEVM fork config evmFlop (EVM.address (cageVatAddressOf evmFlop))
         "dai" 0 [.address evmFlop.executionEnv.codeOwner] (true, evmDai2, outDai2)
         false)
     (hdecDai2 :
@@ -81,11 +83,11 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
         ((evmDai2.lookupAccount (cageVatAddressOf evmDai2)).option 0
           (fun acc => acc.code.size))).toNat = 0)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  have hrev : RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageVatSinNoCode rd3115 hmem hread64 hcodeSize hov
-  have hbody := cageSourceVatSinNoCode (hperm := hperm)
+  have hbody := cageSourceVatSinNoCode (fork := fork) (hperm := hperm)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
@@ -103,7 +105,7 @@ theorem vowCageBodyToMinHeal
         {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
         {outDai outFlap outFlop outDai2 outSin memSin : ByteArray} {k3234 C3234 : ℕ}
         {flapperDai vatDai vatSin : UInt256},
-        RD vowBytecode I (Sat256.ofUInt256 g)
+        RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3234⟩
           (vatSin :: vatDai :: ⟨3238⟩ :: kissHealSelector ::
             kissDaiTargetWord σ_sin I :: ⟨412⟩ :: vowSelWord I :: [])
@@ -121,7 +123,7 @@ theorem vowCageBodyToMinHeal
          let evmLive := Stele.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
          let evmSin := Stele.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
          let evmAsh := Stele.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
-         typedCallViaEVM config evmAsh (EVM.address (cageVatAddressOf evmAsh))
+         typedCallViaEVM fork config evmAsh (EVM.address (cageVatAddressOf evmAsh))
            "dai" 0 [.address (flapFlapperAddressOf evmAsh)] (true, evmDai, outDai)
            false) →
         config.externalABI.decode? "dai" outDai =
@@ -131,18 +133,18 @@ theorem vowCageBodyToMinHeal
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmDai (EVM.address (flapFlapperAddressOf evmDai))
+        typedCallViaEVM fork config evmDai (EVM.address (flapFlapperAddressOf evmDai))
           "cage" 0 [.int (Int.ofNat flapperDai.toNat)] (true, evmFlap, outFlap)
           true →
         0 < (UInt256.ofNat
           ((evmFlap.lookupAccount (flopFlopperAddressOf evmFlap)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmFlap (EVM.address (flopFlopperAddressOf evmFlap))
+        typedCallViaEVM fork config evmFlap (EVM.address (flopFlopperAddressOf evmFlap))
           "cage" 0 [] (true, evmFlop, outFlop) true →
         0 < (UInt256.ofNat
           ((evmFlop.lookupAccount (cageVatAddressOf evmFlop)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmFlop (EVM.address (cageVatAddressOf evmFlop))
+        typedCallViaEVM fork config evmFlop (EVM.address (cageVatAddressOf evmFlop))
           "dai" 0 [.address evmFlop.executionEnv.codeOwner] (true, evmDai2, outDai2)
           false →
         config.externalABI.decode? "dai" outDai2 =
@@ -150,7 +152,7 @@ theorem vowCageBodyToMinHeal
         0 < (UInt256.ofNat
           ((evmDai2.lookupAccount (cageVatAddressOf evmDai2)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
+        typedCallViaEVM fork config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
           "sin" 0 [.address evmDai2.executionEnv.codeOwner] (true, evmSin, outSin)
           false →
         config.externalABI.decode? "sin" outSin =
@@ -159,11 +161,11 @@ theorem vowCageBodyToMinHeal
         evmSin.σ₀ = σ₀ →
         evmSin.executionEnv = I →
         Eq σ_sin evmSin.accountMap →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=
@@ -232,7 +234,7 @@ theorem vowCageBodyToMinHeal
       substate := A_sin
     }
   have hcallSinEvm :
-      typedCallViaEVM config evmSinEvmIn (EVM.address (kissVatAddress σ_dai2 I))
+      typedCallViaEVM fork config evmSinEvmIn (EVM.address (kissVatAddress σ_dai2 I))
         "sin" 0 [.address I.codeOwner] (zSin, evmSinEvmOut, outSin) false := by
     simpa [evmSinEvmIn, evmSinEvmOut] using hcallSinEvmRaw
   have hSinTargetPostEvm : kissDaiTargetWord σ_sin I = kissDaiTargetWord σ_dai2 I := by
@@ -269,7 +271,7 @@ theorem vowCageBodyToMinHeal
       substate := A_sin_stele0
     }
   have hcallSinStele :
-      typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
+      typedCallViaEVM fork config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
         "sin" 0 [.address evmDai2.executionEnv.codeOwner]
         (zSin, evmSinStele, outSin) false := by
     simpa [evmSinStele, evmSinEvmOut, hVatTargetAddrDai2, ← henvDai2]
@@ -283,7 +285,7 @@ theorem vowCageBodyToMinHeal
       hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperCode hcallFlop
       hvatCode2 hcallDai2 hdecDai2 hvatCodeSin
       (by simpa using hcallSinStele)
-  · have rd3193True : RD vowBytecode I (Sat256.ofUInt256 g)
+  · have rd3193True : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
         (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord σ_sin I ::
           vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord σ_sin I ::
@@ -293,7 +295,7 @@ theorem vowCageBodyToMinHeal
         (UInt256.ofNat 6) outSin σ_sin k3193 C3193 := by
       simpa [hSinTargetPostEvm] using rd3193
     have hcallSinSteleTrue :
-        typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
+        typedCallViaEVM fork config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
           "sin" 0 [.address evmDai2.executionEnv.codeOwner]
           (true, evmSinStele, outSin) false := by
       simpa using hcallSinStele
@@ -380,7 +382,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=
@@ -452,7 +454,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         substate := A_heal
       }
     have hcallHealEvm :
-        typedCallViaEVM config evmHealEvmIn (EVM.address (kissVatAddress σ_sin I))
+        typedCallViaEVM fork config evmHealEvmIn (EVM.address (kissVatAddress σ_sin I))
           "heal" 0 [.int (Int.ofNat vatDai.toNat)]
           (zHeal, evmHealEvmOut, outHeal) true := by
       simpa [evmHealEvmIn, evmHealEvmOut] using hcallHealEvmRaw
@@ -479,7 +481,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         substate := A_heal_stele0
       }
     have hcallHealStele :
-        typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
+        typedCallViaEVM fork config evmSin (EVM.address (cageVatAddressOf evmSin))
           "heal" 0 [.int (Int.ofNat vatDai.toNat)]
           (zHeal, evmHealStele, outHeal) true := by
       simpa [evmHealStele, evmHealEvmOut, hVatTargetAddrSin,
@@ -496,7 +498,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hvatCodeSin hcallSin
         hdecSin hle hvatCodeHeal (by simpa using hcallHealStele)
     · have hcallHealSteleTrue :
-          typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
+          typedCallViaEVM fork config evmSin (EVM.address (cageVatAddressOf evmSin))
             "heal" 0 [.int (Int.ofNat vatDai.toNat)]
             (true, evmHealStele, outHeal) true := by
         simpa using hcallHealStele
@@ -565,7 +567,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         substate := A_heal
       }
     have hcallHealEvm :
-        typedCallViaEVM config evmHealEvmIn (EVM.address (kissVatAddress σ_sin I))
+        typedCallViaEVM fork config evmHealEvmIn (EVM.address (kissVatAddress σ_sin I))
           "heal" 0 [.int (Int.ofNat vatSin.toNat)]
           (zHeal, evmHealEvmOut, outHeal) true := by
       simpa [evmHealEvmIn, evmHealEvmOut] using hcallHealEvmRaw
@@ -592,7 +594,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         substate := A_heal_stele0
       }
     have hcallHealStele :
-        typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
+        typedCallViaEVM fork config evmSin (EVM.address (cageVatAddressOf evmSin))
           "heal" 0 [.int (Int.ofNat vatSin.toNat)]
           (zHeal, evmHealStele, outHeal) true := by
       simpa [evmHealStele, evmHealEvmOut, hVatTargetAddrSin,
@@ -609,7 +611,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hvatCodeSin hcallSin
         hdecSin hlt hvatCodeHeal (by simpa using hcallHealStele)
     · have hcallHealSteleTrue :
-          typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
+          typedCallViaEVM fork config evmSin (EVM.address (cageVatAddressOf evmSin))
             "heal" 0 [.int (Int.ofNat vatSin.toNat)]
             (true, evmHealStele, outHeal) true := by
         simpa using hcallHealStele

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.InitializeEvm
 import Benchmarks.CompoundIII.Comet.InitializeSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `initializeStorage()`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 10000
 theorem cometWithExtendedAssetListInitializeStorageBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 6) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some initializeStorageTransition :=
     cometSelectorDispatch ⟨6, by decide⟩ hsel
@@ -32,7 +34,7 @@ theorem cometWithExtendedAssetListInitializeStorageBody {σ σ₀ A I} {g : UInt
       some (∅ : Store) := by
     change decodeCalldataWithMode .solc0815 [] [] I.calldata = some (∅ : Store)
     exact decodeCalldataWithMode_empty_ok hsz
-  have hX := initializeX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := initializeX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · by_cases hhi : I.calldata.size < 2^255 + 4
@@ -46,7 +48,7 @@ theorem cometWithExtendedAssetListInitializeStorageBody {σ σ₀ A I} {g : UInt
         by_cases hp : I.perm = true
         · rw [if_pos hp] at hX
           exact selectorStateReturn_refines hcode hX hd hdec
-            (initializeStorage_returns (hperm := hp) _ (immStore v) hv hhi hz hvalid.2)
+            (initializeStorage_returns (fork := fork) (hperm := hp) _ (immStore v) hv hhi hz hvalid.2)
             initializeSourceState_accountMap.symm voidReturnEquiv
         · rw [if_neg hp] at hX
           exact selectorStatic_refines hcode hX hd hdec

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepDeltaWords
 import Benchmarks.UniswapV4PoolManager.Amount0Source
 import Benchmarks.UniswapV4PoolManager.Amount1Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,7 +18,7 @@ theorem amountDeltaCall {f : Frame} {evm : EVM.State} {a b liquidity : UInt256}
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (amountDeltaName use0) [ea, eb, el, .boolLit roundUp] ret)
+    ExecStmt fork config f evm (.internalCall (amountDeltaName use0) [ea, eb, el, .boolLit roundUp] ret)
       (if amountDeltaFits a b liquidity use0 roundUp then
         .ok (wordLocal f ret (amountDeltaWord a b liquidity use0 roundUp)) evm else .reverted) := by
   cases use0 with
@@ -42,14 +44,14 @@ theorem amountDeltaAssignSource {f : Frame} {evm : EVM.State} {a b liquidity : U
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hr : f.locals.get? ret = some old) (hne : ("amount" == ret) = false) :
-    ExecBlock config f evm (amountDeltaAssignStmts ea eb ret use0 roundUp)
+    ExecBlock fork config f evm (amountDeltaAssignStmts ea eb ret use0 roundUp)
       (if amountDeltaFits a b liquidity use0 roundUp then
         .ok (amountDeltaFrame f ret (amountDeltaWord a b liquidity use0 roundUp)) evm else .reverted) := by
-  have hc := amountDeltaCall use0 roundUp hf hac hbc ha hb (evalLocalValue hl) "amount"
+  have hc := amountDeltaCall (fork := fork) use0 roundUp hf hac hbc ha hb (evalLocalValue hl) "amount"
   by_cases hfit : amountDeltaFits a b liquidity use0 roundUp
   · rw [if_pos hfit] at hc ⊢
     exact ExecBlock.consNormal hc (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _ hne).trans hr))) ExecBlock.nil)
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _ hne).trans hr))) ExecBlock.nil)
   · rw [if_neg hfit] at hc ⊢
     exact ExecBlock.consRevert hc
 
@@ -66,7 +68,7 @@ theorem swapStepDeltaSource {f : Frame} {evm : EVM.State} {price next liquidity 
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hb : f.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (hr : f.locals.get? ret = some old) (hne : ("amount" == ret) = false) :
-    ExecStmt config f evm (swapStepDeltaStmt nextName ret input)
+    ExecStmt fork config f evm (swapStepDeltaStmt nextName ret input)
       (if swapStepDeltaFits price next liquidity input zeroForOne then
         .ok (amountDeltaFrame f ret (swapStepDeltaWord price next liquidity input zeroForOne)) evm else .reverted) := by
   cases zeroForOne with

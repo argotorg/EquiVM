@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecodeScalars
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -23,12 +25,12 @@ theorem cometConstructorAssetHeader {σ σ₀ A I} {g : Sat256} {c : Constructor
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hrecord : constructorRecordBase c + 672 < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨562⟩
       [constructorArgumentSizeWord c, ⟨928⟩, ⟨32⟩, ⟨672⟩,
         UInt256.ofNat (constructorRecordBase c)]
       (constructorScalarMemory c 20) aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [UInt256.ofNat (constructorRecordBase c + 672),
         UInt256.ofNat (32 + 32 * c.assetConfigs.length), ⟨623⟩, ⟨672⟩, ⟨928⟩,

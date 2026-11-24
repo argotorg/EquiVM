@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeRootRuntimeCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
@@ -11,13 +13,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithMemory
     {mem rdata out : ByteArray} {k C : ℕ}
     {reserve0 reserve1 feeToWord ret : UInt256} {R : List UInt256}
     (evm evmFee : EVM.State) (feeTo : AccountAddress)
-    (rd7825 : RD uniswapV2PairBytecode I g s0 ⟨7825⟩
+    (rd7825 : RD fork uniswapV2PairBytecode I g s0 ⟨7825⟩
       (mintFeeKLastWord evmFee :: feeToWord :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hguard : evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
@@ -30,13 +32,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithMemory
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
-        .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+        .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ feeOn : Bool, ∃ frame' evm' σ' mem' k' C',
-      ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+      ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
         (.returned frame' evm' (some [.bool feeOn])) ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
         mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       evm'.σ₀ = evmFee.σ₀ ∧
@@ -115,13 +117,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithWorld
     {mem rdata out : ByteArray} {k C : ℕ}
     {reserve0 reserve1 feeToWord ret : UInt256} {R : List UInt256}
     (evm evmFee : EVM.State) (feeTo : AccountAddress)
-    (rd7825 : RD uniswapV2PairBytecode I g s0 ⟨7825⟩
+    (rd7825 : RD fork uniswapV2PairBytecode I g s0 ⟨7825⟩
       (mintFeeKLastWord evmFee :: feeToWord :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hguard : evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
@@ -134,13 +136,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithWorld
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
-        .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+        .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ feeOn : Bool, ∃ frame' evm' σ' mem' k' C',
-      ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+      ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
         (.returned frame' evm' (some [.bool feeOn])) ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
         mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       evm'.σ₀ = evmFee.σ₀) := by
@@ -159,13 +161,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCases
     {mem rdata out : ByteArray} {k C : ℕ}
     {reserve0 reserve1 feeToWord ret : UInt256} {R : List UInt256}
     (evm evmFee : EVM.State) (feeTo : AccountAddress)
-    (rd7825 : RD uniswapV2PairBytecode I g s0 ⟨7825⟩
+    (rd7825 : RD fork uniswapV2PairBytecode I g s0 ⟨7825⟩
       (mintFeeKLastWord evmFee :: feeToWord :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hguard : evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
@@ -178,13 +180,13 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCases
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
-    (ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
-        .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+        .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ feeOn : Bool, ∃ frame' evm' σ' mem' k' C',
-      ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+      ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
         (.returned frame' evm' (some [.bool feeOn])) ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork uniswapV2PairBytecode I g s0 ret ((if feeOn then ⟨1⟩ else ⟨0⟩) :: R)
         mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
   rcases uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithWorld evm evmFee feeTo

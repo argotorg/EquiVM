@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.LiquidityDeltaSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,14 +14,14 @@ set_option maxRecDepth 1000
 theorem liquidityDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (xw yw : UInt256) (x y : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13807⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
       (yw :: xw :: ret :: R) mem aw rdata σ k C)
     (hx : normalizeInt (.uint ⟨128, by decide⟩) (Int.ofNat xw.toNat) = x)
     (hy : normalizeInt (.sint ⟨128, by decide⟩) (Int.ofNat yw.toNat) = y)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid x y) ∨
-      (liquidityDeltaValid x y ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid x y) ∨
+      (liquidityDeltaValid x y ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         ((xw + yw) :: R) mem aw rdata σ k' C') := by
   classical
   have hs := liquidityDeltaRawSign yw y hy
@@ -74,14 +76,14 @@ theorem liquidityDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem liquidityDeltaCanonicalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (x y : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13807⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
       (EVM.wordOfInt y :: EVM.wordOfInt x :: ret :: R) mem aw rdata σ k C)
     (hxlo : 0 ≤ x) (hxhi : x < 2 ^ 128)
     (hylo : -(2 ^ 127 : Int) ≤ y) (hyhi : y < 2 ^ 127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid x y) ∨
-      (liquidityDeltaValid x y ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid x y) ∨
+      (liquidityDeltaValid x y ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (EVM.wordOfInt (liquidityDeltaResult x y) :: R) mem aw rdata σ k' C') := by
   have hx : normalizeInt (.uint ⟨128, by decide⟩) (Int.ofNat (EVM.wordOfInt x).toNat) = x := by
     rw [normalizeInt_wordOfInt, normalizeInt_uint_eq_self ⟨128, by decide⟩ _ hxlo hxhi]

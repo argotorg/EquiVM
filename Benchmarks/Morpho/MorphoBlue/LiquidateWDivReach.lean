@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveMath
 import Benchmarks.Morpho.MorphoBlue.WadDivUpSource
 import Benchmarks.Morpho.MorphoBlue.MulDivUpRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -36,9 +38,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem morphoLiquidateWDivReachAdd (hstack : R.length + 14 ≤ 1024)
     (hl : lltv.toNat ≤ wad.toNat)
     (hf : (UInt256.div total oraclePriceScale).toNat * wad.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
       (total :: liquidationDenom lltv :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([UInt256.mul (UInt256.div total oraclePriceScale) wad,
         UInt256.sub (liquidationFactor lltv) (UInt256.ofNat 1), UInt256.ofNat 2004,
         liquidationFactor lltv, UInt256.ofNat 2009, UInt256.ofNat 2055] ++ R) mem aw out σ k' C' := by
@@ -57,9 +59,9 @@ theorem morphoLiquidateWDivReachAdd (hstack : R.length + 14 ≤ 1024)
 
 theorem morphoLiquidateWDivOk (hstack : R.length + 14 ≤ 1024) (hl : lltv.toNat ≤ wad.toNat)
     (hf : MulDivUpFits (UInt256.div total oraclePriceScale) wad (liquidationFactor lltv))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
       (total :: liquidationDenom lltv :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2009)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2009)
       (wDivUpResult (UInt256.div total oraclePriceScale) (liquidationFactor lltv) :: UInt256.ofNat 2055 :: R)
       mem aw out σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoLiquidateWDivReachAdd (v := v) hstack hl hf.1 h
@@ -73,8 +75,8 @@ theorem morphoLiquidateWDivOk (hstack : R.length + 14 ≤ 1024) (hl : lltv.toNat
 
 theorem morphoLiquidateWDivReverts (hstack : R.length + 14 ≤ 1024) (hl : lltv.toNat ≤ wad.toNat)
     (hf : ¬ MulDivUpFits (UInt256.div total oraclePriceScale) wad (liquidationFactor lltv))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
-      (total :: liquidationDenom lltv :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
+      (total :: liquidationDenom lltv :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hp : (UInt256.div total oraclePriceScale).toNat * wad.toNat < UInt256.size
   swap
   · have rd1 := morphoBlocks.morpho_block_1785_taken (immWords := wordsOf (immStore v))

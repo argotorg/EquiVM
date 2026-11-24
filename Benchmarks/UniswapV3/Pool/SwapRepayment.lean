@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapRepaymentSource
 import Benchmarks.UniswapV3.Pool.SwapRepayMathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -23,7 +25,7 @@ theorem swapRepaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw free before p exactWord cache snap junk0 junk1 junk2 junk3 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool) (amount0 amount1 : Int) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
       ([junk0, junk1, junk2, junk3, before, p, exactWord, cache, snap,
         EVM.wordOfInt amount1, EVM.wordOfInt amount0] ++ R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -35,13 +37,13 @@ theorem swapRepaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw free) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : free.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200) (hov : R.length + 25 ≤ 1024) :
-    (ExecBlock config frame evm ((swapPaymentBody zeroForOne).drop 5) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config frame evm ((swapPaymentBody zeroForOne).drop 5) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     ∃ evm' σ' out mem' aw' next after k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config frame evm ((swapPaymentBody zeroForOne).drop 5)
+      ExecBlock fork config frame evm ((swapPaymentBody zeroForOne).drop 5)
         (.ok (swapRepayFrame v (swapBalanceAfterFrame frame zeroForOne after).locals
           zeroForOne before (if zeroForOne then amount0 else amount1)) evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨5137⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5137⟩
         ([p, exactWord, cache, snap, EVM.wordOfInt amount1, EVM.wordOfInt amount0] ++ R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' free.toNat ∧
@@ -72,13 +74,13 @@ theorem swapRepaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     cases zeroForOne <;> rfl
   rcases swapRepayMathX (v := v) zeroForOne r1 (by omega) with
     ⟨hbad, rr⟩ | ⟨hgood, k2, C2, r2⟩
-  · have hx := swapRepayReverts v f1.locals evm1 zeroForOne before value
+  · have hx := swapRepayReverts (fork := fork) v f1.locals evm1 zeroForOne before value
       (if zeroForOne then amount0 else amount1) hb1 ha1 hr1 (by rwa [hword])
     rw [← frame_eq_of_parts hf1 hi1] at hx
     refine Or.inl ⟨?_, rr⟩
     rw [swapRepaymentBody_eq]
     exact ExecBlock.consNormal hcall hx
-  · have hx := swapRepayReturns v f1.locals evm1 zeroForOne before value
+  · have hx := swapRepayReturns (fork := fork) v f1.locals evm1 zeroForOne before value
       (if zeroForOne then amount0 else amount1) hb1 ha1 hr1 (by rwa [hword])
     rw [← frame_eq_of_parts hf1 hi1] at hx
     refine Or.inr ⟨evm1, σ1, out1, mem1, aw1, p1, value, k2, C2, hs1, ?_, r2,

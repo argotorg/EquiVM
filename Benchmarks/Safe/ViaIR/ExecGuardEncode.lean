@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_027
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_041
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -16,7 +18,7 @@ set_option maxHeartbeats 1000000
 
 theorem safeExecGuardEncode (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata ptr src sigPtr} {guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5462⟩
+    (h : RD fork safeBytecode I g s0 ⟨5462⟩
       ([UInt256.ofNat sigPtr, UInt256.ofNat p.tx.target.val, UInt256.ofNat src,
         UInt256.ofNat p.tx.refundReceiver.val, guard, UInt256.ofNat p.tx.gasToken.val,
         hash, UInt256.ofNat p.tx.payload.size] ++ R) mem aw rdata σ k C)
@@ -29,7 +31,7 @@ theorem safeExecGuardEncode (p : ExecTransactionInput)
     (ho : p.tx.operation.toNat < 2) (hov : R.length + 32 ≤ 1024) :
     ∃ words aw' k' C', words.length = (p.signatures.size + 31) / 32 ∧
       (wordBytes words).extract 0 p.signatures.size = p.signatures ∧
-      RD safeBytecode I g s0 ⟨5637⟩
+      RD fork safeBytecode I g s0 ⟨5637⟩
         ([UInt256.ofNat (ptr + 420 + ABI.paddedSize p.tx.payload.size +
             ABI.paddedSize p.signatures.size), UInt256.ofNat ptr, UInt256.ofNat ptr,
           ⟨0⟩, UInt256.ofNat ptr, UInt256.ofNat p.tx.target.val, UInt256.ofNat src,

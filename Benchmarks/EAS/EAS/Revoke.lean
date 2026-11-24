@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokePublicRun
 import Benchmarks.EAS.EAS.Dispatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -8,7 +10,7 @@ set_option maxRecDepth 10000
 theorem easRevokeBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 4) rfl hsel
   have hd : dispatchMsg contract I.calldata = some revokeTransition := by
     apply easDispatch_revoke (hsel := hsel)
@@ -18,7 +20,7 @@ theorem easRevokeBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [] :=
     easPlans_of_selector hsel (by native_decide)
-  obtain ⟨k,C,rd⟩ := easReachRevokeBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k,C,rd⟩ := easReachRevokeBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : 100 ≤ I.calldata.size ∧ I.calldata.size < 2^255+4
   · have hcheck : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
       solcCalldataStaticLenCheckOk (words := 3) hv.1 hv.2 hsize
@@ -28,7 +30,7 @@ theorem easRevokeBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       (by rw [easCalldataSub4 hsz hsize]; exact hcheck) rd
     obtain ⟨a2,k2,C2,r2⟩ := easRevokePublicPrepare v (by simp) hsize hv.1 hv.2 r1
     let args := (∅ : Store).insert "request" (revokeRequestValue I.calldata)
-    have hprefix := revokePublicPrefixSource (L := args) (imms := immStore v)
+    have hprefix := revokePublicPrefixSource (fork := fork) (L := args) (imms := immStore v)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hsz hsize (by change I.calldata.size-4 < 2^255; omega)
     have hreq : (revokePublicPrefixLocals args I.calldata).get? "request" = some (revokeRequestValue I.calldata) := by
       simp (disch := decide) only [revokePublicPrefixLocals,allocateBlockLocals_get,easEntryLocals,store_get_ne]

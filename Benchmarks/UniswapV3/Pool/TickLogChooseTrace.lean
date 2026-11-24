@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickLogBoundsTrace
 import Benchmarks.UniswapV3.Pool.TickSqrtTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem tickLogChooseX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw log price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14758⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14758⟩
       (tickSqrtRaw (tickLogHigh log) :: price :: tickLogHighRaw log :: tickLogLowRaw log :: R)
       mem aw rdata σ k C)
     (he : tickLogLow log ≠ tickLogHigh log) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14788⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
       (tickLogChoiceRaw log price :: tickLogHighRaw log :: tickLogLowRaw log :: R)
       mem aw rdata σ k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))

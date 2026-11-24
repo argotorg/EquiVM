@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateLiquidityTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,12 +11,12 @@ set_option maxRecDepth 1000
 theorem tickUpdateMaxRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw after unused before slot flipped maximum : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20838⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20838⟩
       (after :: unused :: before :: slot :: flipped :: maximum :: R) mem aw rdata σ k C)
     (ha : after.toNat < 2 ^ 128)
     (hov : R.length + 10 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ after.toNat ≤ (uint128Word maximum).toNat) ∨
-    (after.toNat ≤ (uint128Word maximum).toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20916⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ after.toNat ≤ (uint128Word maximum).toNat) ∨
+    (after.toNat ≤ (uint128Word maximum).toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20916⟩
       (after :: before :: slot :: flipped :: maximum :: R) mem aw rdata σ k' C') := by
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 128 - 1) := by native_decide
@@ -35,12 +37,12 @@ theorem tickUpdateMaxRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickUpdateMaxX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw after unused before slot flipped maximum : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20838⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20838⟩
       (after :: unused :: before :: slot :: flipped :: maximum :: R) mem aw rdata σ k C)
     (ha : after.toNat < 2 ^ 128) (hm : maximum.toNat < 2 ^ 128)
     (hov : R.length + 10 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ after.toNat ≤ maximum.toNat) ∨
-    (after.toNat ≤ maximum.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20916⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ after.toNat ≤ maximum.toNat) ∨
+    (after.toNat ≤ maximum.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20916⟩
       (after :: before :: slot :: flipped :: maximum :: R) mem aw rdata σ k' C') := by
   have h := tickUpdateMaxRawX (v := v) rd ha hov
   rw [uint128Word_clean hm] at h

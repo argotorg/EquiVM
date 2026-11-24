@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepRecalcTraceModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_041
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,10 +13,10 @@ set_option maxRecDepth 10000
 theorem swapStepInputGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (zero maxFlag inputFlag : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapStepRecalcEntry zero)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapStepRecalcEntry zero)
       (maxFlag.toUInt256 :: inputFlag.toUInt256 :: R) mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero true)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero true)
       ((maxFlag && inputFlag).toUInt256 :: maxFlag.toUInt256 :: inputFlag.toUInt256 :: R)
       mem aw rdata σ k' C' := by
   cases maxFlag
@@ -41,11 +43,11 @@ theorem swapStepOutputGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw newIn oldIn oldOut zeroWord feeWord : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zero maxFlag inputFlag : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapStepRecalcJoinPC zero true)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapStepRecalcJoinPC zero true)
       (newIn :: maxFlag.toUInt256 :: inputFlag.toUInt256 :: zeroWord :: feeWord ::
         oldOut :: oldIn :: R) mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero false)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapStepRecalcGuardPC zero false)
       ((maxFlag && !inputFlag).toUInt256 :: maxFlag.toUInt256 :: inputFlag.toUInt256 ::
         zeroWord :: feeWord :: oldOut :: newIn :: R) mem aw rdata σ k' C' := by
   have hn : UInt256.isZero inputFlag.toUInt256 = (!inputFlag).toUInt256 := by

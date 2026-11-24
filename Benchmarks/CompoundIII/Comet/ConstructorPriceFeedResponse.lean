@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -12,19 +14,19 @@ theorem cometConstructorPriceFeedResponse {ee : ExecutionEnv} {g : Sat256} {s0 :
     {aw : UInt256} {k C : Nat}
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
     (hout : out.size < UInt256.size) (hhi : feed.size < 2^138)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨872⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨872⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: constructorPriceFeedPtr c :: calldataWord out 0 ::
         UInt256.ofNat (constructorRecordBase c) ::
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorPriceFeedCopyMemory c out feed) aw feed σ k C) :
     if z = true ∧ DecimalsReturnValid feed then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
         ee g s0 ⟨888⟩
         (⟨255⟩ :: calldataWord feed 0 :: calldataWord out 0 ::
           UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)
         (constructorPriceFeedReturnMemory c out feed) aw' feed σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
   have hsize : feed.size < UInt256.size := by change _ < 2^256; omega
   have hfeed : (UInt256.ofNat feed.size).toNat = feed.size := UInt256.toNat_ofNat_of_lt hsize
   have hfit := constructorPriceFeedPtr_fits hfree
@@ -72,7 +74,7 @@ theorem cometConstructorPriceFeedResponse {ee : ExecutionEnv} {g : Sat256} {s0 :
       have r7 := cometWithExtendedAssetListCreation_block_2342
         (by change 16 ≤ 1024; decide) (by native_decide) r6
       have hread := constructorPriceFeedReturnMemory_word hfree hout hsize hlo
-      change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0
+      change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0
         ⟨2810⟩ (constructorPriceFeedPtr c :: ⟨2357⟩ :: ⟨255⟩ :: ⟨8⟩ :: calldataWord out 0 ::
           UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)

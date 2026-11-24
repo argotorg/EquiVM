@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeLiquidityActiveTrace
 import Benchmarks.UniswapV4PoolManager.BeforeLiquiditySelectTrace
 import Benchmarks.UniswapV4PoolManager.BeforeLiquidityReplyMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,10 +23,10 @@ theorem beforeLiquidityBranchCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : beforeLiquidityBranchTrace v I g s0 mem rdata evm.accountMap add hook src paramsPtr len keyPtr a b R) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    (h : beforeLiquidityBranchTrace fork v I g s0 mem rdata evm.accountMap add hook src paramsPtr len keyPtr a b R) :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out, AllocationBounds free (beforeLiquidityAllocationSize len) ∧
-      callViaEVM evm hook 0 (beforeLiquidityPayload add I.source key p
+      callViaEVM fork evm hook 0 (beforeLiquidityPayload add I.source key p
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (z = true ∧ hookReplyValid (beforeLiquidityPayload add I.source key p
@@ -32,10 +34,10 @@ theorem beforeLiquidityBranchCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
         (beforeLiquidityFree free len).toNat+out.size+4096 ≤ solcMaxU64) ∧
       (if z = true ∧ hookReplyValid (beforeLiquidityPayload add I.source key p
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) out then
-        beforeLiquidityContinuation v I g s0
+        beforeLiquidityContinuation fork v I g s0
           (beforeLiquidityReplyMemory add I.calldata mem src.toNat free len I.source key p out) out
           post.accountMap src paramsPtr len keyPtr a b R
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨j0, j1, aw, k, C, hpaid, rd⟩ := h
   rcases beforeLiquidityActiveTrace v add (by simp only [List.length_cons]; omega)
     hI hσ0 hk hp hc hl hu hkb hpb hlo hf hsrc hgas hpaid hfree rd with

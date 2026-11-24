@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Deny
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -256,12 +258,12 @@ theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc afterAddPc routinePc tab ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (tab :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (tab :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowFessToFirstAddWf code pc afterAddPc routinePc)
     (hmem : mem.size = 96)
     (hroutine : (D_J code 0).contains routinePc = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (tab :: solcSlotWord σ ee (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) ::
         afterAddPc :: tab :: ret :: R)
       (twoWordHashMem (UInt256.ofNat ee.header.timestamp) ⟨4⟩ mem)
@@ -343,14 +345,14 @@ theorem RD.vowFessStoreSinAndToSecondAddSplit {code : ByteArray} {g : Sat256} {s
     {ee : ExecutionEnv} {k C : ℕ} {pc afterAddPc routinePc sinNew tab ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hwf : vowFessStoreSinAndToSecondAddWf code pc afterAddPc routinePc)
     (hmem : mem.size = 96)
     (hroutine : (D_J code 0).contains routinePc = true)
     (hov : R.length + 9 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (tab ::
         solcSlotWord
           (sstoreAccountMap ee.codeOwner σ
@@ -361,7 +363,7 @@ theorem RD.vowFessStoreSinAndToSecondAddSplit {code : ByteArray} {g : Sat256} {s
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
         (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) sinNew) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd20, hd23, hd24, hd25, hd28⟩
@@ -415,13 +417,13 @@ theorem RD.vowFessStoreSinCapital {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc sinNew tab ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
+    (h : RD fork code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k C)
     (hwf : vowFessStoreSinCapitalWf code pc)
     (hperm : ee.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork code ee g s0 ret R mem (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ ⟨5⟩ sinNew) k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd5⟩
   have rdStorePrefix := evm_run h with [
@@ -475,7 +477,7 @@ theorem vowReachFessBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨571⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨1769929592⟩ :=
@@ -502,12 +504,12 @@ theorem vowReachFessBody {σ σ₀ A I} {g : Sat256}
 
 theorem RD.vowFessDecodeToRoutine
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3318⟩
       [fessTab I, ⟨412⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
@@ -529,7 +531,7 @@ theorem RD.vowFessDecodeToRoutine
 
 theorem RD.vowFessSuccessSplit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -543,7 +545,7 @@ theorem RD.vowFessSuccessSplit
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat < UInt256.size) :
     (I.perm = true ∧
-    RDret vowBytecode (Sat256.ofUInt256 g)
+    RDret fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
@@ -554,7 +556,7 @@ theorem RD.vowFessSuccessSplit
                 (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
               I ⟨5⟩ + fessTab I))
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+      (I.perm = false ∧ RDstatic fork vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let tab := fessTab I
   let era := fessEraKey I
@@ -628,13 +630,13 @@ theorem RD.vowFessSuccessSplit
 
 theorem RD.vowFessAuthRevert
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let tab := fessTab I
   obtain ⟨_, _, htoRoutineRD⟩ := RD.vowFessDecodeToRoutine hreach hsz36 hsize
@@ -652,7 +654,7 @@ theorem RD.vowFessAuthRevert
 
 theorem RD.vowFessFirstAddOverflow
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -660,7 +662,7 @@ theorem RD.vowFessFirstAddOverflow
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hover : UInt256.size ≤
       (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat + (fessTab I).toNat) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let tab := fessTab I
   let era := fessEraKey I
@@ -697,7 +699,7 @@ theorem RD.vowFessFirstAddOverflow
 
 theorem RD.vowFessSecondAddOverflowSplit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -711,9 +713,9 @@ theorem RD.vowFessSecondAddOverflowSplit
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat) :
     (I.perm = true ∧
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
-      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+      (I.perm = false ∧ RDstatic fork vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let tab := fessTab I
   let era := fessEraKey I
@@ -785,10 +787,10 @@ theorem vowFessBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (fessTransition.params.map Param.name)
         (transitionSignature fessTransition).paramTypes I.calldata = some (fessLocals I))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let tab := fessTab I
   let eraSlot := solcMappingSlot ⟨4⟩ (fessEraKey I)
   let slot := fessSinSlotFor I
@@ -871,14 +873,14 @@ theorem vowFessBodyCore
             (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals1) sinNew
             (by simp [locals1, fessLocalsSinNew, fessLocals]))
       have hbodyStatic : I.perm = false →
-          ExecTransitionBody config contract evm0 locals fessTransition.body .staticViolation := by
+          ExecTransitionBody fork config contract evm0 locals fessTransition.body .staticViolation := by
         intro hpf
         have hguard := vowAuthGuardEval_true
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals, fessLocals]) hauthStele
         have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
+            ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .letDecl "sinNew" (some uint256)
@@ -966,14 +968,14 @@ theorem vowFessBodyCore
               (by simp [locals2, fessLocalsSinNewSinCapitalNew, fessLocalsSinNew,
                 fessLocals]))
         have hbody (hperm : I.perm = true) :
-            ExecTransitionBody config contract evm0 locals fessTransition.body
+            ExecTransitionBody fork config contract evm0 locals fessTransition.body
               (.returned { contract := contract, locals := locals2 } evm2 none) := by
           have hguard := vowAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals, fessLocals]) hauthStele
           have hblock :
-              ExecBlock config { contract := contract, locals := locals } evm0
+              ExecBlock fork config { contract := contract, locals := locals } evm0
                 [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                   .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                   .letDecl "sinNew" (some uint256)
@@ -990,10 +992,10 @@ theorem vowFessBodyCore
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
             refine ExecBlock.consNormal (ExecStmt.letDecl hfirstAdd) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hfirstRequire) ?_
-            refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsinNewVar hassignSin) ?_
+            refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsinNewVar hassignSin) ?_
             refine ExecBlock.consNormal (ExecStmt.letDecl hsecondAdd) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hsecondRequire) ?_
-            exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) hSinNewVar hassignSinCapital)
+            exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) hSinNewVar hassignSinCapital)
               ExecBlock.nil
           simpa [ExecTransitionBody, fessTransition, nonpayable, auth, checkedAddUintInto,
             evm0, locals] using ExecFuncBody.execBlockOK hblock
@@ -1019,7 +1021,7 @@ theorem vowFessBodyCore
           rw [show fessTransition.returnType = [] by rfl]
           exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
         have hret' :
-            RDret vowBytecode (Sat256.ofUInt256 g)
+            RDret fork vowBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew) ByteArray.empty := by
           simpa [σ1_evm, sinNew, SinNew, tab, eraSlot, slot, hslot, solcSlotWordAt] using hret
@@ -1059,13 +1061,13 @@ theorem vowFessBodyCore
           exact evalExpr_add256_tab_revert (x := .storage SinRef)
             (old := solcSlotWordAt ⟨5⟩ σ1_evm I) (tab := tab)
             hsinCapitalRead htab1 hoverSinEvm
-        have hbody (hperm : I.perm = true) : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
+        have hbody (hperm : I.perm = true) : ExecTransitionBody fork config contract evm0 locals fessTransition.body .reverted := by
           have hguard := vowAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals, fessLocals]) hauthStele
           have hblock :
-              ExecBlock config { contract := contract, locals := locals } evm0
+              ExecBlock fork config { contract := contract, locals := locals } evm0
                 [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                   .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                   .letDecl "sinNew" (some uint256)
@@ -1082,7 +1084,7 @@ theorem vowFessBodyCore
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
             refine ExecBlock.consNormal (ExecStmt.letDecl hfirstAdd) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hfirstRequire) ?_
-            refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsinNewVar hassignSin) ?_
+            refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsinNewVar hassignSin) ?_
             exact ExecBlock.consRevert (ExecStmt.letDeclRevert hsecondAddRev)
           simpa [ExecTransitionBody, fessTransition, nonpayable, auth, checkedAddUintInto,
             evm0, locals] using ExecFuncBody.execBlockRevert hblock
@@ -1130,13 +1132,13 @@ theorem vowFessBodyCore
         exact evalExpr_add256_tab_revert
           (x := .storage (sinRef (.env .timestamp))) (old := solcSlotWordAt slot σ I)
           (tab := tab) hsinRead0 htab0 hoverEraStele
-      have hbody : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals fessTransition.body .reverted := by
         have hguard := vowAuthGuardEval_true
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals, fessLocals]) hauthStele
         have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
+            ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .letDecl "sinNew" (some uint256)
@@ -1164,12 +1166,12 @@ theorem vowFessBodyCore
       intro hstele
       exact hauthEvm (by rw [hcallerWord, hstele])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals fessTransition.body .reverted := by
       have hguard := vowAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fessLocals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -1193,7 +1195,7 @@ theorem vowFessBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowFessBodyCore hcode hwv hsz36 hsize (vowDispatch_fess hsel)
     (by simpa [fessLocals] using vowDecode_fess_ok (I := I) hsz36)
@@ -1204,9 +1206,9 @@ theorem vowFessShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachFessBody (σ := σ)
+    vowReachFessBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

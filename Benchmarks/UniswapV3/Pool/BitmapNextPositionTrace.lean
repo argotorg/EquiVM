@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitmapNextPrefixTrace
 import Benchmarks.UniswapV3.Pool.BitmapPositionTrace
 import Benchmarks.UniswapV3.Pool.BitmapPositionLaws
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem bitmapNextPositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (compressed : Int) (lte : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11376⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11376⟩
       (EVM.wordOfInt compressed :: ⟨0⟩ :: ⟨0⟩ :: (if lte then ⟨1⟩ else ⟨0⟩) :: R)
       mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (if lte then ⟨11394⟩ else ⟨11508⟩)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if lte then ⟨11394⟩ else ⟨11508⟩)
       (bitmapPositionBitRaw (bitmapNextPosition compressed lte) ::
         EVM.wordOfInt (bitmapWordPos (bitmapNextPosition compressed lte)) ::
         ⟨0⟩ :: ⟨0⟩ :: EVM.wordOfInt compressed :: ⟨0⟩ :: ⟨0⟩ ::

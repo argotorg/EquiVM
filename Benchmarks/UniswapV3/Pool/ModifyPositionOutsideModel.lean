@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionGuards
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaInternal
 import Benchmarks.UniswapV3.Pool.TickSqrtInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -95,7 +97,7 @@ theorem evalModifyPositionOutsideAmountExprs (imms : Store) (a : ModifyPositionA
 
 theorem modifyPositionOutsideAssignSource (imms : Store) (a : ModifyPositionArgs)
     (evm evm' : EVM.State) (second : Bool) :
-    ExecStmt config (modifyPositionOutsideAmountFrame imms a evm second) evm'
+    ExecStmt fork config (modifyPositionOutsideAmountFrame imms a evm second) evm'
       (.assign .localVar ⟨if second then "amount1" else "amount0", []⟩
         (.var (modifyPositionOutsideAmountName second)))
       (.ok (modifyPositionOutsideFinalFrame imms a evm second) evm') := by

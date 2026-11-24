@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitmapNextAdjustTrace
 import Benchmarks.UniswapV3.Pool.SignedWordZero
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,15 +13,15 @@ set_option maxRecDepth 10000
 theorem bitmapNextPrefixRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw lteRaw spacingRaw tickRaw base ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (tick spacing : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11307⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11307⟩
       (lteRaw :: spacingRaw :: tickRaw :: base :: ret :: R) mem aw rdata σ k C)
     (htlo : -(2 ^ 23 : Int) ≤ tick) (hthi : tick < 2 ^ 23)
     (hslo : -(2 ^ 23 : Int) ≤ spacing) (hshi : spacing < 2 ^ 23)
     (ht : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hs : UInt256.signextend (UInt256.ofNat 2) spacingRaw = EVM.wordOfInt spacing)
     (hov : R.length + 12 ≤ 1024) :
-    (spacing = 0 ∧ RDinvalid (deployedRuntime v) g s0) ∨
-      (spacing ≠ 0 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11376⟩
+    (spacing = 0 ∧ RDinvalid fork (deployedRuntime v) g s0) ∨
+      (spacing ≠ 0 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11376⟩
         (EVM.wordOfInt (bitmapNextCompressed tick spacing) :: ⟨0⟩ :: ⟨0⟩ ::
           lteRaw :: spacingRaw :: tickRaw :: base :: ret :: R) mem aw rdata σ k' C') := by
   by_cases hn : spacing = 0
@@ -40,7 +42,7 @@ theorem bitmapNextPrefixRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       if tick < 0 then ⟨1⟩ else ⟨0⟩ := by
     rw [ht]
     exact slt_wordOfInt tick 0 (by omega) (by omega) (by decide) (by decide)
-  have hg : ∃ kg Cg, RD (deployedRuntime v) ee g s0 ⟨11366⟩
+  have hg : ∃ kg Cg, RD fork (deployedRuntime v) ee g s0 ⟨11366⟩
       ((if bitmapNextAdjust tick spacing then ⟨1⟩ else ⟨0⟩) :: EVM.wordOfInt (tick.tdiv spacing) ::
         ⟨0⟩ :: ⟨0⟩ :: lteRaw :: spacingRaw :: tickRaw :: base :: ret :: R)
         mem aw rdata σ kg Cg := by

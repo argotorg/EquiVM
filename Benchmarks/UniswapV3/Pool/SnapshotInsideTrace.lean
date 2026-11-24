@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SnapshotSlotRead
 import Benchmarks.UniswapV3.Pool.SnapshotReturn
 import Benchmarks.UniswapV3.Pool.OracleObserveTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -24,10 +26,10 @@ theorem snapshotInsideRawTimeWords (current : OracleObservation) (timeRaw time :
 theorem snapshotFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free seconds liquidity tick upperRaw lowerRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10448⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10448⟩
       (seconds :: liquidity :: tick :: upperRaw :: lowerRaw :: UInt256.ofNat 1952 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hb : free.toNat + 96 ≤ 2 ^ 200) (hov : R.length + 7 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 σ (wordBytes (snapshotCleanWords seconds liquidity tick)) := by
+    RDret fork (deployedRuntime v) g s0 σ (wordBytes (snapshotCleanWords seconds liquidity tick)) := by
   have hr := uniswapV3Pool_block_10448 (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [uniswapV3Pool_block_10448_stack] at hr
@@ -36,13 +38,13 @@ theorem snapshotFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem snapshotInsideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free p lowerRaw upperRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (lower upper : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10336⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10336⟩
       (snapshotReadyStack lower upper σ ee p lowerRaw upperRaw (UInt256.ofNat 1952) R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hslot : Slot0Memory mem p σ ee)
     (hb : free.toNat + 480 ≤ 2 ^ 200) (hp : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 55 ≤ 1024) :
-    (RDinvalid (deployedRuntime v) g s0 ∧ ¬ (slot0FieldWord 23 2 σ ee).toNat < 65535) ∨
-    (RDret (deployedRuntime v) g s0 σ
+    (RDinvalid fork (deployedRuntime v) g s0 ∧ ¬ (slot0FieldWord 23 2 σ ee).toNat < 65535) ∨
+    (RDret fork (deployedRuntime v) g s0 σ
       (wordBytes (snapshotInside (snapshotCurrent σ ee) (blockTimestampWord ee)
         (tickOutside lower σ ee) (tickOutside upper σ ee)).words) ∧
       (slot0FieldWord 23 2 σ ee).toNat < 65535) := by

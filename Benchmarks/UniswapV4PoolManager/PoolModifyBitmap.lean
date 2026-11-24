@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.TickBitmapSource
 import Benchmarks.UniswapV4PoolManager.ConditionalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -34,7 +36,7 @@ theorem poolModifyFlip {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyP
     (ht : f.locals.get? (poolModifyTickName upper) = some (.int tick))
     (hstate : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu))
     (hb : tick.natAbs ≤ 887272) :
-    ExecStmt config f evm (poolModifyFlipStmt upper)
+    ExecStmt fork config f evm (poolModifyFlipStmt upper)
       (poolModifyFlipResult f evm id tick (EVM.signed p.spacing) upper (if upper then fu else fl)) := by
   have hc := evalStructField (evalLocalValue (cfg := config) (f := f) (evm := evm) hstate)
     (show lookupField? (poolModifyStateValue fl gl fu gu) (poolModifyFlipField upper) =
@@ -44,7 +46,7 @@ theorem poolModifyFlip {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyP
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyFlipAlias upper == poolModifyTickName upper) = false)).trans ht
   have hp' : fa.locals.get? "params" = some (poolModifyParamsValue p) :=
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyFlipAlias upper == "params") = false)).trans hp
-  have hcall := tickBitmapCall (f := fa) (evm := evm) hf (evalLocalValue (store_get_self _ _ _))
+  have hcall := tickBitmapCall (fork := fork) (f := fa) (evm := evm) hf (evalLocalValue (store_get_self _ _ _))
     (evalLocalValue ht') (evalStructField (evalLocalValue hp') (field := "tickSpacing") rfl) hb
     (poolModifyFlipRet upper)
   exact execStmt_conditionalAliasCall hc (resolveStorageAliasField hs rfl) hcall

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralValueModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -34,22 +36,22 @@ theorem collateralPriceFeed_eval (frame : Frame) (evm : EVM.State) (out : ByteAr
     bind, EvalResult.bind]
   rfl
 
-def CollateralAfterAssetSourceResult (frame : Frame) (evm : EVM.State) (borrow : Bool)
+def CollateralAfterAssetSourceResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (out : ByteArray) (result : Option (EVM.State × CollateralValueData)) : Prop :=
   match result with
-  | none => ExecBlock config (collateralAssetFrame frame out) evm
+  | none => ExecBlock fork config (collateralAssetFrame frame out) evm
       (collateralAfterAssetBlock borrow) .reverted
-  | some (evm', d) => ExecBlock config (collateralAssetFrame frame out) evm
+  | some (evm', d) => ExecBlock fork config (collateralAssetFrame frame out) evm
       (collateralAfterAssetBlock borrow) (.ok (collateralValueFrame frame borrow d) evm')
 
 theorem collateralAfterAsset_source {borrow : Bool} {out : ByteArray}
     {account : AccountAddress} {evm : EVM.State}
     {result : Option (EVM.State × CollateralValueData)}
-    (ht : CollateralAfterAsset borrow out (collateralBalanceWord evm account out) evm result)
+    (ht : CollateralAfterAsset fork borrow out (collateralBalanceWord evm account out) evm result)
     (frame : Frame) (hc : frame.contract = contract)
     (hu : frame.locals.get? "userCollateral" = none)
     (ha : frame.locals.get? "account" = some (.address account)) :
-    CollateralAfterAssetSourceResult frame evm borrow out result := by
+    CollateralAfterAssetSourceResult fork frame evm borrow out result := by
   classical
   have hb := collateralBalance_eval frame evm out account hc hu ha
   let amount := collateralBalanceWord evm account out
@@ -62,7 +64,7 @@ theorem collateralAfterAsset_source {borrow : Bool} {out : ByteArray}
   | @result evm' priceOut hcall hh hv =>
       have hp := price_call_ok (collateralBalanceFrame frame out amount) evm evm' _ _ "__c5"
         priceOut hc hf hcall hh hv
-      have hm := collateralMath_source
+      have hm := collateralMath_source (fork := fork)
         (collateralPriceFrame frame out amount (calldataWord priceOut 32)) evm' borrow
         amount (calldataWord priceOut 32) out hc
         (by simp only [collateralPriceFrame, collateralBalanceFrame, collateralAssetFrame,
@@ -85,12 +87,12 @@ theorem collateralAfterAsset_source {borrow : Bool} {out : ByteArray}
 theorem collateralValue_source {v : CometWithExtendedAssetListImmutables}
     {borrow : Bool} {account : AccountAddress} {i : UInt256} {evm : EVM.State}
     {result : Option (EVM.State × CollateralValueData)}
-    (ht : CollateralValueTrace v borrow account i evm result) (frame : Frame)
+    (ht : CollateralValueTrace fork v borrow account i evm result) (frame : Frame)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (hu : frame.locals.get? "userCollateral" = none)
     (ha : frame.locals.get? "account" = some (.address account))
     (he : evalExpr? config frame evm (.var "i") = .ok (.int i.toNat)) :
-    CollateralValueSourceResult frame evm borrow (collateralValueBlock borrow) result := by
+    CollateralValueSourceResult fork frame evm borrow (collateralValueBlock borrow) result := by
   have him : frame.immutables.get? "assetList" = some (.address v.assetList) := by
     rw [hi]; exact immStore_get_assetList v
   cases ht with

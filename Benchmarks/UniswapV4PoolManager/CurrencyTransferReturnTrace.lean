@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.CurrencyTransferSource
 import Benchmarks.UniswapV4PoolManager.CurrencyTransferMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -52,12 +54,12 @@ theorem currencyTransferTokenReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : S
     (hword : 32 ≤ out.size → memLoad ⟨0⟩ mem = returnedBalanceWord out)
     (hm : P (currencyTransferCleanMemory mem ptr))
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13122⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13122⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨64⟩ :: ⟨0⟩ :: ptr :: currency :: ret :: R)
       mem aw out σ k C) :
-    (¬ (z = true ∧ transferReturnValid out) ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ (z = true ∧ transferReturnValid out) ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (z = true ∧ transferReturnValid out ∧ ∃ mem' aw' k' C',
-      P mem' ∧ RD (deployedRuntime v) I g s0 ret R mem' aw' out σ k' C') := by
+      P mem' ∧ RD fork (deployedRuntime v) I g s0 ret R mem' aw' out σ k' C') := by
   have hg := transferReturnGuard_eq (z := z) ho hword
   by_cases hgood : z = true ∧ transferReturnValid out
   · rw [if_pos hgood] at hg

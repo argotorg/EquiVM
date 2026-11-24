@@ -3,6 +3,8 @@ import Reasoning.ABIComposite
 import Reasoning.EVMWord
 import Benchmarks.Dss.LinearDecrease.Tau
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -397,7 +399,7 @@ theorem evalExprs_priceRmulArgs {evm : EVM.State} {σ : AccountMap} {I : Executi
 
 theorem stairstepExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       mulFunction.body
       (.returned { contract := contract, locals := priceUintBinaryLocalsZ x y prod }
         evm (some [.int (Int.ofNat prod.toNat)])) := by
@@ -482,7 +484,7 @@ theorem stairstepExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
         exact evalExpr_price_eq_int_true hDivY hxZ rfl
       exact evalExpr_price_or_false_right hyEqZero hRight
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -499,7 +501,7 @@ theorem stairstepExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
 
 theorem stairstepExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       mulFunction.body .reverted := by
   let locals := priceUintBinaryLocals x y
   have hx :
@@ -517,7 +519,7 @@ theorem stairstepExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_price_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -531,7 +533,7 @@ theorem stairstepExecMulFunctionRevert (evm : EVM.State) {x y : UInt256}
 theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size)
     (hq : q = UInt256.div prod stairstepRay) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       rmulFunction.body
       (.returned { contract := contract, locals := priceUintBinaryLocalsZAssigned x y prod q }
         evm (some [.int (Int.ofNat q.toNat)])) := by
@@ -637,7 +639,7 @@ theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       (locals := localsQ) (name := "z") (value := q)
       (priceUintBinaryLocalsZAssigned_get_z x y prod q)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -649,14 +651,14 @@ theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
           (some [.int (Int.ofNat q.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hMul) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivRay hAssign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivRay hAssign) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzQ))
   simpa [rmulFunction, checkedMulUintInto, locals, localsZ, localsQ]
     using ExecFuncBody.execBlockRet hblock
 
 theorem stairstepExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       rmulFunction.body .reverted := by
   let locals := priceUintBinaryLocals x y
   have hx :
@@ -674,7 +676,7 @@ theorem stairstepExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_price_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -708,7 +710,7 @@ theorem stairstepReachPriceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (stairstepSelBytes 2)) :
-    ∃ k C, RD linearDecreaseBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork linearDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepPriceEntryPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hword : stairstepSelWord I = ⟨0x487a2395⟩ :=
@@ -735,10 +737,10 @@ theorem stairstepReachPriceBody {σ σ₀ A I} {g : Sat256}
 
 theorem RD.stairstepPriceDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel de : UInt256}
-    (h : RD linearDecreaseBytecode I g s0 ⟨162⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨162⟩
       (de :: ⟨4⟩ :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨552⟩
+    ∃ k' C', RD fork linearDecreaseBytecode I g s0 ⟨552⟩
       [priceDur I, priceTop I, ⟨175⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd552 := evm_run h with [
@@ -756,10 +758,10 @@ theorem RD.stairstepPriceDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
 
 theorem stairstepPriceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD linearDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork linearDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepPriceEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD linearDecreaseBytecode I g
+    ∃ k C, RD fork linearDecreaseBytecode I g
         (initState σ σ₀ g A I) ⟨552⟩
         [priceDur I, priceTop I, ⟨175⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -775,10 +777,10 @@ theorem stairstepPriceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem stairstepPriceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD linearDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork linearDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepPriceEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork linearDecreaseBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -799,7 +801,7 @@ theorem stairstepPriceSourceZeroReturns {σ σ₀ A I} {g : UInt256}
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) = ⟨0⟩) :
     let locals := priceLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals priceTransition.body
+    ExecTransitionBody fork config contract evm0 locals priceTransition.body
       (.returned { contract := contract, locals := locals } evm0 (some [.int 0])) := by
   intro locals evm0
   have hdur :
@@ -822,12 +824,12 @@ theorem stairstepPriceSourceZeroReturns {σ σ₀ A I} {g : UInt256}
         .ok (.int 0) := by
     simp [evalExpr?, pure]
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [.return [.intLit 0]]
         (.returned { contract := contract, locals := locals } evm0 (some [.int 0])) :=
     ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzero))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 priceTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 priceTransition.body
         (.returned { contract := contract, locals := locals } evm0 (some [.int 0])) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -842,7 +844,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) ≠ ⟨0⟩)
     (hfitMul : (priceLeft σ I).toNat * stairstepRay.toNat < UInt256.size)
     (hfitRmul : (priceRatio σ I).toNat * (priceTop I).toNat < UInt256.size) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body
       (.returned { contract := contract, locals := priceLocalsOut σ I }
         evm (some [.int (Int.ofNat (priceOut σ I).toNat)])) := by
   have hltNat : (priceDur I).toNat < (priceTauWord σ I).toNat :=
@@ -873,7 +875,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
           .ok (.int (Int.ofNat (priceLeft σ I).toNat)) :=
     evalExpr_price_sub256_ok htau hdur rfl (le_of_lt hltNat)
   have hleftStmt :
-      ExecStmt config { contract := contract, locals := priceLocals I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocals I } evm
         (.letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")))
         (.ok { contract := contract, locals := priceLocalsLeft σ I } evm) := by
     simpa [priceLocalsLeft] using ExecStmt.letDecl hleftEval
@@ -887,10 +889,10 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
         some (priceUintBinaryLocals (priceLeft σ I) stairstepRay) := by
     simp [mulFunction, priceUintBinaryLocals, bindParams?]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := priceLocalsLeft σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsLeft σ I } evm
         (.internalCall "mul" [.var "left", .intLit RAY] "scaled")
         (.ok { contract := contract, locals := priceLocalsScaled σ I } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsLeft σ I) ∅)
       (evm := evm) (name := "mul") (retVar := "scaled")
@@ -900,7 +902,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
       (callee := mulFunction)
       (locals := priceUintBinaryLocals (priceLeft σ I) stairstepRay)
       hmulArgs hlookupMul hbindMul
-      (stairstepExecMulFunctionReturn evm (x := priceLeft σ I) (y := stairstepRay)
+      (stairstepExecMulFunctionReturn (fork := fork) evm (x := priceLeft σ I) (y := stairstepRay)
         (prod := priceScaled σ I) rfl hfitMul)
     simpa [resumeAfterInternalCall, priceLocalsScaled] using h
   have hscaled :
@@ -919,7 +921,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
           .ok (.int (Int.ofNat (priceRatio σ I).toNat)) :=
     evalExpr_price_div_uint256_ok hscaled htauScaled htauNe rfl
   have hratioStmt :
-      ExecStmt config { contract := contract, locals := priceLocalsScaled σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsScaled σ I } evm
         (.letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)))
         (.ok { contract := contract, locals := priceLocalsRatio σ I } evm) := by
     simpa [priceLocalsRatio] using ExecStmt.letDecl hratioEval
@@ -941,10 +943,10 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
       simpa [HMul.hMul, Mul.mul] using u256_mul_comm (priceRatio σ I) (priceTop I)
     rw [hcomm]
   have hrmulStmt :
-      ExecStmt config { contract := contract, locals := priceLocalsRatio σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsRatio σ I } evm
         (.internalCall "rmul" [.var "top", .var "ratio"] "out")
         (.ok { contract := contract, locals := priceLocalsOut σ I } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsRatio σ I) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
@@ -954,7 +956,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
       (callee := rmulFunction)
       (locals := priceUintBinaryLocals (priceTop I) (priceRatio σ I))
       hrmulArgs hlookupRmul hbindRmul
-      (stairstepExecRmulFunctionReturn evm (x := priceTop I) (y := priceRatio σ I)
+      (stairstepExecRmulFunctionReturn (fork := fork) evm (x := priceTop I) (y := priceRatio σ I)
         (prod := priceTop I * priceRatio σ I) (q := priceOut σ I)
         rfl hfitRmulLocal hq)
     simpa [resumeAfterInternalCall, priceLocalsOut] using h
@@ -963,7 +965,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
         (.var "out") = .ok (.int (Int.ofNat (priceOut σ I).toNat)) :=
     evalExpr_price_varUInt256 (priceLocalsOut_get_out σ I)
   have helse :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")),
           .internalCall "mul" [.var "left", .intLit RAY] "scaled",
           .letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)),
@@ -977,7 +979,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
     refine ExecBlock.consNormal hrmulStmt ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hout))
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         priceTransition.body
         (.returned { contract := contract, locals := priceLocalsOut σ I } evm
           (some [.int (Int.ofNat (priceOut σ I).toNat)])) := by
@@ -992,7 +994,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = priceTauWord σ I)
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) ≠ ⟨0⟩)
     (hover : UInt256.size ≤ (priceLeft σ I).toNat * stairstepRay.toNat) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hltNat : (priceDur I).toNat < (priceTauWord σ I).toNat :=
     ult_ne_zero_toNat_lt hlt
   have hdur :
@@ -1015,7 +1017,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
           .ok (.int (Int.ofNat (priceLeft σ I).toNat)) :=
     evalExpr_price_sub256_ok htau hdur rfl (le_of_lt hltNat)
   have hleftStmt :
-      ExecStmt config { contract := contract, locals := priceLocals I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocals I } evm
         (.letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")))
         (.ok { contract := contract, locals := priceLocalsLeft σ I } evm) := by
     simpa [priceLocalsLeft] using ExecStmt.letDecl hleftEval
@@ -1029,7 +1031,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
         some (priceUintBinaryLocals (priceLeft σ I) stairstepRay) := by
     simp [mulFunction, priceUintBinaryLocals, bindParams?]
   have hmulRevert :
-      ExecStmt config { contract := contract, locals := priceLocalsLeft σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsLeft σ I } evm
         (.internalCall "mul" [.var "left", .intLit RAY] "scaled") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -1043,7 +1045,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
       hmulArgs hlookupMul hbindMul
       (stairstepExecMulFunctionRevert evm (x := priceLeft σ I) (y := stairstepRay) hover)
   have helse :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")),
           .internalCall "mul" [.var "left", .intLit RAY] "scaled",
           .letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)),
@@ -1053,7 +1055,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
     refine ExecBlock.consNormal hleftStmt ?_
     exact ExecBlock.consRevert hmulRevert
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         priceTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     exact ExecBlock.consRevert (ExecStmt.iteFalse hcond helse)
@@ -1067,7 +1069,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) ≠ ⟨0⟩)
     (hfitMul : (priceLeft σ I).toNat * stairstepRay.toNat < UInt256.size)
     (hover : UInt256.size ≤ (priceRatio σ I).toNat * (priceTop I).toNat) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hltNat : (priceDur I).toNat < (priceTauWord σ I).toNat :=
     ult_ne_zero_toNat_lt hlt
   have htauNe : priceTauWord σ I ≠ ⟨0⟩ := by
@@ -1096,7 +1098,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
           .ok (.int (Int.ofNat (priceLeft σ I).toNat)) :=
     evalExpr_price_sub256_ok htau hdur rfl (le_of_lt hltNat)
   have hleftStmt :
-      ExecStmt config { contract := contract, locals := priceLocals I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocals I } evm
         (.letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")))
         (.ok { contract := contract, locals := priceLocalsLeft σ I } evm) := by
     simpa [priceLocalsLeft] using ExecStmt.letDecl hleftEval
@@ -1110,10 +1112,10 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
         some (priceUintBinaryLocals (priceLeft σ I) stairstepRay) := by
     simp [mulFunction, priceUintBinaryLocals, bindParams?]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := priceLocalsLeft σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsLeft σ I } evm
         (.internalCall "mul" [.var "left", .intLit RAY] "scaled")
         (.ok { contract := contract, locals := priceLocalsScaled σ I } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsLeft σ I) ∅)
       (evm := evm) (name := "mul") (retVar := "scaled")
@@ -1123,7 +1125,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
       (callee := mulFunction)
       (locals := priceUintBinaryLocals (priceLeft σ I) stairstepRay)
       hmulArgs hlookupMul hbindMul
-      (stairstepExecMulFunctionReturn evm (x := priceLeft σ I) (y := stairstepRay)
+      (stairstepExecMulFunctionReturn (fork := fork) evm (x := priceLeft σ I) (y := stairstepRay)
         (prod := priceScaled σ I) rfl hfitMul)
     simpa [resumeAfterInternalCall, priceLocalsScaled] using h
   have hscaled :
@@ -1142,7 +1144,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
           .ok (.int (Int.ofNat (priceRatio σ I).toNat)) :=
     evalExpr_price_div_uint256_ok hscaled htauScaled htauNe rfl
   have hratioStmt :
-      ExecStmt config { contract := contract, locals := priceLocalsScaled σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsScaled σ I } evm
         (.letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)))
         (.ok { contract := contract, locals := priceLocalsRatio σ I } evm) := by
     simpa [priceLocalsRatio] using ExecStmt.letDecl hratioEval
@@ -1158,7 +1160,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
   have hoverLocal : UInt256.size ≤ (priceTop I).toNat * (priceRatio σ I).toNat := by
     simpa [Nat.mul_comm] using hover
   have hrmulRevert :
-      ExecStmt config { contract := contract, locals := priceLocalsRatio σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsRatio σ I } evm
         (.internalCall "rmul" [.var "top", .var "ratio"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -1173,7 +1175,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
       (stairstepExecRmulFunctionRevertMul evm (x := priceTop I) (y := priceRatio σ I)
         hoverLocal)
   have helse :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")),
           .internalCall "mul" [.var "left", .intLit RAY] "scaled",
           .letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)),
@@ -1185,7 +1187,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
     refine ExecBlock.consNormal hratioStmt ?_
     exact ExecBlock.consRevert hrmulRevert
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         priceTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     exact ExecBlock.consRevert (ExecStmt.iteFalse hcond helse)
@@ -1195,16 +1197,16 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceZeroReturn {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) = ⟨0⟩)
-    (h : RD linearDecreaseBytecode I g s0 ⟨552⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨552⟩
       [priceDur I, priceTop I, ⟨175⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret linearDecreaseBytecode g s0 σ (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
+    RDret fork linearDecreaseBytecode g s0 σ (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
   have rd557 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k558, C558, rd558raw⟩ := rd557.sload (by native_decide) (by evm_ov)
-  have rd558 : RD linearDecreaseBytecode I g s0 ⟨558⟩
+  have rd558 : RD fork linearDecreaseBytecode I g s0 ⟨558⟩
       (priceTauWord σ I :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k558 C558 := by
     simpa [priceTauWord, tauWord, solcSlotWordAt] using rd558raw
@@ -1242,10 +1244,10 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) ≠ ⟨0⟩)
-    (h : RD linearDecreaseBytecode I g s0 ⟨552⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨552⟩
       [priceDur I, priceTop I, ⟨175⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨987⟩
+    ∃ k' C', RD fork linearDecreaseBytecode I g s0 ⟨987⟩
       (stairstepRay :: priceLeft σ I :: ⟨604⟩ :: priceTauWord σ I :: priceTop I ::
         ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1254,7 +1256,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k558, C558, rd558raw⟩ := rd557.sload (by native_decide) (by evm_ov)
-  have rd558 : RD linearDecreaseBytecode I g s0 ⟨558⟩
+  have rd558 : RD fork linearDecreaseBytecode I g s0 ⟨558⟩
       (priceTauWord σ I :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k558 C558 := by
     simpa [priceTauWord, tauWord, solcSlotWordAt] using rd558raw
@@ -1268,7 +1270,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
     raw dup4 (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k579, C579, rd579raw⟩ := rd571.sload (by native_decide) (by evm_ov)
-  have rd579 : RD linearDecreaseBytecode I g s0 ⟨579⟩
+  have rd579 : RD fork linearDecreaseBytecode I g s0 ⟨579⟩
       (priceTauWord σ I :: priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k579 C579 := by
@@ -1278,7 +1280,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
     raw dup6 (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k586, C586, rd586raw⟩ := rd585.sload (by native_decide) (by evm_ov)
-  have rd586 : RD linearDecreaseBytecode I g s0 ⟨586⟩
+  have rd586 : RD fork linearDecreaseBytecode I g s0 ⟨586⟩
       (priceTauWord σ I :: priceDur I :: ⟨604⟩ :: priceTauWord σ I ::
         priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k586 C586 := by
@@ -1297,11 +1299,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceMulRayReturns {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hfit : (priceLeft σ I).toNat * stairstepRay.toNat < UInt256.size)
-    (h : RD linearDecreaseBytecode I g s0 ⟨987⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨987⟩
       (stairstepRay :: priceLeft σ I :: ⟨604⟩ :: priceTauWord σ I :: priceTop I ::
         ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨604⟩
+    ∃ k' C', RD fork linearDecreaseBytecode I g s0 ⟨604⟩
       (priceScaled σ I :: priceTauWord σ I :: priceTop I :: ⟨617⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1361,11 +1363,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceMulRayOverflowReverts {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hover : UInt256.size ≤ (priceLeft σ I).toNat * stairstepRay.toNat)
-    (h : RD linearDecreaseBytecode I g s0 ⟨987⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨987⟩
       (stairstepRay :: priceLeft σ I :: ⟨604⟩ :: priceTauWord σ I :: priceTop I ::
         ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev linearDecreaseBytecode g s0 := by
+    RDrev fork linearDecreaseBytecode g s0 := by
   have rd1014pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1417,11 +1419,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceAfterMulToRmul {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (htau : priceTauWord σ I ≠ ⟨0⟩)
-    (h : RD linearDecreaseBytecode I g s0 ⟨604⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨604⟩
       (priceScaled σ I :: priceTauWord σ I :: priceTop I :: ⟨617⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨1023⟩
+    ∃ k' C', RD fork linearDecreaseBytecode I g s0 ⟨1023⟩
       (priceRatio σ I :: priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1440,11 +1442,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulReturns {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel pow : UInt256}
     (hfit : pow.toNat * (priceTop I).toNat < UInt256.size)
-    (h : RD linearDecreaseBytecode I g s0 ⟨1023⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨1023⟩
       (pow :: priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I ::
         ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨617⟩
+    ∃ k' C', RD fork linearDecreaseBytecode I g s0 ⟨617⟩
       (UInt256.div (pow * priceTop I) stairstepRay :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1531,11 +1533,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulOverflowReverts {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel pow : UInt256}
     (hover : UInt256.size ≤ pow.toNat * (priceTop I).toNat)
-    (h : RD linearDecreaseBytecode I g s0 ⟨1023⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨1023⟩
       (pow :: priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I ::
         ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev linearDecreaseBytecode g s0 := by
+    RDrev fork linearDecreaseBytecode g s0 := by
   have hpowNe : pow ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : pow.toNat * (priceTop I).toNat = 0 := by simp [hzero]
@@ -1581,10 +1583,10 @@ theorem stairstepPriceRmulOverflowReverts {σ I} {g : Sat256} {s0 : State}
 
 theorem stairstepPriceFinishReturn {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel out : UInt256}
-    (h : RD linearDecreaseBytecode I g s0 ⟨617⟩
+    (h : RD fork linearDecreaseBytecode I g s0 ⟨617⟩
       (out :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret linearDecreaseBytecode g s0 σ (UInt256.toByteArray out) := by
+    RDret fork linearDecreaseBytecode g s0 σ (UInt256.toByteArray out) := by
   have rd175 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -1616,15 +1618,15 @@ theorem stairstepPriceBodyCoreZero
     (hdecode :
       config.externalABI.decodeCalldata? (priceTransition.params.map Param.name)
         (transitionSignature priceTransition).paramTypes I.calldata = some (priceLocals I))
-    (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork linearDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨552⟩
       [priceDur I, priceTop I, ⟨175⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd552⟩ := hreach
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (priceLocals I) priceTransition.body
         (.returned { contract := contract, locals := priceLocals I }
@@ -1633,7 +1635,7 @@ theorem stairstepPriceBodyCoreZero
     simpa using
       stairstepPriceSourceZeroReturns (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hlt
-  have hret := stairstepPriceZeroReturn (σ := σ) hlt rd552
+  have hret := stairstepPriceZeroReturn (fork := fork) (σ := σ) hlt rd552
   have henc :
       returnEquiv (UInt256.toByteArray (⟨0⟩ : UInt256))
         (some [(.int 0)])
@@ -1649,10 +1651,10 @@ theorem stairstepPriceBodyCoreDecodeFailed_short
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some priceTransition)
-    (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork linearDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepPriceEntryPc
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (stairstepPriceX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (stairstepDecode_price_none_short hsz4 hshort)
 
@@ -1662,12 +1664,12 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some priceTransition :=
     stairstepDispatchPrice hsel
-  have hreach := stairstepReachPriceBody
+  have hreach := stairstepReachPriceBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -1692,15 +1694,15 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
           rw [hzero]
           exact u256_zero_toNat
         omega
-      obtain ⟨_, _, rd987⟩ := stairstepPriceToMulRay (σ := σ) hltZero rd552
+      obtain ⟨_, _, rd987⟩ := stairstepPriceToMulRay (fork := fork) (σ := σ) hltZero rd552
       by_cases hfitMul : (priceLeft σ I).toNat * stairstepRay.toNat < UInt256.size
-      · obtain ⟨_, _, rd604⟩ := stairstepPriceMulRayReturns (σ := σ) hfitMul rd987
+      · obtain ⟨_, _, rd604⟩ := stairstepPriceMulRayReturns (fork := fork) (σ := σ) hfitMul rd987
         obtain ⟨_, _, rd1023⟩ :=
           stairstepPriceAfterMulToRmul (σ := σ) htauEvmNe rd604
         by_cases hfitRmul :
             (priceRatio σ I).toNat * (priceTop I).toNat < UInt256.size
         · have hbody :
-              ExecTransitionBody config contract evmStele (priceLocals I)
+              ExecTransitionBody fork config contract evmStele (priceLocals I)
                 priceTransition.body
                 (.returned { contract := contract, locals := priceLocalsOut σ I }
                   evmStele (some [.int (Int.ofNat (priceOut σ I).toNat)])) :=
@@ -1711,7 +1713,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
             stairstepPriceRmulReturns (σ := σ) (pow := priceRatio σ I)
               hfitRmul rd1023
           have hret :
-              RDret linearDecreaseBytecode (Sat256.ofUInt256 g)
+              RDret fork linearDecreaseBytecode (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
                 (UInt256.toByteArray (priceOut σ I)) := by
             exact stairstepPriceFinishReturn (out := priceOut σ I)
@@ -1728,7 +1730,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
               (priceRatio σ I).toNat * (priceTop I).toNat := by
             omega
           have hbody :
-              ExecTransitionBody config contract evmStele (priceLocals I)
+              ExecTransitionBody fork config contract evmStele (priceLocals I)
                 priceTransition.body .reverted :=
             stairstepPriceSourceRmulOverflowReverts (evm := evmStele) (σ := σ)
               (I := I) (by simp only [evmStele, initState]; exact hwv)
@@ -1741,12 +1743,12 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
             UInt256.size ≤ (priceLeft σ I).toNat * stairstepRay.toNat := by
           omega
         have hbody :
-            ExecTransitionBody config contract evmStele (priceLocals I)
+            ExecTransitionBody fork config contract evmStele (priceLocals I)
               priceTransition.body .reverted :=
           stairstepPriceSourceMulRayOverflowReverts (evm := evmStele) (σ := σ)
             (I := I) (by simp only [evmStele, initState]; exact hwv)
             hloadStele hltZero hover
-        have hrev := stairstepPriceMulRayOverflowReverts (σ := σ) hover rd987
+        have hrev := stairstepPriceMulRayOverflowReverts (fork := fork) (σ := σ) hover rd987
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact stairstepPriceBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch
       hreach

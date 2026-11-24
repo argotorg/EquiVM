@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyAfterFeesTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,11 +23,11 @@ theorem poolModifyAccountingTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hstatefree : ptr.toNat+128 ≤ free.toNat)
     (hlflip : memLoad ptr mem = UInt256.fromBool fl)
     (huflip : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 ⟨5722⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (⟨0⟩ :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: extra :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (poolModifyReturnTrace v I g s0 σ₀ (poolModifyAccountingMemory mem free id p fl fu)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (poolModifyReturnTrace fork v I g s0 σ₀ (poolModifyAccountingMemory mem free id p fl fu)
         rdata x1 x2 x4 x5 x9 extra R)
       (poolModifyAccountingResult f evm id p fl fu) := by
   have hfees := poolModifyFeesTrace f v (by simp only [List.length_cons]; omega) hI hm hmem hl hu

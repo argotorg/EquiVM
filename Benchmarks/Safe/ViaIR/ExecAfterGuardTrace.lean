@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_007
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -14,7 +16,7 @@ set_option maxRecDepth 5000 in
 theorem safeExecAfterGuardTrace {I g s0 σ k C aw mem rdata}
     {hash guard ptr : UInt256} {R : List UInt256} {frame : Frame}
     (z : Bool) (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨4813⟩
+    (h : RD fork safeBytecode I g s0 ⟨4813⟩
       (UInt256.land guard solcAddrMask :: z.toUInt256 :: hash ::
         UInt256.isZero z.toUInt256 :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -23,12 +25,12 @@ theorem safeExecAfterGuardTrace {I g s0 σ k C aw mem rdata}
     (hz : frame.locals["success"]? = some (.bool z))
     (hf : memLoad ⟨64⟩ mem = ptr) (hb : ptr.toNat + 68 < UInt256.size)
     (hcap : ptr.toNat < 2 ^ 64) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecStmt config frame evm execAfterGuardStmt .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecStmt fork config frame evm execAfterGuardStmt .reverted) ∨
     ∃ frame' evm' σ' mem' aw' out a b c k' C',
-      ExecStmt config frame evm execAfterGuardStmt (.ok frame' evm') ∧
+      ExecStmt fork config frame evm execAfterGuardStmt (.ok frame' evm') ∧
       frame'.locals["success"]? = some (.bool z) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨4819⟩
+      RD fork safeBytecode I g s0 ⟨4819⟩
         (a :: b :: c :: UInt256.isZero z.toUInt256 :: ⟨0⟩ :: R)
         mem' aw' out σ' k' C' := by
   have ht : AccountAddress.ofUInt256 guard =
@@ -66,7 +68,7 @@ theorem safeExecAfterGuardTrace {I g s0 σ k C aw mem rdata}
     rawValueCallTraceFrom evm h₃ hee hacc hworld (by native_decide) (by simp; omega)
       (Or.inr rfl)
   rw [callOutputMem_zero] at h₄
-  have htyped : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+  have htyped : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkAfterExecution" 0 [wordBytes32Value hash, .bool z] (called, evm', out) := by
     refine ⟨(execAfterGuardMemory mem ptr hash z).readWithPadding ptr.toNat 68,
       safeExecAfterGuardEncoding mem ptr hash z, ?_⟩

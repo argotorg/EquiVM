@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BoolReturnAllocation
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,8 +17,8 @@ theorem resolverReturn_success {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {ptr : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+6 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev) (⟨1⟩::ptr::R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverCopyPC many rev) (ptr::⟨0⟩::R) mem aw' out σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev) (⟨1⟩::ptr::R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverCopyPC many rev) (ptr::⟨0⟩::R) mem aw' out σ k' C' := by
   cases many with
   | false =>
     cases rev with
@@ -42,9 +44,9 @@ theorem resolverReturn_failure {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {ptr : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+6 ≤ 1024) (hb : out.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev) (⟨0⟩::ptr::R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
-  have hr : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨9844⟩ (ptr::⟨0⟩::R) mem aw' out σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev) (⟨0⟩::ptr::R) mem aw out σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
+  have hr : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨9844⟩ (ptr::⟨0⟩::R) mem aw' out σ k' C' := by
     cases many with
     | false =>
       cases rev with
@@ -70,8 +72,8 @@ theorem resolverReturn_allocateEntry {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {ptr : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+9 ≤ 1024) (hb : out.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverCopyPC many rev) (ptr::⟨0⟩::R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverCopyPC many rev) (ptr::⟨0⟩::R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (ptr::UInt256.ofNat (min out.size 32)::resolverLengthPC many rev::
         UInt256.ofNat (min out.size 32)::ptr::⟨32⟩::ptr::R) mem aw' out σ k' C' := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ hb
@@ -140,12 +142,12 @@ theorem resolverReturn_decodeEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C len : Nat} {ptr : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+8 ≤ 1024) (hlen : len ≤ 32) (hbound : ptr.toNat+32 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverLengthPC many rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverLengthPC many rev)
       (UInt256.ofNat len::ptr::⟨32⟩::ptr::R) mem aw out σ k C) :
     if 32 ≤ len then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7319⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7319⟩
         (ptr::resolverDecodedPC many rev::R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hp : UInt256.ofNat ptr.toNat = ptr := u256_ofNat_toNat ptr
   by_cases hl : 32 ≤ len
   · rw [if_pos hl]
@@ -184,7 +186,7 @@ theorem resolverReturn_decodeEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (by omega) (by omega) (by omega) (by decide)
       rw [he]
       decide
-    have hr : ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨402⟩ (ptr::R) mem aw' out σ k' C' := by
+    have hr : ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨402⟩ (ptr::R) mem aw' out σ k' C' := by
       cases many with
       | false =>
         cases rev with
@@ -209,8 +211,8 @@ theorem resolverReturn_done {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {word : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+3 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverDecodedPC many rev) (word::R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverDonePC many rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverDecodedPC many rev) (word::R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverDonePC many rev)
       (UInt256.ofNat (deployedRuntime v).size::word::R) mem aw' out σ k' C' := by
   cases many with
   | false =>
@@ -235,13 +237,13 @@ theorem resolverReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+9 ≤ 1024) (hb : out.size < UInt256.size)
     (hlo : 96 ≤ ptr.toNat) (hin : ptr.toNat+32 ≤ mem.size) (hbound : ptr.toNat+32 < UInt256.size)
     (hword : 32 ≤ out.size → memLoad ptr mem = calldataWord out 0)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverAfterCallPC many rev)
       ((if success then ⟨1⟩ else ⟨0⟩)::ptr::R) mem aw out σ k C) :
     if resolverCallValid ptr.toNat success out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverDonePC many rev)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverDonePC many rev)
         (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::R)
         (resolverReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases success with
   | false =>
     have hf : ¬ resolverCallValid ptr.toNat false out := by intro h; cases h.1
@@ -279,13 +281,13 @@ theorem resolverOneReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+9 ≤ 1024) (hb : out.size < UInt256.size)
     (hlo : 96 ≤ ptr.toNat) (hin : ptr.toNat+32 ≤ mem.size) (hbound : ptr.toNat+32 < UInt256.size)
     (hword : 32 ≤ out.size → memLoad ptr mem = calldataWord out 0)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverOneAfterCallPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverOneAfterCallPC rev)
       ((if success then ⟨1⟩ else ⟨0⟩)::ptr::R) mem aw out σ k C) :
     if resolverCallValid ptr.toNat success out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
         (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::R)
         (resolverReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   exact resolverReturn v false rev success hstack hb hlo hin hbound hword rd
 
 end Benchmarks.EAS.EAS

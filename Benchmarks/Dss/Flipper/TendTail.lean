@@ -2,6 +2,8 @@ import Benchmarks.Dss.Flipper.TendIncreaseGuard
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.YankCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -980,9 +982,9 @@ theorem flipperTendX_skipRefund {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hcaller : solcSourceWord I = bidGuyWord (tendId I) σ I)
-    (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3686⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3686⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1007,7 +1009,7 @@ theorem flipperTendX_skipRefund {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k3505, C3505, rd3505raw⟩ := rd3504.sload (by native_decide) (by evm_ov)
-  have rd3505 : RD flipperBytecode I g s0 ⟨3505⟩
+  have rd3505 : RD fork flipperBytecode I g s0 ⟨3505⟩
       [bidPackedWord (tendId I) σ I, tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k3505 C3505 := by
@@ -1029,7 +1031,7 @@ theorem flipperTendX_skipRefund {σ I} {g : Sat256} {s0 : State}
     raw caller (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
   obtain ⟨k3516, C3516, rd3516⟩ : ∃ k' C',
-      RD flipperBytecode I g s0 ⟨3516⟩
+      RD fork flipperBytecode I g s0 ⟨3516⟩
         [UInt256.eq (solcSourceWord I) (bidGuyWord (tendId I) σ I), tendBid I,
           tendLot I, tendId I, ret, sel]
         (twoWordHashMem (tendId I) ⟨1⟩ mem)
@@ -1049,9 +1051,9 @@ theorem flipperTendX_toPayExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3784⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3784⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
@@ -1089,7 +1091,7 @@ theorem flipperTendX_toPayExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3690, C3690, rd3690raw⟩ := rd3689.sload (by native_decide) (by evm_ov)
-  have rd3690 : RD flipperBytecode I g s0 ⟨3690⟩
+  have rd3690 : RD fork flipperBytecode I g s0 ⟨3690⟩
       [rawVat, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k3690 C3690 := by
     simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd3690raw
@@ -1118,7 +1120,7 @@ theorem flipperTendX_toPayExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k3711, C3711, rd3711raw⟩ := rd3709pre.sload (by native_decide) (by evm_ov)
-  have rd3711 : RD flipperBytecode I g s0 ⟨3711⟩
+  have rd3711 : RD fork flipperBytecode I g s0 ⟨3711⟩
       (rawGal :: ⟨4⟩ :: base :: ⟨64⟩ :: ⟨0⟩ :: rawVat :: tendBid I ::
         tendLot I :: tendId I :: ret :: sel :: [])
       (tendPayHashMem mem I) (UInt256.ofNat 3) rdata σ k3711 C3711 := by
@@ -1129,7 +1131,7 @@ theorem flipperTendX_toPayExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     simpa [rawGal, solcSlotWordAt, hslotAdd] using rd3711raw
   have rd3712pre := rd3711.swap2 (by native_decide) (by evm_ov)
   obtain ⟨k3713, C3713, rd3713raw⟩ := rd3712pre.sload (by native_decide) (by evm_ov)
-  have rd3713 : RD flipperBytecode I g s0 ⟨3713⟩
+  have rd3713 : RD fork flipperBytecode I g s0 ⟨3713⟩
       (bidBidWord (tendId I) σ I :: ⟨4⟩ :: rawGal :: ⟨64⟩ :: ⟨0⟩ ::
         rawVat :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendPayHashMem mem I) (UInt256.ofNat 3) rdata σ k3713 C3713 := by
@@ -1223,9 +1225,9 @@ theorem flipperTendX_payNoCode {σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuard
     hmemSize hmemRead64 h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
@@ -1240,9 +1242,9 @@ theorem flipperTendX_toPayCall {σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3799⟩
+    ∃ gasWord k' C', RD fork flipperBytecode I g s0 ⟨3799⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
@@ -1268,18 +1270,18 @@ theorem flipperTendX_payPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3686⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) out0 σ k C) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flipperBytecode I (Sat256.ofUInt256 g)
+      RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
         (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "move" 0
@@ -1306,7 +1308,7 @@ theorem flipperTendX_payPostCall
       native_decide
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
-    have rd3800 : RD flipperBytecode I (Sat256.ofUInt256 g)
+    have rd3800 : RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
@@ -1334,11 +1336,11 @@ theorem flipperTendX_payPostCall
 theorem flipperTendX_payCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨3800⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3800⟩
       (⟨0⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1349,10 +1351,10 @@ theorem flipperTendX_payCallFailure {I} {g : Sat256} {s0 : State}
 theorem flipperTendX_payCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨3800⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3800⟩
       (⟨1⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3820⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3820⟩
       (target :: bid :: lot :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨_, _, rd3817⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
@@ -1388,16 +1390,16 @@ theorem flipperTendDecodePushMask6276 :
 theorem flipperTendX_storeBidToAdd48Split {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨3820⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3820⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+      ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
         [tendTtlWord (tendAfterBidMap σ I) I, tendNow I, ⟨3859⟩,
           tendBid I, tendLot I, tendId I, ret, sel]
         (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
         (tendAfterBidMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flipperBytecode g s0) := by
   let mem1 := wordAt0Mem (tendId I) mem
   let mem2 := twoWordHashMem (tendId I) ⟨1⟩ mem
   have rd3836 := evm_run h with [
@@ -1427,7 +1429,7 @@ theorem flipperTendX_storeBidToAdd48Split {σ I} {g : Sat256} {s0 : State}
       rd3836.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k3837, C3837, rd3837raw⟩ := rd3836.sstore hperm hstoreDec (by evm_ov)
-  have rd3837 : RD flipperBytecode I g s0 ⟨3837⟩
+  have rd3837 : RD fork flipperBytecode I g s0 ⟨3837⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem2 (UInt256.ofNat 8) out (tendAfterBidMap σ I) k3837 C3837 := by
     simpa [mem2, tendAfterBidMap, bidBaseOfWord] using rd3837raw
@@ -1435,7 +1437,7 @@ theorem flipperTendX_storeBidToAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3841, C3841, rd3841raw⟩ := rd3840.sload (by native_decide) (by evm_ov)
-  have rd3841 : RD flipperBytecode I g s0 ⟨3841⟩
+  have rd3841 : RD fork flipperBytecode I g s0 ⟨3841⟩
       [solcSlotWordAt ⟨5⟩ (tendAfterBidMap σ I) I,
         tendBid I, tendLot I, tendId I, ret, sel]
       mem2 (UInt256.ofNat 8) out (tendAfterBidMap σ I) k3841 C3841 := by
@@ -1462,10 +1464,10 @@ theorem flipperTendX_storeBidToAdd48 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨3820⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3820⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord (tendAfterBidMap σ I) I, tendNow I, ⟨3859⟩,
         tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
@@ -1475,10 +1477,10 @@ theorem flipperTendX_storeBidToAdd48 {σ I} {g : Sat256} {s0 : State}
 theorem flipperTendX_add48Success {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {ret sel : UInt256}
     (hfit : (tendNow48 I).toNat + (tendTtlWord σ I).toNat < 2 ^ 48)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord σ I, tendNow I, ⟨3859⟩, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3859⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3859⟩
       [tendNow I + tendTtlWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k' C' := by
   have rd6289 := evm_run h with [
@@ -1521,10 +1523,10 @@ theorem flipperTendX_add48Success {σ I} {g : Sat256} {s0 : State}
 theorem flipperTendX_add48Overflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {ret sel : UInt256}
     (hover : 2 ^ 48 ≤ (tendNow48 I).toNat + (tendTtlWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord σ I, tendNow I, ⟨3859⟩, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd6289 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1561,10 +1563,10 @@ theorem flipperTendX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨3859⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3859⟩
       [tendNow I + tendTtlWord σ I, tendBid I, tendLot I, tendId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    RDret flipperBytecode g s0 (tendStoreTicMap σ I) ByteArray.empty := by
+    RDret fork flipperBytecode g s0 (tendStoreTicMap σ I) ByteArray.empty := by
   let mem1 := wordAt0Mem (tendId I) mem
   let mem2 := twoWordHashMem (tendId I) ⟨1⟩ mem
   have rd3878 := evm_run h with [
@@ -1591,7 +1593,7 @@ theorem flipperTendX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
     raw add (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k3880, C3880, rd3880raw⟩ := rd3878.sload (by native_decide) (by evm_ov)
-  have rd3880 : RD flipperBytecode I g s0 ⟨3880⟩
+  have rd3880 : RD fork flipperBytecode I g s0 ⟨3880⟩
       [solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I,
         bidPackedSlotOfWord (tendId I), tendBid I, tendLot I,
         tendNow I + tendTtlWord σ I, ⟨323⟩, sel]

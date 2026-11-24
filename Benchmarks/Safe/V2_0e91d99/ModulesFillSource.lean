@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V2_0e91d99.ModulesCountSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -51,7 +53,7 @@ theorem safeModulesFillStep (evm : EVM.State) {locals words index count current 
     (hl : ModulesFillLocals locals words index count current next)
     (hc : current.toNat < EVM.addressModulus) (hi : index < words.length)
     (hfit : index + 1 < UInt256.size) :
-    ExecBlock config { contract := contract, locals := locals } evm modulesFillBody
+    ExecBlock fork config { contract := contract, locals := locals } evm modulesFillBody
       (.ok { contract := contract, locals :=
         modulesFillNextLocals evm locals words index current } evm) := by
   let ls₁ := locals.insert "array" (.array ((words.set index current).map addressArrayValue))
@@ -79,7 +81,7 @@ theorem safeModulesFillLoop (evm : EVM.State) {locals doneWords fuel current wor
       doneWords.length count current next)
     (hc : current.toNat < EVM.addressModulus)
     (hlen : doneWords.length + words.length = count) (hfit : count < UInt256.size) :
-    ∃ locals', ExecStmt config { contract := contract, locals := locals } evm modulesFillLoop
+    ∃ locals', ExecStmt fork config { contract := contract, locals := locals } evm modulesFillLoop
         (.ok { contract := contract, locals := locals' } evm) ∧
       ModulesFillLocals locals' (doneWords ++ words) count count last next := by
   induction hp generalizing locals doneWords with

@@ -12,6 +12,8 @@ import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flipper shared proof foundation
 
@@ -462,7 +464,7 @@ theorem flipperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -479,7 +481,7 @@ theorem flipperUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -495,7 +497,7 @@ theorem flipperBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.bytes bytes32Width)))
     (hloc : config.storageBackend.locate? er = some (.leaf (bytes32Loc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.fixedBytes bytes32Width
           (EVM.Word.toBytesBE (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)))])) := by
@@ -512,7 +514,7 @@ theorem flipperUint48Offset0GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint48Int)))
     (hloc : config.storageBackend.locate? er =
       some (.leaf (uint48Loc slot ⟨0, by decide⟩ (by decide)))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -530,7 +532,7 @@ theorem flipperUint48Offset6GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint48Int)))
     (hloc : config.storageBackend.locate? er =
       some (.leaf (uint48Loc slot ⟨6, by decide⟩ (by decide)))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (UInt256.land (UInt256.div
@@ -549,7 +551,7 @@ theorem flipperAddressGetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry returnPc routine)
@@ -559,13 +561,13 @@ theorem flipperAddressGetterBodyCore
     (hretmem : solcReturnAddressFromMemWf flipperBytecode returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
         (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
@@ -578,7 +580,7 @@ theorem flipperAddressGetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret flipperBytecode (Sat256.ofUInt256 g)
+      RDret fork flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
     simpa [solcAddressSlotWord, solcSlotWordAt] using hret
@@ -592,7 +594,7 @@ theorem flipperBytes32GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry returnPc routine)
@@ -602,13 +604,13 @@ theorem flipperBytes32GetterBodyCore
     (hretmem : solcReturnWordFromMemWf flipperBytecode returnPc)
     (hreturn : transition.returnType = [bytes32])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
             (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))])
@@ -620,7 +622,7 @@ theorem flipperBytes32GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret flipperBytecode (Sat256.ofUInt256 g)
+      RDret fork flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -634,7 +636,7 @@ theorem flipperUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry returnPc routine)
@@ -644,12 +646,12 @@ theorem flipperUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf flipperBytecode returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -661,7 +663,7 @@ theorem flipperUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret flipperBytecode (Sat256.ofUInt256 g)
+      RDret fork flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -751,11 +753,11 @@ theorem RD.solcUint48Offset0SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcUint48Offset0SlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.land (solcSlotWord σ ee slot) uint48Mask :: ret :: R)
       mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd11, hd12, hd13⟩
@@ -777,11 +779,11 @@ theorem RD.solcUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcUint48Offset6SlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.land (UInt256.div (solcSlotWord σ ee slot) uint48Divisor) uint48Mask ::
         ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd8, hd9, hd10, hd11, hd18, hd19, hd20⟩
@@ -813,7 +815,7 @@ theorem RD.solcUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
 theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {val ret : UInt256} {R : List UInt256}
     {mem memout rdata : ByteArray} {acc : AccountMap}
-    (h : RD flipperBytecode ee g s0 ⟨643⟩ (val :: ret :: R) mem (UInt256.ofNat 3)
+    (h : RD fork flipperBytecode ee g s0 ⟨643⟩ (val :: ret :: R) mem (UInt256.ofNat 3)
         rdata acc k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -830,7 +832,7 @@ theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
     (hread128 :
       memout.readWithPadding 128 32 = UInt256.toByteArray (UInt256.land val uint48Mask))
     (hov : R.length + 9 ≤ 1024) :
-    RDret flipperBytecode g s0 acc (UInt256.toByteArray (UInt256.land val uint48Mask)) := by
+    RDret fork flipperBytecode g s0 acc (UInt256.toByteArray (UInt256.land val uint48Mask)) := by
   have rd1 := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 ⟨64⟩ (by native_decide)
     (by simp only [List.length_cons]; omega)
@@ -870,14 +872,14 @@ theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
 
 theorem RD.flipperUint48Offset0GetterExternal {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot : UInt256}
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry ⟨643⟩ routine)
     (hgetter : solcUint48Offset0SlotGetterWf flipperBytecode routine slot)
     (hroutine : (D_J flipperBytecode 0).contains routine = true)
     (hret : (D_J flipperBytecode 0).contains (⟨643⟩ : UInt256) = true) :
-    RDret flipperBytecode g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork flipperBytecode g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land (solcSlotWord σ I slot) uint48Mask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcUint48Offset0SlotGetter (slot := slot) (R := [sel])
@@ -898,14 +900,14 @@ theorem RD.flipperUint48Offset0GetterExternal {σ σ₀ A I}
 
 theorem RD.flipperUint48Offset6GetterExternal {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot : UInt256}
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry ⟨643⟩ routine)
     (hgetter : solcUint48Offset6SlotGetterWf flipperBytecode routine slot)
     (hroutine : (D_J flipperBytecode 0).contains routine = true)
     (hret : (D_J flipperBytecode 0).contains (⟨643⟩ : UInt256) = true) :
-    RDret flipperBytecode g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork flipperBytecode g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray
         (UInt256.land (UInt256.div (solcSlotWord σ I slot) uint48Divisor) uint48Mask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
@@ -939,7 +941,7 @@ theorem flipperUint48Offset0GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry ⟨643⟩ routine)
@@ -948,12 +950,12 @@ theorem flipperUint48Offset0GetterBodyCore
     (hreturnJd : (D_J flipperBytecode 0).contains (⟨643⟩ : UInt256) = true)
     (hreturn : transition.returnType = [uint48])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flipperUint48Offset0Word slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperUint48Offset0Word slot σ I))
         (some [(.int (Int.ofNat (flipperUint48Offset0Word slot σ I).toNat))])
@@ -966,7 +968,7 @@ theorem flipperUint48Offset0GetterBodyCore
     (g := Sat256.ofUInt256 g) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd
   have hret' :
-      RDret flipperBytecode (Sat256.ofUInt256 g)
+      RDret fork flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (flipperUint48Offset0Word slot σ I)) := by
     simpa [flipperUint48Offset0Word, solcSlotWordAt] using hret
@@ -980,7 +982,7 @@ theorem flipperUint48Offset6GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flipperBytecode entry ⟨643⟩ routine)
@@ -989,12 +991,12 @@ theorem flipperUint48Offset6GetterBodyCore
     (hreturnJd : (D_J flipperBytecode 0).contains (⟨643⟩ : UInt256) = true)
     (hreturn : transition.returnType = [uint48])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flipperUint48Offset6Word slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperUint48Offset6Word slot σ I))
         (some [(.int (Int.ofNat (flipperUint48Offset6Word slot σ I).toNat))])
@@ -1007,7 +1009,7 @@ theorem flipperUint48Offset6GetterBodyCore
     (g := Sat256.ofUInt256 g) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd
   have hret' :
-      RDret flipperBytecode (Sat256.ofUInt256 g)
+      RDret fork flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (flipperUint48Offset6Word slot σ I)) := by
     simpa [flipperUint48Offset6Word, solcSlotWordAt] using hret
@@ -1263,12 +1265,12 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc : UInt256}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD flipperBytecode ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork flipperBytecode ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : flipperAuthCodecopyRevertTailWf pc)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 7 ≤ 1024) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd29, hd30, hd31, hd33,
@@ -1363,13 +1365,13 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
 theorem RD.flipperAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flipperAuthCheckWf code pc okPc)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -1411,13 +1413,13 @@ theorem RD.flipperAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.flipperAuthCheckRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD flipperBytecode ee g s0 pc (key :: ret :: R)
+    (h : RD fork flipperBytecode ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flipperAuthCheckWf flipperBytecode pc okPc)
     (htail : flipperAuthCodecopyRevertTailWf (flipperAuthTailPc pc))
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ≠ ⟨1⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15,
       hd16, hd17, hd19, hd20, hd23⟩
@@ -1515,16 +1517,16 @@ theorem RD.flipperAuthCheckRevert {g : Sat256} {s0 : State}
 theorem RD.flipperMappingStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flipperMappingStoreOneWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+      ∃ k' C', RD fork code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd26, hd27, hd28⟩
@@ -1618,16 +1620,16 @@ theorem RD.flipperMappingStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : Sta
 theorem RD.flipperMappingStoreZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flipperMappingStoreZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+      ∃ k' C', RD fork code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25⟩

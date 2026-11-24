@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickSourceTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -81,7 +83,7 @@ theorem clipperKickWmulCallReturns (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256)
     (hmul : (clipperKickTabWord I).toNat *
       (clipperRedoChipSteleWord evmTop).toNat < UInt256.size) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (.internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin")
@@ -110,7 +112,7 @@ theorem clipperKickWmulCallReverts (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256)
     (hover : UInt256.size ≤ (clipperKickTabWord I).toNat *
       (clipperRedoChipSteleWord evmTop).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (.internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin")
@@ -184,13 +186,13 @@ theorem clipperKickCheckedAddCoin (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256)
     (hfit : (clipperRedoTipSteleWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat < UInt256.size) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsChipCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedAddUintInto "coinNew" (.var "_tip") (.var "chipCoin"))
       (.ok (Frame.mk contract (clipperKickLocalsCoinNew evmLock evmTop I feedPrice top) (immStore v)) evmTop) := by
   have hlet :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals := clipperKickLocalsChipCoin evmLock evmTop I feedPrice top, immutables := immStore v }
         evmTop
@@ -236,7 +238,7 @@ theorem clipperKickCheckedAddCoinReverts (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256)
     (hover : UInt256.size ≤ (clipperRedoTipSteleWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsChipCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedAddUintInto "coinNew" (.var "_tip") (.var "chipCoin"))
@@ -247,7 +249,7 @@ theorem clipperKickCheckedAddCoinReverts (v : ClipperImmutables)
 
 theorem clipperKickAssignCoin (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract,
         locals := clipperKickLocalsCoinNew evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (.assign .localVar (varRef "coin") (.var "coinNew"))
@@ -308,7 +310,7 @@ theorem clipperKickSuckNoCodeSource (v : ClipperImmutables)
     (evmLock evmTop : EVM.State) (I : ExecutionEnv) (feedPrice top : UInt256)
     (hnoCode : (UInt256.ofNat ((evmTop.lookupAccount v.vat).option 0
       (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
@@ -327,11 +329,11 @@ theorem clipperKickSuckCallFailureSource (v : ClipperImmutables)
     (feedPrice top : UInt256) (out : ByteArray)
     (hcode : 0 < (UInt256.ofNat ((evmTop.lookupAccount v.vat).option 0
       (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmTop (EVM.address v.vat) "suck" 0
+    (hcall : typedCallViaEVM fork config evmTop (EVM.address v.vat) "suck" 0
       [.address (clipperKickSourceVowAddress evmTop), clipperKickKprValue I,
         .int (Int.ofNat (clipperKickSourceCoinWord evmTop I).toNat)]
       (false, evmAfter, out) true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
@@ -348,11 +350,11 @@ theorem clipperKickSuckCallSuccessSource (v : ClipperImmutables)
     (feedPrice top : UInt256) (out : ByteArray)
     (hcode : 0 < (UInt256.ofNat ((evmTop.lookupAccount v.vat).option 0
       (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmTop (EVM.address v.vat) "suck" 0
+    (hcall : typedCallViaEVM fork config evmTop (EVM.address v.vat) "suck" 0
       [.address (clipperKickSourceVowAddress evmTop), clipperKickKprValue I,
         .int (Int.ofNat (clipperKickSourceCoinWord evmTop I).toNat)]
       (true, evmAfter, out) true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)

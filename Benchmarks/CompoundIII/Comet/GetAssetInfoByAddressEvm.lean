@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,23 +15,23 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def GetAssetInfoByAddressResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def GetAssetInfoByAddressResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, AssetSearch v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+    ∃ result, AssetSearch fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       0 s0 result ∧ match result with
-      | none => RDrev (deployedRuntime v) g s0
+      | none => RDrev fork (deployedRuntime v) g s0
       | some (evm', out) => AssetCanonical out ∧
-          RDret (deployedRuntime v) g s0 evm'.accountMap (wordBytes (assetWords out))
-  else RDrev (deployedRuntime v) g s0
+          RDret fork (deployedRuntime v) g s0 evm'.accountMap (wordBytes (assetWords out))
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem getAssetInfoByAddressX {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 20)) :
-    GetAssetInfoByAddressResult v I g (initState σ σ₀ g A I) := by
+    GetAssetInfoByAddressResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetAssetInfoByAddressBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1204 (immWords := wordsOf (immStore v))
@@ -52,7 +54,7 @@ theorem getAssetInfoByAddressX {σ σ₀ A I} {g : Sat256}
           have rd6 := cometWithExtendedAssetList_block_3159
             (immWords := wordsOf (immStore v)) (by change 4 ≤ 1024; decide)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd5
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 3164,
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 3164,
             UInt256.ofNat 2570] _ _ _ _ _ _ at rd6
           rw [← addressWord_eq_ofNat_address hc] at rd6
           obtain ⟨result, hsearch, hr⟩ := cometAssetSearchInternal (v := v)

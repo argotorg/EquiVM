@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepModel
 import Benchmarks.UniswapV3.Pool.AmountDeltaRawRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -16,7 +18,7 @@ theorem swapStepDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
     (price : UInt256) (input : Bool) (currentRaw priceRaw liquidityRaw : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0
       (UInt256.ofNat (amountDeltaEntry (swapStepDeltaOne a input)))
       (swapStepDeltaRawWords a input currentRaw priceRaw liquidityRaw ++ ret :: R)
       mem aw rdata σ k C)
@@ -26,9 +28,9 @@ theorem swapStepDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (ha : a.Fits) (hprice : price.toNat < 2 ^ 160)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
     (¬amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a price input) ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a price input) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (amountDeltaResult (swapStepDeltaOne a input) (swapStepDeltaArgs a price input) :: R)
         mem aw rdata σ k' C') := by
   have hA : UInt256.land (if swapStepZeroForOne a then priceRaw else currentRaw)

@@ -2,6 +2,8 @@ import Benchmarks.Dss.Cure.Rely
 import Reasoning.Constructor
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cure constructor correctness stub
 
@@ -91,10 +93,10 @@ theorem cureCtorNonpayableRDrev
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (hcode : I.code = cureCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev cureCreationBytecode g
+    RDrev fork cureCreationBytecode g
       (initState σ σ₀ g A I) := by
   have rd8 :
-      RD cureCreationBytecode I g
+      RD fork cureCreationBytecode I g
         (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ 6 26 := by
@@ -102,7 +104,7 @@ theorem cureCtorNonpayableRDrev
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
   have rd12 :
-      RD cureCreationBytecode I g
+      RD fork cureCreationBytecode I g
         (initState σ σ₀ g A I) ⟨12⟩
         [I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ (6 + 2) (26 + 13) := by
@@ -123,11 +125,11 @@ theorem cureCtorSuccessRDret
     (hcode : I.code = cureCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret cureCreationBytecode g
+    RDret fork cureCreationBytecode g
       (initState σ σ₀ g A I)
       (cureCtorFinalMap σ I) cureBytecode := by
   have rd8 :
-      RD cureCreationBytecode I g
+      RD fork cureCreationBytecode I g
         (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ 6 26 := by
@@ -139,7 +141,7 @@ theorem cureCtorSuccessRDret
       (wC := 2) (opC := .PUSH2) rd8 hwv (by decide)
       (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_jump_dest)
   have rd18 :
-      RD cureCreationBytecode I g
+      RD fork cureCreationBytecode I g
         (initState σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
@@ -268,7 +270,7 @@ theorem cureCtorSteleExecOk
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [] σ σ₀ g A I
+    steleCtorExec fork config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := (∅ : Store) }
         (cureCtorAfterWardsState
           (cureCtorAfterLiveState
@@ -295,13 +297,13 @@ theorem cureCtorSteleExecOk
     simpa [evm2] using
       assign_cureCtorWardsStorage (locals := (∅ : Store)) evm1 I (by simp) hee
   have hblock :
-      ExecBlock config { contract := contract, locals := (∅ : Store) } evm0 constructorDecl.body
+      ExecBlock fork config { contract := contract, locals := (∅ : Store) } evm0 constructorDecl.body
         (.ok { contract := contract, locals := (∅ : Store) } evm2) := by
     simp [constructorDecl, nonpayable]
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignLive) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, cureCtorAfterLiveState, storageStore_executionEnv] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignLive) ?_
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, cureCtorAfterLiveState, storageStore_executionEnv] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
       ExecBlock.nil
   refine steleCtorExec.intro
     (evmState := evm0)
@@ -316,7 +318,7 @@ theorem cureCtorSteleExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [] σ σ₀ g A I
+    steleCtorExec fork config contract [] σ σ₀ g A I
       .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
@@ -335,12 +337,12 @@ theorem cureCtorRDretXiResult
     {σ σ₀ A I} {g : Sat256}
     {σFinal : AccountMap} {o : ByteArray}
     (hcode : I.code = cureCreationBytecode)
-    (h : RDret cureCreationBytecode g
+    (h : RDret fork cureCreationBytecode g
       (initState σ σ₀ g A I)
       σFinal o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    Ξ fork σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I =
+        Ξ fork σ σ₀ g.toUInt256 A I =
           .ok (.success (σFinal, g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
@@ -355,19 +357,19 @@ theorem cureCtorRDretXiResult
 
 theorem cureConstructorBodyCore :
     typedConstructorRefinement config cureCreationBytecode contract (fun _ => cureBytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   obtain ⟨hargs, hdeployed⟩ := cureCtorDeployment_eq_initcode hdeploy
   subst args
   rw [hdeployed] at hcode
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := cureCtorSuccessRDret
+  · have hrd := cureCtorSuccessRDret (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases cureCtorRDretXiResult hcode hrd with hOOG | hSuccess
     · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hSuccess with ⟨g', A', hXi⟩
-      have hStele := cureCtorSteleExecOk (hperm := hperm)
+      have hStele := cureCtorSteleExecOk (fork := fork) (hperm := hperm)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
       have hmapStele :
@@ -389,13 +391,13 @@ theorem cureConstructorBodyCore :
         rw [hmapStele]
       refine typedConstructorRefinementFor.execution hXi hStele ?_
       exact ctorResultEquiv.success rfl rfl hmap rfl
-  · have hrd := cureCtorNonpayableRDrev
+  · have hrd := cureCtorNonpayableRDrev (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | hRev
     · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hRev with ⟨g', o, hXi⟩
-      have hStele := cureCtorSteleExecReverts_nonpayable
+      have hStele := cureCtorSteleExecReverts_nonpayable (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
       refine typedConstructorRefinementFor.execution hXi hStele ?_

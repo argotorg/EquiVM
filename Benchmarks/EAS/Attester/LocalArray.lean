@@ -1,5 +1,7 @@
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Theory
@@ -74,11 +76,11 @@ theorem assignLocalArrayIndex {cfg stele evm array index value} {values : List V
 theorem execLocalIncrement {cfg stele evm name} {i : Nat}
     (hi : stele.locals.get? name = some (.int (Int.ofNat i)))
     (hfit : i + 1 < UInt256.size) :
-    ExecBlock cfg stele evm
+    ExecBlock fork cfg stele evm
       [.assign .localVar ⟨name, []⟩ (.inRange (.uint ⟨256, by decide⟩)
         (.binary .add (.var name) (.intLit 1)))]
       (.ok { stele with locals := stele.locals.insert name (.int (Int.ofNat (i + 1))) } evm) := by
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalValue hi)) ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalValue hi)) ExecBlock.nil
   exact uint256RangeSourceOk
     (naturalAddSource (evalLocalValue hi)
       (by simp only [evalExpr?, pure, Int.ofNat_eq_natCast, Nat.cast_one])) hfit

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.TryRecoverCallSource
 import Benchmarks.EAS.EAS.ECDSAErrorSource
 import Benchmarks.EAS.EAS.HeapResultBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -23,11 +25,11 @@ def recoverLocals (L : Store) (a : AccountAddress) (error heap : Nat) : Store :=
 theorem recoverPrefixSource {L imms : Store} {evm evm' : EVM.State} {a : AccountAddress}
     {error heap : Nat} {oldHeap : Value}
     (hh : L.get? "$EAS.freeMemory" = some oldHeap)
-    (hc : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    (hc : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "ECDSA_tryRecover" recoverCallArgs "__c0$allocation")
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} "__c0$allocation"
         (some [.tuple [.address a,.int (Int.ofNat error)],.int (Int.ofNat heap)])) evm')) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm recoverPrefix
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm recoverPrefix
       (.ok {contract := contract,locals := recoverLocals L a error heap,immutables := imms} evm') := by
   apply execBlock_append (heapResultBlock_ok hc hh (by decide) (by decide) (by decide))
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address a) ?_) ?_
@@ -53,11 +55,11 @@ theorem recoverTailSource {L imms : Store} {evm : EVM.State} {a : AccountAddress
     (he : L.get? "error" = some (.int (Int.ofNat error)))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if error = 0 ∨ error = 4 then ∃ L',
-      ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm recoverTail
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm recoverTail
         (.returned {contract := contract,locals := L',immutables := imms} evm
           (some [.address a,.int (Int.ofNat heap)]))
-    else ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm recoverTail .reverted := by
-  have hc := ecdsaErrorCall (cfg := config) (L := L) (imms := imms) (evm := evm)
+    else ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm recoverTail .reverted := by
+  have hc := ecdsaErrorCall (fork := fork) (cfg := config) (L := L) (imms := imms) (evm := evm)
     (args := [.var "error",.var "$EAS.freeMemory"]) (retVar := "__c1$allocation") (n := error) (heap := heap)
     (by simp only [evalExprs?,evalExpr?,he,hh,EvalResult.ofOption,EvalResult.bind,bind,pure])
   split_ifs with hn

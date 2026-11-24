@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorTraceStores
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor return trace
 -/
@@ -15,9 +17,9 @@ theorem jugCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
-    (h : RD (jugCtorCode vat) I g s0 ⟨106⟩ []
+    (h : RD fork (jugCtorCode vat) I g s0 ⟨106⟩ []
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata acc k C) :
-    RDret (jugCtorCode vat) g s0 acc jugBytecode := by
+    RDret fork (jugCtorCode vat) g s0 acc jugBytecode := by
   have hcopy : (jugCtorCode vat).write 120 (jugCtorWardsHashMem I vat) 0 2440 =
       jugCtorReturnMem I vat := by
     rfl
@@ -38,7 +40,7 @@ theorem jugInitcodeSuccess
     (hcode : I.code = jugCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (jugCtorCode vat) g
+    RDret fork (jugCtorCode vat) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (jugCtorCallerWardsSlot I) ⟨1⟩)

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorScaleWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -44,14 +46,14 @@ theorem cometConstructorScale {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
     {w aw : UInt256} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hw : w.toNat ≤ 18) (hm : ConstructorDataMemory c mem)
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨988⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨988⟩
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
         ⟨255⟩ :: w :: UInt256.ofNat (constructorRecordBase c) :: R) mem aw rdata σ k C) :
     if 6 ≤ w.toNat then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1024⟩
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1024⟩
         (UInt256.ofNat (constructorRecordBase c) :: R) (constructorScaleMemory c w mem)
         aw' rdata σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ tail) g s0 := by
   have hbyte : (⟨255⟩ : UInt256) = UInt256.ofNat 255 := rfl
   split
   · rename_i hlo

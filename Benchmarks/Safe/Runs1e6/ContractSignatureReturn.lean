@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.ReturnDataMemory
 import Benchmarks.Safe.Runs1e6.ContractSignatureSource
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -16,10 +18,10 @@ def signatureReturnDataPtr (ptr : Nat) (out : ByteArray) : UInt256 :=
 set_option maxRecDepth 100000 in
 theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
     {out : ByteArray} {z x y : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11185⟩ (z :: x :: y :: R) mem aw out σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨11185⟩ (z :: x :: y :: R) mem aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hb : ptr + out.size + 64 < UInt256.size) (hov : R.length + 7 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11234⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11234⟩
       (UInt256.ofNat out.size :: signatureReturnDataPtr ptr out :: z :: R)
       (signatureReturnMemory mem ptr out) aw' out σ k' C' := by
   by_cases hz : out.size = 0
@@ -49,14 +51,14 @@ theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
 set_option maxRecDepth 100000 in
 theorem safeContractSignatureFinish {I g s0 σ k C aw mem} {out : ByteArray}
     {buf x y d0 d1 d2 d3 d4 ret : UInt256} {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11234⟩
+    (h : RD fork safeBytecode I g s0 ⟨11234⟩
       (UInt256.ofNat out.size :: buf :: (if z then ⟨1⟩ else ⟨0⟩) :: x :: y ::
         d0 :: d1 :: d2 :: d3 :: d4 :: ret :: R) mem aw out σ k C)
     (hl : memLoad buf mem = UInt256.ofNat out.size)
     (hw : out.size = 32 → memLoad (buf + UInt256.ofNat 32) mem = calldataWord out 0)
     (hb : out.size < UInt256.size) (hov : R.length + 16 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       ((if contractSignatureResult z out then ⟨1⟩ else ⟨0⟩) :: R) mem aw' out σ k' C' := by
   cases z with
   | false =>

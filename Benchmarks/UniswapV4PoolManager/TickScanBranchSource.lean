@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickScanPreludeSource
 import Benchmarks.UniswapV4PoolManager.TickScanInitializedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -12,11 +14,11 @@ theorem tickScanTailSource {f : Frame} {evm : EVM.State} {compressed spacing mas
     (hb : f.locals.get? "bitPos" = some (.int (Int.ofNat (tickPositionBit compressed).toNat)))
     (hm : f.locals.get? "masked" = some (.int (Int.ofNat masked.toNat)))
     (hi : f.locals.get? "initialized" = some (.bool (decide (masked ≠ ⟨0⟩)))) :
-    ∃ f', ExecBlock config f evm (tickScanTailStmts lte)
+    ∃ f', ExecBlock fork config f evm (tickScanTailStmts lte)
       (.returned f' evm (some (tickScanResultValues compressed spacing masked lte))) := by
   let next := tickScanNextWord compressed spacing (tickScanDefaultDistance (tickPositionBit compressed) lte) lte
   let f1 := valueLocal f "next" (.int (EVM.signed next))
-  have hnext : ExecStmt config f evm (tickScanTailStmts lte)[0]! (.ok f1 evm) :=
+  have hnext : ExecStmt fork config f evm (tickScanTailStmts lte)[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (tickScanNext_eval lte hc hs
       (tickScanDefaultDistance_fits (tickPositionBit_fits compressed) lte)
       (tickScanDefault_eval lte hb))
@@ -39,7 +41,7 @@ theorem tickScanTailSource {f : Frame} {evm : EVM.State} {compressed spacing mas
         tickScanResultValues, tickScanResultWord, if_pos hz]
       rfl
   · let f2 := tickScanInitializedFrame f1 compressed spacing masked lte
-    have hinit := tickScanInitializedSource lte (f := f1) (evm := evm)
+    have hinit := tickScanInitializedSource (fork := fork) lte (f := f1) (evm := evm)
       ((valueLocal_contract f "next" (.int (EVM.signed next))).trans hf) hc1 hs1 hb1 hm1 hn1 hz
     have hn2 : f2.locals.get? "next" = some (.int (EVM.signed (tickScanNextWord compressed spacing
         (tickScanDistance (tickPositionBit compressed) (tickScanIndex masked lte) lte) lte))) := store_get_self _ _ _
@@ -58,10 +60,10 @@ theorem tickScanBranchSource {f : Frame} {evm : EVM.State} {id compressed spacin
     (hc : f.locals.get? "compressed" = some (.int (EVM.signed (UInt256.signextend (UInt256.ofNat 2) compressed))))
     (hs : f.locals.get? "tickSpacing" = some (.int (EVM.signed spacing)))
     (href : f.locals.get? "self" = some (tickBitmapRefValue id)) :
-    ∃ f', ExecBlock config f evm (tickScanBranchStmts lte)
+    ∃ f', ExecBlock fork config f evm (tickScanBranchStmts lte)
       (.returned f' evm (some (tickScanResultValues compressed spacing (tickScanMasked evm id compressed lte) lte))) := by
   let f0 := tickScanPreludeFrame f evm id compressed lte
-  have hpre := tickScanPreludeSource (evm := evm) lte hf hc href
+  have hpre := tickScanPreludeSource (fork := fork) (evm := evm) lte hf hc href
   have hf0 : f0.contract = contract := (tickScanPreludeFrame_contract f evm id compressed lte).trans hf
   have hc0 : f0.locals.get? "compressed" = some (.int (EVM.signed (UInt256.signextend (UInt256.ofNat 2) compressed))) := by
     simp only [f0, tickScanPreludeFrame_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hc]

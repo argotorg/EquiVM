@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.IncreaseSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_020
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_006
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,9 +13,9 @@ set_option maxRecDepth 10000
 theorem increaseLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k C)
     (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have rdLoad := evm_run rd with [
     raw jumpdest (by immutable_decode(immutableLayout, uniswapV3PoolBytecode, wordsOf (immStore v),
         (⟨5472⟩ : UInt256), (UInt8.ofNat 91), .JUMPDEST, none,
@@ -55,11 +57,11 @@ theorem increaseLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem increaseReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5404⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5404⟩ R mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
       (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k' C') := by
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k' C') := by
   have hfield : UInt256.land (UInt256.ofNat 255)
       (UInt256.div
         (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -79,12 +81,12 @@ theorem increaseReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem increaseLockDelegateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5472⟩ R mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hov : R.length + 5 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ee.codeOwner ≠ v.original) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ee.codeOwner ≠ v.original) ∨
       (ee.codeOwner = v.original ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨5493⟩ R mem aw rdata
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨5493⟩ R mem aw rdata
           (storeSlot0Unlocked evm false).accountMap k' C') := by
   obtain ⟨_, _, rdCall⟩ := uniswapV3Pool_block_5472 (immWords := wordsOf (immStore v))
     (by omega) hperm (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -102,9 +104,9 @@ theorem increaseLockDelegateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem increaseGrowEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw next : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5493⟩ (next :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5493⟩ (next :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16053⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16053⟩
       (next :: slot0FieldWord 27 2 σ ee :: ⟨8⟩ :: ⟨5521⟩ :: ⟨0⟩ ::
         slot0FieldWord 27 2 σ ee :: next :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdCall⟩ := uniswapV3Pool_block_5493 (immWords := wordsOf (immStore v))
@@ -121,11 +123,11 @@ theorem increaseGrowEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem increaseUnlockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw result current next : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5630⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5630⟩
       (result :: current :: next :: ⟨857⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hov : R.length + 6 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap ByteArray.empty := by
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap ByteArray.empty := by
   obtain ⟨_, _, rdStop⟩ := uniswapV3Pool_block_5630 (immWords := wordsOf (immStore v))
     hov hperm (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
   have hmap := storeSlot0Unlocked_accountMap evm true
@@ -142,12 +144,12 @@ theorem increaseUnlockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem increaseFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw result current next junk : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5521⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5521⟩
       (result :: junk :: current :: next :: ⟨857⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hcurrent : current.toNat < 2 ^ 16) (hresult : result.toNat < 2 ^ 16)
     (hov : R.length + 12 ≤ 1024) :
-    RDret (deployedRuntime v) g s0
+    RDret fork (deployedRuntime v) g s0
       (storeSlot0Unlocked (storeSlot0CardinalityNext evm result) true).accountMap
       ByteArray.empty := by
   have hc : UInt256.land current (UInt256.ofNat 65535) = current := by

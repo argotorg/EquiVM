@@ -5,6 +5,8 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -208,7 +210,7 @@ theorem clipperRelyBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (clipperRelyStore I) relyTransition.body
+    ExecTransitionBody fork config contract evm (clipperRelyStore I) relyTransition.body
       (.returned { contract := contract, locals := clipperRelyStore I, immutables := immStore v }
         (clipperRelyPostState evm I) none) (immStore v) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -233,7 +235,7 @@ theorem clipperRelyBodyStatic (v : ClipperImmutables) (evm : EVM.State)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (clipperRelyStore I) relyTransition.body
+    ExecTransitionBody fork config contract evm (clipperRelyStore I) relyTransition.body
       .staticViolation (immStore v) := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [relyTransition, nonpayable, auth] using
@@ -258,7 +260,7 @@ theorem clipperRelyBodyReverts (v : ClipperImmutables) (evm : EVM.State)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (clipperRelyStore I)
+    ExecTransitionBody fork config contract evm (clipperRelyStore I)
       relyTransition.body .reverted (immStore v) := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [relyTransition, nonpayable, auth] using
@@ -385,12 +387,12 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 17)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperRelySelectorWord hsz hsel
-  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -409,7 +411,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (fork := fork) (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -593,9 +595,9 @@ theorem clipperRelyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨3340⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨3340⟩ : UInt256)
       [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := solcOneAddressExternalLenOk
@@ -616,9 +618,9 @@ theorem clipperRelyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨837⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   exact solcOneAddressExternalShort
     (entry := (⟨837⟩ : UInt256)) (ret := (⟨502⟩ : UInt256))
     (routine := (⟨3340⟩ : UInt256)) hreach
@@ -920,10 +922,10 @@ theorem clipperRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (h : RD code I g s0 ⟨3340⟩
+    (h : RD fork code I g s0 ⟨3340⟩
       [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨3422⟩
+    ∃ k' C', RD fork code I g s0 ⟨3422⟩
       [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -957,7 +959,7 @@ theorem clipperRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3357, C3357, rd3357raw⟩ := rd3356.sload (by clipper_rely_decode) (by evm_ov)
-  have rd3357 : RD code I g s0 ⟨3357⟩
+  have rd3357 : RD fork code I g s0 ⟨3357⟩
       (clipperRelyAuthWord σ I :: clipperRelyUsrMaskedWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3357 C3357 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
@@ -976,10 +978,10 @@ theorem clipperRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD code I g s0 ⟨3340⟩
+    (h : RD fork code I g s0 ⟨3340⟩
       [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
@@ -1011,7 +1013,7 @@ theorem clipperRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3357, C3357, rd3357raw⟩ := rd3356.sload (by clipper_rely_decode) (by evm_ov)
-  have rd3357 : RD code I g s0 ⟨3357⟩
+  have rd3357 : RD fork code I g s0 ⟨3357⟩
       (clipperRelyAuthWord σ I :: clipperRelyUsrMaskedWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3357 C3357 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
@@ -1117,14 +1119,14 @@ set_option maxHeartbeats 1000000 in
 theorem clipperRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨3422⟩
+    (h : RD fork code I g s0 ⟨3422⟩
       [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret code g s0
+      RDret fork code g s0
         (sstoreAccountMap I.codeOwner σ (clipperRelyUsrStorageSlot I) ⟨1⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic code g s0) := by
+      (I.perm = false ∧ RDstatic fork code g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((clipperRelyStoreHashMem I).readWithPadding 0 64))) =
@@ -1207,14 +1209,14 @@ theorem clipperX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret code g (initState σ σ₀ g A I)
+      RDret fork code g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (clipperRelyUsrStorageSlot I) ⟨1⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic code g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork code g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd3340⟩ := clipperRelyX_decoded (v := v) hpatch hsz36 hsize hreach
   obtain ⟨_, _, rd3422⟩ := clipperRelyX_authorized (v := v) hpatch hauth rd3340
   exact clipperRelyX_storeAuthorizedSplit (v := v) hpatch rd3422
@@ -1224,10 +1226,10 @@ theorem clipperX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret code g (initState σ σ₀ g A I)
+    RDret fork code g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (clipperRelyUsrStorageSlot I) ⟨1⟩)
       ByteArray.empty :=
   permSplit_true hperm (clipperX_rely_okSplit v hpatch hsz36 hsize hauth hreach)
@@ -1237,10 +1239,10 @@ theorem clipperX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3340⟩ := clipperRelyX_decoded (v := v) hpatch hsz36 hsize hreach
   exact clipperRelyX_unauthorized (v := v) hpatch hauth rd3340
 
@@ -1256,15 +1258,15 @@ theorem clipperRelyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (clipperRelyStore I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (clipperRelyStore I)
+      ExecTransitionBody fork config contract evmStele (clipperRelyStore I)
         relyTransition.body
         (.returned { contract := contract, locals := clipperRelyStore I, immutables := immStore v }
           (clipperRelyPostState evmStele I) none) (immStore v) := by
@@ -1295,15 +1297,15 @@ theorem clipperRelyBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (clipperRelyStore I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (clipperRelyStore I)
+      ExecTransitionBody fork config contract evmStele (clipperRelyStore I)
         relyTransition.body
         .staticViolation (immStore v) := by
     simpa [evmStele, clipperRelyAuthWord, solcSlotWord, initState,
@@ -1329,16 +1331,16 @@ theorem clipperRelyBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (clipperRelyStore I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I ≠ ⟨1⟩ := by
     intro hbad
     exact hauth hbad
   have hbody :
-      ExecTransitionBody config contract evmStele (clipperRelyStore I)
+      ExecTransitionBody fork config contract evmStele (clipperRelyStore I)
         relyTransition.body .reverted (immStore v) := by
     simpa [evmStele, clipperRelyAuthWord, solcSlotWord, initState,
       Stele.EVM.storageLoad, State.lookupAccount] using
@@ -1357,10 +1359,10 @@ theorem clipperRelyBodyCoreDecodeFailed_short
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨837⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   exact (clipperRelyX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4
       hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (clipperDecode_rely_none_short hsz4 hshort)
@@ -1371,12 +1373,12 @@ theorem clipperRelyBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 17) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     clipperDispatch_rely hsel
-  have hreach := clipperReachRelyBody
+  have hreach := clipperReachRelyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1394,7 +1396,7 @@ theorem clipperRelyBodyAnyPerm (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   by_cases hperm : I.perm = true
   · exact clipperRelyBody v hpatch hcode hsize hperm hwv hsel
   have hstatic : I.perm = false := by simpa using hperm
@@ -1402,7 +1404,7 @@ theorem clipperRelyBodyAnyPerm (v : ClipperImmutables) {code : ByteArray}
     calldata_size_ge_of_selIs I (clipperSelBytes 17) (by decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     clipperDispatch_rely hsel
-  have hreach := clipperReachRelyBody
+  have hreach := clipperReachRelyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

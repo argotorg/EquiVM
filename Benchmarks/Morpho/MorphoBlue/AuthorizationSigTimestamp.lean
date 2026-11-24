@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ theorem morphoAuthorizationTimestampCheck {v : MorphoImmutables} {ee : Execution
     {g : Sat256} {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords)
     (hstack : R.length + 22 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
       (authorizationDecodedStack a R) (authorizationDecodedMem a) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.gt (UInt256.ofNat ee.header.timestamp) a.deadline),
         UInt256.ofNat 288, UInt256.ofNat 6004] ++ authorizationNonceStack R)
       (authorizationExpiredMem a) aw' out σ k' C' := by
@@ -42,9 +44,9 @@ theorem morphoAuthorizationTimestampOk {v : MorphoImmutables} {ee : ExecutionEnv
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords)
     (hstack : R.length + 22 ≤ 1024)
     (ht : (UInt256.ofNat ee.header.timestamp).toNat ≤ a.deadline.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
       (authorizationDecodedStack a R) (authorizationDecodedMem a) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
       (authorizationNonceStack R) (authorizationExpiredMem a) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationTimestampCheck (v := v) a hstack h
   obtain ⟨k2, C2, rd2⟩ := morphoRequireTrue (v := v) (ret := UInt256.ofNat 6004)
@@ -57,9 +59,9 @@ theorem morphoAuthorizationTimestampRevert {v : MorphoImmutables} {ee : Executio
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords)
     (hstack : R.length + 22 ≤ 1024)
     (ht : ¬ (UInt256.ofNat ee.header.timestamp).toNat ≤ a.deadline.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
       (authorizationDecodedStack a R) (authorizationDecodedMem a) aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationTimestampCheck (v := v) a hstack h
   have hp := (authorizationExpiredMem_properties a).2.2.2
   exact morphoRequireFalseShort (v := v) (ret := UInt256.ofNat 6004)

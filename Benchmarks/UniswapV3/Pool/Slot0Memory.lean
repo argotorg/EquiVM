@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Struct
 import Benchmarks.UniswapV3.Pool.WordArrayMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -84,9 +86,9 @@ theorem slot0ReadTailMem_eq (mem : ByteArray) (p : UInt256) (σ : AccountMap) (I
 theorem slot0ReadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p x0 x1 : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨10148⟩ (x0 :: x1 :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨10148⟩ (x0 :: x1 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 8 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨10229⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨10229⟩
       (UInt256.ofNat 96 :: slot0FieldWord 25 2 σ ee :: EVM.wordOfInt (slot0TickValue σ ee) ::
        UInt256.ofNat 2 :: solcSlotWordAt ⟨0⟩ σ ee :: p :: UInt256.ofNat 65535 :: R)
       (slot0ReadHeadMem mem p σ ee) aw' rdata σ k' C' ∧ ActiveWords aw' := by
@@ -101,7 +103,7 @@ theorem slot0ReadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   simp only [uniswapV3Pool_block_10148_stack, hload, h64,
     signextend_idem ⟨24, by decide⟩ (UInt256.ofNat 2) _ (by decide) (by decide),
     slot0ReadHeadMem_eq σ ee hm hb] at rdRead
-  change RD (deployedRuntime v) ee g s0 ⟨10229⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨10229⟩
     (UInt256.ofNat 96 :: UInt256.land (UInt256.ofNat 65535)
       (UInt256.div (solcSlotWordAt ⟨0⟩ σ ee)
         (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 200))) ::

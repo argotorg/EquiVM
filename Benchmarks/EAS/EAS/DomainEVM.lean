@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BuildDomainEVM
 import Benchmarks.EAS.EAS.DomainSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -49,8 +51,8 @@ theorem easDomain_dispatch {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 3 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13959⟩ R mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13959⟩ R mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if domainCacheHit v ee.codeOwner then ⟨14028⟩ else ⟨14063⟩) R mem aw rdata σ k' C' := by
   by_cases ha : ee.codeOwner = v._CACHED_THIS
   · have hc : UInt256.eq (UInt256.ofNat ee.codeOwner.val)
@@ -97,8 +99,8 @@ theorem easDomain_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hguard : domainCacheHit v ee.codeOwner ∨
       (allocateNext heap.toNat 192 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 192))
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13959⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (domainWord v ee.codeOwner :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13959⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (domainWord v ee.codeOwner :: R)
       (domainMemory v ee.codeOwner mem heap.toNat) aw' rdata σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := easDomain_dispatch v (by simp only [List.length_cons]; omega) rd
   by_cases hc : domainCacheHit v ee.codeOwner
@@ -118,8 +120,8 @@ theorem easDomain_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hc : ¬ domainCacheHit v ee.codeOwner)
     (hguard : ¬ (allocateNext heap.toNat 192 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 192))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13959⟩ R mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13959⟩ R mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, rd1⟩ := easDomain_dispatch v (by omega) rd
   rw [if_neg hc] at rd1
   exact easBuildDomain_revert v hstack hfree hguard rd1

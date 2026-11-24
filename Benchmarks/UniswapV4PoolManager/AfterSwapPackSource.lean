@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapBranchSource
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaCombineSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,13 +29,13 @@ theorem afterSwapPackPairSource {f : Frame} {evm : State} {e0 e1 : Expr} {a b : 
     (h0 : evalExpr? config f evm e0 = .ok (.int (EVM.signed a)))
     (h1 : evalExpr? config f evm e1 = .ok (.int (EVM.signed b)))
     (hh : f.locals.get? "hookDelta" = some old) :
-    ExecBlock config f evm
+    ExecBlock fork config f evm
       [.internalCall "toBalanceDelta" [e0, e1] "packed",
        .assign .localVar {base := "hookDelta"} (.var "packed")]
       (.ok (valueLocal (valueLocal f "packed" (.int (EVM.signed (balanceDeltaWord a b))))
         "hookDelta" (.int (EVM.signed (balanceDeltaWord a b)))) evm) := by
   exact ExecBlock.consNormal (balanceDeltaCall hf h0 h1 "packed") (execBlock_singleton
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
       (assignLocalValue ((store_get_ne _ _ (by decide : ("packed" == "hookDelta") = false)).trans hh))))
 
 theorem afterSwapPackBranchSource {f : Frame} {evm : State} {specified unspecified : Int} {old : Value}
@@ -42,7 +44,7 @@ theorem afterSwapPackBranchSource {f : Frame} {evm : State} {specified unspecifi
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hh : f.locals.get? "hookDelta" = some old)
     (hsc : signedFits ⟨128, by decide⟩ specified) (huc : signedFits ⟨128, by decide⟩ unspecified) :
-    ExecBlock config f evm (afterSwapPackBranch first) (.ok (afterSwapPackFrame f first specified unspecified) evm) := by
+    ExecBlock fork config f evm (afterSwapPackBranch first) (.ok (afterSwapPackFrame f first specified unspecified) evm) := by
   have hs' : evalExpr? config f evm (.var "specified") = .ok (.int (EVM.signed (EVM.wordOfInt specified))) := by
     rw [signed_wordOfInt (signedFits128_int256 hsc)]
     exact evalLocalValue hs
@@ -70,10 +72,10 @@ theorem afterSwapPackSource {f : Frame} {evm : State} {p : SwapParamsWords} {spe
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hh : f.locals.get? "hookDelta" = some old)
     (hsc : signedFits ⟨128, by decide⟩ specified) (huc : signedFits ⟨128, by decide⟩ unspecified) :
-    ExecStmt config f evm afterSwapPackStmt
+    ExecStmt fork config f evm afterSwapPackStmt
       (.ok (afterSwapPackFrame f (afterSwapSpecifiedFirst p) specified unspecified) evm) := by
   have hcond := afterSwapPackCondition_eval (evm := evm) hp
-  have hbranch := afterSwapPackBranchSource (evm := evm) (afterSwapSpecifiedFirst p) hf hs hu hh hsc huc
+  have hbranch := afterSwapPackBranchSource (fork := fork) (evm := evm) (afterSwapSpecifiedFirst p) hf hs hu hh hsc huc
   cases he : afterSwapSpecifiedFirst p with
   | false => rw [he] at hcond hbranch; exact ExecStmt.iteFalse hcond hbranch
   | true => rw [he] at hcond hbranch; exact ExecStmt.iteTrue hcond hbranch

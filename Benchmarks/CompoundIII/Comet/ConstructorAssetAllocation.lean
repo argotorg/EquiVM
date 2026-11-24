@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorAssetHeader
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -78,19 +80,19 @@ theorem constructorArrayAllocationGuard {c : ConstructorConfig}
 
 theorem cometConstructorArrayAllocate {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     {aw : UInt256} {k C : Nat} (hrecord : constructorRecordBase c + 672 < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [UInt256.ofNat (constructorArrayBase c), UInt256.ofNat (32 + 32 * c.assetConfigs.length),
         ⟨623⟩, ⟨672⟩, ⟨928⟩, constructorArgumentSizeWord c, UInt256.ofNat c.assetConfigs.length,
         ⟨32⟩, UInt256.ofNat (constructorArrayBase c), UInt256.ofNat (constructorRecordBase c)]
       (constructorScalarMemory c 20) aw ByteArray.empty σ k C) :
     if constructorArrayEnd c < 2^64 then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨623⟩
         [⟨672⟩, ⟨928⟩, constructorArgumentSizeWord c, UInt256.ofNat c.assetConfigs.length,
           ⟨32⟩, UInt256.ofNat (constructorArrayBase c), UInt256.ofNat (constructorRecordBase c)]
         (constructorArrayMemory c) aw' ByteArray.empty σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
   have hr := cometCreationAllocate (by change 13 ≤ 1024; decide) (by native_decide) h
   simpa only [constructorArrayAllocationGuard hrecord, constructorArrayAllocationEnd hrecord,

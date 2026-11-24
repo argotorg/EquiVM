@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.NewRecordSource
 import Benchmarks.EAS.EAS.RecordCreateMemory
 import Benchmarks.EAS.EAS.UIDSites
 import Benchmarks.EAS.EAS.RuntimeBlocks_034
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -30,9 +32,9 @@ theorem easRecordCreate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+25 ≤ 1024)
     (hlo : 192 ≤ src.toNat) (hmem : 192 ≤ mem.size) (hb : src.toNat+320 < UInt256.size)
     (ha : recordCreateAttester site mem = UInt256.ofNat attester.val)
-    (rd : RD (deployedRuntime v) ee g s0 (recordCreatePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordCreatePC site)
       (recordCreateStack site src dataPtr schema idx t3 t4 r R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidStartPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidStartPC site)
       (⟨0⟩::uidSaved site src (schema::idx::t3::t4::R))
       (recordCreateMemory mem src dataPtr (newAttestation r schema (easTimeWord ee) attester)) aw' rdata σ k' C' := by
   have hn (n : Nat) (h : n ≤ 288) : (src+UInt256.ofNat n).toNat = src.toNat+n := uadd_word_ofNat_toNat _ _ (by omega)

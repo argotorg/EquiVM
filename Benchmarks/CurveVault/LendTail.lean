@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.LendFinish
 import Benchmarks.CurveVault.LendControllerCalls
 import Benchmarks.CurveVault.TotalAssetsInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -13,12 +15,12 @@ theorem vaultLendTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_controller" = none)
     (hnum : locals.get? "numerator" = some (.int (Int.ofNat numerator.toNat)))
     (hstack : R.length + 11 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1288) (numerator :: unused :: unused2 :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1288) (numerator :: unused :: unused2 :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecBlock config {contract := contract, locals := locals} evm vaultLendTailBody
+      ExecBlock fork config {contract := contract, locals := locals} evm vaultLendTailBody
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm vaultLendTailBody .reverted ∧ RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm vaultLendTailBody .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have hgap (d : Nat) (hd : d < 1024) (m : ByteArray) : d - m.size < USize.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize d (by omega))
   have rd6772 := vaultBlocks.vault_block_1288 (by omega) (by native_decide) h
@@ -53,7 +55,7 @@ theorem vaultLendTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     rfl
   have rd1313 := vaultBlocks.vault_block_1302_fallthrough (by simp only [List.length_cons]; omega)
     (by change UInt256.isZero (memLoad (UInt256.ofNat 384) mem0) = _; rw [hword]; exact isZero_eq_zero_of_ne hz) rd1302
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1313) (memLoad (UInt256.ofNat 384) mem0 :: numerator :: R)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1313) (memLoad (UInt256.ofNat 384) mem0 :: numerator :: R)
     mem0 _ out0 σ0 _ _ at rd1313
   rw [hword] at rd1313
   let gross := UInt256.div numerator total
@@ -65,7 +67,7 @@ theorem vaultLendTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     ⟨evm1, σ1, out1, aw1, k1, C1, _, _, hadmin, hs1, rd1369⟩ | ⟨hadmin, hrev⟩
   swap
   · refine Or.inr ⟨ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.letDecl hgEval) ?_), hrev⟩
-    change ExecBlock _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
+    change ExecBlock fork _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
     exact execBlock_reverted_append hadmin
   let pct := retWord out1
   let grossMem := gross.toByteArray.write 0 mem0 288 32
@@ -87,9 +89,9 @@ theorem vaultLendTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     ⟨hfinish, hret⟩ | ⟨hfinish, hrev⟩
   · refine Or.inl ⟨evm1, σ1, locals2, UInt256.div (UInt256.mul gross (UInt256.sub vaultLendScale pct)) vaultLendScale,
       ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.letDecl hgEval) ?_), hs1, hret⟩
-    change ExecBlock _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
+    change ExecBlock fork _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
     exact execBlock_append hadmin (ExecBlock.consReturn hfinish)
   · refine Or.inr ⟨ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.letDecl hgEval) ?_), hrev⟩
-    change ExecBlock _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
+    change ExecBlock fork _ _ _ (vaultControllerCall "controller_admin_percentage" "admin_pct" "admin_percentage" ++ [vaultLendReturnStmt]) _
     exact execBlock_append hadmin (ExecBlock.consRevert hfinish)
 end Benchmarks.CurveVault

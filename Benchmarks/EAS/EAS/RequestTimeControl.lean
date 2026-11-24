@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RecordPrepare
 import Benchmarks.EAS.EAS.RuntimeBlocks_032
 import Benchmarks.EAS.EAS.RuntimeBlocks_037
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,8 +22,8 @@ theorem easRequestTimeCompare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {expire dummy : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+3 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (requestTimeComparePC site) (expire::dummy::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (requestTimeRequirePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestTimeComparePC site) (expire::dummy::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (requestTimeRequirePC site)
       (UInt256.ofNat (deployedRuntime v).size::UInt256.isZero (UInt256.lt (easTimeWord ee) expire)::R) mem aw' rdata σ k' C' := by
   cases site with
   | single _ _ _ _ _ _ _ _ =>
@@ -36,9 +38,9 @@ theorem easRequestTimeRequire {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {dummy bad : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+2 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (requestTimeRequirePC site) (dummy::bad::R) mem aw rdata σ k C) :
-    if bad = ⟨0⟩ then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (requestRevocablePC site) R mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestTimeRequirePC site) (dummy::bad::R) mem aw rdata σ k C) :
+    if bad = ⟨0⟩ then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (requestRevocablePC site) R mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases site with
   | single _ _ _ _ _ _ _ _ =>
     by_cases hz : bad = ⟨0⟩

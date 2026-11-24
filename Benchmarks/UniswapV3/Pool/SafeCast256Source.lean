@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SafeCast128Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -54,7 +56,7 @@ theorem evalSafeCast256Guard (imms : Store) (evm : EVM.State) (y : UInt256) :
 
 theorem safeCast256Assign (imms : Store) (evm : EVM.State) (y : UInt256)
     (hy : safeCast256Valid y) :
-    ExecStmt config (safeCast256ZeroFrame imms y) evm (safeCast256Function.body[2]!)
+    ExecStmt fork config (safeCast256ZeroFrame imms y) evm (safeCast256Function.body[2]!)
       (.ok (safeCast256ReadyFrame imms y) evm) := by
   have hn : normalizeInt (.sint ⟨256, by decide⟩) (Int.ofNat y.toNat) = Int.ofNat y.toNat := by
     apply normalizeSint_eq_self
@@ -70,7 +72,7 @@ theorem safeCast256Assign (imms : Store) (evm : EVM.State) (y : UInt256)
 
 theorem safeCast256Returns (imms : Store) (evm : EVM.State) (y : UInt256)
     (hy : safeCast256Valid y) :
-    ExecFuncBody config (safeCast256Frame imms y) evm safeCast256Function.body
+    ExecFuncBody fork config (safeCast256Frame imms y) evm safeCast256Function.body
       (.returned (safeCast256ReadyFrame imms y) evm (some [.int (Int.ofNat y.toNat)])) := by
   apply ExecFuncBody.execBlockRet
   refine ExecBlock.consNormal (stele' := safeCast256ZeroFrame imms y) (evm' := evm)
@@ -85,7 +87,7 @@ theorem safeCast256Returns (imms : Store) (evm : EVM.State) (y : UInt256)
 
 theorem safeCast256Reverts (imms : Store) (evm : EVM.State) (y : UInt256)
     (hy : ¬ safeCast256Valid y) :
-    ExecFuncBody config (safeCast256Frame imms y) evm safeCast256Function.body .reverted := by
+    ExecFuncBody fork config (safeCast256Frame imms y) evm safeCast256Function.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := safeCast256ZeroFrame imms y) (evm' := evm)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_

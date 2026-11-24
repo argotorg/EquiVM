@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dai.StringReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -24,7 +26,7 @@ theorem daiVersionReturnEncoding :
 /-- The Stele `version()` body returns `"1"` as a dynamic string value. -/
 theorem daiVersionBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm versionStore versionTransition.body
+    ExecTransitionBody fork config contract evm versionStore versionTransition.body
       (.returned { contract := contract, locals := versionStore } evm
         (some [.bytes daiVersionBytes])) := by
   simpa [versionTransition, versionStore, daiVersionBytes] using
@@ -43,10 +45,10 @@ private theorem daiVersionReturnRead :
 
 /-- Runtime-only `version()` slice from selector dispatch through dynamic string return. -/
 theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨688⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I) σ
+    RDret fork daiBytecode g (initState σ σ₀ g A I) σ
       daiVersionReturnBytes := by
   obtain ⟨_, _, h688⟩ := hreach
   have h2245 := evm_run h688 with [
@@ -137,12 +139,12 @@ theorem daiVersionBodyCoreOk
       config.externalABI.decodeCalldata? (versionTransition.params.map Param.name)
         (transitionSignature versionTransition).paramTypes I.calldata =
           some versionStore)
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨688⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         versionStore
         versionTransition.body
@@ -171,12 +173,12 @@ theorem daiVersionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 20) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some versionTransition :=
     daiDispatchVersion hsel
-  have hreach := daiReachVersionBody
+  have hreach := daiReachVersionBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiVersionBodyCoreOk hcode hsize hwv hdispatch

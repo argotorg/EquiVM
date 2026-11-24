@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ArrayAllocationHead
 import Benchmarks.EAS.EAS.RuntimeBlocks_022
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,12 +18,12 @@ theorem easCopyRequestArrayHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {offset len stop heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5544⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
     (requestArrayHeadValid offset len stop heap →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5594⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
         ((heap+UInt256.ofNat 32)::offset::offset::(offset+UInt256.shiftLeft len (UInt256.ofNat 5))::stop::ret::heap::R)
         (arrayAllocationHeaderMemory mem heap len.toNat) aw' rdata σ k' C') ∧
-    (¬ requestArrayHeadValid offset len stop heap → RDrev (deployedRuntime v) g s0) := by
+    (¬ requestArrayHeadValid offset len stop heap → RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5544_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_5544_stack] at r1

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_054
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,17 +28,17 @@ theorem poolSwapStepFillTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {zeroForOne : Bool} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hI : evm.executionEnv = I)
     (hf : step.toNat+256 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨19090⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19090⟩
       ([step+UInt256.ofNat 256, packed, ret, params, remaining, calculated, fee, protocol, amount,
         UInt256.fromBool (!zeroForOne), step, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepFillAW aw step) ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨19155⟩
+    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepFillAW aw step) ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨19155⟩
       ([remaining, ret, params, calculated, packed, fee, protocol, amount, UInt256.fromBool (!zeroForOne),
         step, poolSlot id, state]++R)
       (poolSwapStepInitMem mem evm id step zeroForOne) (poolSwapStepFillAW aw step) rdata evm.accountMap k' C' := by
   have he := poolSwapStepZeroMem_eq mem step hf
   have he' : poolManagerBlocks.poolManager_block_19090_fallthrough_memory (mem := mem)
       (x0 := step+UInt256.ofNat 256) (x10 := step) = poolSwapStepZeroMem mem step := he
-  have hfirst : ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepZeroAW aw step) ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 (if zeroForOne then ⟨19140⟩ else ⟨21940⟩)
+  have hfirst : ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapStepZeroAW aw step) ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 (if zeroForOne then ⟨19140⟩ else ⟨21940⟩)
       ([packed, ret, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne),
         step, poolSlot id, state]++R) (poolSwapStepZeroMem mem step) (poolSwapStepZeroAW aw step)
       rdata evm.accountMap k' C' := by
@@ -55,7 +57,7 @@ theorem poolSwapStepFillTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       dsimp only [poolSwapStepZeroAW, memExpansionCost]
       omega
   obtain ⟨k1, C1, hc1, hp1, rd1⟩ := hfirst
-  have hload : ∃ k' C', C1 ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19149⟩
+  have hload : ∃ k' C', C1 ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19149⟩
       ([(poolSwapInitialStep evm id zeroForOne).feeGrowthGlobal, remaining, ret, params, calculated,
         packed, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state]++R)
       (poolSwapStepZeroMem mem step) (poolSwapStepZeroAW aw step) rdata evm.accountMap k' C' := by
@@ -79,7 +81,7 @@ theorem poolSwapStepFillTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨k2, C2, hc2, rd2⟩ := hload
   have rd3 := poolManagerBlocks.poolManager_block_19149 (by change R.length+2+13 ≤ 1024; omega) rd2
   simp only [poolManagerBlocks.poolManager_block_19149_stack] at rd3
-  change RD _ _ _ _ _ _ (writeWord (poolSwapStepZeroMem mem step) (step+UInt256.ofNat 224).toNat
+  change RD fork _ _ _ _ _ _ (writeWord (poolSwapStepZeroMem mem step) (step+UInt256.ofNat 224).toNat
     (poolSwapInitialStep evm id zeroForOne).feeGrowthGlobal) _ _ _ _ _ at rd3
   rw [poolSwapStepInitMem_eq mem evm id step zeroForOne hf] at rd3
   refine ⟨_, _, by omega, ?_, rd3⟩

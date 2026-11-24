@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AccrueInternalModel
 import Benchmarks.CompoundIII.Comet.TrackingBranchEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,9 +16,9 @@ theorem cometAccrueRewards {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed time ret : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8033⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8033⟩
       (⟨0⟩ :: elapsed :: time :: ⟨3121⟩ :: ret :: R) mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ret R
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ret R
       (if AccrueRewardsValid v evm elapsed then .ok (accrueRewardsState evm v elapsed time)
       else .reverted) := by
   have hsupply := cometTrackingSupplyBranch (v := v)

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionEntryTrace
 import Benchmarks.UniswapV3.Pool.ObserveInputTrace
 import Benchmarks.UniswapV3.Pool.BlockTimestamp
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,9 +17,9 @@ def updatePositionObserveWords (σ : AccountMap) (ee : ExecutionEnv) : List UInt
 theorem updatePositionObserveEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19190⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19190⟩ R mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (updatePositionObserveWords σ ee ++
         UInt256.ofNat 19273 :: ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ee.header.timestamp :: R)
       mem aw rdata σ k' C' := by

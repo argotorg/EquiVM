@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecimalsCheck
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -56,9 +58,9 @@ theorem constructorSource_assetCountGuard (c : ConstructorConfig) (w : UInt256) 
 /-- Every outcome of the base-token call leads to a source revert for an oversized asset array. -/
 theorem constructorSourceOversized_revert {c : ConstructorConfig} {evm evm' : EVM.State}
     {z : Bool} {out : ByteArray} (hv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hc : callViaEVM evm c.baseToken 0 decimalsPayload (z, evm', out) false)
+    (hc : callViaEVM fork evm c.baseToken 0 decimalsPayload (z, evm', out) false)
     (hhi : out.size < 2^255) (hn : 24 < c.assetConfigs.length) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   by_cases hvalid : z = true ∧ 32 ≤ out.size ∧ (calldataWord out 0).toNat ≤ 18
   · rcases hvalid with ⟨rfl, hlo, hword⟩
     have hd := constructorSourceDecimalsChecked_exec hv hc hhi hlo hword

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepRemainingWords
 import Benchmarks.UniswapV4PoolManager.SwapStepFeeSource
 import Benchmarks.UniswapV4PoolManager.WordSignedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -39,7 +41,7 @@ theorem swapStepAvailableSource {f : Frame} {evm : EVM.State} {remaining fee : U
     (hf : f.contract = contract)
     (hr : f.locals.get? "amountRemaining" = some (.int (EVM.signed remaining)))
     (hp : f.locals.get? "_feePips" = some (.int (Int.ofNat fee.toNat))) :
-    ExecStmt config f evm swapStepAvailableStmt
+    ExecStmt fork config f evm swapStepAvailableStmt
       (if swapStepAvailableFits remaining fee then
         .ok (wordLocal f "amountRemainingLessFee" (swapStepAvailableWord remaining fee)) evm else .reverted) :=
   fullMathCall (a := swapStepRemainingWord remaining) (b := swapStepFeeComplement fee) (d := fullMathPPM)

@@ -3,33 +3,35 @@ import Benchmarks.CompoundIII.Comet.TransferCallSource
 import Benchmarks.CompoundIII.Comet.TransferFromPayload
 import Benchmarks.CompoundIII.Comet.QuoteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive TransferInAfter (asset sender : AccountAddress) (amount pre : UInt256)
+inductive TransferInAfter (fork : Ethereum.Fork) (asset sender : AccountAddress) (amount pre : UInt256)
     (evm : EVM.State) : Option (EVM.State × UInt256) → Prop where
-  | transferFailed (ht : TransferCallTrace asset
+  | transferFailed (ht : TransferCallTrace fork asset
       (transferFromPayload sender evm.executionEnv.codeOwner amount) evm none) :
-      TransferInAfter asset sender amount pre evm none
+      TransferInAfter fork asset sender amount pre evm none
   | balanceFailed {evm' : EVM.State} {out : ByteArray}
-      (ht : TransferCallTrace asset (transferFromPayload sender evm.executionEnv.codeOwner amount)
-        evm (some (evm', out))) (hb : TokenBalanceTrace asset evm' none) :
-      TransferInAfter asset sender amount pre evm none
+      (ht : TransferCallTrace fork asset (transferFromPayload sender evm.executionEnv.codeOwner amount)
+        evm (some (evm', out))) (hb : TokenBalanceTrace fork asset evm' none) :
+      TransferInAfter fork asset sender amount pre evm none
   | balanceResult {evm' evm'' : EVM.State} {out : ByteArray} {post : UInt256}
-      (ht : TransferCallTrace asset (transferFromPayload sender evm.executionEnv.codeOwner amount)
-        evm (some (evm', out))) (hb : TokenBalanceTrace asset evm' (some (evm'', post))) :
-      TransferInAfter asset sender amount pre evm
+      (ht : TransferCallTrace fork asset (transferFromPayload sender evm.executionEnv.codeOwner amount)
+        evm (some (evm', out))) (hb : TokenBalanceTrace fork asset evm' (some (evm'', post))) :
+      TransferInAfter fork asset sender amount pre evm
         (if pre.toNat ≤ post.toNat then some (evm'', UInt256.sub post pre) else none)
 
-inductive TransferInTrace (asset sender : AccountAddress) (amount : UInt256)
+inductive TransferInTrace (fork : Ethereum.Fork) (asset sender : AccountAddress) (amount : UInt256)
     (evm : EVM.State) : Option (EVM.State × UInt256) → Prop where
-  | balanceFailed (hb : TokenBalanceTrace asset evm none) :
-      TransferInTrace asset sender amount evm none
+  | balanceFailed (hb : TokenBalanceTrace fork asset evm none) :
+      TransferInTrace fork asset sender amount evm none
   | balanceOk {evm' : EVM.State} {pre : UInt256} {result}
-      (hb : TokenBalanceTrace asset evm (some (evm', pre)))
-      (ht : TransferInAfter asset sender amount pre evm' result) :
-      TransferInTrace asset sender amount evm result
+      (hb : TokenBalanceTrace fork asset evm (some (evm', pre)))
+      (ht : TransferInAfter fork asset sender amount pre evm' result) :
+      TransferInTrace fork asset sender amount evm result
 
 def transferInPayloadExpr : Expr :=
   .abiEncodeCall "transferFrom" [.var "from", .env .this, .var "amount"]

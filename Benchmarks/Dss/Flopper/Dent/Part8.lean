@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dent.Part7
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -49,7 +51,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
       Reasoning.Theory.extCodeSizeWord σAsh
         (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd2833 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨0⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
         solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
@@ -57,7 +59,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -71,7 +73,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
               accountMap := σ', substate := A' },
           outMove) true)
     (hashCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
@@ -83,7 +85,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
           outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
@@ -98,7 +100,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_stele := σ'
   let A'_stele := A'
@@ -110,7 +112,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
@@ -146,7 +148,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         solcAddressSlotWord packedSlot σ'_stele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshStele :
-      typedCallViaEVM config evmCallStele
+      typedCallViaEVM fork config evmCallStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallStele I).toNat)) "Ash" 0 []
         (true, evmAshStele, outAsh) true := by
     simpa [evmAshStele, evmCallSteleBase, evmCallStele, dentGuyWord, packedSlot, hcallEnv,
@@ -169,7 +171,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         solcAddressSlotWord packedSlot σAshStele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallStele :
-      typedCallViaEVM config evmAshStele
+      typedCallViaEVM fork config evmAshStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshStele I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (false, evmKissStele, outKiss) true := by
@@ -234,7 +236,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     simpa [evmAshStele, dentGuyWord, packedSlot, hcallEnv,
       ← hpostAsrfl] using hkissCodeSize
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_kissCallFailure_moveCallerNe_ticZero
       evmStele evmCallStele evmAshStele evmKissStele I outMove outAsh outKiss
@@ -294,7 +296,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
           (dentRuntimeTtlWord I.codeOwner
             (dentRuntimeAfterGuyMap I.codeOwner σKiss I) I).toNat)
     (hdepth : I.depth.val < 1024)
-    (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd2833 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨1⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
         solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
@@ -302,7 +304,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -316,7 +318,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
               accountMap := σ', substate := A' },
           outMove) true)
     (hashCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
@@ -328,7 +330,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
           outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
@@ -342,7 +344,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_stele := σ'
   let A'_stele := A'
@@ -354,7 +356,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
@@ -390,7 +392,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         solcAddressSlotWord packedSlot σ'_stele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshStele :
-      typedCallViaEVM config evmCallStele
+      typedCallViaEVM fork config evmCallStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallStele I).toNat)) "Ash" 0 []
         (true, evmAshStele, outAsh) true := by
     simpa [evmAshStele, evmCallSteleBase, evmCallStele, dentGuyWord, packedSlot, hcallEnv,
@@ -414,7 +416,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         solcAddressSlotWord packedSlot σAshStele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallStele :
-      typedCallViaEVM config evmAshStele
+      typedCallViaEVM fork config evmAshStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshStele I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKissStele, outKiss) true := by
@@ -508,7 +510,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         hkissCodeSizeStele hkissCallStele).2 hp
     exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess (hperm := hperm)
       evmStele evmCallStele evmAshStele evmKissStele I outMove outAsh outKiss
@@ -572,7 +574,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
             (dentRuntimeAfterGuyMap I.codeOwner σKiss I) I).toNat <
         2 ^ 48)
     (hdepth : I.depth.val < 1024)
-    (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd2833 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨1⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
         solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
@@ -580,7 +582,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -594,7 +596,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
               accountMap := σ', substate := A' },
           outMove) true)
     (hashCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
@@ -606,7 +608,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
           outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissCall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
@@ -620,7 +622,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_stele := σ'
   let A'_stele := A'
@@ -632,7 +634,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
@@ -668,7 +670,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         solcAddressSlotWord packedSlot σ'_stele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshStele :
-      typedCallViaEVM config evmCallStele
+      typedCallViaEVM fork config evmCallStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallStele I).toNat)) "Ash" 0 []
         (true, evmAshStele, outAsh) true := by
     simpa [evmAshStele, evmCallSteleBase, evmCallStele, dentGuyWord, packedSlot, hcallEnv,
@@ -692,7 +694,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         solcAddressSlotWord packedSlot σAshStele I :=
     congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallStele :
-      typedCallViaEVM config evmAshStele
+      typedCallViaEVM fork config evmAshStele
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshStele I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKissStele, outKiss) true := by
@@ -786,7 +788,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         hkissCodeSizeStele hkissCallStele).2 hp
     exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         (.returned
           { contract := contract
             locals := dentKissRetTicLocals evmStele
@@ -853,14 +855,14 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (dentRuntimeTtlWord I.codeOwner (dentRuntimeAfterGuyMap I.codeOwner σ' I) I).toNat)
-    (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd2545 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -877,7 +879,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_stele := σ'
   let A'_stele := A'
@@ -889,7 +891,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
@@ -978,7 +980,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
         hcallStele hticMoveStele).2 hp
     exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero (hperm := hperm)
       evmStele evmCallStele I out
@@ -1033,14 +1035,14 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
           (dentRuntimeTtlWord I.codeOwner (dentRuntimeAfterGuyMap I.codeOwner σ' I) I).toNat <
         2 ^ 48)
-    (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (rd2545 : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
         solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
@@ -1057,7 +1059,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_stele := σ'
   let A'_stele := A'
@@ -1069,7 +1071,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallStele :
-      typedCallViaEVM config evmStele
+      typedCallViaEVM fork config evmStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
@@ -1158,7 +1160,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
         hcallStele hticMoveStele).2 hp
     exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         (.returned
           { contract := contract
             locals := dentMoveTicLocals evmStele (dentAfterGuyStore evmCallStele I) I }
@@ -1192,10 +1194,10 @@ theorem flopperDentBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flopperDentX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flopperDecode_dent_none_short hsz4 hshort)
 
@@ -1209,17 +1211,17 @@ theorem flopperDentBodyCoreNotLive
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveStele : dentLiveWord evmStele ≠ ⟨1⟩ := by
     intro hbad
     apply hlive
     simpa [evmStele, dentLiveWord, initState] using hbad
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_notLive evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele
@@ -1239,10 +1241,10 @@ theorem flopperDentBodyCoreGuyNotSet
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveStele : dentLiveWord evmStele = ⟨1⟩ := by
@@ -1250,7 +1252,7 @@ theorem flopperDentBodyCoreGuyNotSet
   have hguyStele : dentGuyWord evmStele I = ⟨0⟩ := by
     simpa [evmStele, dentGuyWord, initState, packedSlot] using hguy
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_guyNotSet evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
@@ -1274,10 +1276,10 @@ theorem flopperDentBodyCoreTicFinished
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveStele : dentLiveWord evmStele = ⟨1⟩ := by
@@ -1294,7 +1296,7 @@ theorem flopperDentBodyCoreTicFinished
     simpa [evmStele, dentTicWord, dentTimestampWord, initState, packedSlot]
       using hticLe
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_ticFinished evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
@@ -1323,10 +1325,10 @@ theorem flopperDentBodyCoreEndFinished
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
@@ -1351,14 +1353,14 @@ theorem flopperDentBodyCoreEndFinished
     simpa [evmStele, dentEndWord, dentTimestampWord, initState]
       using hendLe
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_endFinished evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendLeStele
   have hdecoded :=
     flopperDentX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flopperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flopperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -1443,10 +1445,10 @@ theorem flopperDentBodyCoreBidMismatch
     (hdecode :
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveStele : dentLiveWord evmStele = ⟨1⟩ := by
@@ -1472,7 +1474,7 @@ theorem flopperDentBodyCoreBidMismatch
     apply hbid
     simpa [evmStele, dentBidStoredWord, initState] using heq
   have hbody :
-      ExecTransitionBody config contract evmStele (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evmStele (dentLocals I) dentTransition.body
         .reverted := by
     exact flopperDentBodyReverts_bidMismatch evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele

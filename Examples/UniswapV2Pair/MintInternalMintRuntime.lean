@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeRuntimeSqrt
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,15 +15,15 @@ theorem uniswapInternalMintRuntimeTotalSupplyAddEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
-    (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩ (value :: recipient :: ret :: R)
+    (rd8128 : RD fork uniswapV2PairBytecode ee g s0 ⟨8128⟩ (value :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: solcSlotWordAt ⟨0⟩ σ ee :: ⟨8147⟩ :: value :: recipient :: ret :: R)
       mem aw rdata σ k' C' := by
   have rd8131 := evm_run rd8128 with [jumpdest, push1 ⟨0⟩]
   obtain ⟨k8132, C8132, rd8132₀⟩ := rd8131.sload (by native_decide) (by evm_ov)
-  have rd8132 : RD uniswapV2PairBytecode ee g s0 ⟨8132⟩
+  have rd8132 : RD fork uniswapV2PairBytecode ee g s0 ⟨8132⟩
       (solcSlotWordAt ⟨0⟩ σ ee :: value :: recipient :: ret :: R)
       mem aw rdata σ k8132 C8132 := by
     simpa [solcSlotWordAt, solcSlotWord] using rd8132₀
@@ -39,12 +41,12 @@ theorem uniswapInternalMintRuntimeTotalSupplyAddedEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {value recipient ret totalSupply : UInt256} {R : List UInt256}
-    (rd8515 : RD uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    (rd8515 : RD fork uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: totalSupply :: ⟨8147⟩ :: value :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hfit : totalSupply.toNat + value.toNat < UInt256.size)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8147⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8147⟩
       ((totalSupply + value) :: value :: recipient :: ret :: R)
       mem aw rdata σ k' C' := by
   exact RD.uniswapSafeMathAddSuccess rd8515 hfit (by jump_dest)
@@ -57,11 +59,11 @@ theorem uniswapInternalMintRuntimeTotalSupplyStoredEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {newSupply value recipient ret : UInt256} {R : List UInt256}
-    (rd8147 : RD uniswapV2PairBytecode ee g s0 ⟨8147⟩
+    (rd8147 : RD fork uniswapV2PairBytecode ee g s0 ⟨8147⟩
       (newSupply :: value :: recipient :: ret :: R) mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8153⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8153⟩
       (⟨0⟩ :: value :: recipient :: ret :: R) mem aw rdata
       (sstoreAccountMap ee.codeOwner σ ⟨0⟩ newSupply) k' C' := by
   have rd8152 := evm_run rd8147 with [jumpdest, push1 ⟨0⟩, swap1, dup2]
@@ -470,11 +472,11 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
-    (rd8153 : RD uniswapV2PairBytecode ee g s0 ⟨8153⟩
+    (rd8153 : RD fork uniswapV2PairBytecode ee g s0 ⟨8153⟩
       (⟨0⟩ :: value :: recipient :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: uniswapCodeOwnerStorageWord ee σ
           (uniswapInternalMintBalanceHashSlot recipient mem) ::
         ⟨8190⟩ :: value :: recipient :: ret :: R)
@@ -500,7 +502,7 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddEntry
     (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
   obtain ⟨k8175, C8175, rd8175₀⟩ := rd8175.sload (by native_decide) (by evm_ov)
-  have rd8175' : RD uniswapV2PairBytecode ee g s0 ⟨8175⟩
+  have rd8175' : RD fork uniswapV2PairBytecode ee g s0 ⟨8175⟩
       (uniswapCodeOwnerStorageWord ee σ (uniswapInternalMintBalanceHashSlot recipient mem) ::
         value :: recipient :: ret :: R)
       (uniswapInternalMintBalanceHashMem recipient mem) feeToStaticcallActiveWords rdata
@@ -520,12 +522,12 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddedEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {value recipient ret balance : UInt256} {R : List UInt256}
-    (rd8515 : RD uniswapV2PairBytecode ee g s0 ⟨8515⟩
+    (rd8515 : RD fork uniswapV2PairBytecode ee g s0 ⟨8515⟩
       (value :: balance :: ⟨8190⟩ :: value :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hfit : balance.toNat + value.toNat < UInt256.size)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8190⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8190⟩
       ((balance + value) :: value :: recipient :: ret :: R)
       mem aw rdata σ k' C' := by
   exact RD.uniswapSafeMathAddSuccess rd8515 hfit (by jump_dest)
@@ -538,12 +540,12 @@ theorem uniswapInternalMintRuntimeRecipientBalanceStoredEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {newBalance value recipient ret : UInt256} {R : List UInt256}
-    (rd8190 : RD uniswapV2PairBytecode ee g s0 ⟨8190⟩
+    (rd8190 : RD fork uniswapV2PairBytecode ee g s0 ⟨8190⟩
       (newBalance :: value :: recipient :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : ee.perm = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨8222⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨8222⟩
       (⟨32⟩ :: ⟨0⟩ :: UInt256.land recipient solcAddrMask :: ⟨64⟩ ::
         value :: recipient :: ret :: R)
       (uniswapInternalMintBalanceHashMem recipient mem) feeToStaticcallActiveWords rdata
@@ -580,7 +582,7 @@ theorem uniswapInternalMintRuntimeEmitAndJump
     {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {key value recipient ret : UInt256} {R : List UInt256}
-    (rd8222 : RD uniswapV2PairBytecode ee g s0 ⟨8222⟩
+    (rd8222 : RD fork uniswapV2PairBytecode ee g s0 ⟨8222⟩
       (⟨32⟩ :: ⟨0⟩ :: key :: ⟨64⟩ :: value :: recipient :: ret :: R)
       mem feeToStaticcallActiveWords rdata acc k C)
     (hmload64 :
@@ -598,7 +600,7 @@ theorem uniswapInternalMintRuntimeEmitAndJump
     (hperm : ee.perm = true)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ret R
       (uniswapInternalMintLogMem value mem) feeToStaticcallActiveWords rdata acc k' C' := by
   have rd8226 := evm_run rd8222 with [
     dup4,
@@ -629,7 +631,7 @@ theorem uniswapInternalMintRuntimeSuccess
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
-    (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
+    (rd8128 : RD fork uniswapV2PairBytecode ee g s0 ⟨8128⟩
       (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : ee.perm = true)
     (htotalFit : (solcSlotWordAt ⟨0⟩ σ ee).toNat + value.toNat < UInt256.size)
@@ -662,7 +664,7 @@ theorem uniswapInternalMintRuntimeSuccess
         ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ret R
       (uniswapInternalMintLogMem value
         (uniswapInternalMintBalanceHashMem recipient
           (uniswapInternalMintBalanceHashMem recipient mem)))
@@ -697,7 +699,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintReturn
     {mem rdata : ByteArray} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo amount0 amount1 balance0
       balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd7999 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7999 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7999⟩
       [liquidity, denominator, numerator, rootKLast, rootK, kLast, feeTo, ⟨1⟩, reserve1,
         reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1,
@@ -733,7 +735,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintReturn
               (uniswapInternalMintBalanceHashMem feeTo mem))).readWithPadding
                 (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -766,7 +768,7 @@ theorem uniswapMintFeeRuntimePositiveComputedLiquidityZeroReturn
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denominator numerator rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1
       reserve0 reserve1 toWord sel : UInt256}
-    (rd7982 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7982 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7982⟩
       [denominator, ⟨0⟩, numerator, rootKLast, rootK, kLast, feeTo, ⟨1⟩, reserve1,
         reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1,
@@ -774,7 +776,7 @@ theorem uniswapMintFeeRuntimePositiveComputedLiquidityZeroReturn
       mem aw rdata σFee k C)
     (hdenominatorNe : denominator ≠ ⟨0⟩)
     (hliqZero : UInt256.div numerator denominator = ⟨0⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -794,7 +796,7 @@ theorem uniswapMintFeeRuntimePositiveComputedLiquidityMintReturn
     {mem rdata : ByteArray} {k C : ℕ}
     {denominator numerator rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1
       reserve0 reserve1 toWord sel : UInt256}
-    (rd7982 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7982 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7982⟩
       [denominator, ⟨0⟩, numerator, rootKLast, rootK, kLast, feeTo, ⟨1⟩, reserve1,
         reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1,
@@ -834,7 +836,7 @@ theorem uniswapMintFeeRuntimePositiveComputedLiquidityMintReturn
               (uniswapInternalMintBalanceHashMem feeTo mem))).readWithPadding
                 (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -867,7 +869,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntry
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord
       sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7899⟩
       [rootKLast, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩,
@@ -879,7 +881,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntry
         UInt256.size)
     (hrootK5Fit : rootK.toNat * 5 < UInt256.size)
     (hdenFit : (UInt256.mul rootK ⟨5⟩).toNat + rootKLast.toNat < UInt256.size) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7982⟩
       [UInt256.mul rootK ⟨5⟩ + rootKLast, ⟨0⟩,
         UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast),
@@ -898,7 +900,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityZeroReturn
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord
       sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7899⟩
       [rootKLast, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩,
@@ -916,7 +918,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityZeroReturn
           (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast))
           (UInt256.mul rootK ⟨5⟩ + rootKLast) =
         ⟨0⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -935,7 +937,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityMintReturn
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord
       sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7899⟩
       [rootKLast, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩,
@@ -1000,7 +1002,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityMintReturn
               (uniswapInternalMintBalanceHashMem feeTo mem))).readWithPadding
                 (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickLogTrace
 import Benchmarks.UniswapV3.Pool.TickLogSource
 import Benchmarks.UniswapV3.Pool.ReachRoutineCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem tickLogMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 22 ≤ 1024) :
     (¬(tickLogValid (tickLogPrice price) ∧ tickLogSafe (tickLogResult (tickLogPrice price))) ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
     ((tickLogValid (tickLogPrice price) ∧ tickLogSafe (tickLogResult (tickLogPrice price))) ∧
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
         (tickLogChoiceRaw (tickLogResult (tickLogPrice price)) (tickLogPrice price) :: R)
         mem aw rdata σ k' C') := by
   apply rdRoutine_mono rd
@@ -30,15 +32,15 @@ theorem tickLogInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (price : UInt256) (caller : Frame) (evm : EVM.State) (args : List Expr) (retVar : Ident)
     (hf : caller.contract = contract)
     (he : evalExprs? config caller evm args = .ok [.int (Int.ofNat price.toNat)])
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: ret :: R) mem aw rdata σ k C)
     (hp : price.toNat < 2 ^ 160) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 22 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "TickMath_getTickAtSqrtRatio" args retVar)
-        .reverted ∧ (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall "TickMath_getTickAtSqrtRatio" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "TickMath_getTickAtSqrtRatio" args retVar)
+        .reverted ∧ (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall "TickMath_getTickAtSqrtRatio" args retVar)
         (.ok (resumeAfterInternalCall caller retVar
           (some [.int (tickLogChoice (tickLogResult price) price)])) evm) ∧
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
         (tickLogChoiceRaw (tickLogResult price) price :: R) mem aw rdata σ k' C') := by
   have hclean : tickLogPrice price = price :=
     u256LandMaskCleanOfToNat _ _ (by decide) hp

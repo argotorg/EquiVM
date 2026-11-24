@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TransientSource
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,7 +23,7 @@ theorem lockSetFunction_body (unlocked : Bool) :
       (.intLit (if unlocked then 1 else 0))] := by cases unlocked <;> rfl
 
 theorem lockSetBody {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (unlocked : Bool) :
-    ExecFuncBody config f evm (lockSetFunction unlocked).body
+    ExecFuncBody fork config f evm (lockSetFunction unlocked).body
       (if evm.executionEnv.perm = false then .staticViolation else .returned f (lockSetPost evm unlocked) none) := by
   rw [lockSetFunction_body]
   have he : evalExpr? config f evm (.intLit (if unlocked then 1 else 0)) =
@@ -32,13 +34,13 @@ theorem lockSetBody {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (
   · rw [if_pos hp]
     exact .execBlockStatic (ExecBlock.consStatic (ExecStmt.assignTransientStatic he hw hp))
   · rw [if_neg hp]
-    exact .execBlockOK (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw) ExecBlock.nil)
+    exact .execBlockOK (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hw) ExecBlock.nil)
 
 theorem lockSetCall {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (unlocked : Bool) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall (lockSetFunction unlocked).name [] retVar)
+    ExecStmt fork config f evm (.internalCall (lockSetFunction unlocked).name [] retVar)
       (if evm.executionEnv.perm = false then .staticViolation
        else .ok {f with locals := f.locals.insert retVar .unit} (lockSetPost evm unlocked)) := by
-  have hb := lockSetBody (f := {f with locals := ∅}) (evm := evm) hf unlocked
+  have hb := lockSetBody (fork := fork) (f := {f with locals := ∅}) (evm := evm) hf unlocked
   have hh := internalCallFunctionExec (caller := f) (retVar := retVar) (args := []) (argVals := [])
     rfl (by rw [hf]; exact lockSetFunction_lookup unlocked) (by cases unlocked <;> rfl) hb
   simpa only [resumeCallResult_ite, resumeCallResult_static, resumeCallResult_returned] using hh
@@ -46,12 +48,12 @@ theorem lockSetCall {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (
 theorem deltaCountRead_lookup : lookupCallable? contract "NonzeroDeltaCount_read" = some deltaCountReadFunction.toCallable := rfl
 
 theorem deltaCountReadBody {f : Frame} {evm : EVM.State} (hf : f.contract = contract) :
-    ExecFuncBody config f evm deltaCountReadFunction.body
+    ExecFuncBody fork config f evm deltaCountReadFunction.body
       (.returned f evm (some [.int (Int.ofNat (transientWord evm deltaCountSlot).toNat)])) :=
   .execBlockRet (ABlock.start.returns (rawTransient_read hf (evalDeltaCountSlot hf)))
 
 theorem deltaCountReadCall {f : Frame} {evm : EVM.State} (hf : f.contract = contract) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "NonzeroDeltaCount_read" [] retVar)
+    ExecStmt fork config f evm (.internalCall "NonzeroDeltaCount_read" [] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (transientWord evm deltaCountSlot).toNat))} evm) :=
   internalCallFunctionReturn rfl (by rw [hf]; exact deltaCountRead_lookup) rfl
     (deltaCountReadBody (f := {f with locals := ∅}) hf)

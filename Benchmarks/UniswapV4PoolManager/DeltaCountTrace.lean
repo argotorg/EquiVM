@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.DeltaCount
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 /-! Bytecode counter updates, reading the counter after the currency delta write. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -23,11 +25,11 @@ theorem decrementDeltaCountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {e
     (v : PoolManagerImmutables) (hstack : R.length + 3 ≤ 1024)
     (hI : evm.executionEnv = I) (hp : I.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12602⟩ (previous :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret R mem aw rdata (deltaCountPost evm false).accountMap k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12602⟩ (previous :: ret :: R) mem aw rdata evm.accountMap k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R mem aw rdata (deltaCountPost evm false).accountMap k' C' := by
   have hcount := poolManagerBlocks.poolManager_block_12602 (by simp only [List.length_cons]; omega) hp h
   have hdone := poolManagerBlocks.poolManager_block_12705 (by change R.length + 1 ≤ 1024; omega) hret hcount
-  change RD (deployedRuntime v) I g s0 ret R mem aw rdata
+  change RD fork (deployedRuntime v) I g s0 ret R mem aw rdata
     (tstoreAccountMap I.codeOwner evm.accountMap deltaCountSlot
       (codeOwnerTransientWord I evm.accountMap deltaCountSlot + UInt256.lnot ⟨0⟩)) _ _ at hdone
   have hmap := deltaCountPost_accountMap hI false
@@ -40,10 +42,10 @@ theorem incrementDeltaCountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {e
     (v : PoolManagerImmutables) (hstack : R.length + 3 ≤ 1024)
     (hI : evm.executionEnv = I) (hp : I.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12714⟩ (ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret R mem aw rdata (deltaCountPost evm true).accountMap k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12714⟩ (ret :: R) mem aw rdata evm.accountMap k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R mem aw rdata (deltaCountPost evm true).accountMap k' C' := by
   have hdone := poolManagerBlocks.poolManager_block_12714 hstack hp hret h
-  change RD (deployedRuntime v) I g s0 ret R mem aw rdata
+  change RD fork (deployedRuntime v) I g s0 ret R mem aw rdata
     (tstoreAccountMap I.codeOwner evm.accountMap deltaCountSlot
       (codeOwnerTransientWord I evm.accountMap deltaCountSlot + ⟨1⟩)) _ _ at hdone
   have hmap := deltaCountPost_accountMap hI true

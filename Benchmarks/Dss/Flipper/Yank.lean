@@ -5,6 +5,8 @@ import Benchmarks.Dss.Flipper.ExternalTargets
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -366,7 +368,7 @@ theorem flipperReachYankBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 18)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨294⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0x26e027f1⟩ :=
@@ -399,11 +401,11 @@ theorem RD.flipperYankDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨316⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨316⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨967⟩ = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨967⟩
+    ∃ k' C', RD fork code ee g s0 ⟨967⟩
       (calldataWord ee.calldata 4 :: ret :: sel :: R) mem aw rdata acc k' C' := by
   subst hwf
   have rd967 := evm_run h with [
@@ -421,10 +423,10 @@ theorem flipperYankDecodePushAlreadyDent1201 :
 
 theorem flipperYankX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨294⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨967⟩
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨967⟩
         [yankId I, ⟨323⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -638,7 +640,7 @@ theorem flipperYankSourceBodyGuyZero {σ σ₀ A I} {g : UInt256}
     (hguy : bidGuyWord (yankId I) σ I = ⟨0⟩) :
     let locals := yankLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
   intro locals evm0
   have hauthGuard := flipperAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -651,7 +653,7 @@ theorem flipperYankSourceBodyGuyZero {σ σ₀ A I} {g : UInt256}
       evalExpr_yankGuyNeZero_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 yankTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 yankTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -667,7 +669,7 @@ theorem flipperYankSourceBodyNotDent {σ σ₀ A I} {g : UInt256}
     (hge : (bidTabWord (yankId I) σ I).toNat ≤ (bidBidWord (yankId I) σ I).toNat) :
     let locals := yankLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
   intro locals evm0
   have hauthGuard := flipperAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -687,7 +689,7 @@ theorem flipperYankSourceBodyNotDent {σ σ₀ A I} {g : UInt256}
       evalExpr_yankBidLtTab_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hge
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 yankTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 yankTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -709,7 +711,7 @@ theorem flipperYankSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
           (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := yankLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
   intro locals evm0
   have hauthGuard := flipperAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -739,7 +741,7 @@ theorem flipperYankSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
       evalExpr_flipperCatCodeGuard_false_ofLocals (evm := evm0) (locals := locals) hcat
         hnoCode
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         .reverted := by
@@ -749,7 +751,7 @@ theorem flipperYankSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
         (name := "claw") (sendVal := 0)
         (args := [.storage (bidsF (.var "id") "tab")]) hguardCat
   have hcallFull :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (
@@ -773,7 +775,7 @@ theorem flipperYankSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
         [ .delete (bidRef (.var "id")) ])
       hcallBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 yankTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 yankTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -797,13 +799,13 @@ theorem flipperYankSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (yankClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (false, evmCat, outCat) true) :
     let locals := yankLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
   intro locals evm0
   have hauthGuard := flipperAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -837,12 +839,12 @@ theorem flipperYankSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (yankClawArgVals evm0) := by
     simpa [locals] using evalExprs_yankClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (yankClawArgVals evm0) (false, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         .reverted := by
@@ -855,7 +857,7 @@ theorem flipperYankSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         (argVals := yankClawArgVals evm0) (out := outCat) (perm := true)
         hguardCat hcat hargs hcallCat'
   have hcallFull :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (
@@ -879,7 +881,7 @@ theorem flipperYankSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         [ .delete (bidRef (.var "id")) ])
       hcallBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 yankTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 yankTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -903,7 +905,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (yankClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
@@ -914,7 +916,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     let locals := yankLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (yankLocals I).insert "_clawRet" (collapseReturns [])
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
   intro locals evm0 locals1
   have hauthGuard := flipperAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -948,14 +950,14 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (yankClawArgVals evm0) := by
     simpa [locals] using evalExprs_yankClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (yankClawArgVals evm0) (true, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hdecCat : config.externalABI.decode? "claw" outCat = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hcatBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         (.ok { contract := contract, locals := locals1 } evmCat) := by
@@ -977,7 +979,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_flipperVatCodeGuard_false_ofLocals hvat hvatNoCode
   have hvatBlock :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, sender, .storage (bidsF (.var "id") "lot")]
           "_fluxRet")
@@ -989,7 +991,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         (args := [.storage ilkRef, thisAddr, sender, .storage (bidsF (.var "id") "lot")])
         hguardVat
   have htail :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, sender, .storage (bidsF (.var "id") "lot")]
           "_fluxRet" ++
@@ -1006,7 +1008,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         [ .delete (bidRef (.var "id")) ])
       hvatBlock (by intro f' e' h; cases h)
   have hcalls :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
@@ -1019,7 +1021,7 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append hcatBlock htail
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 yankTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 yankTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1033,9 +1035,9 @@ theorem flipperYankSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
 theorem flipperYankX_authOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (h : RD flipperBytecode I g s0 ⟨967⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨967⟩ [yankId I, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
       (yankAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
@@ -1052,9 +1054,9 @@ theorem flipperYankX_authOk {σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_guyNonzero {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hguy : bidGuyWord (yankId I) σ I ≠ ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
       (yankAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1064 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1077,7 +1079,7 @@ theorem flipperYankX_guyNonzero {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by native_decide) (by evm_ov)
-  have rd1068 : RD flipperBytecode I g s0 ⟨1068⟩
+  have rd1068 : RD fork flipperBytecode I g s0 ⟨1068⟩
       [solcSlotWordAt (bidPackedSlotOfWord (yankId I)) σ I, yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k1068 C1068 := by
     have hslotAdd :
@@ -1112,9 +1114,9 @@ theorem flipperYankX_guyNonzero {σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_guyZero {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hguy : bidGuyWord (yankId I) σ I = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1049⟩ [yankId I, ret, sel]
       (yankAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd1064 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1136,7 +1138,7 @@ theorem flipperYankX_guyZero {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by native_decide) (by evm_ov)
-  have rd1068 : RD flipperBytecode I g s0 ⟨1068⟩
+  have rd1068 : RD fork flipperBytecode I g s0 ⟨1068⟩
       [solcSlotWordAt (bidPackedSlotOfWord (yankId I)) σ I, yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k1068 C1068 := by
     have hslotAdd :
@@ -1183,9 +1185,9 @@ theorem flipperYankX_guyZero {σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_bidLt {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hlt : (bidBidWord (yankId I) σ I).toNat < (bidTabWord (yankId I) σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1162 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1210,7 +1212,7 @@ theorem flipperYankX_bidLt {σ I} {g : Sat256} {s0 : State}
     raw dup2 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by native_decide) (by evm_ov)
-  have rd1167 : RD flipperBytecode I g s0 ⟨1167⟩
+  have rd1167 : RD fork flipperBytecode I g s0 ⟨1167⟩
       [bidTabWord (yankId I) σ I, solcMappingSlot ⟨1⟩ (yankId I), yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k1167 C1167 := by
     have hslotAdd :
@@ -1222,7 +1224,7 @@ theorem flipperYankX_bidLt {σ I} {g : Sat256} {s0 : State}
   obtain ⟨k1169, C1169, rd1169raw⟩ :=
     (evm_run rd1167 with [
       raw swap1 (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
-  have rd1169 : RD flipperBytecode I g s0 ⟨1169⟩
+  have rd1169 : RD fork flipperBytecode I g s0 ⟨1169⟩
       [bidBidWord (yankId I) σ I, bidTabWord (yankId I) σ I, yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k1169 C1169 := by
     simpa [bidBidWord, bidBaseOfWord, solcSlotWordAt] using rd1169raw
@@ -1240,9 +1242,9 @@ theorem flipperYankX_bidLt {σ I} {g : Sat256} {s0 : State}
 
 theorem flipperYankX_toCatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
-    (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1330⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1330⟩
       (flipperCatTargetWord σ I :: flipperCatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨36⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
@@ -1251,7 +1253,7 @@ theorem flipperYankX_toCatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
   have rd1253 := h.jumpdest (by native_decide) (by evm_ov)
     |>.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by native_decide) (by evm_ov)
-  have rd1254 : RD flipperBytecode I g s0 ⟨1254⟩
+  have rd1254 : RD fork flipperBytecode I g s0 ⟨1254⟩
       (rawTarget :: yankId I :: ret :: sel :: [])
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k1254 C1254 := by
     simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd1254raw
@@ -1291,7 +1293,7 @@ theorem flipperYankX_toCatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1273, C1273, rd1273raw⟩ := rd1272.sload (by native_decide) (by evm_ov)
-  have rd1273 : RD flipperBytecode I g s0 ⟨1273⟩
+  have rd1273 : RD fork flipperBytecode I g s0 ⟨1273⟩
       (bidTabWord (yankId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawTarget ::
         yankId I :: ret :: sel :: [])
       (yankCatHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1273 C1273 := by
@@ -1357,9 +1359,9 @@ theorem flipperYankX_catNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd1330⟩ := flipperYankX_toCatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
     hcodeSize
@@ -1371,9 +1373,9 @@ theorem flipperYankX_toCatCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨1345⟩
+    ∃ gasWord k' C', RD fork flipperBytecode I g s0 ⟨1345⟩
       (gasWord :: flipperCatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨36⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
@@ -1392,18 +1394,18 @@ theorem flipperYankX_catPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1250⟩
       [yankId I, ret, sel] (yankHashMem1 I) (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flipperBytecode I (Sat256.ofUInt256 g)
+      RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1346⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨3865913243⟩ ::
           flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
         (yankCatCallMem σ I) (UInt256.ofNat 6) out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)]
@@ -1425,7 +1427,7 @@ theorem flipperYankX_catPostCall
       native_decide
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
-    have rd1346 : RD flipperBytecode I (Sat256.ofUInt256 g)
+    have rd1346 : RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1346⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨3865913243⟩ ::
           flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
@@ -1449,11 +1451,11 @@ theorem flipperYankX_catPostCall
 theorem flipperYankX_catCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨1346⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1346⟩
       (⟨0⟩ :: ⟨164⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1466,9 +1468,9 @@ theorem flipperYankX_catCallDepthLimit {σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨gasWord, _, _, rd1345⟩ := flipperYankX_toCatCall hcodeSize h
   obtain ⟨k1346, C1346, rd1346raw⟩ :=
     RD.callDepthLimit
@@ -1485,7 +1487,7 @@ theorem flipperYankX_catCallDepthLimit {σ I} {g : Sat256} {s0 : State}
     native_decide
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
-  have rd1346 : RD flipperBytecode I g s0 ⟨1346⟩
+  have rd1346 : RD fork flipperBytecode I g s0 ⟨1346⟩
       (⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty σ k1346 C1346 :=
@@ -1497,10 +1499,10 @@ theorem flipperYankX_catCallDepthLimit {σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨1346⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1346⟩
       (⟨1⟩ :: ⟨164⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1365⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1365⟩
       (selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k' C' := by
   obtain ⟨k1364, C1364, rd1364⟩ :=
@@ -1514,10 +1516,10 @@ theorem flipperYankX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
 
 theorem flipperYankX_toVatExtcodesizeGuard {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
-    (h : RD flipperBytecode I g s0 ⟨1365⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1365⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨1466⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨1466⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: yankId I :: ret :: sel :: [])
@@ -1548,13 +1550,13 @@ theorem flipperYankX_toVatExtcodesizeGuard {σmem σ I} {g : Sat256} {s0 : State
       (yankVatFluxCallMem_read64 σmem σ I)
   have rd1367pre := h.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1367, C1367, rd1367raw⟩ := rd1367pre.sload (by native_decide) (by evm_ov)
-  have rd1368 : RD flipperBytecode I g s0 ⟨1368⟩
+  have rd1368 : RD fork flipperBytecode I g s0 ⟨1368⟩
       (rawVat :: selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out σ k1367 C1367 := by
     simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd1367raw
   have rd1370pre := rd1368.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1370, C1370, rd1370raw⟩ := rd1370pre.sload (by native_decide) (by evm_ov)
-  have rd1371 : RD flipperBytecode I g s0 ⟨1371⟩
+  have rd1371 : RD fork flipperBytecode I g s0 ⟨1371⟩
       (rawIlk :: rawVat :: selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out σ k1370 C1370 := by
     simpa [rawIlk, solcSlotWordAt, solcSlotWord] using rd1370raw
@@ -1581,7 +1583,7 @@ theorem flipperYankX_toVatExtcodesizeGuard {σmem σ I} {g : Sat256} {s0 : State
     raw swap2 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1392, C1392, rd1392raw⟩ := rd1391pre.sload (by native_decide) (by evm_ov)
-  have rd1392 : RD flipperBytecode I g s0 ⟨1392⟩
+  have rd1392 : RD fork flipperBytecode I g s0 ⟨1392⟩
       (bidLotWord (yankId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawIlk :: rawVat ::
         selector :: target :: yankId I :: ret :: sel :: [])
       (yankVatHashMem σmem I) (UInt256.ofNat 6) out σ k1392 C1392 := by
@@ -1665,10 +1667,10 @@ theorem flipperYankX_vatNoCode {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨1365⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1365⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd1466⟩ := flipperYankX_toVatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
     hcodeSize
@@ -1679,9 +1681,9 @@ theorem flipperYankX_vatNoCode {σmem σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_bidNotLt {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hge : (bidTabWord (yankId I) σ I).toNat ≤ (bidBidWord (yankId I) σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd1162 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1705,7 +1707,7 @@ theorem flipperYankX_bidNotLt {σ I} {g : Sat256} {s0 : State}
     raw dup2 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by native_decide) (by evm_ov)
-  have rd1167 : RD flipperBytecode I g s0 ⟨1167⟩
+  have rd1167 : RD fork flipperBytecode I g s0 ⟨1167⟩
       [bidTabWord (yankId I) σ I, solcMappingSlot ⟨1⟩ (yankId I), yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k1167 C1167 := by
     have hslotAdd :
@@ -1717,7 +1719,7 @@ theorem flipperYankX_bidNotLt {σ I} {g : Sat256} {s0 : State}
   obtain ⟨k1169, C1169, rd1169raw⟩ :=
     (evm_run rd1167 with [
       raw swap1 (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
-  have rd1169 : RD flipperBytecode I g s0 ⟨1169⟩
+  have rd1169 : RD fork flipperBytecode I g s0 ⟨1169⟩
       [bidBidWord (yankId I) σ I, bidTabWord (yankId I) σ I, yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k1169 C1169 := by
     simpa [bidBidWord, bidBaseOfWord, solcSlotWordAt] using rd1169raw
@@ -1799,10 +1801,10 @@ set_option maxRecDepth 2000000 in
 theorem flipperYankX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨294⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepCapSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -42,7 +44,7 @@ theorem evalSwapStepFeeArgs (imms : Store) (evm : EVM.State) (a : SwapStepArgs) 
 
 theorem swapStepFeeCallReturns (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : fullMathRoundValid (swapStepAmount a true) a.fee (swapStepComplement a)) :
-    ExecStmt config (swapStepCapFrame imms a) evm
+    ExecStmt fork config (swapStepCapFrame imms a) evm
       (.internalCall "FullMath_mulDivRoundingUp" swapStepFeeArgs "__c17")
       (.ok (swapStepFeeCallFrame imms a) evm) := by
   exact internalCallFunctionReturn (callee := fullMathRoundFunction)
@@ -56,7 +58,7 @@ theorem swapStepFeeCallReturns (imms : Store) (evm : EVM.State) (a : SwapStepArg
 
 theorem swapStepFeeCallReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : ¬fullMathRoundValid (swapStepAmount a true) a.fee (swapStepComplement a)) :
-    ExecStmt config (swapStepCapFrame imms a) evm
+    ExecStmt fork config (swapStepCapFrame imms a) evm
       (.internalCall "FullMath_mulDivRoundingUp" swapStepFeeArgs "__c17") .reverted := by
   exact internalCallFunctionRevert (callee := fullMathRoundFunction)
     (locals := fullMathLocals (swapStepAmount a true) a.fee (swapStepComplement a))

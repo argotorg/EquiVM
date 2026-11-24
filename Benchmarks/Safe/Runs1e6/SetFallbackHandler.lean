@@ -5,6 +5,8 @@ import Benchmarks.Safe.Runs1e6.Blocks.Runtime_012
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_028
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -20,7 +22,7 @@ theorem safeSetFallbackHandlerSource (evm : EVM.State) (handler : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hne : AccountAddress.ofNat handler.toNat ≠ evm.executionEnv.codeOwner)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (fallbackHandlerArgs handler)
+    ExecTransitionBody fork config contract evm (fallbackHandlerArgs handler)
       setfallbackhandlerTransition.body
       (.returned (resumeAfterInternalCall (fallbackHandlerFrame handler) "_ok" none)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner fallbackHandlerSlot handler) none)
@@ -29,7 +31,7 @@ theorem safeSetFallbackHandlerSource (evm : EVM.State) (handler : UInt256)
     (name := "internalSetFallbackHandler") (retVar := "_ok")
     (callee := internalSetFallbackHandlerFunction)
     (evalExprs?_singleton (safeEvalHandler evm handler)) rfl rfl
-    (safeInternalSetFallbackHandlerSource (hperm := by assumption) evm handler hcanon hne)
+    (safeInternalSetFallbackHandlerSource (fork := fork) (hperm := by assumption) evm handler hcanon hne)
   refine .execBlockOK (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
       (.consNormal hcall (.consNormal
@@ -44,14 +46,14 @@ theorem safeSetFallbackHandlerSourceStatic (evm : EVM.State) (handler : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hne : AccountAddress.ofNat handler.toNat ≠ evm.executionEnv.codeOwner)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (fallbackHandlerArgs handler)
+    ExecTransitionBody fork config contract evm (fallbackHandlerArgs handler)
       setfallbackhandlerTransition.body
       .staticViolation := by
-  have hcall := ExecStmt.internalCallStatic (cfg := config) (stele := fallbackHandlerFrame handler)
+  have hcall := ExecStmt.internalCallStatic (fork := fork) (cfg := config) (stele := fallbackHandlerFrame handler)
     (name := "internalSetFallbackHandler") (retVar := "_ok")
     (callee := internalSetFallbackHandlerFunction.toCallable)
     (evalExprs?_singleton (safeEvalHandler evm handler)) rfl rfl
-    (safeInternalSetFallbackHandlerStatic evm handler hcanon hne hperm)
+    (safeInternalSetFallbackHandlerStatic (fork := fork) evm handler hcanon hne hperm)
   exact .execBlockStatic (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
       (.consStatic hcall)))
@@ -60,14 +62,14 @@ theorem safeSetFallbackHandlerSourceRevert (evm : EVM.State) (handler : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (heq : AccountAddress.ofNat handler.toNat = evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm (fallbackHandlerArgs handler)
+    ExecTransitionBody fork config contract evm (fallbackHandlerArgs handler)
       setfallbackhandlerTransition.body
       .reverted := by
-  have hcall := internalCallFunctionRevert (caller := fallbackHandlerFrame handler)
+  have hcall := internalCallFunctionRevert (fork := fork) (caller := fallbackHandlerFrame handler)
     (name := "internalSetFallbackHandler") (retVar := "_ok")
     (callee := internalSetFallbackHandlerFunction)
     (evalExprs?_singleton (safeEvalHandler evm handler)) rfl rfl
-    (safeInternalSetFallbackHandlerRevert evm handler heq)
+    (safeInternalSetFallbackHandlerRevert (fork := fork) evm handler heq)
   exact .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
       (.consRevert hcall)))
@@ -75,15 +77,15 @@ theorem safeSetFallbackHandlerSourceRevert (evm : EVM.State) (handler : UInt256)
 theorem safeSetFallbackHandlerUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals setfallbackhandlerTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals setfallbackhandlerTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 
 theorem safeSetFallbackHandlerTrace {I g s0 σ k C} {handler : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10363⟩ (handler :: ⟨7836⟩ :: handler :: ⟨664⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨10363⟩ (handler :: ⟨7836⟩ :: handler :: ⟨664⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ fallbackHandlerSlot handler)
+    RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ fallbackHandlerSlot handler)
       ByteArray.empty := by
   obtain ⟨_, _, h6472⟩ := safeInternalFallbackTrace h (by simp; omega) hperm (by jump_dest)
   have h664 := safeRuntime_block_7836 hov hperm (by jump_dest) h6472
@@ -94,10 +96,10 @@ theorem safeSetfallbackhandlerBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setfallbackhandlerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xf0 0x8a 0x03 0x23 ⟨0xf08a0323⟩
     hdispatch setfallbackhandlerSelectorBytes (by decide)
-  obtain ⟨k, C, h1521⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1521⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xf08a0323⟩ 3 ⟨1521⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -126,7 +128,7 @@ theorem safeSetfallbackhandlerBodyCore
                     exact u256_sub_eq_zero_iff_eq.mpr
                       ((canonicalAddress_eq_address_iff _ _ hcanon).mp heq)) h8250
               have hrev := safeInternalFallbackTraceRevert h8267 (by simp)
-              have hbody := safeSetFallbackHandlerSourceRevert
+              have hbody := safeSetFallbackHandlerSourceRevert (fork := fork)
                 (initState σ σ₀ (.ofUInt256 g) A I) (calldataWord I.calldata 4) hvalue hauth heq
               exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                 reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
@@ -139,14 +141,14 @@ theorem safeSetfallbackhandlerBodyCore
               cases hperm : I.perm with
               | false =>
                   have hstatic := safeInternalFallbackTraceStatic h8283 (by simp) hperm
-                  have hbody := safeSetFallbackHandlerSourceStatic
+                  have hbody := safeSetFallbackHandlerSourceStatic (fork := fork)
                     (initState σ σ₀ (.ofUInt256 g) A I) (calldataWord I.calldata 4)
                     hcanon hvalue hauth heq hperm
                   exact RDstatic.reEquivElim hcode hstatic fun hΞ ↦
                     reEquivSelectorExecution hdispatch hdec hbody (.staticHalt hΞ rfl)
               | true =>
                   have hret := safeSetFallbackHandlerTrace h8283 (by simp) hperm
-                  have hbody := safeSetFallbackHandlerSource (hperm := by assumption)
+                  have hbody := safeSetFallbackHandlerSource (fork := fork) (hperm := by assumption)
                     (initState σ σ₀ (.ofUInt256 g) A I) (calldataWord I.calldata 4)
                     hcanon hvalue hauth heq
                   refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -177,7 +179,7 @@ theorem safeSetfallbackhandlerRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setfallbackhandlerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSetfallbackhandlerBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.Runs1e6

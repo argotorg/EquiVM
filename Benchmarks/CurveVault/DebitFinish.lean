@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.DebitSource
 import Benchmarks.CurveVault.SaveRateCalls
 import Benchmarks.CurveVault.MutationReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -17,16 +19,16 @@ theorem vaultDebitFinish (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     (hmc : memLoad (UInt256.ofNat 704) mem = controller)
     (hmv : memLoad (UInt256.ofNat 672) mem = vaultDebitResult isWithdraw assets shares)
     (hperm : I.perm = true) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitFlow isWithdraw).saveEntry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitFlow isWithdraw).saveEntry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultDebitFinishBody isWithdraw)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultDebitFinishBody isWithdraw)
         (.returned {contract := contract, locals := locals'} evm'
           (some [.int (Int.ofNat (vaultDebitResult isWithdraw assets shares).toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
         (vaultDebitResult isWithdraw assets shares).toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultDebitFinishBody isWithdraw)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultDebitFinishBody isWithdraw)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have hmc0 : memLoad (UInt256.ofNat (vaultDebitFlow isWithdraw).controllerOffset) mem = controller := by
     cases isWithdraw <;> exact hmc
   rcases vaultSaveRateCall (vaultDebitFlow isWithdraw) (retVar := "__c4") hs hc hmc0 hstack h with

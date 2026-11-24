@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.ClearSource
 import Benchmarks.UniswapV4PoolManager.ClearTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `clear(address,uint256)`
 
@@ -22,15 +24,15 @@ set_option maxRecDepth 2000000
 theorem poolManagerClearBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 26)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 26) rfl hsel
   have hd : dispatchMsg contract I.calldata = some clearTransition := by
     apply poolManagerDispatch_clear <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachClearBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachClearBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3463⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -59,7 +61,7 @@ theorem poolManagerClearBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerIm
           have hc : args.get? "currency" = some (.address currency) :=
             (store_get_ne _ _ (by decide : ("amount" == "currency") = false)).trans (store_get_self _ _ _)
           have ha : args.get? "amount" = some (.int (Int.ofNat amount.toNat)) := store_get_self _ _ _
-          have hbody := clearBodyExec (imms := immStore v) (evm := evm) hwv hhi hc ha
+          have hbody := clearBodyExec (fork := fork) (imms := immStore v) (evm := evm) hwv hhi hc ha
           have hcurrency : accountWord currency = calldataWord I.calldata 4 :=
             (accountWord_eq_iff currency _ hcanon).mp rfl
           rw [← hcurrency] at rdBody
@@ -105,7 +107,7 @@ theorem poolManagerClearBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmuta
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (_hWF : Syntax.poolManagerWF σ I) (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 26)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerClearBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

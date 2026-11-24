@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapBodyCorrect
 import Benchmarks.UniswapV4PoolManager.AfterSwapCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -27,13 +29,13 @@ theorem afterSwapCallCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+84)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (dest : Ident)
-    (h : RD (deployedRuntime v) I g s0 ⟨15745⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15745⟩
       (accountWord hook :: keyPtr :: paramsPtr :: delta :: src :: len :: before :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecStmt config f evm (.internalCall "Hooks_afterSwap" [es, ek, ep, ed, eb, er] dest)
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecStmt fork config f evm (.internalCall "Hooks_afterSwap" [es, ek, ep, ed, eb, er] dest)
         (resumeCallResult f dest result) ∧
-      functionResultTrace (deployedRuntime v) g s0 (afterSwapReturn v I g s0 mem free ret R) result := by
+      functionResultTrace fork (deployedRuntime v) g s0 (afterSwapReturn fork v I g s0 mem free ret R) result := by
   let cf := afterSwapCallFrame f hook key p delta before (I.calldata.extract src.toNat (src.toNat+len.toNat))
   have hcf : cf.contract = contract := by
     dsimp only [cf, afterSwapCallFrame]

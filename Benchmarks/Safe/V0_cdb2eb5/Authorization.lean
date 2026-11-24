@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V0_cdb2eb5.Common
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -41,18 +43,18 @@ theorem canonicalAddress_eq_address_iff (w : UInt256) (a : AccountAddress)
 
 theorem safeAuthorizedTrace {I g s0 σ k C aw mem rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6964⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6964⟩ (ret :: R) mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) (hauth : I.source = I.codeOwner)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret R mem aw rdata σ k' C' := by
   have h6781 := safeRuntime_block_6964_taken (by simp; omega)
     (by rw [hauth, uInt256_eq_self]; decide) (by jump_dest) h
   exact ⟨_, _, safeRuntime_block_6988 (by omega) hret h6781⟩
 
 theorem safeUnauthorizedTrace {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6964⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6964⟩ R mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hauth : I.source ≠ I.codeOwner) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have h6765 := safeRuntime_block_6964_fallthrough (by omega)
     (uInt256_eq_zero_of_ne (fun he ↦ hauth (addressWord_injective (uInt256_eq_one_eq he)).symm)) h
   have h6898 := safeRuntime_block_6972 (by omega) (by jump_dest) h6765

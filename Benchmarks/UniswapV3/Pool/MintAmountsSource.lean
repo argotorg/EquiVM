@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintModel
 import Benchmarks.UniswapV3.Pool.ModifyPositionUpdateSource
 import Benchmarks.UniswapV3.Pool.SourceWordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -41,7 +43,7 @@ macro "mint_amounts_get" : tactic =>
 
 theorem mintAmountsSource (v : UniswapV3PoolImmutables) (a : MintArgs)
     (a0 a1 : Int) (evm : EVM.State) :
-    ExecBlock config (mintResultFrame v a a0 a1) evm (mintTransition.body.drop 8 |>.take 4)
+    ExecBlock fork config (mintResultFrame v a a0 a1) evm (mintTransition.body.drop 8 |>.take 4)
       (.ok (mintAmountsFrame v a a0 a1) evm) := by
   have h0 : evalExpr? config (mintResultFrame v a a0 a1) evm
       (.tupleGet (.var "__c1") 1) = .ok (.int a0) := by
@@ -64,14 +66,14 @@ theorem mintAmountsSource (v : UniswapV3PoolImmutables) (a : MintArgs)
   have h0i : evalExpr? config (mintIntsFrame v a a0 a1) evm (.var "amount0Int") =
       .ok (.int a0) := evalExpr_var_get (by mint_amounts_get)
   refine ExecBlock.consNormal (stele := mintIntsFrame v a a0 a1)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (EVM.wordOfInt a0).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (EVM.wordOfInt a0).toNat))
     (by simp only [evalExpr?, h0i, castValue?, bind, EvalResult.bind,
           EvalResult.ofOption, normalizeUInt256_int])
     (assignLocalVarBase_frame (old := .int 0) (by mint_amounts_get))) ?_
   have h1i : evalExpr? config (mintAmount0Frame v a a0 a1) evm (.var "amount1Int") =
       .ok (.int a1) := evalExpr_var_get (by mint_amounts_get)
   exact ExecBlock.consNormal (stele := mintAmount0Frame v a a0 a1)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (EVM.wordOfInt a1).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (EVM.wordOfInt a1).toNat))
     (by simp only [evalExpr?, h1i, castValue?, bind, EvalResult.bind,
           EvalResult.ofOption, normalizeUInt256_int])
     (assignLocalVarBase_frame (old := .int 0) (by mint_amounts_get))) ExecBlock.nil

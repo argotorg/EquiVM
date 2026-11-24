@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_049
 import Benchmarks.UniswapV3.Pool.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,9 +18,9 @@ local macro "pool_oracle_write_decode" "(" v:term "," pc:term "," byte:term ","
 theorem oracleWriteStoreStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw x0 x1 x2 x3 x4 x5 x6 x7 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15206⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15206⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    (hp : ee.perm = false) (hov : R.length + 8 ≤ 1024) : RDstatic (deployedRuntime v) g s0 := by
+    (hp : ee.perm = false) (hov : R.length + 8 ≤ 1024) : RDstatic fork (deployedRuntime v) g s0 := by
   have r0 := evm_run rd with [
     raw swap6 (by pool_oracle_write_decode(v, 15206, 149, .SWAP6, none)) (by evm_ov),
     raw swap1 (by pool_oracle_write_decode(v, 15207, 144, .SWAP1, none)) (by evm_ov),

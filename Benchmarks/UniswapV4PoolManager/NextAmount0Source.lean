@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount0AddSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -23,7 +25,7 @@ theorem nextAmount0Body {f : Frame} {evm : EVM.State} {price liquidity amount : 
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "add" = some (.bool add)) :
-    ∃ f', ExecFuncBody config f evm nextAmount0Function.body
+    ∃ f', ExecFuncBody fork config f evm nextAmount0Function.body
       (if nextAmount0Fits price liquidity amount add then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0Word price liquidity amount add).toNat)])
        else .reverted) := by
@@ -35,14 +37,14 @@ theorem nextAmount0Body {f : Frame} {evm : EVM.State} {price liquidity amount : 
   · simp only [nextAmount0Fits, hzero, true_or, if_true, nextAmount0Word]
     exact ⟨f, ExecFuncBody.execBlockRet (ExecBlock.consReturn (ExecStmt.iteTrue
       (by simpa only [decide_eq_true hzero] using hz) (ABlock.start.returns (evalLocalValue hs))))⟩
-  · have h0 : ExecStmt config f evm
+  · have h0 : ExecStmt fork config f evm
         (.ite (.binary .eq (.var "amount") (.intLit 0)) [.return [.var "sqrtPX96"]] []) (.ok f evm) :=
       ExecStmt.iteFalse (by simpa only [decide_eq_false hzero] using hz) ExecBlock.nil
     let f1 := wordLocal f "numerator1" (amount0Numerator1 liquidity)
     have hcast := evalExpr_cast_int (intType := .uint ⟨256, by decide⟩)
       (evalLocalValue (cfg := config) (f := f) (evm := evm) hl)
     rw [normalizeInt_uint256_word] at hcast
-    have h1 : ExecStmt config f evm (.letDecl "numerator1" (some abiUInt256) nextAmount0NumeratorExpr) (.ok f1 evm) :=
+    have h1 : ExecStmt fork config f evm (.letDecl "numerator1" (some abiUInt256) nextAmount0NumeratorExpr) (.ok f1 evm) :=
       ExecStmt.letDecl (evalWordShl (by decide : 96 < 256) hcast (by simp only [evalExpr?, pure]; rfl))
     have hs1 : f1.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)) :=
       (store_get_ne _ _ (by decide : ("numerator1" == "sqrtPX96") = false)).trans hs
@@ -81,7 +83,7 @@ theorem nextAmount0Call {f : Frame} {evm : EVM.State} {price liquidity amount : 
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.bool add)) (ret : Ident) :
-    ExecStmt config f evm
+    ExecStmt fork config f evm
       (.internalCall "SqrtPriceMath_getNextSqrtPriceFromAmount0RoundingUp" [es, el, ea, eb] ret)
       (if nextAmount0Fits price liquidity amount add then
         .ok (wordLocal f ret (nextAmount0Word price liquidity amount add)) evm else .reverted) := by

@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.CallHelpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `unwrap(uint256)`
 
@@ -109,7 +111,7 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 5) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -232,9 +234,9 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
   set L2 : Store := L1.insert "held" (uint256Value hw) with hL2
   have hdecode : config.externalABI.decode? "balanceOf" out = some [uint256Value hw] := by
     rw [decode_balanceOf, decodeReturn_uint256_ok out h32 (by omega), hhw]; rfl
-  have hcallS : ExecStmt config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcallS : ExecStmt fork config (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.externalCall (.var "__a0") "balanceOf" (.intLit 0) [.env .this] "held" false) (.ok (frame imms L2) evm') :=
-    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
+    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L1) (initState σ σ₀ (Sat256.ofUInt256 g) A I) (.var "__a0") a
       (.intLit 0) [.env .this] [.address I.codeOwner] "balanceOf" evm' out false [uint256Value hw] "held"
       hrecv heth hargs hcall hdecode
   have hso : ∀ evm, evalExpr? config (frame imms L2) evm (.var "sharesOut") = .ok (uint256Value (argWord I)) := fun evm =>
@@ -444,10 +446,10 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
       evalVar imms _ _ "amount" _ (by rw [hL4, store_get_ne _ _ (by decide), hL3]; exact store_get_self _ _ _), evalExprs?]
     rfl
   -- the body up to the second call
-  have hprefix : ∀ result, ExecBlock config (frame imms L4) evm2
+  have hprefix : ∀ result, ExecBlock fork config (frame imms L4) evm2
       [.externalCall (.var "__a2") "transfer" (.intLit 0) [.env .caller, .var "amount"] "ok" true,
        .require (.var "ok"), .emit "Unwrapped" [.env .caller, .var "amount"], .return [.var "amount"]] result →
-      ExecBlock config (frame imms (uStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) unwrapTransition.body result := by
+      ExecBlock fork config (frame imms (uStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I) unwrapTransition.body result := by
     intro result h
     rw [unwrapBody_eq]
     exact ExecBlock.consNormal (ExecStmt.requireTrue hcv)
@@ -519,10 +521,10 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
     have rd19 := wrapperBlocks.wrapper_block_1321 (by simp [wrapperBlocks.wrapper_block_1300_fallthrough_stack]) rd18
     have hdec2 : config.externalABI.decode? "transfer" out2 = some [.bool false] := by
       rw [decode_transfer, decodeReturn_bool_zero out2 h32' (by omega) (by rw [hbw]; exact hok)]; rfl
-    have hcall2S : ExecStmt config (frame imms L4) evm2
+    have hcall2S : ExecStmt fork config (frame imms L4) evm2
         (.externalCall (.var "__a2") "transfer" (.intLit 0) [.env .caller, .var "amount"] "ok" true)
         (.ok (frame imms (L4.insert "ok" (.bool false))) evm3) :=
-      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L4) evm2 (.var "__a2") a (.intLit 0)
+      @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L4) evm2 (.var "__a2") a (.intLit 0)
         [.env .caller, .var "amount"] [.address I.source, uint256Value amt] "transfer" evm3 out2 true [.bool false] "ok"
         hrecv2 heth2 hargs2 hcall2 hdec2
     exact RDrev.reEquivExecutionRevert hcode' rd19 hd hdec (ExecFuncBody.execBlockRevert (hprefix _
@@ -554,10 +556,10 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
   have hdec2 : config.externalABI.decode? "transfer" out2 = some [.bool true] := by
     rw [decode_transfer, decodeReturn_bool_one out2 h32' (by omega) (by rw [hbw]; exact hone)]; rfl
   set L5 : Store := L4.insert "ok" (.bool true) with hL5
-  have hcall2S : ExecStmt config (frame imms L4) evm2
+  have hcall2S : ExecStmt fork config (frame imms L4) evm2
       (.externalCall (.var "__a2") "transfer" (.intLit 0) [.env .caller, .var "amount"] "ok" true)
       (.ok (frame imms L5) evm3) :=
-    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) config 0 (frame imms L4) evm2 (.var "__a2") a (.intLit 0)
+    @ExecStmt.externalCallSuccess (hperm := Or.inl rfl) fork config 0 (frame imms L4) evm2 (.var "__a2") a (.intLit 0)
       [.env .caller, .var "amount"] [.address I.source, uint256Value amt] "transfer" evm3 out2 true [.bool true] "ok"
       hrecv2 heth2 hargs2 hcall2 hdec2
   have hokT : evalExpr? config (frame imms L5) evm3 (.var "ok") = .ok (.bool true) :=
@@ -567,7 +569,7 @@ theorem wrapperUnwrapBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit : im
   have hemit : evalExprs? config (frame imms L5) evm3 [.env .caller, .var "amount"] = .ok [.address I.source, uint256Value amt] := by
     rw [evalExprs?, evalExpr_caller, hs3.env, evalExprs?, hamt5, evalExprs?]
     rfl
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (uStore I) unwrapTransition.body
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (uStore I) unwrapTransition.body
       (.returned (frame imms L5) evm3 (some [uint256Value amt])) (restrictImmutables contract imms) :=
     ExecFuncBody.execBlockRet (hprefix _ (ExecBlock.consNormal hcall2S
       (ExecBlock.consNormal (ExecStmt.requireTrue hokT)

@@ -1,18 +1,20 @@
 import Benchmarks.UniswapV4PoolManager.IntWordABI
 import Reasoning.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
 -- LIBRARY CANDIDATE: a trace for a source computation returning one signed ABI word.
-def signedResultTrace (bits : BitWidth) (code : ByteArray) (g : Sat256) (s0 : State) : ExecResult → Prop
+def signedResultTrace (fork : Ethereum.Fork) (bits : BitWidth) (code : ByteArray) (g : Sat256) (s0 : State) : ExecResult → Prop
   | .returned _ evm (some [.int n]) =>
       ∃ word : UInt256, n = EVM.signed word ∧
         (-Int.ofNat (EVM.twoPow (bits.val-1)) ≤ EVM.signed word ∧
           EVM.signed word < Int.ofNat (EVM.twoPow (bits.val-1))) ∧
-        RDret code g s0 evm.accountMap word.toByteArray
-  | .reverted => RDrev code g s0
-  | .staticViolation => RDstatic code g s0
+        RDret fork code g s0 evm.accountMap word.toByteArray
+  | .reverted => RDrev fork code g s0
+  | .staticViolation => RDstatic fork code g s0
   | _ => False
 
 theorem signedReturnEncoding (bits : BitWidth) (w : UInt256)
@@ -28,11 +30,11 @@ theorem signedResultTrace_refinement {cfg : Config} {contract : ContractDecl} {t
     (hcode : I.code = code) (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args t.body result imms)
-    (htrace : signedResultTrace bits code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) result)
+    (hbody : ExecTransitionBody fork cfg contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args t.body result imms)
+    (htrace : signedResultTrace fork bits code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) result)
     (htype : t.returnType = [.elem (.int (.sint bits))])
     (hfallback : contract.fallback = none) (hreceive : contract.receive = none) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I imms := by
   unfold signedResultTrace at htrace
   split at htrace
   · obtain ⟨word, rfl, hw, hr⟩ := htrace

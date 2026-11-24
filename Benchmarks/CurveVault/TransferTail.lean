@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.TransferGuard
 import Benchmarks.CurveVault.Memory
 import Benchmarks.CurveVault.Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -30,14 +32,14 @@ theorem vaultTransferTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hv : locals.get? "_value" = some (.int (Int.ofNat value.toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 8161) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 8161) (returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultTransferFunction.body.drop 1)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultTransferFunction.body.drop 1)
         (.ok {contract := contract, locals := locals} evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R (vaultTransferMemory mem sender recipient value) aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultTransferFunction.body.drop 1)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R (vaultTransferMemory mem sender recipient value) aw' rdata σ' k' C') ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultTransferFunction.body.drop 1)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let slotFrom := vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat sender.toNat))
   let slotTo := vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat recipient.toNat))
   let old := codeOwnerStorageWord I σ slotFrom
@@ -78,7 +80,7 @@ theorem vaultTransferTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨aw0, k0, C0, rd8190⟩ := vaultBlocks.vault_block_8161_fallthrough_packed
     (by simp only [List.length_cons]; omega)
     (hcondition.trans (ugt_zero (by rw [usub_toNat hsub]; omega))) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8190)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8190)
     (UInt256.sub (codeOwnerStorageWord I σ
       (keccakWord ⟨0⟩ (UInt256.ofNat 64) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) mem) mem))))
       (memLoad (UInt256.ofNat 128) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) mem) mem))) ::
@@ -92,7 +94,7 @@ theorem vaultTransferTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   let σ1 := sstoreAccountMap I.codeOwner σ slotFrom debit
   let evm1 := Stele.EVM.storageStore evm I.codeOwner slotFrom debit
   have hs1 : SourceState s0 I σ1 evm1 := hs.storageWrite _ _
-  have hdebit : ExecStmt config {contract := contract, locals := locals} evm
+  have hdebit : ExecStmt fork config {contract := contract, locals := locals} evm
       vaultTransferFunction.body[1]!
       (.ok {contract := contract, locals := locals} evm1) := by
     apply ExecStmt.assign (hperm := Or.inr (by simpa only [hs.env] using hperm)) (evalExpr_checkedSub256_ok hread (hvEval evm) rfl hsub)
@@ -122,7 +124,7 @@ theorem vaultTransferTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   obtain ⟨aw1, k1, C1, rd8226⟩ := vaultBlocks.vault_block_8190_fallthrough_packed
     (by simp only [List.length_cons]; omega) hperm
     (hcondition1.trans (ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hadd]; omega))) rd8190
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8226)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8226)
     ((codeOwnerStorageWord I σ1
       (keccakWord ⟨0⟩ (UInt256.ofNat 64) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 96) mem0) mem0))) +
       memLoad (UInt256.ofNat 128) (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 96) mem0) mem0))) ::
@@ -134,19 +136,19 @@ theorem vaultTransferTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 96) mem0) mem0)) aw1 rdata σ1 k1 C1 at rd8226
   rw [ht0, hhash1, hv1] at rd8226
   obtain ⟨aw2, k2, C2, rdReturn⟩ := vaultBlocks.vault_block_8226_packed (by omega) hperm hvalid rd8226
-  change RD vaultBytecode I g s0 returnPc R ((memLoad (UInt256.ofNat 128) mem1).toByteArray.write 0 mem1 160 32)
+  change RD fork vaultBytecode I g s0 returnPc R ((memLoad (UInt256.ofNat 128) mem1).toByteArray.write 0 mem1 160 32)
     aw2 rdata (sstoreAccountMap I.codeOwner σ1 slotTo (oldTo + value)) k2 C2 at rdReturn
   rw [hv1] at rdReturn
   let evm2 := Stele.EVM.storageStore evm1 I.codeOwner slotTo (oldTo + value)
   have hs2 : SourceState s0 I (sstoreAccountMap I.codeOwner σ1 slotTo (oldTo + value)) evm2 := hs1.storageWrite _ _
   refine Or.inl ⟨evm2, _, aw2, k2, C2, ?_, hs2, rdReturn⟩
   apply ExecBlock.consNormal hdebit
-  have hcredit : ExecStmt config {contract := contract, locals := locals} evm1
+  have hcredit : ExecStmt fork config {contract := contract, locals := locals} evm1
       vaultTransferFunction.body[2]! (.ok {contract := contract, locals := locals} evm2) := by
     apply ExecStmt.assign (hperm := Or.inr (by simpa only [hs1.env] using hperm)) (evalExpr_add256_ok hreadTo (hvEval evm1) rfl hadd)
     simpa only [hs1.env] using vaultBalanceAssign evm1 locals "_to" _ (oldTo + value) hbase ht
   apply ExecBlock.consNormal hcredit
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [hs2.env] using hperm) (vals := [.address (AccountAddress.ofNat sender.toNat),
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [hs2.env] using hperm) (vals := [.address (AccountAddress.ofNat sender.toNat),
     .address (AccountAddress.ofNat recipient.toNat), .int (Int.ofNat value.toNat)]) ?_) ExecBlock.nil
   change evalExprs? config {contract := contract, locals := locals} evm2 [.var "_from", .var "_to", .var "_value"] = _
   simp only [evalExprs?, evalExpr?, hf, ht, hv, EvalResult.ofOption, EvalResult.bind, bind, pure]

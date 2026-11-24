@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferEncode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -35,9 +37,9 @@ theorem morphoTransferEntry {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
     {s0 : State} {mem out : ByteArray} {aw value ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (token sender recipient : AccountAddress)
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient value ++ ret :: R) mem aw out σ k C) :
-    ∃ a k C, RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
+    ∃ a k C, RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
       (UInt256.ofNat 585 :: safeTransferCodeCond σ token :: safeTransferEncodePC isFrom ::
         safeTransferEncodeStack isFrom token sender recipient value ret R) mem a out σ k C := by
   have ht : UInt256.land (UInt256.ofNat token.val)
@@ -62,9 +64,9 @@ theorem morphoTransferNoCode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (token sender recipient : AccountAddress)
     (hstack : R.length + 21 ≤ 1024) (hm : MorphoHeap mem ptr 0)
     (hc : extCodeSizeWord σ (UInt256.ofNat token.val) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient value ++ ret :: R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a, k, C, rd⟩ := morphoTransferEntry isFrom token sender recipient (by omega) h
   exact morphoTransferCodeRevert (by rw [safeTransferEncodeStack_length]; omega) hm
     (Or.inr (safeTransferCodeCond_zero hc)) rd
@@ -74,9 +76,9 @@ theorem morphoTransferInputOverflow {v : MorphoImmutables} {ee : ExecutionEnv} {
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (token sender recipient : AccountAddress)
     (hstack : R.length + 21 ≤ 1024) (hm : MorphoHeap mem ptr 0)
     (hbad : 2 ^ 64 ≤ ptr.toNat + safeTransferInputAllocation isFrom)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient value ++ ret :: R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a0, k0, C0, rd0⟩ := morphoTransferEntry isFrom token sender recipient (by omega) h
   by_cases hf : ptr.toNat + 64 < 2 ^ 64
   · by_cases hc : extCodeSizeWord σ (UInt256.ofNat token.val) = UInt256.ofNat 0
@@ -107,10 +109,10 @@ theorem morphoTransferCallReady {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     {s0 : State} {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (token : AccountAddress)
     (hstack : R.length + 9 ≤ 1024) (hlen : memLoad ptr mem = UInt256.ofNat (safeTransferCallSize isFrom))
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferBeforeCallPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferBeforeCallPC isFrom)
       ([ptr, UInt256.ofNat 0, ptr + UInt256.ofNat 32, UInt256.ofNat token.val,
         UInt256.ofNat 0, UInt256.ofNat 0, UInt256.ofNat 15005, ret] ++ R) mem aw out σ k C) :
-    ∃ gasArg a k C, RD (deployedRuntime v) ee g s0 (safeTransferCallPC isFrom)
+    ∃ gasArg a k C, RD fork (deployedRuntime v) ee g s0 (safeTransferCallPC isFrom)
       ([gasArg, UInt256.ofNat token.val, UInt256.ofNat 0, ptr + UInt256.ofNat 32,
         UInt256.ofNat (safeTransferCallSize isFrom), UInt256.ofNat 0, UInt256.ofNat 0,
         UInt256.ofNat 15005, ret] ++ R) mem a out σ k C := by

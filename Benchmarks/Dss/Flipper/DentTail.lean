@@ -2,6 +2,8 @@ import Benchmarks.Dss.Flipper.DentDecreaseGuard
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.TendRefund
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -597,12 +599,12 @@ theorem flipperDentSourceBlockAfterDecreaseSameCallerTail {σ σ₀ A I}
         (.binary .le (.var "begLot") (.var "lotOne")) = .ok (.bool true))
     (hcaller : solcSourceWord I = bidGuyWord (dentId I) σ I)
     (htail :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I }
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         dentAfterDecreaseFluxTailStmts r) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body r := by
+    ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body r := by
   intro locals evm0
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -710,7 +712,7 @@ theorem flipperDentSourceBodyFluxNoCodeSameCaller {σ σ₀ A I} {g : UInt256}
           (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
@@ -723,7 +725,7 @@ theorem flipperDentSourceBodyFluxNoCodeSameCaller {σ σ₀ A I} {g : UInt256}
     apply evalExpr_flipperVatCodeGuard_false_ofLocals hvat
     simpa [evm0, initState] using hvatNoCode
   have hfluxBlock :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
             wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -737,7 +739,7 @@ theorem flipperDentSourceBodyFluxNoCodeSameCaller {σ σ₀ A I} {g : UInt256}
           wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))])
         hguardFlux
   have htail :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         dentAfterDecreaseFluxTailStmts .reverted := by
     exact execBlock_append_term
       (s2 := [ .assign .storage (bidsF (.var "id") "lot") (.var "lot") ] ++
@@ -745,7 +747,7 @@ theorem flipperDentSourceBodyFluxNoCodeSameCaller {σ σ₀ A I} {g : UInt256}
         [ .assign .storage (bidsF (.var "id") "tic") (.var "tic_") ])
       hfluxBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     simpa [locals, evm0] using
       (flipperDentSourceBlockAfterDecreaseSameCallerTail
@@ -799,13 +801,13 @@ theorem flipperDentSourceBodyFluxCallFailureSameCaller {σ σ₀ A I}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dentFluxArgValsOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (false, evmFlux, outFlux) true) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hvat :
       evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
@@ -828,12 +830,12 @@ theorem flipperDentSourceBodyFluxCallFailureSameCaller {σ σ₀ A I}
       (dentLocalsLotOneBegLot_get_bids σ I)
       (dentLocalsLotOneBegLot_get_ilk σ I)
   have hcallFlux' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperVatAddress evm0.accountMap evm0.executionEnv)) "flux" 0
         (dentFluxArgValsOf evm0 I) (false, evmFlux, outFlux) true := by
     simpa [evm0, initState] using hcallFlux
   have hfluxBlock :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
             wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -849,7 +851,7 @@ theorem flipperDentSourceBodyFluxCallFailureSameCaller {σ σ₀ A I}
         (argVals := dentFluxArgValsOf evm0 I) (out := outFlux) (perm := true)
         hguardFlux hvat hargsFlux hcallFlux'
   have htail :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         dentAfterDecreaseFluxTailStmts .reverted := by
     exact execBlock_append_term
       (s2 := [ .assign .storage (bidsF (.var "id") "lot") (.var "lot") ] ++
@@ -857,7 +859,7 @@ theorem flipperDentSourceBodyFluxCallFailureSameCaller {σ σ₀ A I}
         [ .assign .storage (bidsF (.var "id") "tic") (.var "tic_") ])
       hfluxBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     simpa [locals, evm0] using
       (flipperDentSourceBlockAfterDecreaseSameCallerTail
@@ -911,7 +913,7 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dentFluxArgValsOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmFlux, outFlux) true)
@@ -933,11 +935,11 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
             (Stele.EVM.storageStore evmFlux evmFlux.executionEnv.codeOwner
               (bidSlotOfWord (dentId I) ⟨1⟩) (dentLot I)).accountMap I).toNat <
         2 ^ 48) →
-      ExecTransitionBody config contract evm0 locals dentTransition.body
+      ExecTransitionBody fork config contract evm0 locals dentTransition.body
       (.returned
         { contract := contract, locals := dentLocalsAfterFluxWithTicFrom σ evmLot.accountMap I }
         evmTic none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         dentTransition.body .staticViolation) := by
   intro locals evm0 evmLot evmTic
   have hvat :
@@ -962,14 +964,14 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
       (dentLocalsLotOneBegLot_get_bids σ I)
       (dentLocalsLotOneBegLot_get_ilk σ I)
   have hcallFlux' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperVatAddress evm0.accountMap evm0.executionEnv)) "flux" 0
         (dentFluxArgValsOf evm0 I) (true, evmFlux, outFlux) true := by
     simpa [evm0, initState] using hcallFlux
   have hdecFlux : config.externalABI.decode? "flux" outFlux = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hfluxBlock :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
             wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -998,18 +1000,18 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
       assign_bidLotStorage evmFlux (dentId I) (dentLot I)
         (dentLocalsAfterFlux_get_id σ I) (dentLocalsAfterFlux_get_bids σ I)
   have hprefix {result : ExecResult}
-      (hpost : ExecBlock config { contract := contract, locals := dentLocalsAfterFlux σ I }
+      (hpost : ExecBlock fork config { contract := contract, locals := dentLocalsAfterFlux σ I }
         evmFlux ([.assign .storage (bidsF (.var "id") "lot") (.var "lot")] ++
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         dentTransition.body result := by
     have htail :
-        ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+        ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
           dentAfterDecreaseFluxTailStmts
           result := by
       have hjoined :
-          ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+          ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
             (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
               [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
                 wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -1021,7 +1023,7 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
         exact execBlock_append hfluxBlock hpost
       simpa [dentAfterDecreaseFluxTailStmts, List.append_assoc] using hjoined
     have hblock :
-        ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+        ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
           result := by
       simpa [locals, evm0] using
         (flipperDentSourceBlockAfterDecreaseSameCallerTail
@@ -1072,18 +1074,18 @@ theorem flipperDentSourceBodySuccessSameCallerSplit {σ σ₀ A I}
           (dentLocalsAfterFluxWithTicFrom_get_id σ evmLot.accountMap I)
           (dentLocalsAfterFluxWithTicFrom_get_bids σ evmLot.accountMap I)
     have hpost :
-        ExecBlock config { contract := contract, locals := dentLocalsAfterFlux σ I } evmFlux
+        ExecBlock fork config { contract := contract, locals := dentLocalsAfterFlux σ I } evmFlux
           ([ .assign .storage (bidsF (.var "id") "lot") (.var "lot") ] ++
             checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [ .assign .storage (bidsF (.var "id") "tic") (.var "tic_") ])
           (.ok
             { contract := contract, locals := dentLocalsAfterFluxWithTicFrom σ evmLot.accountMap I }
             evmTic) := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpFlux) hlotVar hassignLot) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpFlux) hlotVar hassignLot) ?_
       simp only [checkedAdd48Into]
       refine ExecBlock.consNormal (ExecStmt.letDecl hletTic) ?_
       refine ExecBlock.consNormal (ExecStmt.requireTrue hgeTic) ?_
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
         simpa only [evmLot, storageStore_executionEnv] using hpFlux)) hticVar hassignTic) ExecBlock.nil
     exact ExecFuncBody.execBlockOK (hprefix hpost)
   · intro hperm
@@ -1137,7 +1139,7 @@ theorem flipperDentSourceBodySuccessSameCaller {σ σ₀ A I}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dentFluxArgValsOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmFlux, outFlux) true)
@@ -1160,7 +1162,7 @@ theorem flipperDentSourceBodySuccessSameCaller {σ σ₀ A I}
         (Stele.EVM.storageLoad evmLot evmLot.executionEnv.codeOwner
           (bidPackedSlotOfWord (dentId I)))
         (tendTicNewWord evmLot.accountMap I))
-    ExecTransitionBody config contract evm0 locals dentTransition.body
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body
       (.returned
         { contract := contract, locals := dentLocalsAfterFluxWithTicFrom σ evmLot.accountMap I }
         evmTic none) :=
@@ -1212,7 +1214,7 @@ theorem flipperDentSourceBodyAdd48OverflowSameCaller {σ σ₀ A I}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallFlux :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dentFluxArgValsOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmFlux, outFlux) true)
@@ -1227,7 +1229,7 @@ theorem flipperDentSourceBodyAdd48OverflowSameCaller {σ σ₀ A I}
     (hperm : I.perm = true) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hpFlux : evmFlux.executionEnv.perm = true := by
     rw [typedCallViaEVM_executionEnv_eq hcallFlux]
@@ -1255,14 +1257,14 @@ theorem flipperDentSourceBodyAdd48OverflowSameCaller {σ σ₀ A I}
       (dentLocalsLotOneBegLot_get_bids σ I)
       (dentLocalsLotOneBegLot_get_ilk σ I)
   have hcallFlux' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperVatAddress evm0.accountMap evm0.executionEnv)) "flux" 0
         (dentFluxArgValsOf evm0 I) (true, evmFlux, outFlux) true := by
     simpa [evm0, initState] using hcallFlux
   have hdecFlux : config.externalABI.decode? "flux" outFlux = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hfluxBlock :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
             wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -1311,20 +1313,20 @@ theorem flipperDentSourceBodyAdd48OverflowSameCaller {σ σ₀ A I}
       tendTicNewWord_lt_now48_overflow (by simpa [evmLot] using hoverTic)
     exact evalExpr_ge_uint256_false htic hnow hlt
   have hpost :
-      ExecBlock config { contract := contract, locals := dentLocalsAfterFlux σ I } evmFlux
+      ExecBlock fork config { contract := contract, locals := dentLocalsAfterFlux σ I } evmFlux
         ([ .assign .storage (bidsF (.var "id") "lot") (.var "lot") ] ++
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [ .assign .storage (bidsF (.var "id") "tic") (.var "tic_") ])
         .reverted := by
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpFlux) hlotVar hassignLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpFlux) hlotVar hassignLot) ?_
     simp only [checkedAdd48Into, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.letDecl hletTic) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hgeTicFalse)
   have htail :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+      ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         dentAfterDecreaseFluxTailStmts .reverted := by
     have hjoined :
-        ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+        ExecBlock fork config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
           (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
             [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "usr"),
               wrap256 (.binary .sub (.storage (bidsF (.var "id") "lot")) (.var "lot"))]
@@ -1336,7 +1338,7 @@ theorem flipperDentSourceBodyAdd48OverflowSameCaller {σ σ₀ A I}
       exact execBlock_append hfluxBlock hpost
     simpa [dentAfterDecreaseFluxTailStmts, List.append_assoc] using hjoined
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     simpa [locals, evm0] using
       (flipperDentSourceBlockAfterDecreaseSameCallerTail
@@ -1350,9 +1352,9 @@ theorem flipperDentX_skipRefund {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hcaller : solcSourceWord I = bidGuyWord (dentId I) σ I)
-    (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4927⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1377,7 +1379,7 @@ theorem flipperDentX_skipRefund {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k4752, C4752, rd4752raw⟩ := rd4750.sload (by native_decide) (by evm_ov)
-  have rd4752 : RD flipperBytecode I g s0 ⟨4752⟩
+  have rd4752 : RD fork flipperBytecode I g s0 ⟨4752⟩
       [bidPackedWord (dentId I) σ I, dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k4752 C4752 := by
@@ -1401,7 +1403,7 @@ theorem flipperDentX_skipRefund {σ I} {g : Sat256} {s0 : State}
     raw caller (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
   obtain ⟨k4763, C4763, rd4763⟩ : ∃ k' C',
-      RD flipperBytecode I g s0 ⟨4763⟩
+      RD fork flipperBytecode I g s0 ⟨4763⟩
         [UInt256.eq (solcSourceWord I) (bidGuyWord (dentId I) σ I), dentBid I,
           dentLot I, dentId I, ret, sel]
         (twoWordHashMem (dentId I) ⟨1⟩ mem)
@@ -1426,10 +1428,10 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD flipperBytecode I g s0 ⟨4927⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨5037⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨5037⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
@@ -1474,7 +1476,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4931, C4931, rd4931raw⟩ := rd4930pre.sload (by native_decide) (by evm_ov)
-  have rd4931 : RD flipperBytecode I g s0 ⟨4931⟩
+  have rd4931 : RD fork flipperBytecode I g s0 ⟨4931⟩
       [rawVat, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k4931 C4931 := by
     simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd4931raw
@@ -1482,7 +1484,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k4935, C4935, rd4935raw⟩ := rd4934.sload (by native_decide) (by evm_ov)
-  have rd4935 : RD flipperBytecode I g s0 ⟨4935⟩
+  have rd4935 : RD fork flipperBytecode I g s0 ⟨4935⟩
       [rawIlk, ⟨3⟩, rawVat, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k4935 C4935 := by
     simpa [rawIlk, solcSlotWordAt, solcSlotWord] using rd4935raw
@@ -1509,7 +1511,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw dup6 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k4956, C4956, rd4956raw⟩ := rd4954.sload (by native_decide) (by evm_ov)
-  have rd4956 : RD flipperBytecode I g s0 ⟨4956⟩
+  have rd4956 : RD fork flipperBytecode I g s0 ⟨4956⟩
       [rawUsr, ⟨64⟩, ⟨1⟩, ⟨0⟩, rawIlk, base, rawVat, dentBid I,
         dentLot I, dentId I, ret, sel]
       memHash (UInt256.ofNat 3) rdata σ k4956 C4956 := by
@@ -1522,7 +1524,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     raw swap2 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k4961, C4961, rd4961raw⟩ := rd4959.sload (by native_decide) (by evm_ov)
-  have rd4961 : RD flipperBytecode I g s0 ⟨4961⟩
+  have rd4961 : RD fork flipperBytecode I g s0 ⟨4961⟩
       [rawLot, ⟨64⟩, ⟨0⟩, rawIlk, rawUsr, rawVat, dentBid I,
         dentLot I, dentId I, ret, sel]
       memHash (UInt256.ofNat 3) rdata σ k4961 C4961 := by
@@ -1626,10 +1628,10 @@ theorem flipperDentX_fluxNoCode {σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨4927⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) out σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd5037⟩ := flipperDentX_toFluxExtcodesizeGuard hmemSize hmemRead64 h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5037⟩) (okPc := ⟨5049⟩) rd5037
     hcodeSize
@@ -1643,10 +1645,10 @@ theorem flipperDentX_toFluxCall {σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
-    (h : RD flipperBytecode I g s0 ⟨4927⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) out σ k C) :
-    ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨5052⟩
+    ∃ gasWord k' C', RD fork flipperBytecode I g s0 ⟨5052⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨132⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
@@ -1670,19 +1672,19 @@ theorem flipperDentX_fluxPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) out0 σ k C) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flipperBytecode I (Sat256.ofUInt256 g)
+      RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
           ret :: sel :: [])
         (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "flux" 0
@@ -1710,7 +1712,7 @@ theorem flipperDentX_fluxPostCall
       native_decide
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
-    have rd5053 : RD flipperBytecode I (Sat256.ofUInt256 g)
+    have rd5053 : RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
@@ -1739,11 +1741,11 @@ theorem flipperDentX_fluxPostCall
 theorem flipperDentX_fluxCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target bid lot id ret sel selector : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨5053⟩
+    (h : RD fork flipperBytecode I g s0 ⟨5053⟩
       (⟨0⟩ :: ⟨260⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5053⟩) (okPc := ⟨5069⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1758,10 +1760,10 @@ theorem flipperDentX_fluxCallDepthLimit {σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (h : RD flipperBytecode I g s0 ⟨4927⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) out σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨gasWord, _, _, rd5052⟩ :=
     flipperDentX_toFluxCall hmemSize hmemRead64 hcodeSize h
   obtain ⟨k5053, C5053, rd5053raw⟩ :=
@@ -1780,7 +1782,7 @@ theorem flipperDentX_fluxCallDepthLimit {σ I} {g : Sat256} {s0 : State}
     native_decide
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
-  have rd5053 : RD flipperBytecode I g s0 ⟨5053⟩
+  have rd5053 : RD fork flipperBytecode I g s0 ⟨5053⟩
       (⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
         ret :: sel :: [])
@@ -1793,10 +1795,10 @@ theorem flipperDentX_fluxCallDepthLimit {σ I} {g : Sat256} {s0 : State}
 theorem flipperDentX_fluxCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target bid lot id ret sel selector : UInt256}
     {acc : AccountMap}
-    (h : RD flipperBytecode I g s0 ⟨5053⟩
+    (h : RD fork flipperBytecode I g s0 ⟨5053⟩
       (⟨1⟩ :: ⟨260⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨5073⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨5073⟩
       (target :: bid :: lot :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨k5071, C5071, rd5071⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨5053⟩) (okPc := ⟨5069⟩) h
@@ -1811,16 +1813,16 @@ theorem flipperDentX_fluxCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
 theorem flipperDentX_storeLotToAdd48Split {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨5073⟩
+    (h : RD fork flipperBytecode I g s0 ⟨5073⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 9) out σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+      ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
         [tendTtlWord (dentAfterLotMap σ I) I, tendNow I, ⟨3859⟩,
           dentBid I, dentLot I, dentId I, ret, sel]
         (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 9) out
         (dentAfterLotMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flipperBytecode g s0) := by
   let mem1 := wordAt0Mem (dentId I) mem
   let mem2 := twoWordHashMem (dentId I) ⟨1⟩ mem
   have rd5092 := evm_run h with [
@@ -1854,7 +1856,7 @@ theorem flipperDentX_storeLotToAdd48Split {σ I} {g : Sat256} {s0 : State}
       rd5092.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k5093, C5093, rd5093raw⟩ := rd5092.sstore hperm hstoreDec (by evm_ov)
-  have rd5094 : RD flipperBytecode I g s0 ⟨5094⟩
+  have rd5094 : RD fork flipperBytecode I g s0 ⟨5094⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
       mem2 (UInt256.ofNat 9) out (dentAfterLotMap σ I) k5093 C5093 := by
     simpa [mem2, dentAfterLotMap, bidSlotOfWord, bidBaseOfWord] using rd5093raw
@@ -1862,7 +1864,7 @@ theorem flipperDentX_storeLotToAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k5098, C5098, rd5098raw⟩ := rd5097.sload (by native_decide) (by evm_ov)
-  have rd5098 : RD flipperBytecode I g s0 ⟨5098⟩
+  have rd5098 : RD fork flipperBytecode I g s0 ⟨5098⟩
       [solcSlotWordAt ⟨5⟩ (dentAfterLotMap σ I) I,
         dentBid I, dentLot I, dentId I, ret, sel]
       mem2 (UInt256.ofNat 9) out (dentAfterLotMap σ I) k5098 C5098 := by
@@ -1889,10 +1891,10 @@ theorem flipperDentX_storeLotToAdd48 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨5073⟩
+    (h : RD fork flipperBytecode I g s0 ⟨5073⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 9) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord (dentAfterLotMap σ I) I, tendNow I, ⟨3859⟩,
         dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 9) out
@@ -1902,10 +1904,10 @@ theorem flipperDentX_storeLotToAdd48 {σ I} {g : Sat256} {s0 : State}
 theorem flipperDentX_add48Success {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {ret sel : UInt256}
     (hfit : (tendNow48 I).toNat + (tendTtlWord σ I).toNat < 2 ^ 48)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord σ I, tendNow I, ⟨3859⟩, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 9) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3859⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨3859⟩
       [tendNow I + tendTtlWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 9) out σ k' C' := by
   have rd6289 := evm_run h with [
@@ -1948,10 +1950,10 @@ theorem flipperDentX_add48Success {σ I} {g : Sat256} {s0 : State}
 theorem flipperDentX_add48Overflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {ret sel : UInt256}
     (hover : 2 ^ 48 ≤ (tendNow48 I).toNat + (tendTtlWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [tendTtlWord σ I, tendNow I, ⟨3859⟩, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 9) out σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd6289 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1988,10 +1990,10 @@ theorem flipperDentX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨3859⟩
+    (h : RD fork flipperBytecode I g s0 ⟨3859⟩
       [tendNow I + tendTtlWord σ I, dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 9) out σ k C) :
-    RDret flipperBytecode g s0 (tendStoreTicMap σ I) ByteArray.empty := by
+    RDret fork flipperBytecode g s0 (tendStoreTicMap σ I) ByteArray.empty := by
   let mem1 := wordAt0Mem (dentId I) mem
   let mem2 := twoWordHashMem (dentId I) ⟨1⟩ mem
   have rd3878 := evm_run h with [
@@ -2018,7 +2020,7 @@ theorem flipperDentX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
     raw add (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k3880, C3880, rd3880raw⟩ := rd3878.sload (by native_decide) (by evm_ov)
-  have rd3880 : RD flipperBytecode I g s0 ⟨3880⟩
+  have rd3880 : RD fork flipperBytecode I g s0 ⟨3880⟩
       [solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I,
         bidPackedSlotOfWord (dentId I), dentBid I, dentLot I,
         tendNow I + tendTtlWord σ I, ⟨323⟩, sel]

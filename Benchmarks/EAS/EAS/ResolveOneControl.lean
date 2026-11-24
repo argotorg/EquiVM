@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.PayableCheck
 import Benchmarks.EAS.EAS.ResolverOneEVM
 import Benchmarks.EAS.EAS.RefundEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,8 +13,8 @@ theorem resolveOneStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {schemaPtr src rev target last available value : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+8 ≤ 1024)
     (ht : UInt256.land (memLoad (schemaPtr+UInt256.ofNat 32) mem) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = target)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15724⟩ (schemaPtr::src::value::rev::available::last::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (if target = ⟨0⟩ then ⟨16328⟩ else ⟨15764⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15724⟩ (schemaPtr::src::value::rev::available::last::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (if target = ⟨0⟩ then ⟨16328⟩ else ⟨15764⟩)
       (src::rev::target::last::available::value::R) mem aw' rdata σ k' C' := by
   by_cases hz : target = ⟨0⟩
   · rw [if_pos hz]
@@ -31,9 +33,9 @@ theorem resolveOneZero {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src rev target last available value ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+7 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16328⟩ (src::rev::target::last::available::value::ret::R) mem aw rdata σ k C) :
-    if value = ⟨0⟩ then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16328⟩ (src::rev::target::last::available::value::ret::R) mem aw rdata σ k C) :
+    if value = ⟨0⟩ then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hz : value = ⟨0⟩
   · rw [if_pos hz]
     obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_16328_fallthrough_packed (immWords := wordsOf (immStore v))
@@ -49,8 +51,8 @@ theorem resolveOneNoPayment {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src rev target last available : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+9 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15764⟩ (src::rev::target::last::available::⟨0⟩::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15777⟩ (src::rev::target::last::available::⟨0⟩::R) mem aw' rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15764⟩ (src::rev::target::last::available::⟨0⟩::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15777⟩ (src::rev::target::last::available::⟨0⟩::R) mem aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_15764_fallthrough_packed (immWords := wordsOf (immStore v)) hstack (by decide) rd
   exact easBlocks.eas_block_15772_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by decide) rd1
@@ -59,8 +61,8 @@ theorem resolveOnePaymentEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src rev target last available value : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+9 ≤ 1024) (hn : value ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15764⟩ (src::rev::target::last::available::value::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableEntryPC .single)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15764⟩ (src::rev::target::last::available::value::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableEntryPC .single)
       (⟨1⟩::src::rev::target::last::available::value::R) mem aw' rdata σ k' C' := by
   have hz : UInt256.isZero (UInt256.isZero value) = ⟨1⟩ := by rw [isZero_eq_zero_of_ne hn]; rfl
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_15764_taken_packed (immWords := wordsOf (immStore v)) hstack
@@ -71,10 +73,10 @@ theorem resolveOneAmount {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src rev target last available value : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15777⟩ (src::rev::target::last::available::value::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15777⟩ (src::rev::target::last::available::value::R) mem aw rdata σ k C) :
     if value.toNat ≤ available.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15784⟩ (src::rev::target::last::available::value::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15784⟩ (src::rev::target::last::available::value::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hb : value.toNat ≤ available.toNat
   · rw [if_pos hb]
     exact easBlocks.eas_block_15777_fallthrough_packed (immWords := wordsOf (immStore v)) hstack (ugt_zero hb) rd
@@ -89,8 +91,8 @@ theorem resolveOneChoose {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src target last available value : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+9 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15784⟩ (src::rev.toUInt256::target::last::available::value::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverOneEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15784⟩ (src::rev.toUInt256::target::last::available::value::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverOneEntryPC rev)
       (target::src::⟨32⟩::value::last::available::value::R) mem aw' rdata σ k' C' := by
   cases rev with
   | false =>
@@ -102,11 +104,11 @@ theorem resolveOneAccepted {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {junk word last available value : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+5 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
       (junk::word::last::available::value::R) mem aw rdata σ k C) :
     if word ≠ ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15885⟩ (last::value::available::value::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15885⟩ (last::value::available::value::R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hn : word ≠ ⟨0⟩
   · rw [if_pos hn]
     cases rev with
@@ -137,11 +139,11 @@ theorem resolveOneFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {available value ret : UInt256} {R : List UInt256} (v : EASImmutables) (last : Bool)
     (hstack : R.length+6 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15885⟩ (last.toUInt256::value::available::value::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15885⟩ (last.toUInt256::value::available::value::ret::R) mem aw rdata σ k C) :
     if last then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16342⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16342⟩
         (UInt256.sub available value::⟨4692⟩::value::ret::R) mem aw' rdata σ k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (value::R) mem aw' rdata σ k' C' := by
+    else ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (value::R) mem aw' rdata σ k' C' := by
   cases last with
   | false =>
     obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_15885_fallthrough_packed (immWords := wordsOf (immStore v))

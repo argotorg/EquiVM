@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -11,23 +13,23 @@ inductive InternalOutcome where
   | reverted
   | staticViolation
 
-def internalSourceResult (cfg : Config) (frame : Frame) (evm : EVM.State)
+def internalSourceResult (fork : Ethereum.Fork) (cfg : Config) (frame : Frame) (evm : EVM.State)
     (body : List Stmt) (result : InternalOutcome) : Prop :=
   match result with
-  | .ok evm' => ∃ frame', ExecFuncBody cfg frame evm body (.returned frame' evm' none)
-  | .reverted => ExecFuncBody cfg frame evm body .reverted
-  | .staticViolation => ExecFuncBody cfg frame evm body .staticViolation
+  | .ok evm' => ∃ frame', ExecFuncBody fork cfg frame evm body (.returned frame' evm' none)
+  | .reverted => ExecFuncBody fork cfg frame evm body .reverted
+  | .staticViolation => ExecFuncBody fork cfg frame evm body .staticViolation
 
-def internalBlockResult (cfg : Config) (frame : Frame) (evm : EVM.State)
+def internalBlockResult (fork : Ethereum.Fork) (cfg : Config) (frame : Frame) (evm : EVM.State)
     (body : List Stmt) (result : InternalOutcome) : Prop :=
   match result with
-  | .ok evm' => ∃ frame', ExecBlock cfg frame evm body (.ok frame' evm')
-  | .reverted => ExecBlock cfg frame evm body .reverted
-  | .staticViolation => ExecBlock cfg frame evm body .staticViolation
+  | .ok evm' => ∃ frame', ExecBlock fork cfg frame evm body (.ok frame' evm')
+  | .reverted => ExecBlock fork cfg frame evm body .reverted
+  | .staticViolation => ExecBlock fork cfg frame evm body .staticViolation
 
 theorem internalBlockResult.toSource {cfg frame evm body result}
-    (hb : internalBlockResult cfg frame evm body result) :
-    internalSourceResult cfg frame evm body result := by
+    (hb : internalBlockResult fork cfg frame evm body result) :
+    internalSourceResult fork cfg frame evm body result := by
   cases result with
   | ok evm' =>
       obtain ⟨frame', hb⟩ := hb
@@ -36,9 +38,9 @@ theorem internalBlockResult.toSource {cfg frame evm body result}
   | staticViolation => exact ExecFuncBody.execBlockStatic hb
 
 theorem internalBlockResult.prepend {cfg frame evm frame' evm' stmt body result}
-    (hs : ExecStmt cfg frame evm stmt (.ok frame' evm'))
-    (hb : internalBlockResult cfg frame' evm' body result) :
-    internalBlockResult cfg frame evm (stmt :: body) result := by
+    (hs : ExecStmt fork cfg frame evm stmt (.ok frame' evm'))
+    (hb : internalBlockResult fork cfg frame' evm' body result) :
+    internalBlockResult fork cfg frame evm (stmt :: body) result := by
   cases result with
   | ok evm'' =>
       obtain ⟨frame'', hb⟩ := hb
@@ -48,8 +50,8 @@ theorem internalBlockResult.prepend {cfg frame evm frame' evm' stmt body result}
 
 theorem internalBlockResult.iteTrue {cfg frame evm cond yes no result}
     (hc : evalExpr? cfg frame evm cond = .ok (.bool true))
-    (hb : internalBlockResult cfg frame evm yes result) :
-    internalBlockResult cfg frame evm [.ite cond yes no] result := by
+    (hb : internalBlockResult fork cfg frame evm yes result) :
+    internalBlockResult fork cfg frame evm [.ite cond yes no] result := by
   cases result with
   | ok evm' =>
       obtain ⟨frame', hb⟩ := hb
@@ -67,8 +69,8 @@ theorem internalVoidCall {cfg frame evm name args ret callee locals argVals resu
     (ha : evalExprs? cfg frame evm args = .ok argVals)
     (hf : lookupCallable? frame.contract name = some callee)
     (hp : bindParams? callee.params argVals = some locals)
-    (hb : internalSourceResult cfg { frame with locals := locals } evm callee.body result) :
-    ExecStmt cfg frame evm (.internalCall name args ret) (internalStmtResult frame ret result) := by
+    (hb : internalSourceResult fork cfg { frame with locals := locals } evm callee.body result) :
+    ExecStmt fork cfg frame evm (.internalCall name args ret) (internalStmtResult frame ret result) := by
   cases result with
   | ok evm' =>
       obtain ⟨frame', hb⟩ := hb
@@ -76,12 +78,12 @@ theorem internalVoidCall {cfg frame evm name args ret callee locals argVals resu
   | reverted => exact ExecStmt.internalCallRevert ha hf hp hb
   | staticViolation => exact ExecStmt.internalCallStatic ha hf hp hb
 
-def internalRun (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def internalRun (fork : Ethereum.Fork) (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem : ByteArray) (aw : UInt256) (rdata : ByteArray) (ret : UInt256) (R : List UInt256)
     (result : InternalOutcome) : Prop :=
   match result with
-  | .ok evm => ∃ σ k C, SourceState s0 ee σ evm ∧ RD code ee g s0 ret R mem aw rdata σ k C
-  | .reverted => RDrev code g s0
-  | .staticViolation => RDstatic code g s0
+  | .ok evm => ∃ σ k C, SourceState s0 ee σ evm ∧ RD fork code ee g s0 ret R mem aw rdata σ k C
+  | .reverted => RDrev fork code g s0
+  | .staticViolation => RDstatic fork code g s0
 
 end Benchmarks.CompoundIII.Comet

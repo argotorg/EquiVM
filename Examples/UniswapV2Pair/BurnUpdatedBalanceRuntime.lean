@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.PairBalanceHeaderRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,13 +11,13 @@ theorem RD.uniswapBurnUpdatedBalance0Prepared
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr supply fee liquidity balance1 balance0 token1 token0 : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd4639 : RD uniswapV2PairBytecode I g s0 ⟨4639⟩
+    (rd4639 : RD fork uniswapV2PairBytecode I g s0 ⟨4639⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4697⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4697⟩
       (UInt256.land token0 solcAddrMask :: UInt256.land token0 solcAddrMask ::
         ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord ::
         UInt256.land token0 solcAddrMask ::

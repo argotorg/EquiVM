@@ -4,6 +4,8 @@ import Benchmarks.Safe.Runs1e6.SetupModulesTrace
 import Benchmarks.Safe.Runs1e6.InternalSetFallbackHandler
 import Benchmarks.Safe.Runs1e6.PaymentTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -39,9 +41,9 @@ theorem safeInternalSetupFallback {caller : Frame} {evm : EVM.State} {expr : Exp
     {handler : UInt256} {retVar : Ident} {result : ExecResult}
     (hc : caller.contract = contract) (him : caller.immutables = ∅)
     (he : evalExpr? config caller evm expr = .ok (addressArrayValue handler))
-    (hb : ExecFuncBody config (fallbackHandlerFrame handler) evm
+    (hb : ExecFuncBody fork config (fallbackHandlerFrame handler) evm
       internalSetFallbackHandlerFunction.body result) :
-    ExecStmt config caller evm (.internalCall "internalSetFallbackHandler" [expr] retVar)
+    ExecStmt fork config caller evm (.internalCall "internalSetFallbackHandler" [expr] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := internalSetFallbackHandlerFunction)
     (locals := fallbackHandlerArgs handler) (evalExprs?_singleton he)

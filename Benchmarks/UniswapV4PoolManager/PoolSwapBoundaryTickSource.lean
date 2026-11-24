@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapTickSyntax
 import Benchmarks.UniswapV4PoolManager.WordNarrowArithmeticSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,7 +17,7 @@ theorem poolSwapBoundaryTickSource {f : Frame} {evm : State}
     (hs : f.locals.get? "step" = some (poolSwapStepValue s))
     (hr : f.locals.get? "result" = some (poolSwapResultValue r))
     (hz : f.locals.get? "zeroForOne" = some (.bool zeroForOne)) :
-    ExecStmt config f evm poolSwapBoundaryTickStmt
+    ExecStmt fork config f evm poolSwapBoundaryTickStmt
       (.ok (valueLocal f "result" (poolSwapResultValue {r with tick := poolSwapBoundaryTick zeroForOne s.tickNext})) evm) := by
   have he : evalExpr? config f evm
       (.ite (.var "zeroForOne")

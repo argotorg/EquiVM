@@ -1,6 +1,8 @@
 import Examples.BlindAuction.Reveal.DecodedEmpty
 import Examples.BlindAuction.Reveal.DecodedNonempty
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -38,13 +40,13 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
     (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLenWord)
     (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
-    (h887 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (h887 : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨887⟩
       (revealDecodedStack I valuesLenWord ((⟨4⟩ + revealValuesOffsetWord I) + ⟨32⟩)
         fakesLenWord ((⟨4⟩ + revealFakesOffsetWord I) + ⟨32⟩)
         secretsLenWord ((⟨4⟩ + revealSecretsOffsetWord I) + ⟨32⟩))
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd887⟩ := h887
   let evmStele : EVM.State :=

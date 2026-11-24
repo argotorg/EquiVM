@@ -2,6 +2,8 @@ import Reasoning.EVMWord
 import Examples.OpenZeppelinBench.Ownable2Step.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -202,7 +204,7 @@ theorem ownable2StepRenounceOwnershipBodyReturns (evm : EVM.State)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) solcAddrMask =
         ownable2StepSourceWord evm.executionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ renounceOwnershipTransition.body
+    ExecTransitionBody fork config contract evm ∅ renounceOwnershipTransition.body
       (.returned { contract := contract, locals := ∅ } (renounceOwnershipAfterOwnerState evm)
         none) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -228,7 +230,7 @@ theorem ownable2StepRenounceOwnershipBodyStatic (evm : EVM.State)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) solcAddrMask =
         ownable2StepSourceWord evm.executionEnv)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ renounceOwnershipTransition.body
+    ExecTransitionBody fork config contract evm ∅ renounceOwnershipTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -243,7 +245,7 @@ theorem ownable2StepRenounceOwnershipBodyReverts_owner (evm : EVM.State)
     (howner :
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) solcAddrMask ≠
         ownable2StepSourceWord evm.executionEnv) :
-    ExecTransitionBody config contract evm ∅ renounceOwnershipTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ renounceOwnershipTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert
@@ -285,12 +287,12 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     (howner :
       UInt256.land (renounceOwnershipOwnerWord σ I) solcAddrMask =
         ownable2StepSourceWord I)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨89⟩ [ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    (I.perm = true ∧ RDret ownable2StepBenchBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork ownable2StepBenchBytecode g (initState σ σ₀ g A I)
       (renounceOwnershipAfterOwnerMap σ I) ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic ownable2StepBenchBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork ownable2StepBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd89⟩ := hreach
   have rd183 := evm_run rd89 with [jumpdest, push2 ⟨97⟩, push2 ⟨183⟩,
     jump (by jump_dest)]
@@ -306,7 +308,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     jump (by jump_dest)]
   have rd435 := evm_run rd431 with [jumpdest, push1 ⟨1⟩, dup1]
   obtain ⟨_, _, rd436₀⟩ := rd435.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd436⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd436⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨436⟩
       [renounceOwnershipPendingOwnerWord σ I, ⟨1⟩, ⟨0⟩, ⟨200⟩, ⟨97⟩,
         ownable2StepSelWord I]
@@ -331,7 +333,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     exact Or.inr ⟨hpf, rd447.sstoreStatic hpf (by decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
   obtain ⟨_, _, rd448₀⟩ := rd447.sstore hp (by decide) (by evm_ov)
-  obtain ⟨_, _, rd448⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd448⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨448⟩
       [⟨0⟩, ⟨200⟩, ⟨97⟩, ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -340,7 +342,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
   let σp := renounceOwnershipAfterPendingMap σ I
   have rd454 := evm_run rd448 with [push2 ⟨272⟩, dup2, push0, dup1]
   obtain ⟨_, _, rd455₀⟩ := rd454.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd455⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd455⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨455⟩
       [renounceOwnershipOwnerWordAfterPending σ I, ⟨0⟩, ⟨0⟩, ⟨272⟩, ⟨0⟩,
         ⟨200⟩, ⟨97⟩, ownable2StepSelWord I]
@@ -366,7 +368,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
         solcAddrMask by decide] at rd480
   rw [hset] at rd480
   obtain ⟨_, _, rd481₀⟩ := rd480.sstore hp (by decide) (by evm_ov)
-  obtain ⟨_, _, rd481⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
+  obtain ⟨_, _, rd481⟩ : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨481⟩
       [UInt256.land solcAddrMask (⟨0⟩ : UInt256), solcAddrMask,
         renounceOwnershipOwnerWordAfterPending σ I, ⟨0⟩, ⟨0⟩, ⟨272⟩, ⟨0⟩,
@@ -396,10 +398,10 @@ theorem ownable2StepX_renounceOwnership_revert_owner {σ σ₀ A I} {g : Sat256}
     (howner :
       UInt256.land (renounceOwnershipOwnerWord σ I) solcAddrMask ≠
         ownable2StepSourceWord I)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨89⟩ [ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd89⟩ := hreach
   have rd183 := evm_run rd89 with [jumpdest, push2 ⟨97⟩, push2 ⟨183⟩,
     jump (by jump_dest)]
@@ -416,11 +418,11 @@ theorem ownable2StepRenounceOwnershipBody {σ σ₀ A I}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x71, 0x50, 0x18, 0xa6]⟩)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨89⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := ownable2StepRenounceOwnershipSelector_size hsel
   have hd := ownable2StepDispatch_renounceOwnership (cd := I.calldata) hsel
@@ -436,7 +438,7 @@ theorem ownable2StepRenounceOwnershipBody {σ σ₀ A I}
       simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
         renounceOwnershipOwnerWord, ownable2StepSourceWord] using howner
     by_cases hperm : I.perm = true
-    · have hbody := ownable2StepRenounceOwnershipBodyReturns (hperm := hperm) evmS
+    · have hbody := ownable2StepRenounceOwnershipBodyReturns (fork := fork) (hperm := hperm) evmS
         (by simp only [evmS, initState]; exact hwv) hownerStele
       exact (permSplit_true hperm (ownable2StepX_renounceOwnership_success
           (g := Sat256.ofUInt256 g) howner hreach))
@@ -452,7 +454,7 @@ theorem ownable2StepRenounceOwnershipBody {σ σ₀ A I}
               State.lookupAccount, Account.lookupStorage])
           (returnEquiv.fallthrough rfl rfl (by native_decide))
     · have hpf : I.perm = false := by simpa using hperm
-      have hbody := ownable2StepRenounceOwnershipBodyStatic evmS
+      have hbody := ownable2StepRenounceOwnershipBodyStatic (fork := fork) evmS
         (by simp only [evmS, initState]; exact hwv) hownerStele
         (by simp only [evmS, initState]; exact hpf)
       exact (permSplit_false hpf (ownable2StepX_renounceOwnership_success
@@ -466,7 +468,7 @@ theorem ownable2StepRenounceOwnershipBody {σ σ₀ A I}
       apply howner
       simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
         renounceOwnershipOwnerWord, ownable2StepSourceWord] using h
-    have hbody := ownable2StepRenounceOwnershipBodyReverts_owner evmS
+    have hbody := ownable2StepRenounceOwnershipBodyReverts_owner (fork := fork) evmS
       (by simp only [evmS, initState]; exact hwv) hownerStele
     exact (ownable2StepX_renounceOwnership_revert_owner (g := Sat256.ofUInt256 g)
         howner hreach)

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedAttestVerifyDone
 import Benchmarks.EAS.EAS.MultiDelegatedAttestLocals
 import Benchmarks.EAS.EAS.CopyRequestArrayInvalid
 import Benchmarks.EAS.EAS.CopyRequestArrayCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -33,7 +35,7 @@ theorem multiDelegatedAttestCopyRun {L : Store} {evm : EVM.State} {ee : Executio
     (hgood : ∀ t, t<(delegatedAttestationDataLength ee.calldata root).toNat →
       delegatedAttestationDataValid ee.calldata (delegatedAttestationDataOffset ee.calldata root) t ∧ delegatedBatchAddressClean ee.calldata root)
     (hlo : 96≤heap.toNat) (hh : heap.toNat≤2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem=heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2874⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
       (multiDelegatedAttestVerifyStack ee.calldata (delegatedAttestationDataLength ee.calldata root).toNat root
         (delegatedAttestationDataOffset ee.calldata root) base (UInt256.ofNat n) (delegatedAttestationDataLength ee.calldata root)
         available table (UInt256.ofNat groups.flatten.length) (UInt256.ofNat i) (UInt256.ofNat n-⟨1⟩) R) mem aw out σ k C) :
@@ -41,15 +43,15 @@ theorem multiDelegatedAttestCopyRun {L : Store} {evm : EVM.State} {ee : Executio
       heap.toNat≤next ∧ next≤2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       AttestationRequestArrayRegion mem' heap (delegatedAttestationRecords ee.calldata root) heap.toNat next ∧
       memLoad (UInt256.ofNat 64) mem'=UInt256.ofNat next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm
         (multiDelegatedAttestCopyCheck++multiDelegatedAttestArrayCopy)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
       MultiDelegatedAttestVerifyLocals L' requests groups available next i (delegatedAttestationDataLength ee.calldata root).toNat
         (decide (i=n-1)) (delegatedAttestationTuple ee.calldata root) (delegatedAttestationDataList ee.calldata root) (delegatedAttestationSigList ee.calldata root) ∧
-      RD (deployedRuntime v) ee g s0 ⟨3125⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3125⟩
         (heap::multiDelegatedAttestCopySaved ee.calldata root n i base table available (UInt256.ofNat groups.flatten.length) R) mem' aw' out σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm
-      (multiDelegatedAttestCopyCheck++multiDelegatedAttestArrayCopy) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm
+      (multiDelegatedAttestCopyCheck++multiDelegatedAttestArrayCopy) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
   let rs := delegatedAttestationRecords ee.calldata root
   have hlen : rs.length=(delegatedAttestationDataLength ee.calldata root).toNat := delegatedAttestationRecords_length ..
   have hbounds := hb.bounds hsize
@@ -61,7 +63,7 @@ theorem multiDelegatedAttestCopyRun {L : Store} {evm : EVM.State} {ee : Executio
     simp only [multiDelegatedAttestCopyCheckArgs,evalExprs?,evalExpr?,hf.outer.index,hf.data,hf.outer.heap,readLocalPath?,
       EvalResult.ofOption,bind,EvalResult.bind,pure,delegatedAttestationDataList_length,hlen]
     rfl
-  have hcheck := checkAttestationCopyCall (retVar := "__copyCheck$allocation") hargs (by change rs.length<2^256;omega)
+  have hcheck := checkAttestationCopyCall (fork := fork) (retVar := "__copyCheck$allocation") hargs (by change rs.length<2^256;omega)
   rw [hstate.env] at hcheck
   obtain ⟨a1,k1,C1,r1⟩ := easMultiDelegatedAttestVerifyDone v (by omega) (hgood 0 hb.nonempty).2 rd
   have hword : delegatedAttestationDataLength ee.calldata root=UInt256.ofNat rs.length := by rw [hlen,u256_ofNat_toNat]
@@ -72,7 +74,7 @@ theorem multiDelegatedAttestCopyRun {L : Store} {evm : EVM.State} {ee : Executio
   · let L1 := multiDelegatedAttestCopyCheckLocals L heap.toNat
     have hf1 : MultiDelegatedAttestVerifyLocals L1 requests groups available heap.toNat i (delegatedAttestationDataLength ee.calldata root).toNat
         (decide (i=n-1)) (delegatedAttestationTuple ee.calldata root) (delegatedAttestationDataList ee.calldata root) (delegatedAttestationSigList ee.calldata root) := hf.copyChecked
-    have hsol1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestCopyCheck
+    have hsol1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestCopyCheck
         (.ok {contract := contract,locals := L1,immutables := immStore v} evm) :=
       heapResultBlock_ok (result := "__copyCheck") (cursor := "$EAS.freeMemory") (hcheck.1 hv) hf.outer.heap (by decide) (by decide) (by decide)
     have hecopy : evalExprs? config {contract := contract,locals := L1,immutables := immStore v} evm [.var "data",.var "$EAS.freeMemory"]=
@@ -89,12 +91,12 @@ theorem multiDelegatedAttestCopyRun {L : Store} {evm : EVM.State} {ee : Executio
       hecopy hview (by omega) hlo hh hfree (by rw [easPatchedValidJumps v];jump_dest) r1
     rcases hcopy with ⟨m2,a2,k2,C2,next,hlo2,hh2,hp2,hv2,hf2,hs2,r2⟩ | ⟨hs2,hrev⟩
     · let L2 := multiAttestCopyLocals L1 next
-      have hsol2 : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} evm multiDelegatedAttestArrayCopy
+      have hsol2 : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} evm multiDelegatedAttestArrayCopy
           (.ok {contract := contract,locals := L2,immutables := immStore v} evm) :=
         heapResultBlock_ok (result := "allocation") (cursor := "$EAS.freeMemory") hs2 hf1.outer.heap (by decide) (by decide) (by decide)
       exact Or.inl ⟨L2,m2,a2,k2,C2,next,hlo2,hh2,hp2,hv2,hf2,execBlock_append hsol1 hsol2,hf1.copied next,r2⟩
     · exact Or.inr ⟨execBlock_append hsol1 (ExecBlock.consRevert hs2),hrev⟩
-  · have hrev : RDrev (deployedRuntime v) g s0 := easCopyRequestArrayInvalid evm v
+  · have hrev : RDrev fork (deployedRuntime v) g s0 := easCopyRequestArrayInvalid evm v
       (by simp only [multiDelegatedAttestCopySaved,multiDelegatedAttestSaved,List.length_cons,List.length_append,List.length_nil];omega)
       hspan hlencap (by omega)
       (by intro t ht;exact ⟨(hgood t (by rw [← hlen];exact ht)).1.2,(delegatedAttestationRecords_get _ _ _ ht).symm⟩)

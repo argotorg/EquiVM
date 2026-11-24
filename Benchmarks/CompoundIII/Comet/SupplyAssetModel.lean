@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.SupplyBaseModel
 import Benchmarks.CompoundIII.Comet.SupplyCollateralModel
 import Benchmarks.CompoundIII.Comet.BorrowBalanceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -23,24 +25,24 @@ def supplyBorrowWord (v : CometWithExtendedAssetListImmutables) (evm : EVM.State
     (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
     (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot dst))
 
-inductive SupplyAssetTrace (v : CometWithExtendedAssetListImmutables)
+inductive SupplyAssetTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (sender dst asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | base {result} (hb : asset = v.baseToken) (hm : amount ≠ UInt256.lnot ⟨0⟩)
-      (ht : SupplyBaseTrace v sender dst amount evm result) :
-      SupplyAssetTrace v sender dst asset amount evm result
+      (ht : SupplyBaseTrace fork v sender dst amount evm result) :
+      SupplyAssetTrace fork v sender dst asset amount evm result
   | balanceFailed (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : ¬ supplyBorrowValid v evm dst) :
-      SupplyAssetTrace v sender dst asset amount evm .reverted
+      SupplyAssetTrace fork v sender dst asset amount evm .reverted
   | allBase {result} (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : supplyBorrowValid v evm dst)
-      (ht : SupplyBaseTrace v sender dst (supplyBorrowWord v evm dst) evm result) :
-      SupplyAssetTrace v sender dst asset amount evm result
+      (ht : SupplyBaseTrace fork v sender dst (supplyBorrowWord v evm dst) evm result) :
+      SupplyAssetTrace fork v sender dst asset amount evm result
   | tooLarge (hb : asset ≠ v.baseToken) (hw : ¬ amount.toNat < 2^128) :
-      SupplyAssetTrace v sender dst asset amount evm .reverted
+      SupplyAssetTrace fork v sender dst asset amount evm .reverted
   | collateral {result} (hb : asset ≠ v.baseToken) (hw : amount.toNat < 2^128)
-      (ht : SupplyCollateralTrace v sender dst asset amount evm result) :
-      SupplyAssetTrace v sender dst asset amount evm result
+      (ht : SupplyCollateralTrace fork v sender dst asset amount evm result) :
+      SupplyAssetTrace fork v sender dst asset amount evm result
 
 def supplyBaseAmountStmt : Stmt :=
   .ite (.binary .eq (.var "amount") (.intLit (2^256-1)))

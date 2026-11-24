@@ -7,6 +7,8 @@ import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Attester proof prelude
 
@@ -22,13 +24,13 @@ namespace Reasoning.Reach
 -- GENERALIZES Reasoning.Dispatch.RDrev.reEquivNonPayable to any number of transitions.
 theorem RDrev.reEquivNonPayableOfMem {cfg : Config} {contract : ContractDecl}
     {immutables : Store} {σ σ₀ A I} {g : Sat256} {code : ByteArray}
-    (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDrev fork code g (initState σ σ₀ g A I))
     (hbody : ∀ t ∈ contract.transitions, ∀ callargs,
-      ExecTransitionBody cfg contract (initState σ σ₀ g A I) callargs t.body
+      ExecTransitionBody fork cfg contract (initState σ σ₀ g A I) callargs t.body
         .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables := by
   apply h.reEquivElim hcode
   intro _ _ hrev
   by_cases hdisp : dispatchMsg contract I.calldata = none

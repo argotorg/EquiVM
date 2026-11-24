@@ -1,14 +1,16 @@
 import Benchmarks.CompoundIII.Comet.SupplyBaseTotalsModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem supplyBaseTotals_result {frame evm supplied repaid result}
-    (hb : ExecBlock config frame evm supplyBaseTotalsBlock
+    (hb : ExecBlock fork config frame evm supplyBaseTotalsBlock
       (supplyBaseTotalsResult frame evm supplied repaid))
     (he : supplyBaseTotalsOutcome evm supplied repaid = result) :
-    ExecBlock config frame evm supplyBaseTotalsBlock
+    ExecBlock fork config frame evm supplyBaseTotalsBlock
       (match result with
        | .ok evm' => .ok frame evm'
        | .reverted => .reverted

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingReadCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,10 +13,10 @@ set_option maxRecDepth 10000
 theorem observationReadHeadMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw index base : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13226⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13226⟩
       (index :: base :: R) mem aw rdata σ k C) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨13311⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13311⟩
         (uniswapV3Pool_block_13226_stack (ee := ee) (mem := mem) (σ := σ)
           (x0 := index) (x1 := base) (R := R))
         (uniswapV3Pool_block_13226_memory (ee := ee) (mem := mem) (σ := σ)

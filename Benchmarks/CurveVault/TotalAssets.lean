@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.Lock
 import Benchmarks.CurveVault.TotalAssetsInternal
 import Benchmarks.CurveVault.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -11,9 +13,9 @@ namespace Benchmarks.CurveVault
 abbrev vaultTotalAssetsPublicFunction : FunctionDecl := contract.functions[4]!
 
 theorem vaultTotalAssetsPublicReturns {evm evm' : EVM.State} {callee : Frame} {value : Value}
-    (hbody : ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
+    (hbody : ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
       (.returned callee evm' (some [value]))) :
-    ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsPublicFunction.body
+    ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsPublicFunction.body
       (.returned {contract := contract, locals := (∅ : Store).insert "__c0" value} evm' (some [value])) := by
   have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := ∅})
     (callee := vaultTotalAssetsFunction) (name := "_total_assets")
@@ -25,8 +27,8 @@ theorem vaultTotalAssetsPublicReturns {evm evm' : EVM.State} {callee : Frame} {v
         simp [resumeAfterInternalCall, collapseReturns, evalExpr?, EvalResult.ofOption])))
 
 theorem vaultTotalAssetsPublicReverts {evm : EVM.State}
-    (hbody : ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted) :
-    ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsPublicFunction.body .reverted := by
+    (hbody : ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted) :
+    ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsPublicFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     internalCallFunctionRevert (callee := vaultTotalAssetsFunction) (argVals := [])
       (by simp [evalExprs?, pure]) rfl rfl hbody
@@ -35,7 +37,7 @@ theorem vaultTotalAssetsBodyCore {σ σ₀ A I} {g : UInt256}
     (hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 3) rfl hsel
   have hd : dispatchMsg contract I.calldata = some totalAssetsTransition := by
     apply vaultDispatch_totalAssets
@@ -57,7 +59,7 @@ theorem vaultTotalAssetsBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rdBody
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource (locals : Store) := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
+    have hsource (locals : Store) := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
       [.internalCall "totalAssets_body" [] "__r", .return [.var "__r"]] hvalue
       (by rw [hload]; exact hlocked)
     exact RDrev.reEquivOfDispatch hcode hd hsource hrev
@@ -68,7 +70,7 @@ theorem vaultTotalAssetsBodyCore {σ σ₀ A I} {g : UInt256}
       (by simp) (by native_decide) rd6772 with hsuccess | ⟨hcallee, hrev⟩
     · rcases hsuccess with ⟨evm', σ', locals', a, b, c, aw', out, k', C', hcallee, hs, rd1501⟩
       have hret := vaultBlocks.vault_block_1501 (by simp) rd1501
-      change RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
+      change RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
         (((UInt256.sub (a + b) c).toByteArray.write 0 _ 256 32).readWithPadding 256 32) at hret
       rw [toByteArray_write_read_back_of_gap _ _ _
         (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 256 (by norm_num)))] at hret
@@ -86,6 +88,6 @@ theorem vaultTotalAssetsBody {σ σ₀ A I} {g : UInt256}
     (hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultTotalAssetsBodyCore hwf hcode hsize hsel
 end Benchmarks.CurveVault

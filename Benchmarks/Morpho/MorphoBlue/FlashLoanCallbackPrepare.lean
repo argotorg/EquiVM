@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.FinalizeVoid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,9 +15,9 @@ theorem morphoFlashLoanCallbackNoCode {v : MorphoImmutables} {ee : ExecutionEnv}
     {s0 : State} {mem out : ByteArray} {aw srcOff len assets token : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
       ([srcOff, len, UInt256.ofNat 0, assets, token, UInt256.ofNat 0] ++ R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a, k, C, rd⟩ := morphoBlocks.morpho_block_1113_taken_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 6 + 2 ≤ 1024; omega)
     (by rw [hc]; decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -27,9 +29,9 @@ theorem morphoFlashLoanCallbackPrepare {v : MorphoImmutables} {ee : ExecutionEnv
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hm : MorphoHeap mem ptr 0) (hlen : len.toNat ≤ solcMaxU64)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) ≠ UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1113)
       ([srcOff, len, UInt256.ofNat 0, assets, token, UInt256.ofNat 0] ++ R) mem aw out σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1185)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1185)
       ([gasArg, UInt256.ofNat ee.source.val, UInt256.ofNat 0, ptr,
         UInt256.ofNat (100 + paddedSize len.toNat), ptr, UInt256.ofNat 0,
         ptr, UInt256.ofNat 0, assets, token, UInt256.ofNat 0] ++ R)

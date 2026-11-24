@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.WithdrawBaseRead
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_068
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -44,14 +46,14 @@ theorem cometTransferBaseRead {v : CometWithExtendedAssetListImmutables}
     (src dst : AccountAddress) (hstack : R.length + 14 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free) (hlo : 96 ≤ free.toNat)
     (hmem : 96 ≤ mem.size) (hb : free.toNat + 320 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14675⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14675⟩
       (EVM.word src.val :: amount :: EVM.word dst.val :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       UserBasicMemory (transferBaseReadMemory mem free evm src dst) free
         (withdrawBaseBasic evm src) ∧
       UserBasicMemory (transferBaseReadMemory mem free evm src dst) (free + ⟨160⟩)
         (withdrawBaseBasic evm dst) ∧
-      RD (deployedRuntime v) ee g s0 ⟨14741⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨14741⟩
         (UInt256.signextend (UInt256.ofNat 12) (withdrawBaseBasic evm dst).principal ::
           (free + ⟨160⟩) :: amount :: free :: EVM.word src.val ::
           UInt256.signextend (UInt256.ofNat 12) (withdrawBaseBasic evm src).principal ::
@@ -114,7 +116,7 @@ theorem cometTransferBaseRead {v : CometWithExtendedAssetListImmutables}
   have r9 := cometWithExtendedAssetList_block_14715
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 7 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r8
-  change RD _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
+  change RD fork _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
     (memLoad free (transferBaseReadMemory mem free evm src dst)) :: amount :: free ::
     EVM.word src.val :: (free + ⟨160⟩) :: EVM.word dst.val :: ret :: R) _ _ _ _ _ _ at r9
   have hsp : memLoad free (transferBaseReadMemory mem free evm src dst) =
@@ -123,7 +125,7 @@ theorem cometTransferBaseRead {v : CometWithExtendedAssetListImmutables}
   have r10 := cometWithExtendedAssetList_block_14728
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 8 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r9
-  change RD _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
+  change RD fork _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
     (memLoad (free + ⟨160⟩) (transferBaseReadMemory mem free evm src dst)) ::
     (free + ⟨160⟩) :: amount :: free :: EVM.word src.val ::
     UInt256.signextend (UInt256.ofNat 12) (withdrawBaseBasic evm src).principal ::

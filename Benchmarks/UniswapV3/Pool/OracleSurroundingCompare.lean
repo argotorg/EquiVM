@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingOldest
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -56,13 +58,13 @@ theorem oracleSurroundingComparePrefix (imms : Store) (evm : EVM.State) (time ta
     (ht : target.toNat < 2 ^ 32) (hn : cardinality.toNat ≠ 0)
     (hc : cardinality.toNat < 2 ^ 16)
     (hf : oracleSurroundingFirst time target index evm.accountMap evm.executionEnv = false) :
-    ExecBlock config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
+    ExecBlock fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.take 8)
       (.ok (oracleSurroundingCompareFrame imms evm time target tick index liquidity cardinality)
         evm) := by
   let f := oracleSurroundingOldestFrame imms evm time target tick index liquidity cardinality
   have hg := oracleSurroundingOldestGets imms evm time target tick index liquidity cardinality
-  have hs : ExecStmt config f evm oracleSurroundingFunction.body[7]!
+  have hs : ExecStmt fork config f evm oracleSurroundingFunction.body[7]!
       (.ok (oracleSurroundingCompareFrame imms evm time target tick index liquidity cardinality)
         evm) := by
     apply oracleLteCall
@@ -75,7 +77,7 @@ theorem oracleSurroundingComparePrefix (imms : Store) (evm : EVM.State) (time ta
       simp only [evalExprs?, eb, et, eg, bind, EvalResult.bind, pure]
     · exact oracleSurroundingOldestTimestamp_lt index cardinality evm.accountMap evm.executionEnv
     · exact ht
-  have htail : ExecBlock config
+  have htail : ExecBlock fork config
       (oracleSurroundingCandidateFrame imms evm time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.drop 6 |>.take 2)
       (.ok (oracleSurroundingCompareFrame imms evm time target tick index liquidity cardinality)

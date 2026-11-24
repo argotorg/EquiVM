@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SyncDynamicCore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -8,7 +10,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_dynamic {g : Sat256} {s0 : State}
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw ptr : UInt256}
     {acc : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨7339⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
@@ -16,7 +18,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_dynamic {g : Sat256} {s0 : State}
     (hawLo : 96 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hperm : I.perm = true) (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret R
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed))
       (pairDynamicWords aw ptr) rdata acc k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo

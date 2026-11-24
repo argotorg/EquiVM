@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.VerifyDigest
 import Benchmarks.EAS.EAS.NonceSource
 import Benchmarks.EAS.EAS.RevocationRequestMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -56,9 +58,9 @@ def verifyRevokeReadLocals (L : Store) (r : DelegatedRevocationRecord) (nonce : 
 theorem verifyRevokeReadSource {L imms : Store} {evm : EVM.State} {r : DelegatedRevocationRecord} {heap : Nat}
     (hreq : L.get? "request" = some r.struct) (hn : L.get? "_nonces" = none)
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm verifyRevokeRead
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm verifyRevokeRead
       (.ok {contract := contract,locals := verifyRevokeReadLocals L r (nonceWord evm r.revoker) heap,immutables := imms} evm) := by
-  have hdata := decodeRevocationDataCall (retVar := "data$allocation") (r := r.data) (heap := heap)
+  have hdata := decodeRevocationDataCall (fork := fork) (retVar := "data$allocation") (r := r.data) (heap := heap)
     (show evalExprs? config {contract := contract,locals := L,immutables := imms} evm
       [.field (.var "request") "data",.var "$EAS.freeMemory"] = .ok [r.data.tuple,.int (Int.ofNat heap)] by
       simp only [evalExprs?,delegatedRevokeField (frame := {contract := contract,locals := L,immutables := imms}) hreq "data" _ rfl,evalExpr?,hf,EvalResult.ofOption,EvalResult.bind,bind,pure])
@@ -67,7 +69,7 @@ theorem verifyRevokeReadSource {L imms : Store} {evm : EVM.State} {r : Delegated
     (heapResultLocals_get _ _ _ _ _ _ _ (by decide) (by decide) (by decide)).trans hreq
   have hf1 : (verifyRevokeDataLocals L r heap).get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) :=
     heapResultLocals_heap _ _ _ _ _ _
-  have hsig := decodeSignatureCall (retVar := "signature$allocation") (s := r.signature) (heap := heap)
+  have hsig := decodeSignatureCall (fork := fork) (retVar := "signature$allocation") (s := r.signature) (heap := heap)
     (show evalExprs? config {contract := contract,locals := verifyRevokeDataLocals L r heap,immutables := imms} evm
       [.field (.var "request") "signature",.var "$EAS.freeMemory"] = .ok [r.signature.tuple,.int (Int.ofNat heap)] by
       simp only [evalExprs?,delegatedRevokeField (frame := {contract := contract,locals := verifyRevokeDataLocals L r heap,immutables := imms}) hreq1 "signature" _ rfl,evalExpr?,hf1,EvalResult.ofOption,EvalResult.bind,bind,pure])
@@ -76,7 +78,7 @@ theorem verifyRevokeReadSource {L imms : Store} {evm : EVM.State} {r : Delegated
     simpa (disch := decide) only [verifyRevokeDecodeLocals,verifyRevokeDataLocals,heapResultLocals,unpackHeapLocals,store_get_ne] using hn
   have hreq2 : ((verifyRevokeDecodeLocals L r heap).insert "nonce" (.int 0)).get? "request" = some r.struct := by
     simpa (disch := decide) only [verifyRevokeDecodeLocals,verifyRevokeDataLocals,heapResultLocals,unpackHeapLocals,store_get_ne] using hreq
-  have hp3 := nonceReadSource hn2 (delegatedRevokeField (evm := evm) (frame := {contract := contract,locals := (verifyRevokeDecodeLocals L r heap).insert "nonce" (.int 0),immutables := imms}) hreq2 "revoker" _ rfl)
+  have hp3 := nonceReadSource (fork := fork) hn2 (delegatedRevokeField (evm := evm) (frame := {contract := contract,locals := (verifyRevokeDecodeLocals L r heap).insert "nonce" (.int 0),immutables := imms}) hreq2 "revoker" _ rfl)
   exact execBlock_append (execBlock_append hp1 hp2) hp3
 
 theorem verifyRevokeReadLocals_facts {L : Store} {r : DelegatedRevocationRecord} {nonce : UInt256} {heap : Nat}
@@ -108,7 +110,7 @@ def verifyRevokeHashLocals (L : Store) (r : DelegatedRevocationRecord) (nonce : 
 theorem verifyRevokeHashSource {L imms : Store} {evm : EVM.State} {r : DelegatedRevocationRecord} {nonce : UInt256}
     (hreq : L.get? "request" = some r.struct) (hd : L.get? "data" = some r.data.struct)
     (hn : L.get? "nonce" = some (.int (Int.ofNat nonce.toNat))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm verifyRevokeHashBody
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm verifyRevokeHashBody
       (.ok {contract := contract,locals := verifyRevokeHashLocals L r nonce,immutables := imms} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (verifyRevokePayload_eval hreq hd hn)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := wordBytes32Value (verifyRevokeHash r nonce)) ?_) ExecBlock.nil

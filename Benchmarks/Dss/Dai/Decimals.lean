@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Dai.Dispatch
 import Benchmarks.Dss.Dai.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Dai
@@ -24,7 +26,7 @@ theorem daiDecode_decimals_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) 
 /-- The Stele `decimals()` body returns the constant `18`. -/
 theorem daiDecimalsBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm decimalsStore decimalsTransition.body
+    ExecTransitionBody fork config contract evm decimalsStore decimalsTransition.body
       (.returned { contract := contract, locals := decimalsStore } evm
         (some [(.int (Int.ofNat decimalsWord.toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -36,10 +38,10 @@ theorem daiDecimalsBodyReturns (evm : EVM.State)
 /-! ## EVM trace -/
 
 theorem daiX_decimals_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨604⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I) σ
+    RDret fork daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray decimalsWord) := by
   have hmask : UInt256.land (⟨18⟩ : UInt256) ⟨255⟩ = decimalsWord := by
     native_decide
@@ -63,12 +65,12 @@ theorem daiDecimalsBodyCoreOk
       config.externalABI.decodeCalldata? (decimalsTransition.params.map Param.name)
         (transitionSignature decimalsTransition).paramTypes I.calldata =
           some decimalsStore)
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨604⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         decimalsStore
         decimalsTransition.body
@@ -90,12 +92,12 @@ theorem daiDecimalsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 4) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some decimalsTransition :=
     daiDispatchDecimals hsel
-  have hreach := daiReachDecimalsBody
+  have hreach := daiReachDecimalsBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiDecimalsBodyCoreOk hcode hsize hwv hdispatch

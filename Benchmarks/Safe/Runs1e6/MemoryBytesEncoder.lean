@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.WordBufferCopy
 import Benchmarks.Safe.Runs1e6.ByteBufferMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -19,14 +21,14 @@ def memoryBytesEncodedInto (mem : ByteArray) (dst len : Nat) (words : List UInt2
 set_option maxRecDepth 100000 in
 theorem safeMemoryBytesEncodeInto (words : List UInt256)
     {I g s0 σ k C aw mem rdata src dst len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12345⟩
+    (h : RD fork safeBytecode I g s0 ⟨12345⟩
       (UInt256.ofNat src :: UInt256.ofNat dst :: ret :: R) mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
     (hw : WordArrayMemory mem (src + 32) words) (hn : words.length = (len + 31) / 32)
     (hsrcEnd : src + 32 + 32 * words.length ≤ dst) (hin : src + 32 + 32 * words.length ≤ mem.size)
     (hb : dst + 32 + 32 * words.length + 32 < UInt256.size)
     (hov : R.length + 13 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (dst + 32 + 32 * words.length) :: R)
       (memoryBytesEncodedInto mem dst len words) aw' rdata σ k' C' := by
   have hlen : len ≤ 32 * words.length := by rw [hn]; omega
@@ -77,14 +79,14 @@ theorem safeMemoryBytesEncodeInto (words : List UInt256)
 set_option maxRecDepth 100000 in
 theorem safeMemoryBytesEncode (words : List UInt256)
     {I g s0 σ k C aw mem rdata src dst len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12345⟩
+    (h : RD fork safeBytecode I g s0 ⟨12345⟩
       (UInt256.ofNat src :: UInt256.ofNat dst :: ret :: R) mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
     (hw : WordArrayMemory mem (src + 32) words) (hn : words.length = (len + 31) / 32)
     (hm : mem.size ≤ dst) (hin : src + 32 + 32 * words.length ≤ mem.size)
     (hb : dst + 32 + 32 * words.length + 32 < UInt256.size)
     (hov : R.length + 13 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (dst + 32 + 32 * words.length) :: R)
       (memoryBytesEncodedMemory mem dst len words) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', hr⟩ := safeMemoryBytesEncodeInto words h hl hw hn (by omega)

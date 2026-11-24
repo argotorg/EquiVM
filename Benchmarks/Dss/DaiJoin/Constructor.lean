@@ -2,6 +2,8 @@ import Benchmarks.Dss.DaiJoin.ConstructorSource
 import Benchmarks.Dss.DaiJoin.ConstructorTraceReturn
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor correctness
 
@@ -18,14 +20,14 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem daiJoinConstructorCorrect :
     typedConstructorRefinement config daiJoinCreationBytecode contract (fun _ => daiJoinBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases daiJoinCtorDeployment_shape hdeploy with ⟨vat, dai, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = daiJoinCtorCode vat dai := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := daiJoinInitcodeSuccess
+  · have hrd := daiJoinInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat dai hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -67,7 +69,7 @@ theorem daiJoinConstructorCorrect :
         ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
       simpa [evm4s] using hFinalMap
-  · have hrd := daiJoinInitcodeNonpayableRevert
+  · have hrd := daiJoinInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat dai hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩

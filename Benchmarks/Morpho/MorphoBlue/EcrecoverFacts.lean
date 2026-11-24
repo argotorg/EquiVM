@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ScalarSliceABI
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -38,7 +40,7 @@ theorem theta_ecrecover_output_shape {fork : Ethereum.Fork}
 
 theorem callViaEVM_ecrecover_output_shape {evm evm' : EVM.State} {value : Int}
     {cd out : ByteArray} {z perm : Bool}
-    (h : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value cd (z, evm', out) perm) :
+    (h : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value cd (z, evm', out) perm) :
     EcrecoverOutput out := by
   cases h with
   | callNotMade => exact Or.inl rfl

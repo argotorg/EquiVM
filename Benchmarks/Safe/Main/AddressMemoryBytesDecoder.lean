@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Main.MemoryBytesDecoder
 import Benchmarks.Safe.Main.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -9,11 +11,11 @@ namespace Benchmarks.Safe.Main
 set_option maxRecDepth 100000 in
 theorem safeDecodeAddressMemoryBytesOrRevert {I g s0 σ k C aw mem rdata}
     {head stop ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10323⟩ (head :: stop :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10323⟩ (head :: stop :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
       ∃ ptr target mem' aw' k' C',
-        RD safeBytecode I g s0 ret (ptr :: target :: R) mem' aw' rdata σ k' C' := by
+        RD fork safeBytecode I g s0 ret (ptr :: target :: R) mem' aw' rdata σ k' C' := by
   by_cases hlen : UInt256.isZero (UInt256.slt (UInt256.sub stop head) (UInt256.ofNat 64)) =
       UInt256.ofNat 0
   · left

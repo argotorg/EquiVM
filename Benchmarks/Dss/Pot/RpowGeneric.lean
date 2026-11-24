@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.Rpow
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 open Reasoning.Theory.RpowBase
@@ -16,14 +18,14 @@ theorem RD.potDripRpowToLoop
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hx : x ≠ ⟨0⟩)
-    (rd2352 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2352 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
       (b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     let half := UInt256.div b ⟨2⟩
     let z := if n.toNat % 2 = 0 then b else x
     let n' := UInt256.div n ⟨2⟩
-    ∃ scratch k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ scratch k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: n' :: x :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
@@ -98,14 +100,14 @@ theorem execRpowFunctionReturnXNonzeroWithLoop
     (hfinalStore :
       RpowLoopStore xFinal ⟨0⟩ b zFinal (UInt256.div b ⟨2⟩) localsFinal)
     (hwhile :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             rpowLocalsZHN x n b (if n.toNat % 2 = 0 then b else x)
               (UInt256.div b ⟨2⟩) (UInt256.div n ⟨2⟩) }
         evm (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody)
         (.ok { contract := contract, locals := localsFinal } evm)) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
       rpowFunction.body
       (.returned { contract := contract, locals := localsFinal } evm
         (some [.int (Int.ofNat zFinal.toNat)])) := by
@@ -209,7 +211,7 @@ theorem execRpowFunctionReturnXNonzeroWithLoop
       evalExpr? config { contract := contract, locals := localsFinal } evm (.var "z") =
         .ok (.int (Int.ofNat zFinal.toNat)) := hfinalStore.eval_z
   have hElseBlock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite
               (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
@@ -223,11 +225,11 @@ theorem execRpowFunctionReturnXNonzeroWithLoop
           (some [.int (Int.ofNat zFinal.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hZExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hHalfExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivN hAssignN) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivN hAssignN) ?_
     refine ExecBlock.consNormal (by simpa [localsLoop, z, half, n'] using hwhile) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzDone))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := localsFinal } evm
           (some [.int (Int.ofNat zFinal.toNat)])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteFalse hxZero hElseBlock)
@@ -237,13 +239,13 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
     (evm : EVM.State) {x n b : UInt256}
     (hxz : x ≠ ⟨0⟩)
     (hwhile :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             rpowLocalsZHN x n b (if n.toNat % 2 = 0 then b else x)
               (UInt256.div b ⟨2⟩) (UInt256.div n ⟨2⟩) }
         evm (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody) .reverted) :
-    ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+    ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
       rpowFunction.body .reverted := by
   let locals := uintTernaryLocals x n b
   let z := if n.toNat % 2 = 0 then b else x
@@ -342,7 +344,7 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
     simp [assignStorageRef?, updateLocalPath?, EvalResult.bind, bind, pure, localsLoop,
       rpowLocalsZHN, localsZH, rpowLocalsZH]
   have hElseBlock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256)
             (.ite
               (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
@@ -355,10 +357,10 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hZExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hHalfExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivN hAssignN) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivN hAssignN) ?_
     exact ExecBlock.consRevert (by simpa [localsLoop, z, half, n'] using hwhile)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         .reverted := by
     simpa [rpowFunction] using ExecBlock.consRevert (ExecStmt.iteFalse hxZero hElseBlock)
   simpa [locals] using ExecFuncBody.execBlockRevert hblock
@@ -371,22 +373,22 @@ theorem rpowFunctionCoupled
     (hRlen : R.length ≤ 1000)
     (hx : x ≠ ⟨0⟩)
     (hb : b ≠ ⟨0⟩)
-    (rd2352 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2352 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
       (b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
       RpowLoopStore xFinal ⟨0⟩ b zFinal (UInt256.div b ⟨2⟩) localsFinal ∧
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
         rpowFunction.body
         (.returned { contract := contract, locals := localsFinal } evm
           (some [.int (Int.ofNat zFinal.toNat)])) ∧
-      RD potBytecode I (Sat256.ofUInt256 g)
+      RD fork potBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
         (zFinal :: R) mem aw out acc k' C') ∨
-    (ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+    (ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
         rpowFunction.body .reverted ∧
-      RDrev potBytecode (Sat256.ofUInt256 g)
+      RDrev fork potBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let half := UInt256.div b ⟨2⟩
   let z := if n.toNat % 2 = 0 then b else x
@@ -408,7 +410,7 @@ theorem rpowFunctionCoupled
       rcases hret with
         ⟨xFinal, zFinal, localsFinal, k', C', hfinalStore, hwhile, rd1926⟩
       have hbody :
-          ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+          ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
             rpowFunction.body
             (.returned { contract := contract, locals := localsFinal } evm
               (some [.int (Int.ofNat zFinal.toNat)])) :=
@@ -421,7 +423,7 @@ theorem rpowFunctionCoupled
   | inr hrev =>
       rcases hrev with ⟨hwhile, hrdRev⟩
       have hbody :
-          ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+          ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
             rpowFunction.body .reverted :=
         execRpowFunctionRevertXNonzeroWithLoop (evm := evm)
           (x := x) (n := n) (b := b) hx

@@ -1,5 +1,7 @@
 import Benchmarks.Auction.InitializeState
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -20,42 +22,42 @@ def initializeParamStatements : List Stmt :=
 theorem initializeParamsSource (evm : EVM.State) (args : InitializeArgs) (top : Bool)
     (hc : args.canonical)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := args.bodyLocals top }
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := args.bodyLocals top }
       evm initializeParamStatements
       (.ok { contract := auctionContract, locals := args.bodyLocals top } (args.storeState evm))
         := by
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (value := .address (.ofNat args.nouns.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (value := .address (.ofNat args.nouns.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite evm _ _ "nouns" (.elem .address) (auctionAddrLoc ⟨201⟩) _
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) (by native_decide) rfl
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_address_offset0 evm ⟨201⟩ args.nouns hc.1)))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .address (.ofNat args.weth.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .address (.ofNat args.weth.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite _ _ _ "weth" (.elem .address) (auctionAddrLoc ⟨202⟩) _
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) (by native_decide) rfl
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_address_offset0 _ ⟨202⟩ args.weth hc.2.1)))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.timeBuffer.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.timeBuffer.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite _ _ _ "timeBuffer" (.elem (.int uint256Int)) (auctionUint256Loc ⟨203⟩) _
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) (by native_decide) rfl
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨203⟩ args.timeBuffer)))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.reservePrice.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.reservePrice.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite _ _ _ "reservePrice" (.elem (.int uint256Int)) (auctionUint256Loc ⟨204⟩) _
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) (by native_decide) rfl
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨204⟩ args.reservePrice)))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.minBidIncrement.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.minBidIncrement.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite _ _ _ "minBidIncrementPercentage" (.elem (.int (.uint ⟨8, by decide⟩)))
       (auctionUint8LocAt ⟨205⟩ 0) _
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) (by native_decide) rfl
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint8 _ ⟨205⟩ args.minBidIncrement hc.2.2)))
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.duration.toNat))
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (value := .int (Int.ofNat args.duration.toNat))
     (by simp [evalExpr?, InitializeArgs.bodyLocals, InitializeArgs.locals, EvalResult.ofOption,
       Std.HashMap.getElem_insert])
     (scalarWrite _ _ _ "duration" (.elem (.int uint256Int)) (auctionUint256Loc ⟨206⟩) _
@@ -66,13 +68,13 @@ theorem initializeParamsSource (evm : EVM.State) (args : InitializeArgs) (top : 
 theorem initializeSetupSourceSplit (evm : EVM.State) (locals : Store)
     (hp : locals.get? "_paused" = none) (hs : locals.get? "_status" = none)
     (ho : locals.get? "_owner" = none) :
-    (evm.executionEnv.perm = true → ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    (evm.executionEnv.perm = true → ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
         .assign .storage ownerRef sender]
       (.ok { contract := auctionContract, locals := locals }
         (initializerOwnerState (initializerStatusState (initializerPauseState evm))))) ∧
       (evm.executionEnv.perm = false →
-        ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+        ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
           .assign .storage ownerRef sender] .staticViolation) := by
   have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
@@ -81,8 +83,8 @@ theorem initializeSetupSourceSplit (evm : EVM.State) (locals : Store)
     hp (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_false_offset0 evm ⟨51⟩)
   constructor
   · intro hperm
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign)
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [initializerPauseState, storageStore_executionEnv] using hperm)) (value := .int 1)
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign)
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [initializerPauseState, storageStore_executionEnv] using hperm)) (value := .int 1)
       (by simp [notEntered, evalExpr?, pure])
       (scalarWrite _ _ locals "_status" (.elem (.int uint256Int)) (auctionUint256Loc ⟨101⟩) _
         hs (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨101⟩ ⟨1⟩)))
@@ -100,7 +102,7 @@ theorem initializeSetupSource (evm : EVM.State) (locals : Store)
     (hp : locals.get? "_paused" = none) (hs : locals.get? "_status" = none)
     (ho : locals.get? "_owner" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
         .assign .storage ownerRef sender]
       (.ok { contract := auctionContract, locals := locals }
@@ -111,7 +113,7 @@ theorem initializerExitSource (evm : EVM.State) (locals : Store) (top : Bool)
     (hi : locals.get? "_initializing" = none)
     (ht : locals.get? "isTopLevelCall" = some (.bool top))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       [.ite (.var "isTopLevelCall") [.assign .storage initializingRef (.boolLit false)] []]
       (.ok { contract := auctionContract, locals := locals } (initializerExitedState evm top)) := by
   apply ExecBlock.consNormal ?_ ExecBlock.nil

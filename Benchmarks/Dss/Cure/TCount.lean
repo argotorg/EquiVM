@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cure.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -36,11 +38,11 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 15) rfl hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tCountTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -55,7 +57,7 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
       rw [cureSrcsLength]
       simp [solcSlotWordAt, solcSlotWord, initState,
         Stele.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-  have hreach := cureReachTCountBody (σ := σ)
+  have hreach := cureReachTCountBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨578⟩ ⟨343⟩ ⟨2333⟩ := by
@@ -72,7 +74,7 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     (slot := ⟨2⟩) (R := [cureSelWord I]) hroutine hgetter (by jump_dest)
     (by simp)
   have hret :
-      RDret cureBytecode (Sat256.ofUInt256 g)
+      RDret fork cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (tCountWord σ I)) := by
     have hret' := RD.solcReturnWordFromMem

@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.AllowanceSpendSites
 import Benchmarks.CurveVault.Arithmetic
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,11 +14,11 @@ theorem vaultAllowanceSpendEVM (flow : VaultAllowanceSpendFlow) {I : ExecutionEn
     (hmo : memLoad (UInt256.ofNat flow.ownerOffset) mem = owner)
     (hma : memLoad (UInt256.ofNat flow.allowanceOffset) mem = old)
     (hmv : flow.amount I mem = value) (hstack : R.length + 5 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.entry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.entry) R mem aw rdata σ k C) :
     (value.toNat ≤ old.toNat ∧ ∃ aw' k' C',
-      RD vaultBytecode I g s0 (UInt256.ofNat 7939) (UInt256.ofNat flow.next :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 7939) (UInt256.ofNat flow.next :: R)
         (vaultApproveArguments mem owner (UInt256.ofNat I.source.val) (UInt256.sub old value)) aw' rdata σ k' C') ∨
-    (old.toNat < value.toNat ∧ RDrev vaultBytecode g s0) := by
+    (old.toNat < value.toNat ∧ RDrev fork vaultBytecode g s0) := by
   let spender := UInt256.ofNat I.source.val
   let prepared := vaultSupplyArguments mem owner spender
   have hframe := vaultSupplyArguments_frame mem owner spender
@@ -67,7 +69,7 @@ theorem vaultAllowanceSpendEVM (flow : VaultAllowanceSpendFlow) {I : ExecutionEn
           decide +kernel) (by native_decide) h
       exact vaultBlocks.vault_block_8284
         (by simp only [vaultBlocks.vault_block_5179_taken_stack, List.length_cons]; omega) rdFail
-  have hprepared : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat flow.prepared)
+  have hprepared : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat flow.prepared)
       (UInt256.sub old value :: value :: old :: R) prepared aw' rdata σ k' C' := by
     cases flow with
     | transferFrom =>
@@ -82,7 +84,7 @@ theorem vaultAllowanceSpendEVM (flow : VaultAllowanceSpendFlow) {I : ExecutionEn
       simp only [vaultBlocks.vault_block_5804_fallthrough_stack,
         vaultBlocks.vault_block_5804_fallthrough_memory] at rdNext
       rw [hmo] at rdNext
-      change RD vaultBytecode I g s0 (UInt256.ofNat 5831)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 5831)
         (UInt256.sub (memLoad (UInt256.ofNat 256) prepared) (VaultAllowanceSpendFlow.amount .transferFrom I prepared) ::
           VaultAllowanceSpendFlow.amount .transferFrom I prepared :: memLoad (UInt256.ofNat 256) prepared :: R)
         prepared aw' rdata σ k' C' at rdNext
@@ -100,7 +102,7 @@ theorem vaultAllowanceSpendEVM (flow : VaultAllowanceSpendFlow) {I : ExecutionEn
       simp only [vaultBlocks.vault_block_4506_fallthrough_stack,
         vaultBlocks.vault_block_4506_fallthrough_memory] at rdNext
       rw [hmo] at rdNext
-      change RD vaultBytecode I g s0 (UInt256.ofNat 4535)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 4535)
         (UInt256.sub (memLoad (UInt256.ofNat 704) prepared) (VaultAllowanceSpendFlow.amount .withdraw I prepared) ::
           VaultAllowanceSpendFlow.amount .withdraw I prepared :: memLoad (UInt256.ofNat 704) prepared :: R)
         prepared aw' rdata σ k' C' at rdNext
@@ -118,7 +120,7 @@ theorem vaultAllowanceSpendEVM (flow : VaultAllowanceSpendFlow) {I : ExecutionEn
       simp only [vaultBlocks.vault_block_5179_fallthrough_stack,
         vaultBlocks.vault_block_5179_fallthrough_memory] at rdNext
       rw [hmo] at rdNext
-      change RD vaultBytecode I g s0 (UInt256.ofNat 5207)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 5207)
         (UInt256.sub (memLoad (UInt256.ofNat 640) prepared) (VaultAllowanceSpendFlow.amount .redeem I prepared) ::
           VaultAllowanceSpendFlow.amount .redeem I prepared :: memLoad (UInt256.ofNat 640) prepared :: R)
         prepared aw' rdata σ k' C' at rdNext

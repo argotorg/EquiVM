@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyAccountingTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyTicksMemory
 import Benchmarks.UniswapV4PoolManager.PoolModifySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,11 +28,11 @@ theorem poolModifyAfterPreludeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (hptr : 160 ≤ ptr.toNat) (hspan : ptr.toNat+128 ≤ mem.size) (hfit : ptr.toNat+128 < UInt256.size)
     (hstatefree : ptr.toNat+128 ≤ free.toNat)
     (hlzero : memLoad ptr mem = ⟨0⟩) (huzero : memLoad (ptr+UInt256.ofNat 64) mem = ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 (if p.delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if p.delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
       (⟨0⟩ :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: extra :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (poolModifyReturnTrace v I g s0 σ₀ (poolModifyAfterPreludeMemory mem free ptr id p evm)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (poolModifyReturnTrace fork v I g s0 σ₀ (poolModifyAfterPreludeMemory mem free ptr id p evm)
         rdata x1 x2 x4 x5 x9 extra R)
       (poolModifyAfterPreludeResult f evm id p) := by
   have h128 := uadd_word_ofNat_toNat params 128 (by omega)

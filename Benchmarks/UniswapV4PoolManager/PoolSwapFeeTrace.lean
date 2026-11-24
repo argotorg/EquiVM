@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapProtocolTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapGrowthTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -19,10 +21,10 @@ theorem poolSwapFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (poolSwapProtocolStep s fee protocol).feeAmount)
     (hpg : memLoad (step+UInt256.ofNat 224) (poolSwapProtocolMemory mem step s fee protocol) =
       (poolSwapProtocolStep s fee protocol).feeGrowthGlobal)
-    (h : RD (deployedRuntime v) I g s0 ⟨19794⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19794⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state]++R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19833⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19833⟩
       ([⟨0⟩, tag, x1, params, remaining, calculated, fee, protocol,
         poolSwapProtocolAmount s fee protocol amount, dir, step, pool, state]++R)
       (poolSwapGrowthMemory (poolSwapProtocolMemory mem step s fee protocol) step

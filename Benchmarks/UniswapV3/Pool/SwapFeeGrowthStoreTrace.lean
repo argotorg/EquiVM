@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapFeeGrowthSource
 import Benchmarks.UniswapV3.Pool.WordArrayPairUpdate
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,14 +19,14 @@ theorem swapFeeGrowthStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData) (d : SwapIterationData) (value : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3625⟩ (value :: q :: p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3625⟩ (value :: q :: p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 5 ≤ 1024) :
     let m := writeWord mem (p.toNat + 128) (s.feeGrowth + value)
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) m aw' rdata σ k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) m aw' rdata σ k' C' ∧
       HeapMemory m aw' free ∧ SwapStateMemory m p {s with feeGrowth := s.feeGrowth + value} ∧
       SwapIterationMemory m q d ∧ MemoryPrefix mem m p.toNat ∧ aw.toNat ≤ aw'.toNat := by
   dsimp only

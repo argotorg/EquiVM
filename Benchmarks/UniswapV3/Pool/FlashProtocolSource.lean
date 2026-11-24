@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashProtocolWords
 import Benchmarks.UniswapV3.Pool.CollectProtocolPaymentsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -80,7 +82,7 @@ theorem flashProtocolStore (locals imms : Store) (evm : EVM.State) (second : Boo
     (hf : locals.get? (flashProtocolFeesName second) = some (.int (Int.ofNat fees.toNat)))
     (hbase : locals.get? "protocolFees" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashProtocolStoreStmt second)
       (.ok {contract := contract, locals := locals, immutables := imms}
         (flashProtocolState evm second fees)) := by
@@ -128,7 +130,7 @@ theorem flashProtocolSource (locals imms : Store) (evm : EVM.State) (second : Bo
     (hslot : locals.get? "slot0" = none) (hfees : locals.get? "protocolFees" = none)
     (hperm : evm.executionEnv.perm = true) :
     let divisor := poolProtocolDivisor second evm.accountMap evm.executionEnv
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashProtocolStmts second)
       (.ok (flashProtocolFrame locals imms second paid divisor)
         (flashProtocolState evm second (poolProtocolFees paid divisor))) := by
@@ -139,7 +141,7 @@ theorem flashProtocolSource (locals imms : Store) (evm : EVM.State) (second : Bo
   · cases second <;>
       simpa [flashPaidName, flashProtocolName, Std.HashMap.getElem?_insert] using hp
   · simp [Std.HashMap.getElem?_insert]
-  refine ExecBlock.consNormal (flashProtocolStore (hperm := by assumption) _ imms evm second _ ?_ ?_) ExecBlock.nil
+  refine ExecBlock.consNormal (flashProtocolStore (fork := fork) (hperm := by assumption) _ imms evm second _ ?_ ?_) ExecBlock.nil
   · simp [Std.HashMap.getElem?_insert]
   · cases second <;>
       simpa [flashProtocolName, flashProtocolFeesName, Std.HashMap.getElem?_insert] using hfees

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.SetupModulesSource
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.SetupSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Boundary evidence for the setup data allocation. The calldata tail is symbolic;
 only its finite ABI prefix is evaluated. -/
 
@@ -155,7 +157,7 @@ def safeIRSetupAllocationCursor : State :=
       gasAvailable := .ofUInt256 ⟨100000⟩ } }
 
 theorem safeIRSetupAllocationExecution :
-    (match X 100001 (D_J safeBytecode 0) safeIRSetupAllocationCursor with
+    (match X .cancun 100001 (D_J safeBytecode 0) safeIRSetupAllocationCursor with
       | .ok (.revert gas out) => gas.toNat > 99000 &&
           out == (⟨#[0x4e, 0x48, 0x7b, 0x71]⟩ ++ (⟨0x41⟩ : UInt256).toByteArray)
       | _ => false) = true := by native_decide
@@ -164,14 +166,14 @@ theorem safeIRSetupAllocationSourceReturns (evm : State)
     (he : moduleLink evm ⟨1⟩ = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
     let p : SetupModulesInput := ⟨⟨0⟩, ByteArray.zeroes safeIRSetupAllocationLength⟩
-    ExecFuncBody config p.frame evm setupModulesFunction.body
+    ExecFuncBody fork config p.frame evm setupModulesFunction.body
       (.returned p.frame (p.state evm) none) := by
   exact safeSetupModulesZero (hperm := by assumption) _ evm he rfl
 
 theorem safeIRSetupAllocationSourceCannotRevert (evm : State)
     (he : moduleLink evm ⟨1⟩ = ⟨0⟩) :
     let p : SetupModulesInput := ⟨⟨0⟩, ByteArray.zeroes safeIRSetupAllocationLength⟩
-    ¬ExecFuncBody config p.frame evm setupModulesFunction.body .reverted := by
+    ¬ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted := by
   let p : SetupModulesInput := ⟨⟨0⟩, ByteArray.zeroes safeIRSetupAllocationLength⟩
   have hg : evalExpr? config p.frame evm
       (eqE (.storage (modulesRef sentinelAddr)) zeroAddr) = .ok (.bool true) := by
@@ -184,7 +186,7 @@ theorem safeIRSetupAllocationSourceCannotRevert (evm : State)
       (neE (.var "to") zeroAddr) = .ok (.bool false) := by
     simpa only [p, ne_self_iff_false, decide_false] using
       safeSetupModulesCondition p (p.state evm) (by decide)
-  change ¬ExecFuncBody config p.frame evm setupModulesFunction.body .reverted
+  change ¬ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted
   intro h
   cases h with
   | execBlockRevert h =>
@@ -228,7 +230,7 @@ theorem safeIRSetupAllocationGuardReverts (evm : State)
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
     let p := setupCalldataInput safeIRSetupAllocationCalldata 1 safeIRSetupAllocationLength
-    ExecBlock config p.frame evm setupTransition.body .reverted := by
+    ExecBlock fork config p.frame evm setupTransition.body .reverted := by
   apply safeSetupAllocationRevert (hperm := hperm) _ evm hv
   have hp := safeIRSetupAllocationNoCalls.2.2.2
   rw [SetupInput.allocationLimit, hp]
@@ -264,7 +266,7 @@ def safeIRSetupTokenAllocationCursor : State :=
 
 /-- A segment certificate for the later token allocation, not a complete setup execution. -/
 theorem safeIRSetupTokenAllocationExecution :
-    (match X 100001 (D_J safeBytecode 0) safeIRSetupTokenAllocationCursor with
+    (match X .cancun 100001 (D_J safeBytecode 0) safeIRSetupTokenAllocationCursor with
       | .ok (.revert gas out) => gas.toNat > 99000 &&
           out == (⟨#[0x4e, 0x48, 0x7b, 0x71]⟩ ++ (⟨0x41⟩ : UInt256).toByteArray)
       | _ => false) = true := by native_decide
@@ -276,7 +278,7 @@ theorem safeIRSetupTokenAllocationGuardReverts (evm : State) (payload : ByteArra
     (hperm : evm.executionEnv.perm = true) :
     let p : SetupInput :=
       ⟨[⟨8192⟩], ⟨1⟩, ⟨0⟩, payload, ⟨0⟩, ⟨8193⟩, ⟨1⟩, ⟨0⟩⟩
-    ExecBlock config p.frame evm setupTransition.body .reverted := by
+    ExecBlock fork config p.frame evm setupTransition.body .reverted := by
   apply safeSetupAllocationRevert (hperm := hperm) _ evm hv
   rw [safeSetupAllocationLimit_token _ (by change (⟨1⟩ : UInt256) ≠ ⟨0⟩; decide)
     (by change AccountAddress.ofNat 8193 ≠ EVM.address 0; decide)]

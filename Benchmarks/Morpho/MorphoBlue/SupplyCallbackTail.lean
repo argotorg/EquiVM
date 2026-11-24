@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCallbackSource
 import Benchmarks.Morpho.MorphoBlue.SupplyCallbackReach
 import Benchmarks.Morpho.MorphoBlue.SupplyTransfer
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -19,9 +21,9 @@ theorem morphoSupplyCallbackTail {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken) (hn : 0 < data.size)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
       (supplyCallbackTail assets shares srcOff len []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm (supplyTransition.body.drop 18) supplyTransition.returnType := by
   have hg : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.binary .gt (.arrayLength .localVar ⟨"data", []⟩) (.intLit 0)) = .ok (.bool true) := by
@@ -41,7 +43,7 @@ theorem morphoSupplyCallbackTail {v : MorphoImmutables} {ee : ExecutionEnv} {g :
       config "onMorphoSupply" supplyCallbackSelectorWord hm hs hlen hsrc hdata hdataSize
       (by rw [supplyCallbackSelectorWord_bytes]; exact supplyCallback_encode assets data)
       hdecode (by simp) rd1
-    change RD _ _ _ _ (UInt256.ofNat 4291) _ _ _ _ _ _ _ at rd2
+    change RD fork _ _ _ _ (UInt256.ofNat 4291) _ _ _ _ _ _ _ at rd2
     cases z
     · exact .reverted (ExecBlock.consRevert (ExecStmt.iteTrue hg
         (supplyCallback_failure hl imms evm evm1 result hcode' hcall')))
@@ -67,7 +69,7 @@ theorem morphoSupplyCallbackTail {v : MorphoImmutables} {ee : ExecutionEnv} {g :
         simpa only [callerCallbackCalledFrame, callerCallbackFrame, store_get_ne (k := "__c7") (a := "__memory") _ _ (by decide),
           store_get_ne (k := "callback") (a := "__memory") _ _ (by decide)] using hget
       have hf := morphoSupplyTransfer p _ imms hc hl1 hs1 hm2 (le_trans hsize hp.size) hptr hget1 hzero2 htoken2 rd3
-      have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+      have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
           (supplyTransition.body.drop 18)
           (callerCallbackCalledFrame { contract := contract, locals := locals, immutables := imms }
             evm.executionEnv.source "__c7") evm1 (supplyTransition.body.drop 19) :=

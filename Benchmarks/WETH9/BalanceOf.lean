@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `balanceOf(address)` refinement
 
@@ -70,7 +72,7 @@ theorem weth9Decode_balanceOf_none_short {I : ExecutionEnv}
 /-- The Stele `balanceOf(address)` body returns `balanceOf[owner]`. -/
 theorem weth9BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (balanceOfStore I) balanceOfTransition.body
+    ExecTransitionBody fork config contract evm (balanceOfStore I) balanceOfTransition.body
       (.returned { contract := contract, locals := balanceOfStore I } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -107,10 +109,10 @@ theorem weth9BalanceOfReachGetter {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 6)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1553⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨1553⟩
       (UInt256.land solcAddrMask (calldataWord I.calldata 4) :: ⟨402⟩ :: [weth9SelWord I])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
+  obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h586⟩ := solcFunctionGuardPeelOk (gt := ⟨584⟩) h572 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -138,9 +140,9 @@ theorem weth9BalanceOfX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 6)) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
-  obtain ⟨_, _, h1553⟩ := weth9BalanceOfReachGetter (σ := σ)
+  obtain ⟨_, _, h1553⟩ := weth9BalanceOfReachGetter (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz36 hsize hsel
   obtain ⟨_, _, h402⟩ := RD.solcSingleMappingGetter (baseSlot := ⟨3⟩)
     (key := balanceOfArgMaskedWord I) (ret := ⟨402⟩) (R := [weth9SelWord I]) h1553
@@ -167,13 +169,13 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (weth9SelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 6) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchBalanceOf hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) (balanceOfStore I)
           balanceOfTransition.body
           (.returned { contract := contract, locals := balanceOfStore I }
@@ -188,7 +190,7 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
       hdisp (weth9Decode_balanceOf_ok hsz36) hbody rfl
       (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ I)))
   · have hsz : I.calldata.size < 36 := by omega
-    obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
+    obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     obtain ⟨_, _, h586⟩ := solcFunctionGuardPeelOk (gt := ⟨584⟩) h572 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -199,7 +201,7 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
         hsize]
       simp only [show (⟨32⟩ : UInt256).toNat = 32 from rfl,
         show (⟨4⟩ : UInt256).toNat = 4 from rfl]; omega
-    have hrev : RDrev weth9Bytecode (Sat256.ofUInt256 g)
+    have hrev : RDrev fork weth9Bytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
       h586.push2 ⟨402⟩ (by native_decide) (by simp)
         |>.push1 ⟨4⟩ (by native_decide) (by simp)
@@ -219,12 +221,12 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
 theorem weth9BalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9BalanceOfBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (weth9SelBytes 6) (by native_decide) hsel
-    obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
+    obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨584⟩) h572 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

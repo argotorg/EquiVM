@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.StaticCallBridge
 import Benchmarks.EAS.EAS.GetSchemaSource
 import Benchmarks.EAS.EAS.CallMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -64,13 +66,13 @@ theorem schemaStaticcall {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 
     {R : List UInt256} (v : EASImmutables) (site : SchemaCallSite)
     (hstack : (schemaCallSaved site ptr R).length+1 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hcd : mem.readWithPadding ptr.toNat 36 = getSchemaPayload uid)
-    (rd : RD (deployedRuntime v) ee g s0 (schemaCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (schemaCallPC site)
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::ptr::⟨36⟩::ptr::⟨0⟩::schemaCallSaved site ptr R)
       mem aw rdata σ k C) :
     ∃ evm' σ' success out aw' k' C',
-      callViaEVM evm v._schemaRegistry 0 (getSchemaPayload uid) (success,evm',out) false ∧
+      callViaEVM fork evm v._schemaRegistry 0 (getSchemaPayload uid) (success,evm',out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
-      RD (deployedRuntime v) ee g s0 (schemaAfterCallPC site)
+      RD fork (deployedRuntime v) ee g s0 (schemaAfterCallPC site)
         ((if success then ⟨1⟩ else ⟨0⟩)::schemaCallSaved site ptr R) mem aw' out σ' k' C' := by
   have hsmall : (getSchemaPayload uid).size ≤ Ethereum.EVM.maxReturnDataSizeByGas := by
     simp only [getSchemaPayload,ByteArray.size_append,toByteArray_size]

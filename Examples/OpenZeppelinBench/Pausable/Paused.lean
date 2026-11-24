@@ -1,5 +1,7 @@
 import Examples.OpenZeppelinBench.Pausable.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -14,7 +16,7 @@ abbrev pausedReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "_paused" = none) :
-    ExecTransitionBody config contract evm locals pausedTransition.body
+    ExecTransitionBody fork config contract evm locals pausedTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(wordToElem .bool
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩))])) := by
@@ -30,16 +32,16 @@ theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
         (hty := hty) (hloc := by rfl), storageLocLoad_bool_offset0])
 
 theorem pausableX_paused {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD pausableBenchBytecode I g
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨99⟩ [pausableSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret pausableBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork pausableBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (pausedReturnWord σ I)) := by
   obtain ⟨_, _, rd99⟩ := hreach
   have rd101 := evm_run rd99 with [jumpdest, push0]
   obtain ⟨_, _, rd102₀⟩ := rd101.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd102⟩ :
-      ∃ k C, RD pausableBenchBytecode I g (initState σ σ₀ g A I) ⟨102⟩
+      ∃ k C, RD fork pausableBenchBytecode I g (initState σ σ₀ g A I) ⟨102⟩
         [pausedRawWord σ I, pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [pausedRawWord, initState] using rd102₀⟩
@@ -111,16 +113,16 @@ theorem pausablePausedBody {σ σ₀ A I}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩)
-    (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz := pausablePausedSelector_size hsel
   have hd := pausableDispatch_paused (cd := I.calldata) hsel
   have hdec := pausableDecode_paused (I := I) hsz
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         pausedTransition.body
         (.returned { contract := contract, locals := ∅ }

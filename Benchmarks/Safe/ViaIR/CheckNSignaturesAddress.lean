@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.CheckNSignaturesTrace
 
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -20,10 +22,10 @@ theorem safeChecknsignaturesAddressBytes32BytesUint256BodyCore
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checknsignaturesAddressBytes32BytesUint256Transition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x1f 0xca 0xc7 0xf3 ⟨0x1fcac7f3⟩
     hdispatch checknsignaturesAddressBytes32BytesUint256SelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x1fcac7f3⟩ 2 ⟨6508⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -35,7 +37,7 @@ theorem safeChecknsignaturesAddressBytes32BytesUint256BodyCore
   cases hdec : decodeCalldata (signatureAddressNames true) (signatureAddressTypes true)
       I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       obtain hr | ⟨len, aw', k', C', hh, hs, hc, hoff, hw, hn, hin, hr⟩ :=
         safeDecodeSignatureAddressEvidence true hdecode hlong hsize (by simp)
       · exact hr
@@ -101,7 +103,7 @@ theorem safeChecknsignaturesAddressBytes32BytesUint256Refines
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checknsignaturesAddressBytes32BytesUint256Transition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeChecknsignaturesAddressBytes32BytesUint256BodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

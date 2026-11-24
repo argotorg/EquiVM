@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WordComparisons
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -52,7 +54,7 @@ theorem SupplyCollateralLocals.evalAccount {p assets account data locals}
 theorem morphoSupplyCollateralPrelude (p : MarketParamsWords) (assets account : UInt256) (data : ByteArray)
     (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ABlock config evm { contract := contract, locals := supplyCollateralArgs p assets account data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := supplyCollateralArgs p assets account data, immutables := imms }
       supplyCollateralTransition.body (supplyCollateralFrame p assets account data evm.executionEnv.calldata imms)
       (supplyCollateralTransition.body.drop 4) := by
   refine ⟨fun h => (calldataPrelude_ok hcv hsize).run (ExecBlock.consNormal ?_ h)⟩
@@ -64,7 +66,7 @@ theorem morphoSupplyCollateralSourceGuards (p : MarketParamsWords) (assets accou
     (hc : p.Canonical) (ha : account.toNat < EVM.addressModulus) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : SupplyCollateralGuards evm.accountMap evm.executionEnv p assets account) :
-    ABlock config evm { contract := contract, locals := supplyCollateralArgs p assets account data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := supplyCollateralArgs p assets account data, immutables := imms }
       supplyCollateralTransition.body (supplyCollateralFrame p assets account data evm.executionEnv.calldata imms)
       (supplyCollateralTransition.body.drop 7) := by
   have hl := supplyCollateralFrame_locals p assets account data evm.executionEnv.calldata imms
@@ -77,11 +79,11 @@ theorem morphoSupplyCollateralSourceReject (p : MarketParamsWords) (assets accou
     (hc : p.Canonical) (ha : account.toNat < EVM.addressModulus) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hg : ¬ SupplyCollateralGuards evm.accountMap evm.executionEnv p assets account) :
-    ExecTransitionBody config contract evm (supplyCollateralArgs p assets account data)
+    ExecTransitionBody fork config contract evm (supplyCollateralArgs p assets account data)
       supplyCollateralTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   have hl := supplyCollateralFrame_locals p assets account data evm.executionEnv.calldata imms
-  have pref := morphoSupplyCollateralPrelude p assets account data hc evm imms hcv hsize
+  have pref := morphoSupplyCollateralPrelude (fork := fork) p assets account data hc evm imms hcv hsize
   by_cases hcreated : marketFieldWord evm.accountMap evm.executionEnv p.id 4 ≠ ⟨0⟩
   swap
   · exact pref.requireRevert (by simpa only [decide_eq_false hcreated] using

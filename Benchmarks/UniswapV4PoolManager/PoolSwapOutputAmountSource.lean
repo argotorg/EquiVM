@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SafeCast256Source
 import Benchmarks.UniswapV4PoolManager.SignedSubSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -13,19 +15,19 @@ theorem poolSwapOutputAmountSource {f : Frame} {evm : State}
     (hf : f.contract = contract) (hs : f.locals.get? "step" = some (poolSwapStepValue s))
     (hr : f.locals.get? "amountSpecifiedRemaining" = some (.int (EVM.signed remaining)))
     (hc : f.locals.get? "amountCalculated" = some (.int (EVM.signed calculated))) :
-    ExecBlock config f evm poolSwapOutputAmountStmts
+    ExecBlock fork config f evm poolSwapOutputAmountStmts
       (if poolSwapOutputAmountFits s calculated then .ok (poolSwapOutputAmountFrame f s remaining calculated) evm else .reverted) := by
   let total := s.amountIn+s.feeAmount
   let f1 := valueLocal f "__c16" (.int (EVM.signed s.amountOut))
   let f2 := valueLocal f1 "amountSpecifiedRemaining" (.int (EVM.signed (UInt256.sub remaining s.amountOut)))
   let f3 := valueLocal f2 "__c17" (.int (EVM.signed total))
-  have hfirst := uintToInt256Call (evm := evm) hf
+  have hfirst := uintToInt256Call (fork := fork) (evm := evm) hf
     (evalStructField (field := "amountOut") (evalLocalValue hs) rfl) "__c16"
   by_cases ho : s.amountOut.toNat < 2^255
   · rw [if_pos ho] at hfirst
     have hr1 : f1.locals.get? "amountSpecifiedRemaining" = some (.int (EVM.signed remaining)) :=
       (store_get_ne _ _ (by decide : ("__c16" == "amountSpecifiedRemaining") = false)).trans hr
-    have hremaining : ExecStmt config f1 evm poolSwapOutputAmountStmts[1]! (.ok f2 evm) :=
+    have hremaining : ExecStmt fork config f1 evm poolSwapOutputAmountStmts[1]! (.ok f2 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSignedWordSub (evalLocalValue hr1) (evalLocalValue (store_get_self _ _ _)))
         (assignLocalValue hr1)
     have hs2 : f2.locals.get? "step" = some (poolSwapStepValue s) :=
@@ -35,7 +37,7 @@ theorem poolSwapOutputAmountSource {f : Frame} {evm : State}
     have hfee := evalStructField (field := "feeAmount") (evalLocalValue (cfg := config) (evm := evm) hs2) rfl
     by_cases hsum : s.amountIn.toNat+s.feeAmount.toNat < UInt256.size
     · have heTotal := checkedAddSourceOk hinput hfee hsum
-      have hsecond := uintToInt256Call (f := f2) hf heTotal "__c17"
+      have hsecond := uintToInt256Call (fork := fork) (f := f2) hf heTotal "__c17"
       by_cases ht : total.toNat < 2^255
       · rw [if_pos ht] at hsecond
         have hc3 : f3.locals.get? "amountCalculated" = some (.int (EVM.signed calculated)) :=
@@ -51,7 +53,7 @@ theorem poolSwapOutputAmountSource {f : Frame} {evm : State}
             rw [← wordOfInt_signed_sub, signed_wordOfInt hfit]
           rw [← he] at hlast
           exact ExecBlock.consNormal hfirst (ExecBlock.consNormal hremaining (ExecBlock.consNormal hsecond
-            (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hlast (assignLocalValue hc3)))))
+            (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hlast (assignLocalValue hc3)))))
         · rw [if_neg (show ¬signedFits ⟨256, by decide⟩ (EVM.signed calculated-EVM.signed total) from hfit)] at hlast
           rw [if_neg (show ¬poolSwapOutputAmountFits s calculated from fun h => hfit h.2.2.2)]
           exact ExecBlock.consNormal hfirst (ExecBlock.consNormal hremaining (ExecBlock.consNormal hsecond

@@ -2,6 +2,8 @@ import Benchmarks.Safe.Main.TokenTransferMemory
 import Benchmarks.Safe.Main.Decoders
 import Benchmarks.Safe.Main.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -63,12 +65,12 @@ theorem safeTokenTransferMemory {mem : ByteArray} {ptr : Nat} {receiver amount :
 set_option maxRecDepth 100000 in
 theorem safeTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
     {amount receiver token ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8915⟩ (amount :: receiver :: token :: ret :: R)
+    (h : RD fork safeBytecode I g s0 ⟨8915⟩ (amount :: receiver :: token :: ret :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 96 ≤ mem.size) (hp : 96 ≤ ptr)
     (hb : ptr + 100 < UInt256.size) (hc : receiver.toNat < EVM.addressModulus)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨9004⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨9004⟩
       (gasArg :: token :: ⟨0⟩ :: UInt256.ofNat (ptr + 32) :: ⟨68⟩ :: ⟨0⟩ :: ⟨32⟩ ::
         UInt256.ofNat ptr :: ⟨0⟩ :: amount :: receiver :: token :: ret :: R)
       (tokenTransferMemory mem ptr receiver amount) aw' rdata σ k' C' := by

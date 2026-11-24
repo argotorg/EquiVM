@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapInputAmountSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapOutputAmountSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -22,7 +24,7 @@ theorem poolSwapAmountSource {f : Frame} {evm : State}
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p))
     (hr : f.locals.get? "amountSpecifiedRemaining" = some (.int (EVM.signed remaining)))
     (hc : f.locals.get? "amountCalculated" = some (.int (EVM.signed calculated))) :
-    ExecStmt config f evm poolSwapLoopBody[15]!
+    ExecStmt fork config f evm poolSwapLoopBody[15]!
       (if poolSwapAmountFits s p.amountSpecified calculated then
         .ok (poolSwapAmountFrame f s p.amountSpecified remaining calculated) evm else .reverted) := by
   have hg : evalExpr? config f evm (.binary .gt (.field (.var "params") "amountSpecified") (.intLit 0)) =

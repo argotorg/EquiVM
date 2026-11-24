@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingCandidate
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,14 +12,14 @@ theorem oracleSurroundingOldestX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18832⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18832⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hn : card.toNat ≠ 0) (hc : card.toNat < 2 ^ 16)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 256 ≤ 2 ^ 200)
     (hov : R.length + 26 ≤ 1024) :
     ∃ mem' aw' p' ptr' k' C', C + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨19052⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨19052⟩
         (oracleSurroundingStack afterPtr ptr' card liquidity index tickRaw targetRaw timeRaw ret R)
         mem' aw' rdata σ k' C' ∧
       HeapMemory mem' aw' p' ∧

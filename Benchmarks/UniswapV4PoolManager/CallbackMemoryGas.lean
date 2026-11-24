@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.CalleeReturnGas
 import Benchmarks.UniswapV4PoolManager.CallGasEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -28,7 +30,7 @@ theorem thetaNonprecompile_success_returnMemoryCost {fork : Ethereum.Fork}
 
 theorem ZeroCallGasEvidence.memoryCost_le_spent {evm evm' : State}
     {target : AccountAddress} {data out : ByteArray}
-    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π evm.executionEnv.fork)
+    (w : ZeroCallGasEvidence fork evm target data evm' true out) (hn : target ∉ π fork)
       :
     Cₘ (UInt256.ofNat ((out.size+31)/32)) ≤ w.spent := by
   have hc := thetaNonprecompile_success_returnMemoryCost hn w.theta.symm

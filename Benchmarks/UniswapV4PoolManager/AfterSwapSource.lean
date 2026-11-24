@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapSelectionSource
 import Benchmarks.UniswapV4PoolManager.AfterSwapFinishSource
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,8 +35,8 @@ theorem afterSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
     (hbefore : f.locals.get? "beforeSwapHookReturn" = some (.int (EVM.signed before)))
     (hc : PoolKeyCanonical key) (hl : p.priceLimit.toNat < 2^160)
     (hcall : evm.executionEnv.source ≠ hook → afterSwapActive hook →
-      callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
-    ExecFuncBody config f evm afterSwapFunction.body (afterSwapResult f evm post hook key p delta before data z out) := by
+      callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
+    ExecFuncBody fork config f evm afterSwapFunction.body (afterSwapResult f evm post hook key p delta before data z out) := by
   apply execFuncBody_block
   have heq := evalEqAddress
     (show evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) by
@@ -50,7 +52,7 @@ theorem afterSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
     have hs1 := balanceDeltaAmount0_eval (evalLocalValue (cfg := config) (evm := evm) hbefore)
     have hu1 := balanceDeltaAmount1_eval (evalLocalValue (cfg := config) (evm := evm) (f := f1)
       ((store_get_ne _ _ (by decide : ("specified" == "beforeSwapHookReturn") = false)).trans hbefore))
-    have hpre : ExecBlock config f evm (afterSwapFunction.body.take 3) (.ok f2 evm) :=
+    have hpre : ExecBlock fork config f evm (afterSwapFunction.body.take 3) (.ok f2 evm) :=
       ExecBlock.consNormal (ExecStmt.iteFalse (heq.trans (by rw [decide_eq_false hself])) ExecBlock.nil)
         (ExecBlock.consNormal (ExecStmt.letDecl hs1) (ExecBlock.consNormal (ExecStmt.letDecl hu1) ExecBlock.nil))
     have hget := afterSwapPrelude_get f before
@@ -65,7 +67,7 @@ theorem afterSwapBody {f : Frame} {evm post : State} {hook : AccountAddress}
       ((hget "self" (by decide) (by decide)).trans hs)
       ((hget "key" (by decide) (by decide)).trans hk) hp2 hd2
       ((hget "hookData" (by decide) (by decide)).trans hb) hu2 hc hl (hcall hself)
-    have htail : ExecBlock config f2 evm (afterSwapFunction.body.drop 3)
+    have htail : ExecBlock fork config f2 evm (afterSwapFunction.body.drop 3)
         (continueBlockResult (fun f' next => afterSwapFinishResult f' next p delta (balanceDeltaAmount0 before)
           (afterSwapSelectedUnspecified hook (balanceDeltaAmount1 before) out))
           (afterSwapSelectedResult f2 evm post hook key p delta (balanceDeltaAmount1 before) data z out)) := by

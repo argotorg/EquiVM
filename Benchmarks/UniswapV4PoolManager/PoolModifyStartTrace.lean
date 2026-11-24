@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_017
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,8 +17,8 @@ theorem poolModifyAllocateCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hp : memLoad (UInt256.ofNat 64) mem = ptr) (hf : ptr.toNat+128 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨5680⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', Cₘ aw'+C ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨5692⟩ (x2 :: x0 :: x1 :: ptr :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5680⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', Cₘ aw'+C ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨5692⟩ (x2 :: x0 :: x1 :: ptr :: R)
       (writeWord mem 64 (ptr+⟨128⟩)) aw' rdata σ k' C' := by
   have rd1 := poolManagerBlocks.poolManager_block_5680 (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -32,8 +34,8 @@ theorem poolModifyAllocateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hp : memLoad (UInt256.ofNat 64) mem = ptr) (hf : ptr.toNat+128 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨5680⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨5692⟩ (x2 :: x0 :: x1 :: ptr :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5680⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨5692⟩ (x2 :: x0 :: x1 :: ptr :: R)
       (writeWord mem 64 (ptr+⟨128⟩)) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', _, rd⟩ := poolModifyAllocateCostTrace v hstack hp hf h
   exact ⟨aw', k', C', rd⟩
@@ -53,10 +55,10 @@ theorem poolModifyInitialCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
     (hf : ptr.toNat+128 < UInt256.size) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨5692⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5692⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', Cₘ aw'+C ≤ C'+Cₘ aw ∧ ptr.toNat+128 ≤ aw'.toNat*32 ∧ RD (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
+    ∃ aw' k' C', Cₘ aw'+C ≤ C'+Cₘ aw ∧ ptr.toNat+128 ≤ aw'.toNat*32 ∧ RD fork (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       (poolModifyStateMemory mem ptr) aw' rdata σ k' C' := by
   have hc : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt delta) = EVM.wordOfInt delta :=
@@ -98,10 +100,10 @@ theorem poolModifyInitialTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
     (hf : ptr.toNat+128 < UInt256.size) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨5692⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5692⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 (if delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: upper :: EVM.wordOfInt delta :: lower :: R)
       (poolModifyStateMemory mem ptr) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', _, _, rd⟩ := poolModifyInitialCostTrace v hstack hf hd h

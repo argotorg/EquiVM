@@ -1,27 +1,29 @@
 import Benchmarks.Dss.Clipper.Fallback
 import Ethereum.Theory.OpcodeLemmas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
-def RDinvalid (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
-  X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-  X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction
+def RDinvalid (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+  X fork (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction
 
 theorem RD.invalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, _hstk, _hgas, _hk, _hC, _hmem, _haw,
       _hrdata, _hacc, _hee, _hworld⟩
   · exact Or.inl hoog
   · have hstep :
-        Xstep (D_J code 0) s = .error .InvalidInstruction := by
+        Xstep fork (D_J code 0) s = .error .InvalidInstruction := by
       have hd :
           decode s.executionEnv.code s.machineState.pc = some (.INVALID, .none) := by
         rw [hcode, hpc]
@@ -37,24 +39,24 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
     {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
     {code : ByteArray} {callargs}
     (hcode : I.code = code)
-    (h : RDinvalid code (Sat256.ofUInt256 g)
+    (h : RDinvalid fork code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   rcases h with hoog | hinv
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by
       rw [← hcode] at hoog
       exact hoog))
   · refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
     have hXi :
-        Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+        Ξ fork σ σ₀ g A I = .error .InvalidInstruction :=
       Xi_error_of_X (g := g) (by
         rw [← hcode] at hinv
         exact hinv)

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Entry
 
+variable {fork : Ethereum.Fork}
+
 /-! # Scalar calldata decoding for the pinned solc 0.8 ABI mode -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -154,8 +156,8 @@ theorem easDecodeAddressEVM_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 4 ≤ 1024)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4274⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (calldataWord ee.calldata 4 :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4274⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (calldataWord ee.calldata 4 :: R)
       mem aw rdata σ k' C' := by
   have rd1 := easBlocks.eas_block_4274_fallthrough (immWords := wordsOf (immStore v)) hstack
     (by change UInt256.sub (calldataWord ee.calldata 4)
@@ -170,8 +172,8 @@ theorem easDecodeAddressEVM_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hcanon : ¬ (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4274⟩ (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4274⟩ (ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hmask : calldataWord ee.calldata 4 ≠ UInt256.land (calldataWord ee.calldata 4) solcAddrMask := by
     intro heq
     exact hcanon (heq ▸ solcAddrMask_result_canonical (calldataWord ee.calldata 4))

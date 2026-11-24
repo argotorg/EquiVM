@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationStepLoad
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStore
 import Benchmarks.UniswapV3.Pool.SourceFrame
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,7 +15,7 @@ theorem swapPoolLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4268⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4268⟩
       ([p, exactWord, cache] ++ R) mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hcget : frame.locals.get? "cache" = some c.value)
@@ -24,9 +26,9 @@ theorem swapPoolLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hperm : ee.perm = true) (hbc : cache.toNat + 192 ≤ 2 ^ 200)
     (hbp : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
     ∃ evm' σ' aw' k' C',
-      ExecStmt config frame evm swapTransition.body[15]! (.ok frame evm') ∧
+      ExecStmt fork config frame evm swapTransition.body[15]! (.ok frame evm') ∧
       SourceState s0 ee σ' evm' ∧
-      RD (deployedRuntime v) ee g s0 ⟨4338⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨4338⟩
         ([p, exactWord, cache] ++ R) mem aw' rdata σ' k' C' ∧ HeapMemory mem aw' free := by
   have hsl := SwapStateMemory.load_liquidity hs (by change _ < 2 ^ 256; omega)
   have hcl : memLoad (cache + UInt256.ofNat 32) mem = c.liquidityStart :=
@@ -74,10 +76,10 @@ theorem swapPoolLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have hass := assignPoolLiquidity frame.locals frame.immutables evm
       (Int.ofNat s.liquidity.toNat) hbase
     rw [← frame_eq_of_parts hf rfl, wordOfInt_ofNat_toNat] at hass
-    have hex : ExecStmt config frame evm swapTransition.body[15]!
+    have hex : ExecStmt fork config frame evm swapTransition.body[15]!
         (.ok frame (storePoolLiquidity evm s.liquidity)) :=
       ExecStmt.iteTrue he (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr ((congrArg ExecutionEnv.perm hsource.env).trans hperm))
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr ((congrArg ExecutionEnv.perm hsource.env).trans hperm))
         (evalExpr_structField (name := "liquidity") (evalExpr_var_get hsget) rfl) hass) .nil)
     obtain ⟨k2, C2, r2⟩ := uniswapV3Pool_block_4302 (immWords := wordsOf (immStore v))
       (by change R.length + 2 + 7 ≤ 1024; omega) hperm r1

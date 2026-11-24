@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.PoolTokenTransfer
 import Benchmarks.UniswapV3.Pool.FlashPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -30,7 +32,7 @@ theorem evalFlashTransferGuard (v : UniswapV3PoolImmutables) (locals : Store) (e
 theorem flashTransferSkip (v : UniswapV3PoolImmutables) (locals : Store) (evm : EVM.State)
     (second : Bool)
     (hget : locals.get? (poolAmountName second) = some (.int 0)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashTransferStmt second)
       (.ok {contract := contract, locals := locals, immutables := immStore v} evm) := by
   refine ExecStmt.iteFalse ?_ ExecBlock.nil
@@ -43,9 +45,9 @@ theorem flashTransferReturns (v : UniswapV3PoolImmutables) (locals : Store)
     (hr : locals.get? "recipient" = some (.address recipient))
     (ha : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hp : 0 < amount.toNat)
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       evm safeTransferFunction.body (.returned calleeFrame evm' none)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashTransferStmt second)
       (.ok { contract := contract
              locals := locals.insert (flashTransferName second) .unit
@@ -61,9 +63,9 @@ theorem flashTransferReverts (v : UniswapV3PoolImmutables) (locals : Store)
     (hr : locals.get? "recipient" = some (.address recipient))
     (ha : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hp : 0 < amount.toNat)
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       evm safeTransferFunction.body .reverted) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashTransferStmt second) .reverted := by
   refine ExecStmt.iteTrue ?_ (ExecBlock.consRevert ?_)
   · simpa only [hp, decide_true] using evalFlashTransferGuard v locals evm second amount ha

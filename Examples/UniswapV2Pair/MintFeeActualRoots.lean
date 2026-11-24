@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeRootArithmeticCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -11,7 +13,7 @@ theorem uniswapMintFeeActualRootArithmeticCases
     {evmFeeS : EVM.State} {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeToWord,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
@@ -26,10 +28,10 @@ theorem uniswapMintFeeActualRootArithmeticCases
     (mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size ∧
       mintFeeRootTimesFiveNat rootK < UInt256.size ∧
       mintFeeDenominatorNat rootK rootKLast < UInt256.size) ∨
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   exact uniswapMintFeeActualRootArithmeticCasesOfTail rd7899 htotalEq hroot hrootKNonneg
     hrootKSize hrootKLastNonneg hrootKLastSize hmem hread64

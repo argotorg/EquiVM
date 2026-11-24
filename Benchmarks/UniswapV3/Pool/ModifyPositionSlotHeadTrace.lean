@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,9 +11,9 @@ set_option maxRecDepth 10000
 theorem modifyPositionSlotHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16264⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16264⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16345⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16345⟩
       (slot0FieldWord 25 2 σ ee :: ⟨96⟩ :: (p + ⟨96⟩) :: ⟨65535⟩ :: ⟨32⟩ ::
         EVM.wordOfInt (slot0TickValue σ ee) :: solcSlotWordAt ⟨0⟩ σ ee :: p :: ⟨64⟩ :: R)
       (slot0ReadHeadMem mem p σ ee) aw' rdata σ k' C' ∧ ActiveWords aw' := by
@@ -27,7 +29,7 @@ theorem modifyPositionSlotHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
   simp only [uniswapV3Pool_block_16264_stack, hload, h64, modifyPositionSlotHeadMem_eq σ ee hm hb,
     signextend_idem ⟨24, by decide⟩ (UInt256.ofNat 2) _ (by decide) (by decide),
     u256_add_comm (UInt256.ofNat 64) p] at r1
-  change RD (deployedRuntime v) ee g s0 ⟨16345⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨16345⟩
     (UInt256.land (UInt256.ofNat 65535) (UInt256.div (solcSlotWordAt ⟨0⟩ σ ee)
       (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 200))) ::
       ⟨96⟩ :: (p + ⟨96⟩) :: ⟨65535⟩ :: ⟨32⟩ ::

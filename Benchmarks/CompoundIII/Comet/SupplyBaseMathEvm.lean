@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RepayAmountsEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_048
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,14 +21,14 @@ theorem cometSupplyBaseMath {v : CometWithExtendedAssetListImmutables}
     {aw principal ptr sender amount dst ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 24 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hprincipal : memLoad ptr mem = UInt256.signextend (UInt256.ofNat 12) principal)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12495⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12495⟩
       (ptr :: ⟨12604⟩ :: amount :: sender :: ⟨12591⟩ :: dst :: ret :: R)
       mem aw rdata σ k C) :
     (SupplyBaseMathFits evm principal amount ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨12543⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨12543⟩
         (supplyBaseMathStack evm principal ptr sender amount dst ret R)
         mem aw' rdata σ k' C') ∨
-    (¬ SupplyBaseMathFits evm principal amount ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ SupplyBaseMathFits evm principal amount ∧ RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_12495 (immWords := wordsOf (immStore v))
     (by change R.length + 6 + 9 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ValidUIDSource
 import Benchmarks.EAS.EAS.BoolCallBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -15,9 +17,9 @@ def refUIDLocals (L : Store) (uid value : UInt256) (heap : Nat) : Store :=
 theorem refUIDSource {L imms : Store} {evm : EVM.State} {r : AttestationRequestRecord} {heap : Nat}
     (hr : L.get? "request" = some r.struct) (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if r.refUID = ⟨0⟩ ∨ dbUIDWord evm r.refUID ≠ ⟨0⟩ then
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm refUIDStmt
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm refUIDStmt
         (.ok {contract := contract,locals := refUIDLocals L r.refUID (dbUIDWord evm r.refUID) heap,immutables := imms} evm)
-    else ExecStmt config {contract := contract,locals := L,immutables := imms} evm refUIDStmt .reverted := by
+    else ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm refUIDStmt .reverted := by
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm refUIDExpr = .ok (wordBytes32Value r.refUID) := by
     simp only [refUIDExpr,evalExpr?,hr,EvalResult.ofOption,EvalResult.bind,bind]
     rfl
@@ -29,10 +31,10 @@ theorem refUIDSource {L imms : Store} {evm : EVM.State} {r : AttestationRequestR
   by_cases hz : r.refUID = ⟨0⟩
   · rw [if_pos (Or.inl hz),refUIDLocals,if_pos hz]
     exact ExecStmt.iteFalse (by simpa only [hz,ne_self_iff_false,decide_false] using hcond) ExecBlock.nil
-  · have hc := validUIDCall (L := L) (imms := imms) (evm := evm) (word := r.refUID) (heap := heap)
+  · have hc := validUIDCall (fork := fork) (L := L) (imms := imms) (evm := evm) (word := r.refUID) (heap := heap)
       (args := [refUIDExpr,.var "$EAS.freeMemory"]) (retVar := "__c4$allocation") (by
       simp only [evalExprs?,he,evalExpr?,hh,EvalResult.ofOption,EvalResult.bind,bind,pure])
-    have hu := unpackHeapResult (cfg := config) (evm := evm)
+    have hu := unpackHeapResult (fork := fork) (cfg := config) (evm := evm)
       (frame := {contract := contract,locals := L.insert "__c4$allocation" (.tuple [
         .bool (decide (dbUIDWord evm r.refUID ≠ ⟨0⟩)),.int (Int.ofNat heap)]),immutables := imms})
       (tmp := "__c4$allocation") (result := "__c4") (cursor := "$EAS.freeMemory")

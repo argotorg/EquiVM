@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyBitmapActiveWords
 import Benchmarks.UniswapV4PoolManager.BlockTraceCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,12 +23,12 @@ theorem poolModifyBitmapsPaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
     (h5 : 5 ≤ aw.toNat) (hactive : ptr.toNat+128 ≤ aw.toNat*32)
     (hpa : (params+UInt256.ofNat 128).toNat+32 ≤ aw.toNat*32) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨7256⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ kr Cr, Cₘ aw ≤ Cr ∧
-        RD (deployedRuntime v) I g s0 ⟨5722⟩
+        RD fork (deployedRuntime v) I g s0 ⟨5722⟩
           (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
           (poolModifyBitmapsMemory mem id p fl fu) aw rdata post.accountMap kr Cr)
       (fun _ _ => False) (poolModifyBitmapsResult f evm id p fl fu) := by

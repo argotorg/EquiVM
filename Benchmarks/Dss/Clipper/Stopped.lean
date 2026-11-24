@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -104,7 +106,7 @@ theorem clipperEvalStopped (v : ClipperImmutables) (evm : EVM.State) (locals : S
 
 theorem clipperStoppedBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "stopped" = none) :
-    ExecTransitionBody config contract evm locals stoppedTransition.body
+    ExecTransitionBody fork config contract evm locals stoppedTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat))])) (immStore v) := by
@@ -118,12 +120,12 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 20)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨875⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨875⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperStoppedSelectorWord hsz hsel
-  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -147,7 +149,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
+  have h162 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
         change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none)
@@ -170,7 +172,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
+  have h222 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest
       (by
@@ -283,11 +285,11 @@ theorem clipperStoppedBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 20) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ stoppedTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -296,7 +298,7 @@ theorem clipperStoppedBody (v : ClipperImmutables) {code : ByteArray}
       clipperStoppedBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hreach := clipperReachStoppedBody
+  have hreach := clipperReachStoppedBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hroutine : (D_J code 0).contains (⟨3491⟩ : UInt256) = true := by

@@ -1,13 +1,15 @@
 import Benchmarks.Safe.V1_0227664.SafeAddSource
 import Benchmarks.Safe.V1_0227664.WordExpressionSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
 
 theorem safeSubSource {cfg : Config} (caller : Frame) (evm : EVM.State) (a b : UInt256)
     (hfit : b.toNat ≤ a.toNat) :
-    ExecFuncBody cfg (arithmeticFrame caller a b) evm subFunction.body
+    ExecFuncBody fork cfg (arithmeticFrame caller a b) evm subFunction.body
       (.returned (arithmeticFrame caller a b) evm (some [uint256Value (UInt256.sub a b)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -19,7 +21,7 @@ theorem safeSubSource {cfg : Config} (caller : Frame) (evm : EVM.State) (a b : U
 
 theorem safeSubSourceUnderflow {cfg : Config} (caller : Frame) (evm : EVM.State)
     (a b : UInt256) (hlt : a.toNat < b.toNat) :
-    ExecFuncBody cfg (arithmeticFrame caller a b) evm subFunction.body .reverted := by
+    ExecFuncBody fork cfg (arithmeticFrame caller a b) evm subFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.returnRevert
@@ -35,7 +37,7 @@ theorem safeInternalSub {caller : Frame} {evm : EVM.State} {lhs rhs : Expr}
     (ha : evalExpr? config caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? config caller evm rhs = .ok (uint256Value b))
     (hfit : b.toNat ≤ a.toNat) :
-    ExecStmt config caller evm (.internalCall "_sub" [lhs, rhs] retVar)
+    ExecStmt fork config caller evm (.internalCall "_sub" [lhs, rhs] retVar)
       (.ok { caller with
         locals := caller.locals.insert retVar (uint256Value (UInt256.sub a b)) } evm) := by
   apply internalCallFunctionReturn (callee := subFunction)
@@ -51,7 +53,7 @@ theorem safeInternalSubUnderflow {caller : Frame} {evm : EVM.State} {lhs rhs : E
     (ha : evalExpr? config caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? config caller evm rhs = .ok (uint256Value b))
     (hlt : a.toNat < b.toNat) :
-    ExecStmt config caller evm (.internalCall "_sub" [lhs, rhs] retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_sub" [lhs, rhs] retVar) .reverted := by
   apply internalCallFunctionRevert (callee := subFunction)
     (argVals := [uint256Value a, uint256Value b]) (locals := arithmeticArgs a b)
   · simp [evalExprs?, ha, hb, bind, EvalResult.bind, pure]

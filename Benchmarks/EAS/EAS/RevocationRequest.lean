@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.AttestationRequest
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -27,7 +29,7 @@ theorem decodeRevocationDataExpr_eval {cfg : Config} {frame : Frame} {evm : EVM.
 theorem decodeRevocationDataSource {cfg : Config} {frame : Frame} {evm : EVM.State} {r : RevocationRequestRecord} {heap : Nat}
     (hd : frame.locals.get? "data" = some r.tuple)
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecFuncBody cfg frame evm decodeRevocationDataFunction.body
+    ExecFuncBody fork cfg frame evm decodeRevocationDataFunction.body
       (.returned frame evm (some [r.struct,.int (Int.ofNat heap)])) := by
   rw [decodeRevocationData_body]
   apply ExecFuncBody.execBlockRet
@@ -46,7 +48,7 @@ theorem decodeRevocationDataCall {cfg : Config} {locals imms : Store} {evm : EVM
     {args : List Expr} {retVar : Ident} {r : RevocationRequestRecord} {heap : Nat}
     (he : evalExprs? cfg {contract := contract,locals := locals,immutables := imms} evm args =
       .ok [r.tuple,.int (Int.ofNat heap)]) :
-    ExecStmt cfg {contract := contract,locals := locals,immutables := imms} evm
+    ExecStmt fork cfg {contract := contract,locals := locals,immutables := imms} evm
       (.internalCall "_decodeRevocationData" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := imms} retVar
         (some [r.struct,.int (Int.ofNat heap)])) evm) := by

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BytesAllocation
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -44,9 +46,9 @@ theorem refundAllocationSource {cfg : Config} {locals imms : Store} {evm : EVM.S
     (ho : locals.get? "result" = some (.bytes out))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if refundAllocationValid heap out.size then
-      ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm refundAllocationStmt
+      ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm refundAllocationStmt
         (.ok {contract := contract, locals := refundAllocationLocals locals heap out.size, immutables := imms} evm)
-    else ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm refundAllocationStmt .reverted := by
+    else ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm refundAllocationStmt .reverted := by
   have hn := refundResultNonempty_eval (cfg := cfg) (frame := {contract := contract, locals := locals, immutables := imms}) (evm := evm) ho
   have hb := refundResultBound_eval (cfg := cfg) (frame := {contract := contract, locals := locals, immutables := imms}) (evm := evm) ho
   have hs := bytesAllocationExpr_eval (refundResultLength_eval (cfg := cfg)
@@ -97,10 +99,10 @@ theorem refundResultSource {cfg : Config} {locals imms : Store} {evm : EVM.State
     (ho : locals.get? "result" = some (.bytes out)) (hok : locals.get? "ok" = some (.bool success))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if refundResultValid heap success out then
-      ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm refundResultTail
+      ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm refundResultTail
         (.ok {contract := contract, locals := refundAllocationLocals locals heap out.size, immutables := imms} evm)
-    else ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm refundResultTail .reverted := by
-  have ha := refundAllocationSource (cfg := cfg) (imms := imms) (evm := evm) ho hh
+    else ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm refundResultTail .reverted := by
+  have ha := refundAllocationSource (fork := fork) (cfg := cfg) (imms := imms) (evm := evm) ho hh
   have he : evalExpr? cfg {contract := contract, locals := refundAllocationLocals locals heap out.size, immutables := imms}
       evm (.var "ok") = .ok (.bool success) := by
     simp only [evalExpr?, refundAllocationLocals_ok, hok, EvalResult.ofOption]

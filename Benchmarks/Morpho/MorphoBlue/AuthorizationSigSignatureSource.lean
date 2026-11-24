@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigDigest
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSignatureABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -28,7 +30,7 @@ def authorizationSignatureLocals (locals : Store) (cd : ByteArray) : Store :=
 theorem morphoAuthorizationSignatureSource {a cd locals}
     (hl : AuthorizationLocals a cd locals) (imms : Store) (evm : EVM.State)
     (hs : 260 ≤ cd.size) (hv : (signatureRecoveryWord cd).toNat < 256) :
-    ABlock config evm { contract := contract, locals := locals, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 16)
       { contract := contract, locals := authorizationSignatureLocals locals cd, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 18) := by
@@ -39,7 +41,7 @@ theorem morphoAuthorizationSignatureSource {a cd locals}
 theorem morphoAuthorizationSignatureSourceRevert {a cd locals}
     (hl : AuthorizationLocals a cd locals) (imms : Store) (evm : EVM.State)
     (hs : 260 ≤ cd.size) (hv : ¬ (signatureRecoveryWord cd).toNat < 256) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms }
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (setAuthorizationWithSigTransition.body.drop 16) .reverted :=
   ExecBlock.consRevert (ExecStmt.letDeclRevert
     (by simpa only [hv, ↓reduceIte] using hl.evalSignature imms evm hs))

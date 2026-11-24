@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestPrepareSource
 import Benchmarks.EAS.EAS.MultiDelegatedAttestAccess
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach ABI.Solc08Calldata
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,23 +14,23 @@ theorem multiDelegatedAttestPrepareRun {L : Store} {evm : EVM.State}
     (v : EASImmutables) (hstack : R.length+24≤1024)
     (hf : MultiDelegatedAttestLocals L (delegatedBatchValues .attest ee.calldata base n) groups available heap.toNat i)
     (hi : i<n) (hn : n<UInt256.size) (hb : base.toNat+32*i<UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2777⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2777⟩
       (multiDelegatedAttestLoopStack n i base available (UInt256.ofNat groups.flatten.length) groupsPtr R) mem aw out σ k C) :
     (∃ L' aw' k' C',
       DelegatedAttestationBatchReady ee.calldata (multiRequestRoot ee.calldata base i) ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestPrepare
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestPrepare
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
       MultiDelegatedAttestVerifyLocals L' (delegatedBatchValues .attest ee.calldata base n) groups available heap.toNat i 0
         (decide (i=n-1)) (delegatedAttestationTuple ee.calldata (multiRequestRoot ee.calldata base i))
         (delegatedAttestationDataList ee.calldata (multiRequestRoot ee.calldata base i))
         (delegatedAttestationSigList ee.calldata (multiRequestRoot ee.calldata base i)) ∧
-      RD (deployedRuntime v) ee g s0 ⟨2874⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
         (multiDelegatedAttestVerifyStack ee.calldata 0 (multiRequestRoot ee.calldata base i)
           (delegatedAttestationDataOffset ee.calldata (multiRequestRoot ee.calldata base i)) base (UInt256.ofNat n)
           (delegatedAttestationDataLength ee.calldata (multiRequestRoot ee.calldata base i)) available groupsPtr
           (UInt256.ofNat groups.flatten.length) (UInt256.ofNat i) (UInt256.ofNat n-⟨1⟩) R) mem aw' out σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestPrepare .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestPrepare .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   let row := delegatedBatchElement .attest ee.calldata base i
   let root := multiRequestRoot ee.calldata base i
   let L1 := batchRowReadLocals L "multiDelegatedRequest" (decide (i=n-1)) row
@@ -37,9 +39,9 @@ theorem multiDelegatedAttestPrepareRun {L : Store} {evm : EVM.State}
     split <;> rfl
   have hnrm : normalizeRawBoolWord? row=.ok row := by
     rw [helem];split <;> rfl
-  have hsol1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestRead
+  have hsol1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestRead
       (.ok {contract := contract,locals := L1,immutables := immStore v} evm) := by
-    have hread := batchRowReadSource (imms := immStore v) (evm := evm) DelegatedBatchSite.attest.abi
+    have hread := batchRowReadSource (fork := fork) (imms := immStore v) (evm := evm) DelegatedBatchSite.attest.abi
       "multiDelegatedRequests" "multiDelegatedRequest" (by decide) hf.requests hf.index
       (by rw [delegatedBatchValues_length];exact hi) (by rw [delegatedBatchValues_length];exact hn)
       (by rw [delegatedBatchValues_get _ _ _ _ _ hi];exact hnrm)
@@ -53,8 +55,8 @@ theorem multiDelegatedAttestPrepareRun {L : Store} {evm : EVM.State}
     obtain ⟨a1,k1,C1,r1⟩ := haccess
     have hrow : L1.get? "multiDelegatedRequest"=some (delegatedAttestationTuple ee.calldata root) := by
       simp only [L1,batchRowReadLocals,store_get_self,helem,if_pos href]
-    have hcheck := multiDelegatedAttestCheck_tuple (imms := immStore v) (evm := evm) hrow
-    have hsrc := multiDelegatedAttestFieldsReadySource (imms := immStore v) (evm := evm) hrow
+    have hcheck := multiDelegatedAttestCheck_tuple (fork := fork) (imms := immStore v) (evm := evm) hrow
+    have hsrc := multiDelegatedAttestFieldsReadySource (fork := fork) (imms := immStore v) (evm := evm) hrow
     have hfields := easMultiDelegatedAttestFields v (by omega) r1
     by_cases hready : DelegatedAttestationBatchReady ee.calldata root
     · obtain ⟨a2,k2,C2,r2⟩ := hfields.1 hready

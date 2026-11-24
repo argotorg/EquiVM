@@ -1,6 +1,8 @@
 import Benchmarks.Dss.ExponentialDecrease.Rely
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -298,12 +300,12 @@ theorem stairstepFileSourceBodyCutSplit {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := fileCutPostState evm0 I
     ((I.perm = true → (fileData I).toNat ≤ RAY →
-      ExecTransitionBody config contract evm0 locals fileTransition.body
+      ExecTransitionBody fork config contract evm0 locals fileTransition.body
         (.returned { contract := contract, locals := locals } evm1 none)) ∧
       (I.perm = true → RAY < (fileData I).toNat →
-        ExecTransitionBody config contract evm0 locals fileTransition.body .reverted)) ∧
+        ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals fileTransition.body .staticViolation) := by
+      ExecTransitionBody fork config contract evm0 locals fileTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -329,10 +331,10 @@ theorem stairstepFileSourceBodyCutSplit {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileCutStorage evm0 I
   have hbody : ∀ r,
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [.assign .storage cutRef (.var "data"),
           .require (.binary .le (.var "data") (.intLit RAY))] r →
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body r := by
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -346,11 +348,11 @@ theorem stairstepFileSourceBodyCutSplit {σ σ₀ A I} {g : UInt256}
       exact evalExpr_fileDataLe_true (evm := evm1) (I := I) (locals := locals)
         (fileLocals_get_data I) hle
     have hthen :
-        ExecBlock config { contract := contract, locals := locals } evm0
+        ExecBlock fork config { contract := contract, locals := locals } evm0
           [.assign .storage cutRef (.var "data"),
             .require (.binary .le (.var "data") (.intLit RAY))]
           (.ok { contract := contract, locals := locals } evm1) := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign) ?_
       exact ExecBlock.consNormal (ExecStmt.requireTrue hleEval) ExecBlock.nil
     exact ExecFuncBody.execBlockOK (hbody _ hthen)
   · intro hperm hgt
@@ -360,11 +362,11 @@ theorem stairstepFileSourceBodyCutSplit {σ σ₀ A I} {g : UInt256}
       exact evalExpr_fileDataLe_false (evm := evm1) (I := I) (locals := locals)
         (fileLocals_get_data I) hgt
     have hthen :
-        ExecBlock config { contract := contract, locals := locals } evm0
+        ExecBlock fork config { contract := contract, locals := locals } evm0
           [.assign .storage cutRef (.var "data"),
             .require (.binary .le (.var "data") (.intLit RAY))]
           .reverted := by
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign) ?_
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign) ?_
       exact ExecBlock.consRevert (ExecStmt.requireFalse hleEval)
     exact ExecFuncBody.execBlockRevert (hbody _ hthen)
   · intro hperm
@@ -380,7 +382,7 @@ theorem stairstepFileSourceBodyCutOk {σ σ₀ A I} {g : UInt256}
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := fileCutPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) :=
   (stairstepFileSourceBodyCutSplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).1.1 hperm hle
 
@@ -392,7 +394,7 @@ theorem stairstepFileSourceBodyCutGtReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted :=
   (stairstepFileSourceBodyCutSplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).1.2 hperm hgt
 
 theorem stairstepFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
@@ -400,7 +402,7 @@ theorem stairstepFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -430,7 +432,7 @@ theorem stairstepFileSourceBodyUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
     (hnotCut : fileWhat I ≠ fileCutBytes) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -449,11 +451,11 @@ theorem stairstepFileSourceBodyUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
         .ok (.bool false) := by
     simp [evalExpr?, pure]
   have hunrec :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [.require (.boolLit false)] .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -486,7 +488,7 @@ theorem stairstepReachFileBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (stairstepSelBytes 2)) :
-    ∃ k C, RD exponentialDecreaseBytecode I g
+    ∃ k C, RD fork exponentialDecreaseBytecode I g
         (initState σ σ₀ g A I)
         stairstepFileEntryPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
@@ -512,10 +514,10 @@ theorem stairstepReachFileBody {σ σ₀ A I} {g : Sat256}
 
 theorem RD.stairstepFileDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel de : UInt256}
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨125⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨125⟩
       (de :: ⟨4⟩ :: ⟨138⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨315⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨315⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd350 := evm_run h with [
@@ -533,10 +535,10 @@ theorem RD.stairstepFileDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
 
 theorem stairstepFileX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD exponentialDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork exponentialDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepFileEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD exponentialDecreaseBytecode I g
+    ∃ k C, RD fork exponentialDecreaseBytecode I g
         (initState σ σ₀ g A I) ⟨315⟩
         [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -552,10 +554,10 @@ theorem stairstepFileX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem stairstepFileX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD exponentialDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork exponentialDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepFileEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork exponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -574,10 +576,10 @@ theorem stairstepFileX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem stairstepFileX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨315⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨315⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨393⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨393⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -610,7 +612,7 @@ theorem stairstepFileX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by native_decide) (by evm_ov)
-  have rd367 : RD exponentialDecreaseBytecode I g s0 ⟨332⟩
+  have rd367 : RD fork exponentialDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k367 C367 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
@@ -627,10 +629,10 @@ theorem stairstepFileX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem stairstepFileX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨315⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨315⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -661,7 +663,7 @@ theorem stairstepFileX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by native_decide) (by evm_ov)
-  have rd367 : RD exponentialDecreaseBytecode I g s0 ⟨332⟩
+  have rd367 : RD fork exponentialDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k367 C367 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
@@ -689,10 +691,10 @@ set_option maxHeartbeats 2000000 in
 theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {what sel : UInt256} {acc : AccountMap}
     (hperm : I.perm = true)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨569⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨569⟩
       [fileData I, what, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    RDret exponentialDecreaseBytecode g s0 acc ByteArray.empty := by
+    RDret fork exponentialDecreaseBytecode g s0 acc ByteArray.empty := by
   have rd612pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -757,15 +759,15 @@ set_option maxHeartbeats 3000000 in
 theorem stairstepFileX_cutSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord fileCutBytes)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨393⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨393⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
       (((fileData I).toNat ≤ RAY →
-          RDret exponentialDecreaseBytecode g s0
+          RDret fork exponentialDecreaseBytecode g s0
             (sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty) ∧
-        (RAY < (fileData I).toNat → RDrev exponentialDecreaseBytecode g s0))) ∨
-      (I.perm = false ∧ RDstatic exponentialDecreaseBytecode g s0) := by
+        (RAY < (fileData I).toNat → RDrev fork exponentialDecreaseBytecode g s0))) ∨
+      (I.perm = false ∧ RDstatic fork exponentialDecreaseBytecode g s0) := by
   have rd430 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
@@ -797,7 +799,7 @@ theorem stairstepFileX_cutSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k462, C462, rd462raw⟩ := rd443.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd462 : RD exponentialDecreaseBytecode I g s0 ⟨427⟩
+  have rd462 : RD fork exponentialDecreaseBytecode I g s0 ⟨427⟩
       [fileData I, ⟨1000000000000000000000000000⟩, fileData I,
         UInt256.shiftLeft (⟨0x18dd5d⟩ : UInt256) ⟨234⟩, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -903,10 +905,10 @@ theorem stairstepFileX_cut_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord fileCutBytes)
     (hle : (fileData I).toNat ≤ RAY)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨393⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨393⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret exponentialDecreaseBytecode g s0
+    RDret fork exponentialDecreaseBytecode g s0
       (sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty :=
   (permSplit_true hperm (stairstepFileX_cutSplit hwhatWord h)).1 hle
 
@@ -915,20 +917,20 @@ theorem stairstepFileX_cut_gt {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord fileCutBytes)
     (hgtData : RAY < (fileData I).toNat)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨393⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨393⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev exponentialDecreaseBytecode g s0 :=
+    RDrev fork exponentialDecreaseBytecode g s0 :=
   (permSplit_true hperm (stairstepFileX_cutSplit hwhatWord h)).2 hgtData
 
 set_option maxHeartbeats 3000000 in
 theorem stairstepFileX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hnotCutWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileCutBytes)
-    (h : RD exponentialDecreaseBytecode I g s0 ⟨393⟩
+    (h : RD fork exponentialDecreaseBytecode I g s0 ⟨393⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   have rd430 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
@@ -970,12 +972,12 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileTransition :=
     stairstepDispatchFile hsel
-  have hreach := stairstepReachFileBody
+  have hreach := stairstepReachFileBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -999,7 +1001,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
                 hwv hauth hcut).2 hpf)
         by_cases hle : (fileData I).toNat ≤ RAY
         · have hbody :
-            ExecTransitionBody config contract evmStele (fileLocals I) fileTransition.body
+            ExecTransitionBody fork config contract evmStele (fileLocals I) fileTransition.body
               (.returned { contract := contract, locals := fileLocals I }
                 (fileCutPostState evmStele I) none) := by
             simpa [evmStele] using
@@ -1015,7 +1017,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
                     (dvs := []) rfl (by native_decide) (by native_decide)))
         · have hgt : RAY < (fileData I).toNat := by omega
           have hbody :
-              ExecTransitionBody config contract evmStele (fileLocals I)
+              ExecTransitionBody fork config contract evmStele (fileLocals I)
                 fileTransition.body .reverted := by
             simpa [evmStele] using
               stairstepFileSourceBodyCutGtReverts (hperm := hperm)
@@ -1027,7 +1029,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
             calldataWord I.calldata 4 ≠ ABI.bytesToWord fileCutBytes :=
           fileWhatWord_ne_of_bytes_ne hsz36 hcut fileCutBytes_length
         have hbody :
-            ExecTransitionBody config contract evmStele (fileLocals I)
+            ExecTransitionBody fork config contract evmStele (fileLocals I)
               fileTransition.body .reverted := by
           simpa [evmStele] using
             stairstepFileSourceBodyUnrecognizedReverts
@@ -1036,7 +1038,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
         exact (stairstepFileX_unrecognized hnotCutWord rd428)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hbody :
-          ExecTransitionBody config contract evmStele (fileLocals I)
+          ExecTransitionBody fork config contract evmStele (fileLocals I)
             fileTransition.body .reverted := by
         simpa [evmStele] using
           stairstepFileSourceBodyAuthReverts

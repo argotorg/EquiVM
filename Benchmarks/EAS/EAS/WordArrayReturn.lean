@@ -4,6 +4,8 @@ import Benchmarks.EAS.EAS.StructEncode
 import Benchmarks.EAS.EAS.RuntimeBlocks_012
 import Benchmarks.EAS.EAS.RuntimeBlocks_003
 import Benchmarks.EAS.Attester.WordArrayABI
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -31,8 +33,8 @@ theorem easWordArrayReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+10 ≤ 1024)
     (hv : WordArrayMemoryView mem ptr words heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hf : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2797⟩ (ptr::⟨398⟩::R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words)) := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2797⟩ (ptr::⟨398⟩::R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words)) := by
   have hlo := hv.low
   have hspan := hv.span
   have hcovered := hv.covered

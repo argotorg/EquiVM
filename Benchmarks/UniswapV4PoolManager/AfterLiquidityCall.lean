@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquiditySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -55,10 +57,10 @@ theorem afterLiquidityCall {f : Frame} {evm post : State} {hook : AccountAddress
     (he : evalExpr? config f evm ee = .ok (.int (EVM.signed fees)))
     (hb : evalExpr? config f evm eb = .ok (.bytes data))
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
-    (hcall : evm.executionEnv.source ≠ hook → afterLiquidityActive hook p → callViaEVM evm hook 0
+    (hcall : evm.executionEnv.source ≠ hook → afterLiquidityActive hook p → callViaEVM fork evm hook 0
       (afterLiquidityPayload (afterLiquidityAdd p) evm.executionEnv.source key p delta fees data) (z, post, out))
     (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_afterModifyLiquidity" [es, ek, ep, ed, ee, eb] ret)
+    ExecStmt fork config f evm (.internalCall "Hooks_afterModifyLiquidity" [es, ek, ep, ed, ee, eb] ret)
       (afterLiquidityInvocationResult f ret evm post hook key p delta fees data z out) := by
   have hcf : (afterLiquidityCallFrame f hook key p delta fees data).contract = contract := by
     dsimp only [afterLiquidityCallFrame]

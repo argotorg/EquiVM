@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.PriceDecode
 import Benchmarks.CompoundIII.Comet.StaticCallBridge
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -70,11 +72,11 @@ theorem pricePayload_eval (frame : Frame) (evm : EVM.State) :
 
 theorem pricePrefix_exec (imms : Store) (addr : AccountAddress) (evm evm' : EVM.State)
     (z : Bool) (out : ByteArray)
-    (hc : callViaEVM evm addr 0 pricePayload (z, evm', out) false) :
-    ExecBlock config (priceEntry imms addr) evm pricePrefix
+    (hc : callViaEVM fork evm addr 0 pricePayload (z, evm', out) false) :
+    ExecBlock fork config (priceEntry imms addr) evm pricePrefix
       (.ok (priceCallFrame imms addr z out) evm') := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (pricePayload_eval _ _))
-  apply ExecBlock.consNormal (lowLevelCallSourceWithPerm (hperm := Or.inl rfl) (target := addr)
+  apply ExecBlock.consNormal (lowLevelCallSourceWithPerm (fork := fork) (hperm := Or.inl rfl) (target := addr)
     (value := 0) (calldata := pricePayload) ?_ (by simp only [evalExpr?, pure]) ?_ hc)
   · exact ExecBlock.nil
   all_goals
@@ -85,7 +87,7 @@ theorem pricePrefix_exec (imms : Store) (addr : AccountAddress) (evm evm' : EVM.
 theorem priceDecoded_exec (imms : Store) (addr : AccountAddress) (evm : EVM.State)
     (out : ByteArray) (hlo : 160 ≤ out.size) (hhi : out.size < 2^255)
     (hcanon : PriceRoundCanonical out) :
-    ExecBlock config (priceCallFrame imms addr true out) evm
+    ExecBlock fork config (priceCallFrame imms addr true out) evm
       (priceRemainder.take 3) (.ok (priceDecodedFrame imms addr out) evm) := by
   apply ExecBlock.consNormal (ExecStmt.requireTrue ?_)
   · apply ExecBlock.consNormal (ExecStmt.letDecl (value := priceRoundValue out) ?_)
@@ -107,11 +109,11 @@ theorem priceDecoded_exec (imms : Store) (addr : AccountAddress) (evm : EVM.Stat
 
 theorem priceRemainder_returns (imms : Store) (addr : AccountAddress) (evm : EVM.State)
     (out : ByteArray) (hhi : out.size < 2^255) (hv : PriceValid out) :
-    ExecBlock config (priceCallFrame imms addr true out) evm priceRemainder
+    ExecBlock fork config (priceCallFrame imms addr true out) evm priceRemainder
       (.returned (priceDecodedFrame imms addr out) evm
         (some [.int (calldataWord out 32).toNat])) := by
-  have hd := priceDecoded_exec imms addr evm out hv.1 hhi hv.2.1
-  change ExecBlock config _ _ (priceRemainder.take 3 ++ priceRemainder.drop 3) _
+  have hd := priceDecoded_exec (fork := fork) imms addr evm out hv.1 hhi hv.2.1
+  change ExecBlock fork config _ _ (priceRemainder.take 3 ++ priceRemainder.drop 3) _
   apply execBlockAppendOk hd
   have hp : evalExpr? config (priceDecodedFrame imms addr out) evm (.var "price") =
       .ok (.int (signedPrice (calldataWord out 32))) := by
@@ -128,7 +130,7 @@ theorem priceRemainder_returns (imms : Store) (addr : AccountAddress) (evm : EVM
 theorem priceRemainder_reverts (imms : Store) (addr : AccountAddress) (evm : EVM.State)
     (out : ByteArray) (z : Bool) (hhi : out.size < 2^255)
     (hv : ¬ (z = true ∧ PriceValid out)) :
-    ExecBlock config (priceCallFrame imms addr z out) evm priceRemainder .reverted := by
+    ExecBlock fork config (priceCallFrame imms addr z out) evm priceRemainder .reverted := by
   cases z with
   | false =>
       apply ABlock.start.requireRevert
@@ -140,7 +142,7 @@ theorem priceRemainder_reverts (imms : Store) (addr : AccountAddress) (evm : EVM
       · by_cases hcanon : PriceRoundCanonical out
         · have hn : ¬ 0 < signedPrice (calldataWord out 32) :=
             fun hp ↦ hv ⟨rfl, hlo, hcanon, hp⟩
-          change ExecBlock config _ _ (priceRemainder.take 3 ++ priceRemainder.drop 3) _
+          change ExecBlock fork config _ _ (priceRemainder.take 3 ++ priceRemainder.drop 3) _
           apply execBlockAppendOk (priceDecoded_exec imms addr evm out hlo hhi hcanon)
           apply ABlock.start.requireRevert
           simp only [evalExpr?, priceDecodedFrame, Std.HashMap.get?_eq_getElem?,
@@ -176,12 +178,12 @@ theorem price_call_ok (frame : Frame) (evm evm' : EVM.State) (addr : AccountAddr
     (expr : Expr) (ret : Ident) (out : ByteArray)
     (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.address addr))
-    (hc : callViaEVM evm addr 0 pricePayload (true, evm', out) false)
+    (hc : callViaEVM fork evm addr 0 pricePayload (true, evm', out) false)
     (hhi : out.size < 2^255) (hv : PriceValid out) :
-    ExecStmt config frame evm (.internalCall "getPrice_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "getPrice_body" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int (calldataWord out 32).toNat) }
         evm') := by
-  have hb : ExecFuncBody config (priceEntry frame.immutables addr) evm priceCallable.body
+  have hb : ExecFuncBody fork config (priceEntry frame.immutables addr) evm priceCallable.body
       (.returned (priceDecodedFrame frame.immutables addr out) evm'
         (some [.int (calldataWord out 32).toNat])) :=
     .execBlockRet (execBlockAppendOk (pricePrefix_exec _ _ _ _ _ _ hc)
@@ -196,15 +198,15 @@ theorem price_call_revert (frame : Frame) (evm evm' : EVM.State) (addr : Account
     (expr : Expr) (ret : Ident) (out : ByteArray) (z : Bool)
     (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.address addr))
-    (hc : callViaEVM evm addr 0 pricePayload (z, evm', out) false)
+    (hc : callViaEVM fork evm addr 0 pricePayload (z, evm', out) false)
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
-    ExecStmt config frame evm (.internalCall "getPrice_body" [expr] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "getPrice_body" [expr] ret) .reverted := by
   apply ExecStmt.internalCallRevert (callee := priceCallable)
     (locals := (∅ : Store).insert "priceFeed" (.address addr))
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.address addr])
     (by simp only [evalExprs?, he, pure, bind, EvalResult.bind])
     (by rw [hf]; exact priceCallable_lookup) rfl
-  have hb : ExecFuncBody config (priceEntry frame.immutables addr) evm priceCallable.body
+  have hb : ExecFuncBody fork config (priceEntry frame.immutables addr) evm priceCallable.body
       .reverted :=
     .execBlockRevert (execBlockAppendOk (pricePrefix_exec _ _ _ _ _ _ hc)
       (priceRemainder_reverts _ _ _ _ _ hhi hv))

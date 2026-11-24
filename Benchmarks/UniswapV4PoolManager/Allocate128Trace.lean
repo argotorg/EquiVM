@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AllocationCostTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,10 +14,10 @@ theorem allocate128CheckedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    (¬AllocationBounds ptr ⟨128⟩ ∧ RD (deployedRuntime v) I g s0 ⟨7857⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    (¬AllocationBounds ptr ⟨128⟩ ∧ RD fork (deployedRuntime v) I g s0 ⟨7857⟩
       ((ptr+⟨128⟩) :: ret :: R) mem aw rdata σ (k+13) (C+44)) ∨
-    (AllocationBounds ptr ⟨128⟩ ∧ RD (deployedRuntime v) I g s0 ret R
+    (AllocationBounds ptr ⟨128⟩ ∧ RD fork (deployedRuntime v) I g s0 ret R
       (writeWord mem 64 (ptr+⟨128⟩)) (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ
         (k+16) (C+58+memExpansionCost aw (UInt256.ofNat 64) ⟨32⟩)) := by
   have he : allocationEnd ptr ⟨128⟩ = ptr+⟨128⟩ := rfl
@@ -51,8 +53,8 @@ theorem allocate128CostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hf : ptr.toNat+128 ≤ solcMaxU64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RD (deployedRuntime v) I g s0 ret R
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RD fork (deployedRuntime v) I g s0 ret R
       (writeWord mem 64 (ptr+⟨128⟩)) (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ
         (k+16) (C+58+memExpansionCost aw (UInt256.ofNat 64) ⟨32⟩) := by
   have he : (ptr+⟨128⟩).toNat = ptr.toNat+128 :=
@@ -71,8 +73,8 @@ theorem allocate128Trace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hf : ptr.toNat+128 ≤ solcMaxU64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ret R
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11738⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ret R
       (writeWord mem 64 (ptr+⟨128⟩)) aw' rdata σ k' C' := by
   exact ⟨_, _, _, allocate128CostTrace v hstack hf hret h⟩
 

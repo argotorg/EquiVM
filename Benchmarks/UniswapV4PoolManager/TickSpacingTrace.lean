@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SignedModStep
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_021
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,11 +17,11 @@ theorem tickSpacingLimitTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw spacing gross x0 x1 x2 x3 x4 x5 x6 x7 x8 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨7400⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7400⟩
       (EVM.wordOfInt (-887272) :: spacing :: ⟨0⟩ :: spacing :: ⟨1⟩ :: ⟨2^128-1⟩ :: gross ::
         x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R) mem aw rdata σ k C) :
-    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev (deployedRuntime v) g s0
-    else ∃ k' C', RD (deployedRuntime v) I g s0 ⟨7456⟩
+    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev fork (deployedRuntime v) g s0
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨7456⟩
       (tickSpacingWordLimit spacing :: x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: R)
       mem aw rdata σ k' C' := by
   have rd1 := rdSmod h
@@ -58,11 +60,11 @@ theorem tickSpacingUpperGuardExactTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hm : memLoad (ptr+UInt256.ofNat 96) mem = gross) (hgross : gross.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨7456⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7456⟩
       (tickSpacingWordLimit spacing :: x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: R)
       mem aw rdata σ k C) :
-    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev (deployedRuntime v) g s0
-    else ∃ k' C', RD (deployedRuntime v) I g s0 ⟨7256⟩
+    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev fork (deployedRuntime v) g s0
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: R) mem (M aw (ptr+UInt256.ofNat 96) ⟨32⟩) rdata σ k' C' := by
   have hclean : UInt256.land gross (UInt256.ofNat 340282366920938463463374607431768211455) = gross :=
     u256LandMaskCleanOfToNat _ _ rfl hgross
@@ -90,11 +92,11 @@ theorem tickSpacingUpperGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hm : memLoad (ptr+UInt256.ofNat 96) mem = gross) (hgross : gross.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨7456⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7456⟩
       (tickSpacingWordLimit spacing :: x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: R)
       mem aw rdata σ k C) :
-    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev (deployedRuntime v) g s0
-    else ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨7256⟩
+    if tickSpacingLimit (EVM.signed spacing) < Int.ofNat gross.toNat then RDrev fork (deployedRuntime v) g s0
+    else ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: R) mem aw' rdata σ k' C' := by
   have hr := tickSpacingUpperGuardExactTrace v hstack hm hgross h
   split_ifs at hr ⊢

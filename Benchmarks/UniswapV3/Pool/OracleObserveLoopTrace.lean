@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveStoreTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveLoopResult
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,7 +16,7 @@ theorem oracleObserveLoopCursorX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C allowance i : Nat} {aw free agoPtr ticksPtr secondsPtr card liquidity index : UInt256}
     {tickRaw timeRaw ret time : UInt256} {tick : Int} {mem rdata : ByteArray}
     {rawAgos : List UInt256} {ticks seconds : List Int} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17172⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
       (oracleObserveStack i secondsPtr ticksPtr card liquidity index tickRaw agoPtr timeRaw ret R)
       mem aw rdata σ k C)
     (hindex : index.toNat < 2 ^ 16) (hc : card.toNat < 2 ^ 16)
@@ -27,7 +29,7 @@ theorem oracleObserveLoopCursorX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 64 ≤ 1024) :
-    OracleObserveLoopOutcome v ee g s0 σ rdata ret R time rawAgos tick index liquidity card
+    OracleObserveLoopOutcome fork v ee g s0 σ rdata ret R time rawAgos tick index liquidity card
       agoPtr ticksPtr secondsPtr i ticks seconds mem aw free C := by
   generalize hremain : rawAgos.length - i = remaining
   induction remaining using Nat.strong_induction_on generalizing i ticks seconds mem aw free k C with
@@ -125,7 +127,7 @@ theorem oracleObserveLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C allowance i : Nat} {aw free agoPtr ticksPtr secondsPtr card liquidity index : UInt256}
     {tickRaw timeRaw ret time : UInt256} {tick : Int} {mem rdata : ByteArray}
     {rawAgos : List UInt256} {ticks seconds : List Int} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17172⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
       (oracleObserveStack i secondsPtr ticksPtr card liquidity index tickRaw agoPtr timeRaw ret R)
       mem aw rdata σ k C)
     (hindex : index.toNat < 2 ^ 16) (hc : card.toNat < 2 ^ 16)
@@ -138,7 +140,7 @@ theorem oracleObserveLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 64 ≤ 1024) :
-    OracleObserveLoopOutcome v ee g s0 σ rdata ret R time rawAgos tick index liquidity card
+    OracleObserveLoopOutcome fork v ee g s0 σ rdata ret R time rawAgos tick index liquidity card
       agoPtr ticksPtr secondsPtr i ticks seconds mem aw free C := by
   exact oracleObserveLoopCursorX (v := v) rd hindex hc htime htick hliq hn hi hm.cursor hl
     (ha.partial i) hbudget hallowance hcover hret hov

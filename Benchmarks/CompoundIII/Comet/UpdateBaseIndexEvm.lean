@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.UpdateBaseModel
 import Benchmarks.CompoundIII.Comet.UserBasicMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,12 +20,12 @@ theorem cometUpdateBaseIndex {v : CometWithExtendedAssetListImmutables}
     {basic : UserBasicData} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11931⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11931⟩
       (principal :: ⟨0⟩ :: ⟨0⟩ :: a :: b :: ptr :: R) mem aw rdata σ k C) :
     let index := accountRewardIndex evm (principalBorrow principal)
     ∃ aw' k' C', UserBasicMemory (accountIndexMemory mem ptr index) ptr
         (basicSetIndex evm basic principal) ∧
-      RD (deployedRuntime v) ee g s0 ⟨11973⟩ (a :: b :: ptr :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨11973⟩ (a :: b :: ptr :: R)
         (accountIndexMemory mem ptr index) aw' rdata σ k' C' := by
   dsimp only
   by_cases hn : signed104 principal < 0

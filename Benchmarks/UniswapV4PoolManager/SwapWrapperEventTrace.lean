@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapWrapperEventMemory
 import Benchmarks.UniswapV4PoolManager.SwapWrapperEventStatic
 import Benchmarks.UniswapV4PoolManager.MemoryAccessCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,10 +16,10 @@ theorem swapWrapperEventTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {σ :
     (hr : WordStructView mem state (poolSwapResultWordList r)) (hp : r.price.toNat < 2^160)
     (hl : r.liquidity.toNat < 2^128) (ht : int24Canonical r.tick) (he : fee.toNat < 2^24)
     (hf : free.toNat+192 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨1766⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1766⟩
       ([x0, x1, fee, UInt256.ofNat 16777215, id, state, params, delta, x8, x9, x10,
         x11, x12, x13, hookPtr, UInt256.ofNat 32]++R) mem aw rdata σ k C) :
-    ∃ aw' k' C', C ≤ C' ∧ C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨1930⟩
+    ∃ aw' k' C', C ≤ C' ∧ C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨1930⟩
       ([memLoad hookPtr (swapWrapperEventMemory mem free delta fee r),
         UInt256.ofNat 1461501637330902918203684832716283019655932542975,
         x12, params, delta, x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32]++R)

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.StructEncodeViews
 import Benchmarks.EAS.EAS.ReturnDecode
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,10 +20,10 @@ theorem easDecodeBoolMemory {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {ptr ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+4 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::ret::R) mem aw rdata σ k C) :
     if memLoad ptr mem = ⟨0⟩ ∨ memLoad ptr mem = ⟨1⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R) mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hb : memLoad ptr mem = ⟨0⟩ ∨ memLoad ptr mem = ⟨1⟩
   · rw [if_pos hb]
     have hc : UInt256.sub (memLoad ptr mem) (UInt256.isZero (UInt256.isZero (memLoad ptr mem))) = ⟨0⟩ := by

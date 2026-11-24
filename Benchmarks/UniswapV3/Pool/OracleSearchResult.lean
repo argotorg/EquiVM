@@ -1,10 +1,12 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchBefore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
 
-structure OracleSearchExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
+structure OracleSearchExit (fork : Ethereum.Fork) (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g : Sat256)
     (s0 : EVM.State) (σ : AccountMap) (rdata : ByteArray) (ret : UInt256) (R : List UInt256)
     (time target card left right : UInt256) (initMem : ByteArray) (initAw initFree : UInt256)
     (initCost : Nat) where
@@ -17,7 +19,7 @@ structure OracleSearchExit (v : UniswapV3PoolImmutables) (ee : ExecutionEnv) (g 
   after : OracleObservation
   k : Nat
   cost : Nat
-  rd : RD (deployedRuntime v) ee g s0 ret (afterPtr :: beforePtr :: R) mem aw rdata σ k cost
+  rd : RD fork (deployedRuntime v) ee g s0 ret (afterPtr :: beforePtr :: R) mem aw rdata σ k cost
   run : OracleSearchRun time target card σ ee left right before after
   heap : HeapMemory mem aw free
   before_mem : ObservationMemory mem beforePtr before
@@ -36,14 +38,14 @@ def OracleSearchExit.lift {v : UniswapV3PoolImmutables} {ee : ExecutionEnv} {g :
     {time target card left right nextLeft nextRight : UInt256}
     {initMem nextMem : ByteArray} {initAw initFree nextAw nextFree : UInt256}
     {initCost nextCost : Nat}
-    (out : OracleSearchExit v ee g s0 σ rdata ret R time target card nextLeft nextRight
+    (out : OracleSearchExit fork v ee g s0 σ rdata ret R time target card nextLeft nextRight
       nextMem nextAw nextFree nextCost)
     (hrun : ∀ before after, OracleSearchRun time target card σ ee nextLeft nextRight before after →
       OracleSearchRun time target card σ ee left right before after)
     (hcost : initCost + (Cₘ nextAw - Cₘ initAw) ≤ nextCost)
     (hfree : initFree.toNat ≤ nextFree.toNat)
     (hpre : MemoryPrefix initMem nextMem initFree.toNat) :
-    OracleSearchExit v ee g s0 σ rdata ret R time target card left right
+    OracleSearchExit fork v ee g s0 σ rdata ret R time target card left right
       initMem initAw initFree initCost :=
   { out with
     run := hrun _ _ out.run

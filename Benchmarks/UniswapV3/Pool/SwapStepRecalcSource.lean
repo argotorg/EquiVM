@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcGet
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -8,7 +10,7 @@ theorem swapStepRecalcCallSource (locals imms : Store) (evm : EVM.State) (a : Sw
     (input : Bool) (hg : SwapStepCalcGet locals a) (ha : a.Fits) (hp : swapStepPriceValid a)
     (hv : amountDeltaValid (swapStepDeltaOne a input)
       (swapStepDeltaArgs a (swapStepPrice a) input)) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input "sqrtRatioNextX96") (swapStepRecalcCallName a input))
       (.ok (swapStepCalcFrame imms (swapStepRecalcCallLocals locals a input)) evm) := by
@@ -21,7 +23,7 @@ theorem swapStepRecalcKeepSource (locals imms : Store) (evm : EVM.State) (a : Sw
     (input : Bool) (hk : swapStepKeep a input = true)
     (hg : locals.get? (swapStepAmountName input) =
       some (.int (Int.ofNat (swapStepBeforeAmount a input).toNat))) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
       (.assign .localVar ⟨swapStepRecalcCondName a input, []⟩ (.var (swapStepAmountName input)))
       (.ok (swapStepCalcFrame imms (swapStepRecalcChosenLocals locals a input)) evm) := by
   have ho : (swapStepRecalcZeroLocals locals a input).get? (swapStepAmountName input) =
@@ -34,7 +36,7 @@ theorem swapStepRecalcKeepSource (locals imms : Store) (evm : EVM.State) (a : Sw
 
 theorem swapStepRecalcCallAssign (locals imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hk : swapStepKeep a input = false) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcCallLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcCallLocals locals a input)) evm
       (.assign .localVar ⟨swapStepRecalcCondName a input, []⟩
         (.var (swapStepRecalcCallName a input)))
       (.ok (swapStepCalcFrame imms (swapStepRecalcChosenLocals locals a input)) evm) := by
@@ -53,7 +55,7 @@ theorem swapStepRecalcAssign (locals imms : Store) (evm : EVM.State) (a : SwapSt
     (input : Bool)
     (hg : locals.get? (swapStepAmountName input) =
       some (.int (Int.ofNat (swapStepBeforeAmount a input).toNat))) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcChosenLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcChosenLocals locals a input)) evm
       (.assign .localVar ⟨swapStepAmountName input, []⟩ (.var (swapStepRecalcCondName a input)))
       (.ok (swapStepCalcFrame imms (swapStepRecalcLocals locals a input)) evm) := by
   have hc : (swapStepRecalcCondName a input == swapStepAmountName input) = false := by
@@ -74,7 +76,7 @@ theorem swapStepRecalcChoiceSource (locals imms : Store) (evm : EVM.State) (a : 
     (hv : swapStepRecalcValid a input)
     (ho : locals.get? (swapStepAmountName input) =
       some (.int (Int.ofNat (swapStepBeforeAmount a input).toNat))) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
       (swapStepRecalcBlock a input)[1]!
       (.ok (swapStepCalcFrame imms (swapStepRecalcChosenLocals locals a input)) evm) := by
   have he := evalSwapStepRecalcTest
@@ -95,7 +97,7 @@ theorem swapStepRecalcSource (locals imms : Store) (evm : EVM.State) (a : SwapSt
     (hv : swapStepRecalcValid a input)
     (ho : locals.get? (swapStepAmountName input) =
       some (.int (Int.ofNat (swapStepBeforeAmount a input).toNat))) :
-    ExecBlock config (swapStepCalcFrame imms locals) evm (swapStepRecalcBlock a input)
+    ExecBlock fork config (swapStepCalcFrame imms locals) evm (swapStepRecalcBlock a input)
       (.ok (swapStepCalcFrame imms (swapStepRecalcLocals locals a input)) evm) := by
   refine ExecBlock.consNormal
     (stele' := swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input))

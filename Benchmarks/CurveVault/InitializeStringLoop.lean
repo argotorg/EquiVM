@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.InitializeStringStorage
 import Benchmarks.CurveVault.RuntimeBlocks_003
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,9 +14,9 @@ theorem vaultStringLoopMore (isName : Bool) {I : ExecutionEnv} {g : Sat256} {s0 
     {index count x2 : UInt256} {R : List UInt256}
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hcond : UInt256.xor (UInt256.ofNat 1 + index) count ≠ ⟨0⟩)
-    (h : RD vaultBytecode I g s0 (vaultStringLoopPC isName)
+    (h : RD fork vaultBytecode I g s0 (vaultStringLoopPC isName)
       (index :: count :: x2 :: UInt256.ofNat 352 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringLoopPC isName)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringLoopPC isName)
       ((UInt256.ofNat 1 + index) :: count :: x2 :: UInt256.ofNat 352 :: R) mem aw' rdata
       (sstoreAccountMap I.codeOwner σ (vaultStringSlot isName + index)
         (memLoad (UInt256.ofNat 352 + UInt256.shiftLeft index (UInt256.ofNat 5)) mem)) k' C' := by
@@ -27,9 +29,9 @@ theorem vaultStringLoopLast (isName : Bool) {I : ExecutionEnv} {g : Sat256} {s0 
     {index count x2 : UInt256} {R : List UInt256}
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hcond : UInt256.xor (UInt256.ofNat 1 + index) count = ⟨0⟩)
-    (h : RD vaultBytecode I g s0 (vaultStringLoopPC isName)
+    (h : RD fork vaultBytecode I g s0 (vaultStringLoopPC isName)
       (index :: count :: x2 :: UInt256.ofNat 352 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (vaultStringLoopEnd isName)
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultStringLoopEnd isName)
       ((UInt256.ofNat 1 + index) :: count :: x2 :: UInt256.ofNat 352 :: R) mem aw' rdata
       (sstoreAccountMap I.codeOwner σ (vaultStringSlot isName + index)
         (memLoad (UInt256.ofNat 352 + UInt256.shiftLeft index (UInt256.ofNat 5)) mem)) k' C' := by
@@ -43,9 +45,9 @@ theorem vaultInitializeStoreString (isName : Bool) {I : ExecutionEnv} {g : Sat25
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024) (hmem : 448 ≤ mem.size)
     (hheader : memLoad (UInt256.ofNat 352) mem = UInt256.ofNat length)
     (hdata : mem.readWithPadding 384 64 = data)
-    (h : RD vaultBytecode I g s0 (vaultStringLoopPC isName)
+    (h : RD fork vaultBytecode I g s0 (vaultStringLoopPC isName)
       (⟨0⟩ :: (if length ≤ 32 then ⟨2⟩ else ⟨3⟩) :: x2 :: UInt256.ofNat 352 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C' x0 x1, RD vaultBytecode I g s0 (vaultStringLoopEnd isName)
+    ∃ aw' k' C' x0 x1, RD fork vaultBytecode I g s0 (vaultStringLoopEnd isName)
       (x0 :: x1 :: x2 :: UInt256.ofNat 352 :: R) mem aw' rdata
       (vaultStringAccounts I σ (vaultStringSlot isName) length data) k' C' := by
   have hw0 := vaultStringPayload_word mem data 0 hmem (by omega) hdata

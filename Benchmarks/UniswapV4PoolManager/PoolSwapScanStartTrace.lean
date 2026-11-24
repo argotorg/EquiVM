@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_054
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.PoolStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -22,10 +24,10 @@ theorem poolSwapScanStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (memLoad (state+UInt256.ofNat 32) (poolSwapScanStartMemory mem step price)) = tick)
     (hs : UInt256.signextend (UInt256.ofNat 2)
       (memLoad (params+UInt256.ofNat 32) (poolSwapScanStartMemory mem step price)) = spacing)
-    (h : RD (deployedRuntime v) I g s0 ⟨19169⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19169⟩
       ([x0, x1, params, x3, x4, fee, x6, x7, if lte then ⟨0⟩ else ⟨1⟩, step, poolSlot id, state] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19221⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19221⟩
       ([tick, spacing, ⟨0⟩, spacing, tick, spacing, poolSlot id, step, state, fee, if lte then ⟨0⟩ else ⟨1⟩,
         x0, x1, params, x3, x4, fee, x6, x7, if lte then ⟨0⟩ else ⟨1⟩, step, poolSlot id, state] ++ R)
       (poolSwapScanStartMemory mem step price) (poolSwapScanStartAW aw step state params) rdata σ k' C' := by

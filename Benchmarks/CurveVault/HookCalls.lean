@@ -8,6 +8,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_017
 import Benchmarks.CurveVault.RuntimeBlocks_019
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -19,17 +21,17 @@ theorem vaultHookCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 evm
     (harg : evalExpr? config {contract := contract, locals := locals} evm arg = .ok (.int (Int.ofNat amount.toNat)))
     (hload : memLoad (UInt256.ofNat flow.controllerOffset) (vaultHookCachedMemory flow I σ mem) = target)
     (hamount : vaultHookAmount flow I mem = amount) (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.hookEntry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.hookEntry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm
+      ExecBlock fork config {contract := contract, locals := locals} evm
         [.require (.binary .gt (.extCodeSize (.var "controller")) (.intLit 0)),
           .externalCall (.var "controller") flow.hookName (.intLit 0) [arg] retVar]
         (.ok {contract := contract, locals := locals.insert retVar (collapseReturns [])} evm') ∧
-      SourceState s0 I σ' evm' ∧ RD vaultBytecode I g s0 (UInt256.ofNat flow.hookNext)
+      SourceState s0 I σ' evm' ∧ RD fork vaultBytecode I g s0 (UInt256.ofNat flow.hookNext)
         (target :: R) (vaultHookCallMemory flow I σ mem amount) aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm
+    (ExecBlock fork config {contract := contract, locals := locals} evm
       [.require (.binary .gt (.extCodeSize (.var "controller")) (.intLit 0)),
-        .externalCall (.var "controller") flow.hookName (.intLit 0) [arg] retVar] .reverted ∧ RDrev vaultBytecode g s0) := by
+        .externalCall (.var "controller") flow.hookName (.intLit 0) [arg] retVar] .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have hr : evalExpr? config {contract := contract, locals := locals} evm (.var "controller") =
       .ok (.address (AccountAddress.ofUInt256 target)) := by
     rw [evalExpr?]; simp only [htarget, EvalResult.ofOption]
@@ -53,7 +55,7 @@ theorem vaultHookCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 evm
             (memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .deposit I σ mem))) = _
           rw [hload]; exact isZero_eq_zero_of_ne hcode) h
       obtain ⟨aw1, k1, C1, rdCall⟩ := vaultBlocks.vault_block_2694_packed (by omega) rdReady
-      change RD vaultBytecode I g s0 (UInt256.ofNat VaultFlow.deposit.hookCall)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat VaultFlow.deposit.hookCall)
         (_ :: memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .deposit I σ mem) :: ⟨0⟩ ::
           UInt256.ofNat 732 :: UInt256.ofNat 36 :: UInt256.ofNat 704 :: ⟨0⟩ ::
           memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .deposit I σ mem) :: R)
@@ -68,7 +70,7 @@ theorem vaultHookCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 evm
             (memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .mint I σ mem))) = _
           rw [hload]; exact isZero_eq_zero_of_ne hcode) h
       obtain ⟨aw1, k1, C1, rdCall⟩ := vaultBlocks.vault_block_3698_packed (by omega) rdReady
-      change RD vaultBytecode I g s0 (UInt256.ofNat VaultFlow.mint.hookCall)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat VaultFlow.mint.hookCall)
         (_ :: memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .mint I σ mem) :: ⟨0⟩ ::
           UInt256.ofNat 732 :: UInt256.ofNat 36 :: UInt256.ofNat 704 :: ⟨0⟩ ::
           memLoad (UInt256.ofNat 608) (vaultHookCachedMemory .mint I σ mem) :: R)
@@ -83,7 +85,7 @@ theorem vaultHookCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 evm
             (memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .withdraw I σ mem))) = _
           rw [hload]; exact isZero_eq_zero_of_ne hcode) h
       obtain ⟨aw1, k1, C1, rdCall⟩ := vaultBlocks.vault_block_4606_packed (by omega) rdReady
-      change RD vaultBytecode I g s0 (UInt256.ofNat VaultFlow.withdraw.hookCall)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat VaultFlow.withdraw.hookCall)
         (_ :: memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .withdraw I σ mem) :: ⟨0⟩ ::
           UInt256.ofNat 764 :: UInt256.ofNat 36 :: UInt256.ofNat 736 :: ⟨0⟩ ::
           memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .withdraw I σ mem) :: R)
@@ -98,7 +100,7 @@ theorem vaultHookCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0 evm
             (memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .redeem I σ mem))) = _
           rw [hload]; exact isZero_eq_zero_of_ne hcode) h
       obtain ⟨aw1, k1, C1, rdCall⟩ := vaultBlocks.vault_block_5510_packed (by omega) rdReady
-      change RD vaultBytecode I g s0 (UInt256.ofNat VaultFlow.redeem.hookCall)
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat VaultFlow.redeem.hookCall)
         (_ :: memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .redeem I σ mem) :: ⟨0⟩ ::
           UInt256.ofNat 764 :: UInt256.ofNat 36 :: UInt256.ofNat 736 :: ⟨0⟩ ::
           memLoad (UInt256.ofNat 704) (vaultHookCachedMemory .redeem I σ mem) :: R)

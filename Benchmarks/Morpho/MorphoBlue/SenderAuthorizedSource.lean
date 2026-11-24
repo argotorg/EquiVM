@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccruePublicSource
 import Benchmarks.Morpho.MorphoBlue.AccrueMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -24,7 +26,7 @@ theorem senderAuthorized_eval_account (account : UInt256) (imms : Store) (evm : 
 
 theorem morphoSenderAuthorizedBody (account : UInt256) (imms : Store) (evm : EVM.State)
     (hc : account.toNat < EVM.addressModulus) :
-    ExecFuncBody config (senderAuthorizedFrame account imms) evm senderAuthorizedFunction.body
+    ExecFuncBody fork config (senderAuthorizedFrame account imms) evm senderAuthorizedFunction.body
       (.returned (senderAuthorizedFrame account imms) evm
         (some [wordToElem .bool (senderAuthorizedWord evm.accountMap evm.executionEnv account)])) := by
   have ha := senderAuthorized_eval_account account imms evm
@@ -52,7 +54,7 @@ theorem morphoSenderAuthorizedCall (account : UInt256) (imms locals : Store) (ev
     (args : List Expr) (retVar : Ident) (hc : account.toNat < EVM.addressModulus)
     (he : evalExprs? config { contract := contract, locals := locals, immutables := imms } evm args =
       .ok [.address (AccountAddress.ofNat account.toNat)]) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "_isSenderAuthorized" args retVar)
       (.ok { contract := contract,
              locals := locals.insert retVar (wordToElem .bool (senderAuthorizedWord evm.accountMap evm.executionEnv account)),

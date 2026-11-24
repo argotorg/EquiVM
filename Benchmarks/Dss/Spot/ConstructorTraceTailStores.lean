@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorTraceVat
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor par/live storage traces
 -/
@@ -15,11 +17,11 @@ theorem spotCtorParStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd109 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨109⟩
         [⟨1⟩] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨125⟩
       [⟨1⟩] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σVat ⟨3⟩ spotCtorOneWord) k' C' := by
@@ -35,11 +37,11 @@ theorem spotCtorLiveStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd125 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨125⟩
         [⟨1⟩] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σPar k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨128⟩
       [] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σPar ⟨4⟩ ⟨1⟩) k' C' := by
@@ -53,11 +55,11 @@ theorem spotCtorTailStoresReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd109 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨109⟩
         [⟨1⟩] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨128⟩
       [] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner

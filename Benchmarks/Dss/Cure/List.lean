@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cure.ListLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
@@ -1029,7 +1031,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {arrPtr fmp len : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨369⟩ : UInt256) (arrPtr :: R) mem aw rdata acc k C)
+    (h : RD fork cureBytecode ee g s0 (⟨369⟩ : UInt256) (arrPtr :: R) mem aw rdata acc k C)
     (hload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1048,7 +1050,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
            ((listReturnLengthMem len fmp mem).readWithPadding arrPtr.toNat 32)))
         = len)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 (⟨405⟩ : UInt256)
+    ∃ k' C', RD fork cureBytecode ee g s0 (⟨405⟩ : UInt256)
       ((⟨0⟩ : UInt256) :: ((⟨32⟩ : UInt256) + arrPtr) ::
         (fmp + (⟨64⟩ : UInt256)) :: (len * (⟨32⟩ : UInt256)) ::
         (len * (⟨32⟩ : UInt256)) :: ((⟨32⟩ : UInt256) + arrPtr) ::
@@ -1112,7 +1114,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {i src dst bound word : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨405⟩ : UInt256) (i :: src :: dst :: bound :: R)
+    (h : RD fork cureBytecode ee g s0 (⟨405⟩ : UInt256) (i :: src :: dst :: bound :: R)
       mem aw rdata acc k C)
     (hcont : UInt256.isZero (UInt256.lt i bound) = ⟨0⟩)
     (hload :
@@ -1120,7 +1122,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (i + src).toNat 32))) = word)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 (⟨405⟩ : UInt256)
+    ∃ k' C', RD fork cureBytecode ee g s0 (⟨405⟩ : UInt256)
       (((⟨32⟩ : UInt256) + i) :: src :: dst :: bound :: R)
       (listReturnCopyStepMem word dst i mem)
       (listReturnCopyStepAw aw src dst i) rdata acc k' C' := by
@@ -1178,7 +1180,7 @@ theorem cureListReturnCopyLoopStepWf {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {n : Nat}
     (hwf : cureStorageWF σ I)
     (hn : n < (solcSlotWordAt ⟨2⟩ σ I).toNat)
-    (h : RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
+    (h : RD fork cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset n :: listArrayDataPtr ::
         listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
         ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1189,7 +1191,7 @@ theorem cureListReturnCopyLoopStepWf {σ σ₀ A I} {g : Sat256}
         cureSelWord I :: [])
       (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
       σ k C) :
-    ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
+    ∃ k' C', RD fork cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset (n + 1) :: listArrayDataPtr ::
         listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
         ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1216,7 +1218,7 @@ theorem cureListReturnCopyLoopRunAux {σ σ₀ A I} {g : Sat256}
     (hwf : cureStorageWF σ I) :
     ∀ rem n k C,
       n + rem = (solcSlotWordAt ⟨2⟩ σ I).toNat →
-      RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
+      RD fork cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset n :: listArrayDataPtr ::
           listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
           ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1227,7 +1229,7 @@ theorem cureListReturnCopyLoopRunAux {σ σ₀ A I} {g : Sat256}
           cureSelWord I :: [])
         (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
         σ k C →
-      ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
+      ∃ k' C', RD fork cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset (solcSlotWordAt ⟨2⟩ σ I).toNat :: listArrayDataPtr ::
           listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
           ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1256,7 +1258,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {i src dst bound fmp arrPtr : UInt256}
     {R : List UInt256} {mem rdata oval : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨405⟩ : UInt256)
+    (h : RD fork cureBytecode ee g s0 (⟨405⟩ : UInt256)
       (i :: src :: dst :: bound :: bound :: src :: dst :: fmp :: fmp :: arrPtr :: R)
       mem aw rdata acc k C)
     (hdone : UInt256.isZero (UInt256.lt i bound) ≠ ⟨0⟩)
@@ -1268,7 +1270,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
     (hreturn :
       mem.readWithPadding fmp.toNat (UInt256.sub (bound + dst) fmp).toNat = oval)
     (hov : R.length + 12 ≤ 1024) :
-    RDret cureBytecode g s0 acc oval := by
+    RDret fork cureBytecode g s0 acc oval := by
   have rd406 := h.jumpdest (by native_decide) (by evm_ov)
   have rd407 := rd406.dup4 (by native_decide) (by evm_ov)
   have rd408 := rd407.dup2 (by native_decide) (by evm_ov)
@@ -1398,7 +1400,7 @@ theorem evalExpr_listSrcs_ok {σ σ₀ A I} {g : Sat256} :
 
 theorem cureListSourceBodyOk {σ σ₀ A I} {g : UInt256} :
     I.weiValue = ⟨0⟩ →
-    ExecTransitionBody config contract
+    ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
       (.returned { contract := contract, locals := ∅ }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1432,16 +1434,16 @@ theorem cureDecode_list {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 set_option maxHeartbeats 8000000 in
 theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
-    (h929 : ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
+    (h929 : ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
       [⟨369⟩, cureSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (hlen0 : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩) :
-    RDret cureBytecode g (initState σ σ₀ g A I) σ listEmptyArrayAbi := by
+    RDret fork cureBytecode g (initState σ σ₀ g A I) σ listEmptyArrayAbi := by
   obtain ⟨_, _, h929⟩ := h929
   obtain ⟨_, _, h936raw⟩ :=
     (evm_run h929 with [jumpdest, push1 ⟨96⟩, push1 ⟨2⟩, dup1]).sload
       (by native_decide) (by evm_ov)
-  obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
+  obtain ⟨_, _, h936⟩ : ∃ k C, RD fork cureBytecode I g
       (initState σ σ₀ g A I) ⟨936⟩
       [solcSlotWordAt ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
@@ -1503,7 +1505,7 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 7))
     (_hStorageWF : cureStorageWF σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some listTransition :=
@@ -1512,7 +1514,7 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
       config.externalABI.decodeCalldata? (listTransition.params.map Param.name)
         (transitionSignature listTransition).paramTypes I.calldata = some ∅ :=
     cureDecode_list hsz
-  have hreach := cureReachListBody (σ := σ)
+  have hreach := cureReachListBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨361⟩ ⟨369⟩ ⟨929⟩ := by
@@ -1520,7 +1522,7 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     repeat' first | apply And.intro | native_decide
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1572,7 +1574,7 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
         (listReturnOffsetMem_mload128_of_copied_wf _hStorageWF)
         (listReturnLengthMem_mload128_of_copied_wf _hStorageWF)
         (by simp)
-    have h405 : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
+    have h405 : ∃ k C, RD fork cureBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset 0 :: listArrayDataPtr ::
           listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::

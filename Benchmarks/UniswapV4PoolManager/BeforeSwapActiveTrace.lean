@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapPrepareTrace
 import Benchmarks.UniswapV4PoolManager.HookCallPaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,21 +22,21 @@ theorem beforeSwapActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨15230⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15230⟩
       (src :: len :: paramsPtr :: accountWord hook :: keyPtr :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out, AllocationBounds free (beforeSwapAllocationSize len) ∧
-      callViaEVM evm hook 0 (beforeSwapPayload I.source key p
+      callViaEVM fork evm hook 0 (beforeSwapPayload I.source key p
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (if z = true ∧ hookReplyValid (beforeSwapPayload I.source key p
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) out then
         ∃ aw' k' C', Cₘ aw' ≤ C' ∧ (beforeSwapFree free len).toNat+out.size+4096 ≤ solcMaxU64 ∧
-        RD (deployedRuntime v) I g s0 ⟨15462⟩
+        RD fork (deployedRuntime v) I g s0 ⟨15462⟩
           (beforeSwapFree free len :: accountWord hook :: keyPtr :: R)
           (solcReturnDataMem (beforeSwapMemory I.calldata mem src.toNat free len I.source key p)
             (beforeSwapFree free len) out) aw' out post.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   rcases beforeSwapPrepareTrace v hstack hk hp hc hl hkb hpb hf hgas hpaid hfree h with
     hog | ⟨hb, aw1, k1, C1, hpay1, rd1⟩
   · exact .inl hog

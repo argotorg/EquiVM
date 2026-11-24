@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ResolverManyBounds
 import Benchmarks.EAS.EAS.ResolverManyStart
 import Benchmarks.EAS.EAS.ResolverReturn
 import Benchmarks.EAS.EAS.CallBridgeOr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,19 +19,19 @@ theorem resolverManyEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     (hvalues : WordArrayMemoryView mem valuesPtr values ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hlo : 124 ≤ ptr.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
       (resolverManyEntryStack rev junk0 junk1 junk2 array target valuesPtr last available value R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out finalMem : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
         (resolverManyPayload ats values rev) (success, evm', out) ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       MemoryPrefix mem finalMem ptr.toNat ∧
       memLoad (UInt256.ofNat 64) finalMem = UInt256.ofNat (allocateNext ptr.toNat (min out.size 32)) ∧
       (if resolverCallValid ptr.toNat success out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverDonePC true rev)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverDonePC true rev)
           (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::last::available::value::R)
           finalMem aw' out σ' k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   let head := resolverManyHeaderMemory mem ptr rev
   let base := ptr+UInt256.ofNat 4
   have hsize := resolverManyBody_bound harray hvalues hheap
@@ -63,7 +65,7 @@ theorem resolverManyEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
       (resolverCall_decode v true rev) hinput (resolverManyPayload_small rev harray hvalues hheap)
       (by simp only [List.length_cons]; omega)
   have hpc : resolverCallPC true rev + (⟨1⟩ : UInt256) = resolverAfterCallPC true rev := by cases rev <;> rfl
-  change RD (deployedRuntime v) ee g s0 (resolverCallPC true rev + (⟨1⟩ : UInt256))
+  change RD fork (deployedRuntime v) ee g s0 (resolverCallPC true rev + (⟨1⟩ : UInt256))
     ((if success then ⟨1⟩ else ⟨0⟩)::ptr::last::available::value::R)
     (callOutputMem enc out ptr ⟨32⟩) _ out σ' k4 C4 at rd4
   rw [hpc] at rd4

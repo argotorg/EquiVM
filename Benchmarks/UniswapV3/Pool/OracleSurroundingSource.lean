@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleSurroundingLatest
 import Benchmarks.UniswapV3.Pool.OracleSurroundingSearch
 import Benchmarks.UniswapV3.Pool.OracleSurroundingReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -26,7 +28,7 @@ theorem oracleSurroundingReturns (imms : Store) (evm : EVM.State) (time target :
     (hc : cardinality.toNat < 2 ^ 16) (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hrun : OracleSurroundingRun time target tick index liquidity cardinality
       evm.accountMap evm.executionEnv before after) :
-    ∃ frame, ExecFuncBody config
+    ∃ frame, ExecFuncBody fork config
       (oracleSurroundingFrame imms time target tick index liquidity cardinality)
       evm oracleSurroundingFunction.body
         (.returned frame evm (some [before.value, after.value])) := by

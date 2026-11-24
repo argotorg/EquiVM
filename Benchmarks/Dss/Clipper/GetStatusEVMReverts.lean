@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.GetStatusEVM
 import Benchmarks.Dss.Clipper.Invalid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -15,11 +17,11 @@ theorem RD.clipperStatusAgeForPriceRevert {code : ByteArray} (v : ClipperImmutab
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {top tic ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata σ k C)
     (hlt : (UInt256.ofNat ee.header.timestamp).toNat <
       (UInt256.land tic clipperSalesUint96Mask).toNat)
     (hov : R.length + 80 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd8463pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -57,10 +59,10 @@ theorem RD.clipperStatusPriceNoCode {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {calcAddr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD code ee g s0 ⟨8549⟩ (calcAddr :: calcAddr :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 ⟨8549⟩ (calcAddr :: calcAddr :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ calcAddr = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨8549⟩) (okPc := ⟨8561⟩)
     h hcodeSize
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -75,7 +77,7 @@ theorem RD.clipperStatusPriceCallDepthLimit {code : ByteArray} (v : ClipperImmut
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g age top calcAddr tic ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code I (Sat256.ofUInt256 g)
+    (h : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
@@ -84,7 +86,7 @@ theorem RD.clipperStatusPriceCallDepthLimit {code : ByteArray} (v : ClipperImmut
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8565⟩
       (⟨0⟩ :: ⟨196⟩ :: clipperStatusPriceSelectorWord ::
         calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
@@ -127,13 +129,13 @@ theorem RD.clipperStatusAgeForDoneRevert {code : ByteArray} (v : ClipperImmutabl
     {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
+    (rd8606 : RD fork code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
       mem aw rdata σ k C)
     (hltDone :
       (UInt256.ofNat ee.header.timestamp).toNat <
         (UInt256.land tic clipperSalesUint96Mask).toNat)
     (hov : R.length + 80 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd9274pre := evm_run rd8606 with [
     raw push1 ⟨6⟩ (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rd8608⟩ := rd9274pre.sload (by clipper_runtime_decode) (by evm_ov)
@@ -163,7 +165,7 @@ theorem RD.clipperStatusAfterPriceRdivMulRevert {code : ByteArray} (v : ClipperI
     {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
+    (rd8606 : RD fork code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
       mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
@@ -174,7 +176,7 @@ theorem RD.clipperStatusAfterPriceRdivMulRevert {code : ByteArray} (v : ClipperI
         (solcSlotWord σ ee ⟨6⟩).toNat)
     (hover : UInt256.size ≤ price.toNat * clipperRayWord.toNat)
     (hov : R.length + 100 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   let ageForDone : UInt256 :=
     UInt256.sub (UInt256.ofNat ee.header.timestamp) (UInt256.land tic clipperSalesUint96Mask)
   let tail : UInt256 := solcSlotWord σ ee ⟨6⟩
@@ -226,11 +228,11 @@ theorem RD.clipperRdivRoutineInvalidDivZero {code : ByteArray} (v : ClipperImmut
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y = ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   have rd9293 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -260,7 +262,7 @@ theorem RD.clipperStatusAfterPriceRdivDivZeroInvalid {code : ByteArray} (v : Cli
     {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
+    (rd8606 : RD fork code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
       mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
@@ -272,7 +274,7 @@ theorem RD.clipperStatusAfterPriceRdivDivZeroInvalid {code : ByteArray} (v : Cli
     (hmul : price.toNat * clipperRayWord.toNat < UInt256.size)
     (htop : top = ⟨0⟩)
     (hov : R.length + 100 ≤ 1024) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   let ageForDone : UInt256 :=
     UInt256.sub (UInt256.ofNat ee.header.timestamp) (UInt256.land tic clipperSalesUint96Mask)
   let tail : UInt256 := solcSlotWord σ ee ⟨6⟩

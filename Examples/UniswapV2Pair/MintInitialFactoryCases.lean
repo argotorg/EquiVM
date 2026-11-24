@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintInitialCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -44,7 +46,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -58,7 +60,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -84,7 +86,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
               (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hfeeCall : typedCallViaEVM config evm1S
+    (hfeeCall : typedCallViaEVM fork config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
@@ -92,7 +94,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
     (hPostAccountsFee : Eq σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hperm : I.perm = true)
-    (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7781 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
@@ -146,7 +148,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
           ⟨0⟩ ∧
         amount0.toNat * amount1.toNat < UInt256.size ∧
         (UInt256.mul amount0 amount1).toNat ≤ 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hmem :
       (feeToStaticcallMem
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -199,11 +201,11 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
         rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hfeeToZero
         hkLastZero
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) (mintStore I)
           mintTransition.body .reverted := by
       exact ExecFuncBody.execBlockRevert
-        (uniswapMintInitialSmallRootReverts_feeOff_kLastZero (hperm := by assumption)
+        (uniswapMintInitialSmallRootReverts_feeOff_kLastZero (fork := fork) (hperm := by assumption)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) evm0S evm1S evmFeeS I
           feeTo (by simp only [initState]; exact hwv) hunlockedStele hguard0 hguard1
           hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec
@@ -248,11 +250,11 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
           rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hfeeToNonzero
           hkLastZero
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) (mintStore I)
             mintTransition.body .reverted := by
         exact ExecFuncBody.execBlockRevert
-          (uniswapMintInitialSmallRootReverts_feeOn_kLastZero (hperm := by assumption)
+          (uniswapMintInitialSmallRootReverts_feeOn_kLastZero (fork := fork) (hperm := by assumption)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) evm0S evm1S
             evmFeeS I feeTo (by simp only [initState]; exact hwv) hunlockedStele hguard0
             hguard1 hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
@@ -313,11 +315,11 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
           rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hfeeToZero
           hperm hkLastNonzero
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) (mintStore I)
             mintTransition.body .reverted := by
         exact ExecFuncBody.execBlockRevert
-          (uniswapMintInitialSmallRootReverts_feeOff_kLastNonzero (hperm := by assumption)
+          (uniswapMintInitialSmallRootReverts_feeOff_kLastNonzero (fork := fork) (hperm := by assumption)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) evm0S evm1S
             evmFeeS I feeTo (by simp only [initState]; exact hwv) hunlockedStele hguard0
             hguard1 hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall

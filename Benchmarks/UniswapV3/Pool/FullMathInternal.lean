@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.FullMathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,15 +14,15 @@ theorem fullMathInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (args : List Expr) (retVar : Ident) (hf : caller.contract = contract)
     (he : evalExprs? config caller evm args =
       .ok [.int (Int.ofNat a.toNat), .int (Int.ofNat b.toNat), .int (Int.ofNat denominator.toNat)])
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13017⟩ (denominator :: b :: a :: ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13017⟩ (denominator :: b :: a :: ret :: R)
       mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "FullMath_mulDiv" args retVar) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall "FullMath_mulDiv" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "FullMath_mulDiv" args retVar) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "FullMath_mulDiv" args retVar)
         (.ok (resumeAfterInternalCall caller retVar
           (some [.int (Int.ofNat (fullMathResult a b denominator).toNat)])) evm) ∧
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
         (fullMathResult a b denominator :: R) mem aw rdata σ k' C') := by
   have hl : lookupCallable? caller.contract "FullMath_mulDiv" = some fullMathFunction.toCallable :=
     by rw [hf]; exact fullMathLookup

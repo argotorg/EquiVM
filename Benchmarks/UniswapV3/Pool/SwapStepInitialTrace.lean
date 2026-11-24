@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepDeltaTrace
 import Benchmarks.UniswapV3.Pool.SwapStepPrefixTrace
 import Benchmarks.UniswapV3.Pool.SwapStepInitialModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 theorem swapStepInputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12504⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12504⟩
       (swapStepBudget a :: ⟨0⟩ ::
         swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
@@ -19,9 +21,9 @@ theorem swapStepInputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (ha : a.Fits) (hov : R.length + 42 ≤ 1024) :
     (¬amountDeltaValid (swapStepDeltaOne a true) (swapStepDeltaArgs a a.target true) ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (amountDeltaValid (swapStepDeltaOne a true) (swapStepDeltaArgs a a.target true) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12542⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12542⟩
         (swapStepInitialAmount a true :: swapStepBudget a ::
           swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
         mem aw rdata σ k' C') := by
@@ -32,7 +34,7 @@ theorem swapStepInputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by evm_ov) rfl rd
     have r2 := uniswapV3Pool_block_12512 (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have rcall : RD (deployedRuntime v) ee g s0
+    have rcall : RD fork (deployedRuntime v) ee g s0
         (UInt256.ofNat (amountDeltaEntry (swapStepDeltaOne a true)))
         (swapStepDeltaRawWords a true currentRaw targetRaw liquidityRaw ++ ⟨12524⟩ ::
           swapStepBudget a :: swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
@@ -54,7 +56,7 @@ theorem swapStepInputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
     have r2 := uniswapV3Pool_block_12529 (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have rcall : RD (deployedRuntime v) ee g s0
+    have rcall : RD fork (deployedRuntime v) ee g s0
         (UInt256.ofNat (amountDeltaEntry (swapStepDeltaOne a true)))
         (swapStepDeltaRawWords a true currentRaw targetRaw liquidityRaw ++ ⟨12542⟩ ::
           swapStepBudget a :: swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
@@ -71,16 +73,16 @@ theorem swapStepInputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapStepOutputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12580⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12580⟩
       (swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (ha : a.Fits) (hov : R.length + 41 ≤ 1024) :
     (¬amountDeltaValid (swapStepDeltaOne a false) (swapStepDeltaArgs a a.target false) ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (amountDeltaValid (swapStepDeltaOne a false) (swapStepDeltaArgs a a.target false) ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12616⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12616⟩
         (swapStepInitialAmount a false ::
           swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
         mem aw rdata σ k' C') := by
@@ -91,7 +93,7 @@ theorem swapStepOutputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by evm_ov) rfl rd
     have r2 := uniswapV3Pool_block_12586 (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have rcall : RD (deployedRuntime v) ee g s0
+    have rcall : RD fork (deployedRuntime v) ee g s0
         (UInt256.ofNat (amountDeltaEntry (swapStepDeltaOne a false)))
         (swapStepDeltaRawWords a false currentRaw targetRaw liquidityRaw ++ ⟨12598⟩ ::
           swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
@@ -113,7 +115,7 @@ theorem swapStepOutputDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
     have r2 := uniswapV3Pool_block_12603 (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have rcall : RD (deployedRuntime v) ee g s0
+    have rcall : RD fork (deployedRuntime v) ee g s0
         (UInt256.ofNat (amountDeltaEntry (swapStepDeltaOne a false)))
         (swapStepDeltaRawWords a false currentRaw targetRaw liquidityRaw ++ ⟨12616⟩ ::
           swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)

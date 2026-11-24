@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.TransferBaseUpdateEvm
 import Benchmarks.CompoundIII.Comet.TransferBaseTailEvm
 import Benchmarks.CompoundIII.Comet.AccrueInternalEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,10 +22,10 @@ theorem cometTransferBaseAfterAccrue {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 736 + 928 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14675⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14675⟩
       (EVM.word src.val :: amount :: EVM.word dst.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, TransferBaseAfterAccrue v src dst amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferBaseAfterAccrue fork v src dst amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   obtain ⟨aw1, k1, C1, hsm, hdm, r1⟩ := cometTransferBaseRead (v := v) src dst
     (by omega) hfree hlo hmem (by omega) hs h
   rcases cometTransferBaseMath (v := v) (by omega) hs r1 with
@@ -36,7 +38,7 @@ theorem cometTransferBaseAfterAccrue {v : CometWithExtendedAssetListImmutables}
       (supplied := supplyBaseSupplied evm dst amount) (withdrawn := withdrawBaseSupplied evm src amount)
       (borrowed := withdrawBaseBorrowed evm src amount) (repaid := supplyBaseRepaid evm dst amount)
       (by change R.length + 2 + 17 ≤ 1024; omega) hS hW hB hR hs r2
-    change internalRun _ _ _ _ _ _ _ _ _ (transferBaseTotals evm src dst amount) at hr
+    change internalRun fork _ _ _ _ _ _ _ _ _ (transferBaseTotals evm src dst amount) at hr
     cases ht : transferBaseTotals evm src dst amount with
     | reverted => rw [ht] at hr; exact ⟨.reverted, .totalsReverted hf ht, hr⟩
     | staticViolation => rw [ht] at hr; exact ⟨.staticViolation, .totalsStatic hf ht, hr⟩
@@ -53,7 +55,7 @@ theorem cometTransferBaseAfterAccrue {v : CometWithExtendedAssetListImmutables}
       have hu := cometTransferBaseUpdate (v := v) src dst
         (by change R.length + 33 ≤ 1024; omega) hsm hdm hlo
         (by omega) (by omega) hs1 r3
-      change internalMemoryRun _ _ _ _ _ _ _ _ (transferBaseUpdates v evm evm' src dst amount) at hu
+      change internalMemoryRun fork _ _ _ _ _ _ _ _ (transferBaseUpdates v evm evm' src dst amount) at hu
       cases he : transferBaseUpdates v evm evm' src dst amount with
       | reverted => rw [he] at hu; exact ⟨.reverted, .updateReverted hf ht he, hu⟩
       | staticViolation => rw [he] at hu; exact ⟨.staticViolation, .updateStatic hf ht he, hu⟩
@@ -84,10 +86,10 @@ theorem cometTransferBase {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 736 + 928 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14664⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14664⟩
       (EVM.word src.val :: EVM.word dst.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, TransferBaseTrace v src dst amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferBaseTrace fork v src dst amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_14664
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

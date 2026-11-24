@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.UserBasicFields
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `userBasic(address)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 10000
 
 theorem userBasic_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "arg0" I) userBasicTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some ((userBasicScalars (userBasicWord σ I
@@ -59,7 +61,7 @@ theorem userBasicX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 61)) :
-    AddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    AddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (wordBytes ((userBasicScalars (userBasicWord σ I
         (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).map ScalarReturn.word)) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachUserBasicBody
@@ -115,7 +117,7 @@ theorem userBasicX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
           let c := userBasicFieldWord val 1
           let d := userBasicFieldWord val 2
           let e := userBasicFieldWord val 3
-          change RDret _ _ _ _
+          change RDret fork _ _ _ _
             ((e.toByteArray.write 0 (d.toByteArray.write 0 (c.toByteArray.write 0
               (b.toByteArray.write 0 (solcScratchReturnMem mem a) 160 32) 192 32) 224 32)
                 256 32).readWithPadding 128 160) at rd6
@@ -158,7 +160,7 @@ theorem userBasicX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListIm
 theorem cometWithExtendedAssetListUserBasicBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 61)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 61) rfl hsel
   let w := userBasicWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
   apply addressGetterValues_refines (t := userBasicTransition)

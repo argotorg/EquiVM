@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SafeCast256Source
 import Benchmarks.UniswapV4PoolManager.WordSignedSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -15,10 +17,10 @@ def checkedAmountReturnBlock (negate : Bool) : List Stmt :=
 theorem checkedAmountReturn {f : Frame} {evm : EVM.State} {w : UInt256}
     (hf : f.contract = contract) (ha : f.locals.get? "amount" = some (.int (Int.ofNat w.toNat)))
     (negate : Bool) :
-    ∃ f', ExecBlock config f evm (checkedAmountReturnBlock negate)
+    ∃ f', ExecBlock fork config f evm (checkedAmountReturnBlock negate)
       (if w.toNat < 2^255 then
         .returned f' evm (some [.int (EVM.signed (checkedAmountReturnWord w negate))]) else .reverted) := by
-  have hc := uintToInt256Call (f := f) (evm := evm) hf (evalLocalValue ha) "result"
+  have hc := uintToInt256Call (fork := fork) (f := f) (evm := evm) hf (evalLocalValue ha) "result"
   by_cases hfit : w.toNat < 2^255
   · rw [if_pos hfit] at hc
     simp only [if_pos hfit]

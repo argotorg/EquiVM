@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ResolveManyFinishRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,10 +16,10 @@ theorem resolveManyResolverRun {locals imms : Store} {ee : ExecutionEnv} {g : Sa
     (hvalues : WordArrayMemoryView mem values words ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
       (resolverManyEntryStack rev junk0 junk1 junk2 array (UInt256.ofNat target.val) values last.toUInt256 available total (ret::R))
       mem aw rdata σ k C) :
-    HeapReturnOrStatic config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnOrStatic fork config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm ([resolveManyResolver,resolveManyRefund] ++ resolveManyReturn) (.int (Int.ofNat total.toNat)) ret (total::R) mem ptr.toNat := by
   have hlo : 124 ≤ ptr.toNat := by have := harray.low; have := harray.span; omega
   have henc := resolverManyBody_bound harray hvalues hheap

@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.InitializeCore
 import Benchmarks.CurveVault.InitializeMemory
 import Benchmarks.CurveVault.InitializeGuard
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Vault `initialize(address,address,address,address)`
 
@@ -25,7 +27,7 @@ theorem vaultInitializeBodyCore {σ σ₀ A I} {g : UInt256}
     (hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 45)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 45) rfl hsel
   have hd : dispatchMsg contract I.calldata = some initializeTransition := by
     apply vaultDispatch_initialize
@@ -85,7 +87,7 @@ theorem vaultInitializeBodyCore {σ σ₀ A I} {g : UInt256}
   swap
   · obtain ⟨k', C', rdFail⟩ := vaultBlocks.vault_block_212_taken (by simp) hz (by native_decide) rd212
     have hrev := vaultBlocks.vault_block_8284 (by simp [vaultBlocks.vault_block_212_taken_stack]) rdFail
-    have hsource : ExecTransitionBody config contract evm locals initializeTransition.body .reverted :=
+    have hsource : ExecTransitionBody fork config contract evm locals initializeTransition.body .reverted :=
       ExecFuncBody.execBlockRevert (nonpayableSecondRequireReverts hvalue
         (by simpa only [hz, decide_false] using hguard))
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
@@ -103,7 +105,7 @@ theorem vaultInitializeBodyCore {σ σ₀ A I} {g : UInt256}
       (by simp [vaultBlocks.vault_block_212_fallthrough_stack])
     have hstatic := rd225.sstoreStatic hp (by native_decide)
       (by simp [vaultBlocks.vault_block_212_fallthrough_stack])
-    have hsource : ExecTransitionBody config contract evm locals initializeTransition.body .staticViolation := by
+    have hsource : ExecTransitionBody fork config contract evm locals initializeTransition.body .staticViolation := by
       apply ExecFuncBody.execBlockStatic
       apply nonpayableRequireAssignStorageBlockStatic hvalue hguardTrue
         (show evalExpr? config {contract := contract, locals := locals} evm (.var "_borrowed_token_") =
@@ -116,18 +118,18 @@ theorem vaultInitializeBodyCore {σ σ₀ A I} {g : UInt256}
   have hmem0 : (vaultDispatchMemory ⟨4173887070⟩).size ≤ 64 := by native_decide
   obtain ⟨hmem, hma, hmc, hmt, hml⟩ := vaultInitializeMemory_facts
     (vaultDispatchMemory ⟨4173887070⟩) amm controller token collateral hmem0
-  change RD vaultBytecode I (Sat256.ofUInt256 g) evm (UInt256.ofNat 221)
+  change RD fork vaultBytecode I (Sat256.ofUInt256 g) evm (UInt256.ofNat 221)
     [⟨70026204933037701⟩, solcSelectorWord I] mem _ ByteArray.empty σ k' C' at rd221
   rcases vaultInitializeAfterGuard SourceState.init ha hc ht hl hmem hma hmc hmt hml hperm
     (by repeat' apply memoryActive_le (bound := 10) ?_ (by decide +kernel); decide +kernel)
     (by simp) rd221 with ⟨evm', σ', locals', hbody, hs', hret⟩ | ⟨hbody, hrev⟩
-  · have hsource : ExecTransitionBody config contract evm locals initializeTransition.body
+  · have hsource : ExecTransitionBody fork config contract evm locals initializeTransition.body
         (.returned {contract := contract, locals := locals'} evm' none) :=
       ExecFuncBody.execBlockOK (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
         (ExecBlock.consNormal (ExecStmt.requireTrue hguardTrue) hbody))
     exact hret.reEquivExecutionGen hcode hd hdec hsource hs'.accounts
       (returnEquiv.fallthrough rfl rfl (by native_decide))
-  · have hsource : ExecTransitionBody config contract evm locals initializeTransition.body .reverted :=
+  · have hsource : ExecTransitionBody fork config contract evm locals initializeTransition.body .reverted :=
       ExecFuncBody.execBlockRevert (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
         (ExecBlock.consNormal (ExecStmt.requireTrue hguardTrue) hbody))
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
@@ -136,7 +138,7 @@ theorem vaultInitializeBody {σ σ₀ A I} {g : UInt256}
     (hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 45)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultInitializeBodyCore hwf hcode hsize hsel
 
 end Benchmarks.CurveVault

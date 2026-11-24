@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `fee()`
 
@@ -19,7 +21,7 @@ set_option maxRecDepth 2000000
 
 theorem uniswapV3PoolFeeReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals feeTransition.body
+    ExecTransitionBody fork config contract evm locals feeTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (normalizeInt (.uint ⟨24, by decide⟩)
           (Int.ofNat v.fee.toNat))])) (immStore v) := by
@@ -32,7 +34,7 @@ theorem uniswapV3PoolFeeX {σ σ₀ A I} {g : Sat256} (v : UniswapV3PoolImmutabl
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 22)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land v.fee (UInt256.ofNat 16777215))) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachFeeBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -53,7 +55,7 @@ theorem uniswapV3PoolFeeBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolImmu
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 22)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 22) rfl hsel
   have hd : dispatchMsg contract I.calldata = some feeTransition := by
     apply uniswapV3PoolDispatch_fee <;>

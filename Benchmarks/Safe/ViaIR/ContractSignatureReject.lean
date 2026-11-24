@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.ContractSignatureSource
 import Ethereum.Theory.PrecompileLemmas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 
 private theorem emptyStackHaltOutput {validJumps : Array UInt256} {state state' : State}
     {cause : HaltCause} {out : ByteArray} (hs : state.machineState.stack = [])
-    (h : Xstep validJumps state = .ok (state', some (cause, out))) : out = .empty := by
+    (h : Xstep fork validJumps state = .ok (state', some (cause, out))) : out = .empty := by
   unfold Xstep at h
   simp [bind, Except.bind] at h
   split at h
@@ -40,13 +42,13 @@ private theorem emptyStackHaltOutput {validJumps : Array UInt256} {state state' 
         · exact h.2.2.symm
 
 private theorem xiZeroGasOutput (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) :
-    (match Ξ σ σ₀ ⟨0⟩ A I with
+    (match Ξ fork σ σ₀ ⟨0⟩ A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).2.2.2 = .empty := by
   unfold Ξ
   simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.zero_add, X, bind, Except.bind]
-  generalize hstep : Xstep (D_J I.code 0) _ = stepResult
+  generalize hstep : Xstep fork (D_J I.code 0) _ = stepResult
   cases stepResult with
   | error _ => rfl
   | ok pair =>
@@ -60,8 +62,8 @@ private theorem xiZeroGasOutput (σ σ₀ : AccountMap) (A : Substate) (I : Exec
 
 private theorem precompileZeroGasOutput (pc : AccountAddress) (σ : AccountMap) (A : Substate)
     (I : ExecutionEnv) :
-    (Ξ_PRECOMPILE pc σ ⟨0⟩ A I).2.2.2.size ≠ 32 := by
-  apply Ξ_PRECOMPILE_induction (fun r ↦ r.2.2.2.size ≠ 32)
+    (Ξ_PRECOMPILE fork pc σ ⟨0⟩ A I).2.2.2.size ≠ 32 := by
+  apply Ξ_PRECOMPILE_induction fork (fun r ↦ r.2.2.2.size ≠ 32)
   · change (0 : Nat) ≠ 32; decide
   · simp [Ξ_SHA256]
   · simp [Ξ_RIP160]
@@ -104,7 +106,7 @@ private theorem thetaZeroGasOutput {fork : Ethereum.Fork} (σ σ₀ : AccountMap
   | Code code =>
     unfold Θ
     simp only
-    change (match Ξ _ σ₀ ⟨0⟩ A _ with
+    change (match Ξ fork _ σ₀ ⟨0⟩ A _ with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).2.2.2.size ≠ 32
@@ -117,15 +119,15 @@ private theorem thetaZeroGasOutput {fork : Ethereum.Fork} (σ σ₀ : AccountMap
 
 theorem contractSignatureCanReject (evm : EVM.State) (owner : EVM.Address)
     (hash : UInt256) (signature : ByteArray) :
-    ∃ z evm' out, callViaEVM evm (EVM.address owner) 0
+    ∃ z evm' out, callViaEVM fork evm (EVM.address owner) 0
       (contractSignatureCallBytes hash signature) (z, evm', out) false ∧
       contractSignatureResult z out = false := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨false, _, ByteArray.empty,
       callViaEVM.callNotMade rfl rfl (fun hh ↦ hh.2 hd), rfl⟩
-  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
+  · let result := Θ fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
       evm.executionEnv.sender (EVM.address owner)
-      (toExecute evm.executionEnv.fork evm.accountMap (EVM.address owner)) ⟨0⟩
+      (toExecute fork evm.accountMap (EVM.address owner)) ⟨0⟩
       (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
       (contractSignatureCallBytes hash signature) (evm.executionEnv.depth + 1)
       evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks false
@@ -139,8 +141,8 @@ theorem contractSignatureCanReject (evm : EVM.State) (owner : EVM.Address)
 
 private theorem precompileZeroGasEmpty (pc : AccountAddress) (σ : AccountMap) (A : Substate)
     (I : ExecutionEnv) (hinput : I.calldata.size ≠ 213) :
-    (Ξ_PRECOMPILE pc σ ⟨0⟩ A I).2.2.2 = ByteArray.empty := by
-  apply Ξ_PRECOMPILE_induction (fun r ↦ r.2.2.2 = ByteArray.empty)
+    (Ξ_PRECOMPILE fork pc σ ⟨0⟩ A I).2.2.2 = ByteArray.empty := by
+  apply Ξ_PRECOMPILE_induction fork (fun r ↦ r.2.2.2 = ByteArray.empty)
   · rfl
   · simp [Ξ_SHA256]
   · simp [Ξ_RIP160]
@@ -184,11 +186,11 @@ private theorem thetaZeroGasEmpty {fork : Ethereum.Fork} (σ σ₀ : AccountMap)
 
 theorem callZeroGasEmptyOutput (evm : EVM.State) (target : EVM.Address) (data : ByteArray)
     (perm : Bool) (hinput : data.size ≠ 213) :
-    ∃ z evm', callViaEVM evm target 0 data (z, evm', ByteArray.empty) perm := by
+    ∃ z evm', callViaEVM fork evm target 0 data (z, evm', ByteArray.empty) perm := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨false, _, callViaEVM.callNotMade rfl rfl (fun hh ↦ hh.2 hd)⟩
-  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
-      evm.executionEnv.sender target (toExecute evm.executionEnv.fork evm.accountMap target) ⟨0⟩
+  · let result := Θ fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
+      evm.executionEnv.sender target (toExecute fork evm.accountMap target) ⟨0⟩
       (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩ data (evm.executionEnv.depth + 1)
       evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
       (perm && evm.executionEnv.perm)

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_019
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,9 +23,9 @@ theorem poolModifyOutsideEnterTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw tick sqrtPrice : UInt256} {p : PoolModifyParams}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (one : Bool) (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
       (poolModifyOutsideInputStack one tick sqrtPrice p R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨16728⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨16728⟩
       (p.lower :: ⟨6365⟩ :: poolModifyOutsidePricePC one :: EVM.wordOfInt p.delta :: p.upper ::
         ⟨6381⟩ :: poolModifyOutsideCastPC one :: R) mem aw rdata σ k' C' := by
   cases one with
@@ -40,9 +42,9 @@ theorem poolModifyTwoPricesTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlb : (EVM.signed lower).natAbs ≤ 887272) (hub : (EVM.signed upper).natAbs ≤ 887272)
     (hd : signedFits ⟨128, by decide⟩ delta)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16728⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16728⟩
       (lower :: ⟨6365⟩ :: ret :: EVM.wordOfInt delta :: upper :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (tickSqrtPrice (EVM.signed upper) :: tickSqrtPrice (EVM.signed lower) :: EVM.wordOfInt delta :: R)
       mem aw rdata σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := tickSqrtCanonicalTrace v (by simp only [List.length_cons]; omega) hl hlb
@@ -60,9 +62,9 @@ theorem poolModifyOutsidePricesTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (one : Bool) (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
       (poolModifyOutsideInputStack one tick sqrtPrice p R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 (if one then ⟨17610⟩ else ⟨17703⟩)
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 (if one then ⟨17610⟩ else ⟨17703⟩)
       (tickSqrtPrice (EVM.signed p.lower) :: tickSqrtPrice (EVM.signed p.upper) :: EVM.wordOfInt p.delta ::
         ⟨6381⟩ :: poolModifyOutsideCastPC one :: R) mem aw rdata σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := poolModifyOutsideEnterTrace one v (by omega) h

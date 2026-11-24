@@ -4,6 +4,8 @@ import Benchmarks.Safe.V2_0e91d99.VoidRoutineOutcome
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_017
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -13,7 +15,7 @@ set_option maxRecDepth 100000
 
 theorem safeSetupPaymentTrace (evm : EVM.State)
     {I g s0 σ k C aw mem rdata n len ptr locals} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4782⟩ (setupDecodedStack I.calldata n len (ret :: R))
+    (h : RD fork safeBytecode I g s0 ⟨4782⟩ (setupDecodedStack I.calldata n len (ret :: R))
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hl : SetupLocals (setupCalldataInput I.calldata n len) locals)
@@ -21,7 +23,7 @@ theorem safeSetupPaymentTrace (evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 128 ≤ mem.size) (hp : 128 ≤ ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hptr : ptr < 2 ^ 220)
     (hov : R.length + 36 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    VoidRoutineOutcome config { contract := contract, locals := locals } evm
+    VoidRoutineOutcome fork config { contract := contract, locals := locals } evm
       [setupPaymentStmt] safeBytecode I g s0 ret R := by
   let p := setupCalldataInput I.calldata n len
   by_cases hpay : p.payment = ⟨0⟩
@@ -37,7 +39,7 @@ theorem safeSetupPaymentTrace (evm : EVM.State)
     ((canonicalAddress_eq_address_iff _ _ hb.paymentToken).mp rfl).symm
   have hr : UInt256.ofNat p.paymentInput.refundReceiver.val = p.paymentReceiver :=
     ((canonicalAddress_eq_address_iff _ _ hb.paymentReceiver).mp rfl).symm
-  have hcall : RD safeBytecode I g s0 ⟨7841⟩
+  have hcall : RD fork safeBytecode I g s0 ⟨7841⟩
       (UInt256.ofNat p.paymentInput.refundReceiver.val ::
         UInt256.ofNat p.paymentInput.gasToken.val :: p.paymentInput.gasPrice ::
         p.paymentInput.baseGas :: p.paymentInput.gasUsed :: ⟨4802⟩ ::

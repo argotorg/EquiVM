@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,7 +13,7 @@ theorem swapCrossBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3672⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3672⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -34,10 +36,10 @@ theorem swapCrossBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hqfree : q.toNat + 224 ≤ free.toNat) (hb : free.toNat ≤ 2 ^ 200)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 67 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecBlock config frame evm swapCrossBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    Nonempty (SwapTailExit v ee g s0 rdata ⟨3993⟩ q p cache
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecBlock fork config frame evm swapCrossBody .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    Nonempty (SwapTailExit fork v ee g s0 rdata ⟨3993⟩ q p cache
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       d swapCrossBody frame evm mem aw free C) := by
   have he := evalExpr_structField (name := "initialized")
@@ -48,10 +50,10 @@ theorem swapCrossBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   have hbudget1 := hbudget.advance (show C + (Cₘ aw1 - Cₘ aw) ≤ C1 by omega)
   have hcover1 : free.toNat ≤ aw1.toNat * 32 + 32 := by omega
   have hhead :
-      (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-      (ExecStmt config frame evm swapCrossBody[0]! .reverted ∧
-        (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-      Nonempty (SwapTailExit v ee g s0 rdata ⟨3893⟩ q p cache
+      (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+      (ExecStmt fork config frame evm swapCrossBody[0]! .reverted ∧
+        (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+      Nonempty (SwapTailExit fork v ee g s0 rdata ⟨3893⟩ q p cache
         (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         d [swapCrossBody[0]!] frame evm mem aw free C) := by
     cases hinit : d.initialized

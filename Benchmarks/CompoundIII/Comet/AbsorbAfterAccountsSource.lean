@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AbsorbPointsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -19,7 +21,7 @@ theorem absorbAfterAccounts_source (frame : Frame) (evm : State) (addr : Account
     (hg : frame.locals.get? "startGas" = some (.int startGas.toNat))
     (hp : frame.locals.get? "liquidatorPoints" = none)
     (hlen : accounts.length = n.toNat) (hn : n.toNat < 2^64) :
-    internalBlockResult config frame evm absorbAfterAccountsBlock
+    internalBlockResult fork config frame evm absorbAfterAccountsBlock
       (absorbAfterAccountsOutcome evm addr n startGas endGas) := by
   let f1 : Frame := { frame with locals := frame.locals.insert "endGas" (.int endGas.toNat) }
   let f2 : Frame :=

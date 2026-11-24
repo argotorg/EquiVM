@@ -2,6 +2,8 @@ import Benchmarks.Safe.Main.SignatureBranchTrace
 import Benchmarks.Safe.Main.SignatureSplitTrace
 import Benchmarks.Safe.Main.SignatureOwnerTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -9,7 +11,7 @@ namespace Benchmarks.Safe.Main
 theorem safeSignatureIteration (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src i} {s r v current last executor : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2011⟩
+    (h : RD fork safeBytecode I g s0 ⟨2011⟩
       (UInt256.ofNat i :: s :: r :: v :: current :: last :: p.required :: UInt256.ofNat src ::
         p.hash :: executor :: R) mem aw rdata σ k C)
     (hc : SignatureContext p f i last) (he : p.executor = AccountAddress.ofUInt256 executor)
@@ -20,13 +22,13 @@ theorem safeSignatureIteration (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hi : i < p.required.toNat) (hov : R.length + 43 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config f evm signatureLoopBody .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config f evm signatureLoopBody .reverted) ∨
     ∃ f' evm' σ' mem' ptr' aw' out s' r' v' owner k' C',
-      ExecBlock config f evm signatureLoopBody (.ok f' evm') ∧
+      ExecBlock fork config f evm signatureLoopBody (.ok f' evm') ∧
       SignatureContext p f' (i + 1) owner ∧
       f'.locals["currentOwner"]? = some (.address (AccountAddress.ofUInt256 owner)) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨2002⟩
+      RD fork safeBytecode I g s0 ⟨2002⟩
         (UInt256.ofNat (i + 1) :: s' :: r' :: v' :: owner :: owner :: p.required ::
           UInt256.ofNat src :: p.hash :: executor :: R) mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
@@ -41,9 +43,9 @@ theorem safeSignatureIteration (p : SignatureInput) (evm : EVM.State)
   have hb : src + 64 + p.signatures.size < UInt256.size := by
     change _ < 2 ^ 256
     omega
-  have hsplit := signatureSplitSource (evm := evm) hc.toSignatureCore hc.index hin
-  have hfinish {result} (ht : ExecBlock config (signatureVFrame f p.signatures i) evm
-      (signatureLoopBody.drop 4) result) : ExecBlock config f evm signatureLoopBody result := by
+  have hsplit := signatureSplitSource (fork := fork) (evm := evm) hc.toSignatureCore hc.index hin
+  have hfinish {result} (ht : ExecBlock fork config (signatureVFrame f p.signatures i) evm
+      (signatureLoopBody.drop 4) result) : ExecBlock fork config f evm signatureLoopBody result := by
     simpa only [List.take_append_drop] using execBlock_append_ok hsplit ht
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeSignatureSplit h hm hin hb (by simp; omega)
   have hr : (signatureVFrame f p.signatures i).locals["r"]? =

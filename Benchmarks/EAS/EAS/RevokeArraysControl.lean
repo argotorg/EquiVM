@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokeLayout
 import Benchmarks.EAS.EAS.AttestArraysControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,8 +29,8 @@ theorem easRevokeRecordsStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (site : RevokeSite) (hstack : R.length+11 ≤ 1024)
     (hl : memLoad site.data mem = UInt256.ofNat site.length)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.arraysPC (revokeArraysStack site R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7541⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.arraysPC (revokeArraysStack site R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7541⟩
       (UInt256.ofNat site.length::site.kind.recordsReturnPC::revokeRecordsSaved site R) mem aw' rdata σ k' C' := by
   cases hk : site.kind with
   | single =>
@@ -45,9 +47,9 @@ theorem easRevokeRecordsStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easRevokeValuesStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (site : RevokeSite) (hstack : R.length+12 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.recordsReturnPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.recordsReturnPC
       (site.records::revokeRecordsSaved site R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7240⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7240⟩
       (UInt256.ofNat site.length::site.kind.valuesReturnPC::revokeValuesSaved site R) mem aw' rdata σ k' C' := by
   cases hk : site.kind with
   | single =>
@@ -64,9 +66,9 @@ theorem easRevokeValuesStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easRevokeArraysDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (site : RevokeSite) (hstack : R.length+12 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.valuesReturnPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.valuesReturnPC
       (site.values::revokeValuesSaved site R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 site.kind.loopPC
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
       (revokeLoopStack site ee ⟨0⟩ R) mem aw' rdata σ k' C' := by
   cases hk : site.kind with
   | single =>

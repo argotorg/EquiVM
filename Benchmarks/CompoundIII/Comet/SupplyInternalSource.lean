@@ -2,17 +2,19 @@ import Benchmarks.CompoundIII.Comet.SupplyInternalModel
 import Benchmarks.CompoundIII.Comet.SupplyAssetSource
 import Benchmarks.CompoundIII.Comet.ReentrancySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem supplyInternalAfter_source {v operator sender dst asset amount evm result}
-    (ht : SupplyInternalAfter v operator sender dst asset amount evm result)
+    (ht : SupplyInternalAfter fork v operator sender dst asset amount evm result)
     (frame : Frame) (hf : SupplyAssetArgs frame v sender dst asset amount)
     (ho : frame.locals.get? "operator" = some (.address operator)) :
-    internalBlockResult config frame evm supplyInternalTail result := by
-  have ha := authorization_source frame evm ⟨0, by decide⟩ "from" operator sender (by decide)
+    internalBlockResult fork config frame evm supplyInternalTail result := by
+  have ha := authorization_source (fork := fork) frame evm ⟨0, by decide⟩ "from" operator sender (by decide)
     hf.contract ho hf.sender
   let ready := authorizationFrame frame evm ⟨0, by decide⟩ operator sender
   have hready : SupplyAssetArgs ready v sender dst asset amount := by
@@ -43,22 +45,22 @@ theorem supplyInternalAfter_source {v operator sender dst asset amount evm resul
     let final := { supplyAssetReady ready v evm dst asset amount with
       locals := (supplyAssetReady ready v evm dst asset amount).locals.insert
         (supplyAssetReturn v asset) .unit }
-    have hend := reentrancy_call final evm' false "__c7"
+    have hend := reentrancy_call (fork := fork) final evm' false "__c7"
       ((supplyAssetReady_contract _ _ _ _ _ _).trans hf.contract)
     simp only [reentrancyOutcome, Bool.false_and, Bool.false_eq_true, if_false,
       reentrancyWriteOutcome, hp, if_true, internalStmtResult] at hend
-    exact (show internalBlockResult config ready evm
+    exact (show internalBlockResult fork config ready evm
       [supplyAssetStmt, .internalCall "nonReentrantAfter" [] "__c7"]
         (.ok (reentrancyState evm' false)) from
       ⟨_, ExecBlock.consNormal hwork (execBlock_singleton hend)⟩).prependBlock ha
 
 theorem supplyInternal_source {v operator sender dst asset amount evm result}
-    (ht : SupplyInternalTrace v operator sender dst asset amount evm result) :
-    internalSourceResult config (supplyInternalEntry (immStore v) operator sender dst asset amount)
+    (ht : SupplyInternalTrace fork v operator sender dst asset amount evm result) :
+    internalSourceResult fork config (supplyInternalEntry (immStore v) operator sender dst asset amount)
       evm supplyInternalCallable.body result := by
   let frame := supplyInternalEntry (immStore v) operator sender dst asset amount
   let ready := { frame with locals := frame.locals.insert "__c0" .unit }
-  have hb := reentrancy_call frame evm true "__c0" rfl
+  have hb := reentrancy_call (fork := fork) frame evm true "__c0" rfl
   apply internalBlockResult.toSource
   cases ht with
   | reverted he =>
@@ -77,7 +79,7 @@ theorem supplyInternal_source {v operator sender dst asset amount evm result}
     exact (supplyInternalAfter_source ht ready hf ho).prepend (internalStmtResult.cast hb he)
 
 theorem supplyInternal_call {v operator sender dst asset amount evm result}
-    (ht : SupplyInternalTrace v operator sender dst asset amount evm result) (frame : Frame)
+    (ht : SupplyInternalTrace fork v operator sender dst asset amount evm result) (frame : Frame)
     (operatorExpr senderExpr toExpr assetExpr amountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ho : evalExpr? config frame evm operatorExpr = .ok (.address operator))
@@ -85,7 +87,7 @@ theorem supplyInternal_call {v operator sender dst asset amount evm result}
     (hto : evalExpr? config frame evm toExpr = .ok (.address dst))
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "supplyInternal" [operatorExpr, senderExpr, toExpr, assetExpr, amountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := supplyInternalCallable)

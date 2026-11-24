@@ -33,6 +33,8 @@ import Benchmarks.Dss.End.Pack
 import Benchmarks.Dss.End.Cash
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS End benchmark correctness
 -/
@@ -43,8 +45,8 @@ namespace Benchmarks.Dss.End
 
 theorem endCorrect :
     runtimeRefinement config endBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)
     · exact endWardsBody hcode hsize hwv hwards

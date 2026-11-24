@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_075
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_076
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_077
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -21,9 +23,9 @@ theorem cometAbsorbAccountsRead {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw base absorber : UInt256} {σ : AccountMap} {k C i n : Nat} {R : List UInt256}
     (hstack : R.length + 15 ≤ 1024) (hi : i < n) (hn : n < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16695⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16695⟩
       (absorbAccountsStack i base absorber n R) mem aw rdata σ k C) :
-    RD (deployedRuntime v) ee g s0 ⟨1393⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨1393⟩
       (calldataWord ee.calldata (absorbAccountOffset base i).toNat :: ⟨2425⟩ ::
         calldataWord ee.calldata (absorbAccountOffset base i).toNat ::
         ⟨16966⟩ :: ⟨16972⟩ :: UInt256.ofNat i :: ⟨1⟩ ::
@@ -64,9 +66,9 @@ theorem cometAbsorbAccountsEnter {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 15 ≤ 1024) (hi : i < n) (hn : n < 2^64)
     (hc : (calldataWord ee.calldata (absorbAccountOffset base i).toNat).toNat <
       EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16695⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16695⟩
       (absorbAccountsStack i base absorber n R) mem aw rdata σ k C) :
-    RD (deployedRuntime v) ee g s0 ⟨16978⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨16978⟩
       (absorber :: calldataWord ee.calldata (absorbAccountOffset base i).toNat ::
         ⟨16972⟩ :: UInt256.ofNat i :: ⟨1⟩ :: base :: ⟨1⟩ ::
         absorber :: UInt256.ofNat n :: R) mem aw rdata σ (k + 58) (C + 214) := by
@@ -88,10 +90,10 @@ theorem cometAbsorbAccountsIncrement {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw base absorber : UInt256} {σ : AccountMap} {k C i n : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16972⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16972⟩
       (UInt256.ofNat i :: ⟨1⟩ :: base :: ⟨1⟩ :: absorber :: UInt256.ofNat n :: R)
       mem aw rdata σ k C) :
-    RD (deployedRuntime v) ee g s0 ⟨16695⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨16695⟩
       (absorbAccountsStack (i + 1) base absorber n R) mem aw rdata σ (k + 4) (C + 15) := by
   have hr := cometWithExtendedAssetList_block_16972
     (immWords := wordsOf (immStore v)) (by change R.length + 4 + 2 ≤ 1024; omega)
@@ -104,9 +106,9 @@ theorem cometAbsorbAccountsExit {v : CometWithExtendedAssetListImmutables}
     {aw base absorber : UInt256} {σ : AccountMap} {k C i n : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hi : n ≤ i) (hi256 : i < UInt256.size)
     (hn256 : n < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16695⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16695⟩
       (absorbAccountsStack i base absorber n R) mem aw rdata σ k C) :
-    RD (deployedRuntime v) ee g s0 ⟨16703⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨16703⟩
       (absorbAccountsStack i base absorber n R) mem aw rdata σ (k + 6) (C + 23) := by
   exact cometWithExtendedAssetList_block_16695_fallthrough
     (immWords := wordsOf (immStore v)) hstack

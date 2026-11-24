@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.VoidBlockRefines
 import Benchmarks.Morpho.MorphoBlue.SafeTransferFunctionRefine
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -28,7 +30,7 @@ theorem collateralTransfer_args {p assets account receiver locals}
 theorem collateralTransferEmit {p assets account receiver locals}
     (hl : CollateralTransferLocals p assets account receiver locals) (imms : Store) (evm : EVM.State)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       withdrawCollateralTransition.body[17]!
       (.ok { contract := contract, locals := locals, immutables := imms } evm) := by
   apply ExecStmt.emit (hperm := hperm)
@@ -47,10 +49,10 @@ theorem morphoWithdrawCollateralTail {v : MorphoImmutables} {ee : ExecutionEnv} 
     (hz : locals.get? "__c4" = some (.bool z))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 160) mem = p.collateralToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
       ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: UInt256.ofNat 5701 ::
         withdrawCollateralHealthTail p.id assets account receiver []) mem aw out σ k C) :
-    VoidBlockRefines config (deployedRuntime v) ee g s0
+    VoidBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawCollateralTransition.body.drop 16) := by
   have hez : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
@@ -60,10 +62,10 @@ theorem morphoWithdrawCollateralTail {v : MorphoImmutables} {ee : ExecutionEnv} 
   cases z
   · exact .reverted (ExecBlock.consRevert (ExecStmt.requireFalse hez)) hcheck
   obtain ⟨a1, k1, C1, rd1, hm1, had1⟩ := hcheck
-  have ab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+  have ab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (withdrawCollateralTransition.body.drop 16) { contract := contract, locals := locals, immutables := imms } evm
       (withdrawCollateralTransition.body.drop 18) :=
-    (StateBlock.start.step (ExecStmt.requireTrue hez)).step (collateralTransferEmit (hperm := (congrArg ExecutionEnv.perm hs.env).trans hp) hl imms evm)
+    (StateBlock.start.step (ExecStmt.requireTrue hez)).step (collateralTransferEmit (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs.env).trans hp) hl imms evm)
   obtain ⟨hm2, hp2⟩ := hm1.twoWordEvent (by decide) (UInt256.ofNat ee.source.val) assets
   have hpref := had1.preserves.trans (hp2.mono (by rw [had1.cursor]; omega))
   let mem2 := twoWordEventMem (morphoHealthMem mem) (fp + UInt256.ofNat 64) (UInt256.ofNat ee.source.val) assets
@@ -77,7 +79,7 @@ theorem morphoWithdrawCollateralTail {v : MorphoImmutables} {ee : ExecutionEnv} 
     (by change 14 ≤ 1024; decide) hp (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
   dsimp only [morphoBlocks.morpho_block_5701_stack, morphoBlocks.morpho_block_5701_memory] at rd2
   rw [hm1.free] at rd2
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.land (memLoad (UInt256.ofNat 160) mem2) solcAddrMask,
       receiver, assets, UInt256.ofNat 1211, UInt256.ofNat 0] mem2 _ _ _ _ _ at rd2
   rw [ht1, solcAddrMask_clean hc.2.1] at rd2

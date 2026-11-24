@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Benchmarks.Morpho.MorphoBlue.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -18,8 +20,8 @@ def morphoCreation_block_5336_memory {mem : ByteArray} {x1 : UInt256} {x9 : UInt
 theorem morphoCreation_block_5336 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 12097) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5336) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12097) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) (morphoCreation_block_5336_memory (mem := mem) (x1 := x1) (x9 := x9)) (M (M aw x1 (⟨32⟩ : UInt256)) (x1 + x9) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((36) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x1 (⟨32⟩ : UInt256)) (x1 + x9) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5336) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12097) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) (morphoCreation_block_5336_memory (mem := mem) (x1 := x1) (x9 := x9)) (M (M aw x1 (⟨32⟩ : UInt256)) (x1 + x9) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((36) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x1 (⟨32⟩ : UInt256)) (x1 + x9) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -40,8 +42,8 @@ theorem morphoCreation_block_5336 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5336_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 12097) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5336) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12097) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) (morphoCreation_block_5336_memory (mem := mem) (x1 := x1) (x9 := x9)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5336) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12097) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) (morphoCreation_block_5336_memory (mem := mem) (x1 := x1) (x9 := x9)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5336 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -57,8 +59,8 @@ def morphoCreation_block_5382_memory {mem : ByteArray} {x4 : UInt256} {x6 : UInt
 theorem morphoCreation_block_5382 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5382) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (morphoCreation_block_5382_stack (mem := mem) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) (morphoCreation_block_5382_memory (mem := mem) (x4 := x4) (x6 := x6) (x7 := x7)) (M (M (M (M (M (M (M aw x7 (⟨32⟩ : UInt256)) x6 (⟨32⟩ : UInt256)) x7 (UInt256.ofNat 64)) x6 (⟨32⟩ : UInt256)) x7 (UInt256.ofNat 64)) x5 (⟨32⟩ : UInt256)) (x5 + x6) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad (x5 + x6) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5382) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (morphoCreation_block_5382_stack (mem := mem) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) (morphoCreation_block_5382_memory (mem := mem) (x4 := x4) (x6 := x6) (x7 := x7)) (M (M (M (M (M (M (M aw x7 (⟨32⟩ : UInt256)) x6 (⟨32⟩ : UInt256)) x7 (UInt256.ofNat 64)) x6 (⟨32⟩ : UInt256)) x7 (UInt256.ofNat 64)) x5 (⟨32⟩ : UInt256)) (x5 + x6) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad (x5 + x6) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -132,8 +134,8 @@ theorem morphoCreation_block_5382 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5382_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5382) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (morphoCreation_block_5382_stack (mem := mem) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) (morphoCreation_block_5382_memory (mem := mem) (x4 := x4) (x6 := x6) (x7 := x7)) aw' rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad (x5 + x6) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5382) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (morphoCreation_block_5382_stack (mem := mem) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) (morphoCreation_block_5382_memory (mem := mem) (x4 := x4) (x6 := x6) (x7 := x7)) aw' rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))) (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985008687907852929702298719625575994209400481361428480)) (UInt256.land (UInt256.ofNat ee.header.timestamp) x0))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad x5 ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord x7 (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.ofNat 115792089237316195423570985007226406215939081747436879206741300988257197096960)) (UInt256.land (memLoad (x5 + x6) ((UInt256.ofNat 8).toByteArray.write 0 ((UInt256.ofNat 3).toByteArray.write 0 (x4.toByteArray.write 0 mem x7.toNat 32) x6.toNat 32) x6.toNat 32)) x3))) k' C' := by
   obtain ⟨k0, C0, h0⟩ := morphoCreation_block_5382 hstack hperm h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -150,8 +152,8 @@ def morphoCreation_block_5519_memory {mem : ByteArray} {x10 : UInt256} : ByteArr
 theorem morphoCreation_block_5519 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (morphoCreation_block_5519_stack (mem := mem) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (morphoCreation_block_5519_memory (mem := mem) (x10 := x10)) (M (M (M (M (M (M (M (M (M aw (x10 + x0) (⟨32⟩ : UInt256)) x7 (⟨32⟩ : UInt256)) x4 (⟨32⟩ : UInt256)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) x10 (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨32⟩ : UInt256)) (x10 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x10 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))) (x6 + (UInt256.ofNat 3)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x6 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad x7 mem) x8))) (x6 + x5) (memLoad x4 mem)) k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (morphoCreation_block_5519_stack (mem := mem) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (morphoCreation_block_5519_memory (mem := mem) (x10 := x10)) (M (M (M (M (M (M (M (M (M aw (x10 + x0) (⟨32⟩ : UInt256)) x7 (⟨32⟩ : UInt256)) x4 (⟨32⟩ : UInt256)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) x10 (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (⟨32⟩ : UInt256)) (x10 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad (UInt256.ofNat 64) mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x10 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))) (x6 + (UInt256.ofNat 3)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x6 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad x7 mem) x8))) (x6 + x5) (memLoad x4 mem)) k' C' := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.dup11 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -225,8 +227,8 @@ theorem morphoCreation_block_5519 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5519_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (morphoCreation_block_5519_stack (mem := mem) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (morphoCreation_block_5519_memory (mem := mem) (x10 := x10)) aw' rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))) (x6 + (UInt256.ofNat 3)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x6 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad x7 mem) x8))) (x6 + x5) (memLoad x4 mem)) k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5519) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (morphoCreation_block_5519_stack (mem := mem) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (R := R)) (morphoCreation_block_5519_memory (mem := mem) (x10 := x10)) aw' rdata (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))) (x6 + (UInt256.ofNat 3)) (UInt256.lor (UInt256.land ((sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad (x10 + x0) mem) x1))).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x6 + (UInt256.ofNat 3)) (⟨0⟩ : UInt256))) x3) (UInt256.land (memLoad x7 mem) x8))) (x6 + x5) (memLoad x4 mem)) k' C' := by
   obtain ⟨k0, C0, h0⟩ := morphoCreation_block_5519 hstack hperm h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -243,8 +245,8 @@ def morphoCreation_block_5644_memory {mem : ByteArray} {x0 : UInt256} {x1 : UInt
 theorem morphoCreation_block_5644 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains x6 = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 x6 (morphoCreation_block_5644_stack (R := R)) (morphoCreation_block_5644_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5)) (M (M (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) (x5 + x4) (⟨32⟩ : UInt256)) rdata σ (k + 19) (C + ((62) + (memExpansionCost aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) (x5 + x4) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 x6 (morphoCreation_block_5644_stack (R := R)) (morphoCreation_block_5644_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5)) (M (M (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) (x5 + x4) (⟨32⟩ : UInt256)) rdata σ (k + 19) (C + ((62) + (memExpansionCost aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (x5 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x5 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x2 + x3) (⟨32⟩ : UInt256)) (x5 + x4) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -272,8 +274,8 @@ theorem morphoCreation_block_5644 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5644_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains x6 = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 x6 (morphoCreation_block_5644_stack (R := R)) (morphoCreation_block_5644_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5644) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 x6 (morphoCreation_block_5644_stack (R := R)) (morphoCreation_block_5644_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5644 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -287,8 +289,8 @@ theorem morphoCreation_block_5666_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hperm : ee.perm = true)
     (hcond : (UInt256.land (memLoad x4 mem) x5) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5247) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5247) (morphoCreation_block_5666_taken_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem (M (M aw x0 x1) x4 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((26) + (memExpansionCost aw x0 x1) + (375 + 8 * x1.toNat + 2 * 375) + (memExpansionCost (M aw x0 x1) x4 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5247) (morphoCreation_block_5666_taken_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem (M (M aw x0 x1) x4 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((26) + (memExpansionCost aw x0 x1) + (375 + 8 * x1.toNat + 2 * 375) + (memExpansionCost (M aw x0 x1) x4 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -308,8 +310,8 @@ theorem morphoCreation_block_5666_taken_packed {tail : ByteArray} {ee : Executio
     (hperm : ee.perm = true)
     (hcond : (UInt256.land (memLoad x4 mem) x5) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5247) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5247) (morphoCreation_block_5666_taken_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5247) (morphoCreation_block_5666_taken_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5666_taken hstack hperm hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -322,8 +324,8 @@ theorem morphoCreation_block_5666_fallthrough {tail : ByteArray} {ee : Execution
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hcond : (UInt256.land (memLoad x4 mem) x5) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (morphoCreation_block_5666_fallthrough_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem (M (M aw x0 x1) x4 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((26) + (memExpansionCost aw x0 x1) + (375 + 8 * x1.toNat + 2 * 375) + (memExpansionCost (M aw x0 x1) x4 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (morphoCreation_block_5666_fallthrough_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem (M (M aw x0 x1) x4 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((26) + (memExpansionCost aw x0 x1) + (375 + 8 * x1.toNat + 2 * 375) + (memExpansionCost (M aw x0 x1) x4 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -342,16 +344,16 @@ theorem morphoCreation_block_5666_fallthrough_packed {tail : ByteArray} {ee : Ex
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = true)
     (hcond : (UInt256.land (memLoad x4 mem) x5) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (morphoCreation_block_5666_fallthrough_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5666) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (morphoCreation_block_5666_fallthrough_stack (mem := mem) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5666_fallthrough hstack hperm hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 5676. -/
 theorem morphoCreation_block_5676 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RDret (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) g s0 σ (mem.readWithPadding x4.toNat x4.toNat) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5676) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RDret fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) g s0 σ (mem.readWithPadding x4.toNat x4.toNat) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.dup5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -370,8 +372,8 @@ def morphoCreation_block_5679_memory {mem : ByteArray} {x1 : UInt256} {x3 : UInt
 theorem morphoCreation_block_5679 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 12367) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5679) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12367) (morphoCreation_block_5679_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (morphoCreation_block_5679_memory (mem := mem) (x1 := x1) (x3 := x3) (x4 := x4)) (M (M (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x1.toByteArray.write 0 mem x4.toNat 32) x3.toNat 32)) (⟨32⟩ : UInt256)) rdata σ (k + 31) (C + ((93) + (memExpansionCost aw x4 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)) + (memExpansionCost (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x1.toByteArray.write 0 mem x4.toNat 32) x3.toNat 32)) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5679) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12367) (morphoCreation_block_5679_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (morphoCreation_block_5679_memory (mem := mem) (x1 := x1) (x3 := x3) (x4 := x4)) (M (M (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x1.toByteArray.write 0 mem x4.toNat 32) x3.toNat 32)) (⟨32⟩ : UInt256)) rdata σ (k + 31) (C + ((93) + (memExpansionCost aw x4 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) + (30 + 6 * (((UInt256.ofNat 64).toNat + 31) / 32)) + (memExpansionCost (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw x4 (⟨32⟩ : UInt256)) x3 (⟨32⟩ : UInt256)) x4 (UInt256.ofNat 64)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) ((UInt256.ofNat 3).toByteArray.write 0 (x1.toByteArray.write 0 mem x4.toNat 32) x3.toNat 32)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -412,8 +414,8 @@ theorem morphoCreation_block_5679 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5679_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 12367) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5679) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12367) (morphoCreation_block_5679_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (morphoCreation_block_5679_memory (mem := mem) (x1 := x1) (x3 := x3) (x4 := x4)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5679) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12367) (morphoCreation_block_5679_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) (morphoCreation_block_5679_memory (mem := mem) (x1 := x1) (x3 := x3) (x4 := x4)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5679 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -424,8 +426,8 @@ def morphoCreation_block_5750_stack {g : Sat256} {C : ℕ} {x0 : UInt256} {x1 : 
 /-- Automatically generated RD summary for bytecode block at pc 5750. -/
 theorem morphoCreation_block_5750 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5750) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5754) (morphoCreation_block_5750_stack (g := g) (C := C) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 4) (C + ((9))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5750) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5754) (morphoCreation_block_5750_stack (g := g) (C := C) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 4) (C + ((9))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -438,8 +440,8 @@ theorem morphoCreation_block_5750 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem morphoCreation_block_5750_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5750) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5754) (morphoCreation_block_5750_stack (g := g) (C := C) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5750) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5754) (morphoCreation_block_5750_stack (g := g) (C := C) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5750 hstack h)
   exact ⟨_, k', C', h'⟩
 
@@ -450,8 +452,8 @@ theorem morphoCreation_block_5755_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5380) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5380) (x0 :: R) mem aw rdata σ (k + 4) (C + ((19))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5380) (x0 :: R) mem aw rdata σ (k + 4) (C + ((19))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -466,8 +468,8 @@ theorem morphoCreation_block_5755_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5380) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5380) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5380) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5755_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -475,8 +477,8 @@ theorem morphoCreation_block_5755_taken_packed {tail : ByteArray} {ee : Executio
 theorem morphoCreation_block_5755_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ (k + 4) (C + ((19))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ (k + 4) (C + ((19))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -490,8 +492,8 @@ theorem morphoCreation_block_5755_fallthrough {tail : ByteArray} {ee : Execution
 theorem morphoCreation_block_5755_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5755) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5755_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -504,8 +506,8 @@ theorem morphoCreation_block_5761_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 2 ≤ 1024)
     (hcond : x0 ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5339) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5339) (morphoCreation_block_5761_taken_stack (R := R)) mem aw rdata σ (k + 2) (C + ((13))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5339) (morphoCreation_block_5761_taken_stack (R := R)) mem aw rdata σ (k + 2) (C + ((13))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.push2 (UInt256.ofNat 5339) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -518,8 +520,8 @@ theorem morphoCreation_block_5761_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 2 ≤ 1024)
     (hcond : x0 ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5339) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5339) (morphoCreation_block_5761_taken_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5339) (morphoCreation_block_5761_taken_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5761_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -531,8 +533,8 @@ def morphoCreation_block_5761_fallthrough_stack {R : List UInt256} : List UInt25
 theorem morphoCreation_block_5761_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : x0 = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (morphoCreation_block_5761_fallthrough_stack (R := R)) mem aw rdata σ (k + 2) (C + ((13))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (morphoCreation_block_5761_fallthrough_stack (R := R)) mem aw rdata σ (k + 2) (C + ((13))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.push2 (UInt256.ofNat 5339) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -544,16 +546,16 @@ theorem morphoCreation_block_5761_fallthrough {tail : ByteArray} {ee : Execution
 theorem morphoCreation_block_5761_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : x0 = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (morphoCreation_block_5761_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5761) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (morphoCreation_block_5761_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5761_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 5765. -/
 theorem morphoCreation_block_5765 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RDret (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) g s0 σ (mem.readWithPadding x2.toNat x2.toNat) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5765) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RDret fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) g s0 σ (mem.readWithPadding x2.toNat x2.toNat) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -572,8 +574,8 @@ theorem morphoCreation_block_5771_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt x1 (UInt256.ofNat rdata.size)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5373) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5373) (morphoCreation_block_5771_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 7) (C + ((25))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5373) (morphoCreation_block_5771_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 7) (C + ((25))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -591,8 +593,8 @@ theorem morphoCreation_block_5771_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt x1 (UInt256.ofNat rdata.size)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5373) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5373) (morphoCreation_block_5771_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5373) (morphoCreation_block_5771_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5771_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -604,8 +606,8 @@ def morphoCreation_block_5771_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {R
 theorem morphoCreation_block_5771_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt x1 (UInt256.ofNat rdata.size)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (morphoCreation_block_5771_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 7) (C + ((25))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (morphoCreation_block_5771_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 7) (C + ((25))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -622,8 +624,8 @@ theorem morphoCreation_block_5771_fallthrough {tail : ByteArray} {ee : Execution
 theorem morphoCreation_block_5771_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt x1 (UInt256.ofNat rdata.size)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (morphoCreation_block_5771_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5771) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (morphoCreation_block_5771_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5771_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -635,8 +637,8 @@ def morphoCreation_block_5780_stack {x0 : UInt256} {x1 : UInt256} {R : List UInt
 theorem morphoCreation_block_5780 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 11535) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11535) (morphoCreation_block_5780_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11535) (morphoCreation_block_5780_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 6) (C + ((21))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -652,8 +654,8 @@ theorem morphoCreation_block_5780 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5780_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 11535) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11535) (morphoCreation_block_5780_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5780) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11535) (morphoCreation_block_5780_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5780 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -666,8 +668,8 @@ theorem morphoCreation_block_5790_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub (x1 + x0) x1) x2) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 712) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 712) (morphoCreation_block_5790_taken_stack (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 712) (morphoCreation_block_5790_taken_stack (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -685,8 +687,8 @@ theorem morphoCreation_block_5790_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub (x1 + x0) x1) x2) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 712) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 712) (morphoCreation_block_5790_taken_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 712) (morphoCreation_block_5790_taken_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5790_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -698,8 +700,8 @@ def morphoCreation_block_5790_fallthrough_stack {R : List UInt256} : List UInt25
 theorem morphoCreation_block_5790_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub (x1 + x0) x1) x2) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) (morphoCreation_block_5790_fallthrough_stack (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) (morphoCreation_block_5790_fallthrough_stack (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -716,8 +718,8 @@ theorem morphoCreation_block_5790_fallthrough {tail : ByteArray} {ee : Execution
 theorem morphoCreation_block_5790_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub (x1 + x0) x1) x2) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) (morphoCreation_block_5790_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5790) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) (morphoCreation_block_5790_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5790_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -729,8 +731,8 @@ def morphoCreation_block_5799_stack {tail : ByteArray} {R : List UInt256} : List
 theorem morphoCreation_block_5799 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5333) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) R mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5333) (morphoCreation_block_5799_stack (tail := tail) (R := R)) mem aw rdata σ (k + 4) (C + ((16))) := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5333) (morphoCreation_block_5799_stack (tail := tail) (R := R)) mem aw rdata σ (k + 4) (C + ((16))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode.size = 16055 := by native_decide
   have r1 := r0.codesize (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -744,8 +746,8 @@ theorem morphoCreation_block_5799 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem morphoCreation_block_5799_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode 0).contains (UInt256.ofNat 5333) = true)
-    (h : RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5333) (morphoCreation_block_5799_stack (tail := tail) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5799) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 5333) (morphoCreation_block_5799_stack (tail := tail) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (morphoCreation_block_5799 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 

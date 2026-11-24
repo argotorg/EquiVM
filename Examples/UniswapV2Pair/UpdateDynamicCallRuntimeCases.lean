@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.UpdateCallSource
 import Examples.UniswapV2Pair.SyncDynamicRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
@@ -10,7 +12,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
     {reserve1 reserve0 balance1 balance0 ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw ptr : UInt256} {args : List Expr} {retVar : Ident} {σ : AccountMap}
     {locals : Store} (evm : EVM.State)
-    (rd6959 : RD uniswapV2PairBytecode I g s0 ⟨6959⟩
+    (rd6959 : RD fork uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R)
       mem aw rdata σ k C)
     (hAccounts : Eq σ evm.accountMap)
@@ -25,19 +27,19 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
     (hawLo : 96 ≤ aw.toNat * 32) (hmem64 : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 21 ≤ 1024) :
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         args
-        retVar) .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+        retVar) .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' packed k' C',
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "_update"
           args
           retVar)
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
           retVar none) evm') ∧
       Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      RD uniswapV2PairBytecode I g s0 ret R (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed))
+      RD fork uniswapV2PairBytecode I g s0 ret R (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed))
         (pairDynamicWords aw ptr) rdata σ' k' C' ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).size = max mem.size (ptr.toNat + 64) ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).readWithPadding 64 32 = ptr.toByteArray) := by

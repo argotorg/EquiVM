@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferInternalSource
 import Benchmarks.CompoundIII.Comet.CallReturnSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -17,9 +19,9 @@ theorem transferFromTransition_body : transferFromTransition.body = calldataProl
       .immutable "baseToken", .var "amount"] "__c0", .return [.boolLit true]] := rfl
 
 theorem transferFrom_source {v src dst amount evm result}
-    (ht : TransferInternalTrace v evm.executionEnv.source src dst v.baseToken amount evm result)
+    (ht : TransferInternalTrace fork v evm.executionEnv.source src dst v.baseToken amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    explicitSourceResult config
+    explicitSourceResult fork config
       { contract := contract, locals := transferFromArgs src dst amount, immutables := immStore v }
       evm transferFromTransition.body [.bool true] result := by
   rw [transferFromTransition_body]

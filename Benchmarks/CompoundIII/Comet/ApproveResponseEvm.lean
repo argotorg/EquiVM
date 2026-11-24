@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.EmptyTupleDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometApproveResponse {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw ptr : UInt256}
     {σ : AccountMap} {k C : Nat} {z : Bool} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hb : ptr.toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5226⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5226⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: R) mem aw out σ k C) :
-    if z then RDret (deployedRuntime v) g s0 σ ByteArray.empty
-      else RDrev (deployedRuntime v) g s0 := by
+    if z then RDret fork (deployedRuntime v) g s0 σ ByteArray.empty
+      else RDrev fork (deployedRuntime v) g s0 := by
   cases z with
   | false =>
       have r1 := cometWithExtendedAssetList_block_5226_taken

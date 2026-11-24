@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralGuardPrepare
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralGuards
 import Benchmarks.Morpho.MorphoBlue.WithdrawGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,12 +17,12 @@ def WithdrawCollateralGuards (σ : AccountMap) (ee : ExecutionEnv) (p : MarketPa
 theorem morphoWithdrawCollateralBasicGuards {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {aw assets account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
       ([UInt256.ofNat 128, account, solcAddrMask, receiver, assets, receiver, UInt256.ofNat 0] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    (¬ SupplyCollateralGuards σ ee p assets receiver ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ SupplyCollateralGuards σ ee p assets receiver ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (SupplyCollateralGuards σ ee p assets receiver ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5600)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5600)
         (withdrawCollateralGuardTail p.id assets account receiver R) (supplyCollateralGuardMem p) aw' out σ k' C') := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoWithdrawCollateralCreated p (by omega) h
   by_cases hc : marketFieldWord σ ee p.id 4 ≠ ⟨0⟩
@@ -53,12 +55,12 @@ theorem morphoWithdrawCollateralGuards {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {aw assets account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (ha : account.toNat < EVM.addressModulus) (hr : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
       ([UInt256.ofNat 128, account, solcAddrMask, receiver, assets, receiver, UInt256.ofNat 0] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    (¬ WithdrawCollateralGuards σ ee p assets account receiver ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ WithdrawCollateralGuards σ ee p assets account receiver ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (WithdrawCollateralGuards σ ee p assets account receiver ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5620)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5620)
         (withdrawCollateralGuardTail p.id assets account receiver R) (withdrawCollateralGuardMem p ee account) aw' out σ k' C') := by
   rcases morphoWithdrawCollateralBasicGuards p hstack h with ⟨hb, hrev⟩ | ⟨hb, a1, k1, C1, rd1⟩
   · exact .inl ⟨fun hg => hb hg.1, hrev⟩

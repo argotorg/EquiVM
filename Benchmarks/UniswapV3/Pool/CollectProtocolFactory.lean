@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CollectProtocolSource
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,23 +13,23 @@ set_option maxRecDepth 10000
 theorem collectProtocolFactoryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw junk : UInt256} {rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8899⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8899⟩
       (junk :: EVM.word v.factory.val :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: UInt256.ofNat 2376452955 :: EVM.word v.factory.val :: R)
       factoryOwnerInputMem aw rdata σ k C)
     (hacc : evm.accountMap = σ) (hσ₀ : evm.σ₀ = s0.σ₀) (henv : evm.executionEnv = ee)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) ≠ ⟨0⟩)
     (ha : ActiveWords aw) (hov : R.length + 9 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
         evm factoryOwnerFunction.body .reverted) ∨
     ∃ (out : ByteArray) (σ' : AccountMap) (A' : Substate) (aw' : UInt256) (k' C' : Nat),
       32 ≤ out.size ∧ out.size < UInt256.size ∧ ActiveWords aw' ∧
-      ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+      ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
         evm factoryOwnerFunction.body
         (.returned (factoryOwnerCallFrame v true out) { evm with accountMap := σ', substate := A' }
           (some [.address (AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32)))])) ∧
-      RD (deployedRuntime v) ee g s0 ⟨8941⟩ (UInt256.ofNat out.size :: ⟨128⟩ :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨8941⟩ (UInt256.ofNat out.size :: ⟨128⟩ :: R)
         (factoryOwnerOutputMem out) aw' out σ' k' C' := by
   have rdCall := uniswapV3Pool_block_8899 (immWords := wordsOf (immStore v)) (by evm_ov) rd
   simp only [uniswapV3Pool_block_8899_stack] at rdCall
@@ -37,12 +39,12 @@ theorem collectProtocolFactoryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
         (⟨8902⟩ : UInt256), (UInt8.ofNat 250), .STATICCALL, none,
         immutableLayout_inBounds, immutableTemplate_size64))
       (by evm_ov) hacc hσ₀ henv
-  change callViaEVM evm (AccountAddress.ofUInt256 (EVM.word v.factory.val)) 0
+  change callViaEVM fork evm (AccountAddress.ofUInt256 (EVM.word v.factory.val)) 0
     (factoryOwnerInputMem.readWithPadding 128 4)
     (ok, {evm with accountMap := σ', substate := A'}, out) false at hcall
   rw [show AccountAddress.ofUInt256 (EVM.word v.factory.val) = v.factory from
     accountAddress_roundtrip v.factory, factoryOwnerInputMem_read] at hcall
-  change RD (deployedRuntime v) ee g s0 ⟨8903⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨8903⟩
     ((if ok then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: UInt256.ofNat 2376452955 :: EVM.word v.factory.val :: R)
     (factoryOwnerOutputMem out) _ out σ' k' C' at rdAfter
   cases ok with
@@ -78,21 +80,21 @@ theorem collectProtocolFactoryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
 
 theorem collectProtocolOwnerX {g : Sat256} {s0 evm : EVM.State} {k C : Nat}
     {aw : UInt256} {rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨8790⟩ R
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨8790⟩ R
       solcFreePtrMem aw rdata evm.accountMap k C)
     (hσ₀ : evm.σ₀ = s0.σ₀) (hperm : evm.executionEnv.perm = true)
     (ha : ActiveWords aw) (hov : R.length + 11 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
         (storeSlot0Unlocked evm false) factoryOwnerFunction.body .reverted) ∨
     ∃ (out : ByteArray) (σ' : AccountMap) (A' : Substate) (aw' : UInt256) (k' C' : Nat),
       32 ≤ out.size ∧ out.size < UInt256.size ∧ ActiveWords aw' ∧
-      ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v }
+      ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v }
         (storeSlot0Unlocked evm false) factoryOwnerFunction.body
         (.returned (factoryOwnerCallFrame v true out)
           { (storeSlot0Unlocked evm false) with accountMap := σ', substate := A' }
           (some [.address (AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32)))])) ∧
-      RD (deployedRuntime v) evm.executionEnv g s0 ⟨8941⟩
+      RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨8941⟩
         (UInt256.ofNat out.size :: ⟨128⟩ :: R) (factoryOwnerOutputMem out) aw' out σ' k' C' := by
   have hmap := storeSlot0Unlocked_accountMap evm false
   rw [slot0UnlockedWord_false] at hmap
@@ -139,9 +141,9 @@ theorem collectProtocolOwnerX {g : Sat256} {s0 evm : EVM.State} {k C : Nat}
 theorem collectProtocolLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8790⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8790⟩ R mem aw rdata σ k C)
     (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have rdLoad := evm_run rd with [
     raw jumpdest (by immutable_decode(immutableLayout, uniswapV3PoolBytecode, wordsOf (immStore v),
         (⟨8790⟩ : UInt256), (UInt8.ofNat 91), .JUMPDEST, none,
@@ -183,11 +185,11 @@ theorem collectProtocolLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
 theorem collectProtocolReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8719⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8719⟩ R mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
       (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧
-        ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨8790⟩ (⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k' C') := by
+        ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨8790⟩ (⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k' C') := by
   have hfield : UInt256.land (UInt256.ofNat 255)
       (UInt256.div
         (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -226,13 +228,13 @@ theorem factoryOwnerOutputMem_zero (out : ByteArray) (hb : out.size < UInt256.si
 theorem collectProtocolOwnerGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {out : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8941⟩ (UInt256.ofNat out.size :: ⟨128⟩ :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8941⟩ (UInt256.ofNat out.size :: ⟨128⟩ :: R)
       (factoryOwnerOutputMem out) aw out σ k C)
     (hlen : 32 ≤ out.size) (hsize : out.size < UInt256.size) (ha : ActiveWords aw) (hov : R.length + 4 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧
       ee.source ≠ AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32))) ∨
     (ee.source = AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ∧
-      ∃ aw' k' C', ActiveWords aw' ∧ RD (deployedRuntime v) ee g s0 ⟨8963⟩ R
+      ∃ aw' k' C', ActiveWords aw' ∧ RD fork (deployedRuntime v) ee g s0 ⟨8963⟩ R
         (factoryOwnerOutputMem out) aw' out σ k' C') := by
   have hmask : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))

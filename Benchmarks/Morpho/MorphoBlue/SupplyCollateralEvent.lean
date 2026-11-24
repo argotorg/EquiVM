@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralUpdateRefine
 import Benchmarks.Morpho.MorphoBlue.FinalizeVoid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -35,7 +37,7 @@ theorem supplyCollateralEventMem_facts (p : MarketParamsWords) (account assets :
 theorem supplyCollateralEmit (p : MarketParamsWords) (assets account : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (hl : SupplyCollateralLocals p assets account data locals)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       supplyCollateralTransition.body[9]! (.ok { contract := contract, locals := locals, immutables := imms } evm) := by
   apply ExecStmt.emit (hperm := hperm)
   change evalExprs? config _ _ [.var "id", .env .caller, .var "onBehalf", .var "assets"] = _
@@ -49,9 +51,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoSupplyCollateralEvent (p : MarketParamsWords) (hstack : R.length + 28 ≤ 1024)
     (hp : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10235)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10235)
       (supplyCollateralUpdateTail p.id assets account srcOff len R) (supplyCollateralPositionMem p account) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (if len = UInt256.ofNat 0 then UInt256.ofNat 10286 else UInt256.ofNat 10307)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (if len = UInt256.ofNat 0 then UInt256.ofNat 10286 else UInt256.ofNat 10307)
       ([srcOff, len, solcAddrMask, assets, UInt256.ofNat 0, UInt256.ofNat 128] ++ R)
       (supplyCollateralEventMem p account assets) aw' out σ k' C' := by
   by_cases hz : len = UInt256.ofNat 0

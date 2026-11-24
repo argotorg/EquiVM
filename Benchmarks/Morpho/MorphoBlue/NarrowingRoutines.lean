@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorMemory
 import Benchmarks.Morpho.MorphoBlue.NarrowingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,8 +23,8 @@ theorem morphoToUint128Message (hstack : R.length + 16 ≤ 1024)
         (UInt256.ofNat 18446744073709551615))
       (UInt256.lt (memLoad (UInt256.ofNat 64) mem + UInt256.ofNat 64)
         (memLoad (UInt256.ofNat 64) mem)) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (UInt256.isZero (UInt256.gt x uint128Mask) :: memLoad (UInt256.ofNat 64) mem ::
         UInt256.ofNat 15565 :: x :: uint128Mask :: ret :: R)
       (uint128ErrorMem mem) aw' rdata σ k' C' := by
@@ -44,8 +46,8 @@ theorem morphoToUint128Ok (hstack : R.length + 16 ≤ 1024)
       (UInt256.lt (memLoad (UInt256.ofNat 64) mem + UInt256.ofNat 64)
         (memLoad (UInt256.ofNat 64) mem)) = UInt256.ofNat 0)
     (hc : x.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (x :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (x :: R)
       (uint128ErrorMem mem) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoToUint128Message (v := v) hstack hfit h
   have hg : UInt256.gt x uint128Mask = ⟨0⟩ := ugt_zero (by change x.toNat ≤ 2 ^ 128 - 1; omega)
@@ -67,8 +69,8 @@ theorem morphoToUint128Reverts (hstack : R.length + 16 ≤ 1024)
     (hgap : (memLoad (UInt256.ofNat 64) mem).toNat - mem.size < USize.size)
     (hhi : (memLoad (UInt256.ofNat 64) mem).toNat + 100 < UInt256.size)
     (hover : 2 ^ 128 ≤ x.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480) (x :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoToUint128Message (v := v) hstack hfit h
   have hg : UInt256.gt x uint128Mask = ⟨1⟩ := ugt_one (by change 2 ^ 128 - 1 < x.toNat; omega)
   have hlen : morphoErrorLength (uint128ErrorMem mem) (memLoad (UInt256.ofNat 64) mem) =

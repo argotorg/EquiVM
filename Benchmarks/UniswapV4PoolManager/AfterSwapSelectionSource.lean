@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapBranchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,8 +26,8 @@ theorem afterSwapSelectedSource {f : Frame} {evm post : State} {hook : AccountAd
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hc : PoolKeyCanonical key) (hl : p.priceLimit.toNat < 2^160)
     (hcall : afterSwapActive hook →
-      callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
-    ExecStmt config f evm afterSwapFunction.body[3]!
+      callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
+    ExecStmt fork config f evm afterSwapFunction.body[3]!
       (afterSwapSelectedResult f evm post hook key p delta unspecified data z out) := by
   have hflag := hookPermission_eval (evalLocalValue (cfg := config) (evm := evm) hs) ⟨64⟩ (by decide)
   change evalExpr? config f evm _ = .ok (.bool (decide (afterSwapActive hook))) at hflag

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbBalanceModel
 import Benchmarks.CompoundIII.Comet.Signed256
 import Benchmarks.CompoundIII.Comet.IndexAccrual
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -13,10 +15,10 @@ theorem absorbBalance_source (frame : Frame) (evm : EVM.State)
     (ho : frame.locals.get? "oldBalance" = some (.int (signedWord old)))
     (hd : frame.locals.get? "deltaValue" = some (.int delta.toNat))
     (hp : frame.locals.get? "basePrice" = some (.int price.toNat)) :
-    ExecBlock config frame evm absorbBalanceBlock
+    ExecBlock fork config frame evm absorbBalanceBlock
       (if AbsorbBalanceValid v old delta price then
         .ok (absorbBalanceFrame frame v old delta price) evm else .reverted) := by
-  have hdiv := divPrice_call frame evm delta price (collateralBaseScale v)
+  have hdiv := divPrice_call (fork := fork) frame evm delta price (collateralBaseScale v)
     (.var "deltaValue") (.var "basePrice")
     (.cast (.immutable "baseScale") (.elem (.int (.uint ⟨64, by decide⟩)))) "deltaBalance" hc
     (by simp only [evalExpr?, hd, EvalResult.ofOption])
@@ -31,7 +33,7 @@ theorem absorbBalance_source (frame : Frame) (evm : EVM.State)
       simp only [evalExpr?, f1, absorbBalanceDivFrame, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl
     by_cases hn : (absorbDeltaBalance v delta price).toNat < 2^255
-    · have hsigned := signed256_call_ok f1 evm (absorbDeltaBalance v delta price)
+    · have hsigned := signed256_call_ok (fork := fork) f1 evm (absorbDeltaBalance v delta price)
         (.var "deltaBalance") "__c9" hc hd1 hn
       let f2 := absorbBalanceSignedFrame frame v delta price
       have ho2 : f2.locals.get? "oldBalance" = some (.int (signedWord old)) := by
@@ -77,7 +79,7 @@ theorem absorbBalance_source (frame : Frame) (evm : EVM.State)
           exact ExecBlock.consNormal hdiv (ExecBlock.consNormal hsigned
             (ExecBlock.consNormal (ExecStmt.letDecl he') (ExecBlock.consNormal
               (ExecStmt.iteTrue (hcond.trans (by rw [decide_eq_true hneg]))
-                (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?, pure])
+                (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?, pure])
                   (assignLocalFrame hget)))) .nil)))
       · rw [if_neg (fun hh ↦ hsum hh.2.2)]
         exact ExecBlock.consNormal hdiv (ExecBlock.consNormal hsigned

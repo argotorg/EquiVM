@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipFieldEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,8 +15,8 @@ theorem cometCheckedSub8_ok {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 5 ≤ 1024) (hx : x.toNat < 2^8) (hy : y.toNat < 2^8)
     (hle : y.toNat ≤ x.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11438⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11438⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
       mem aw rdata σ k' C' := by
   have hc (w : UInt256) (hw : w.toNat < 2^8) : UInt256.land (UInt256.ofNat 255) w = w := by
     rw [u256_land_comm]; exact u256LandMaskCleanOfToNat _ _ (bits := 8) rfl hw
@@ -43,9 +45,9 @@ theorem cometMembershipMask16 {v : CometWithExtendedAssetListImmutables}
     {aw offset ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (ho : offset.toNat < 16)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14209⟩ (offset :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14209⟩ (offset :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (2^offset.toNat) :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_14209
     (immWords := wordsOf (immStore v)) hstack hret h
@@ -60,9 +62,9 @@ theorem cometMembershipMask8 {v : CometWithExtendedAssetListImmutables}
     {aw offset ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (ho : offset.toNat < 8)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14290⟩ (offset :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14290⟩ (offset :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (2^offset.toNat) :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_14290
     (immWords := wordsOf (immStore v)) hstack hret h

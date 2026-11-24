@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.BurnSource
 import Benchmarks.UniswapV4PoolManager.BurnTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `burn(address,uint256,uint256)`
 
@@ -25,11 +27,11 @@ theorem burnBalanceRefinement {σ σ₀ A I} {g : UInt256} {args imms : Store} {
     (hd : dispatchMsg contract I.calldata = some burnTransition)
     (hdec : config.externalABI.decodeCalldata? (burnTransition.params.map Param.name)
       (transitionSignature burnTransition).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args burnTransition.body
+    (hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args burnTransition.body
       (balanceBurnResult f evm sender (accountWord currency) amount) imms)
-    (htrace : balanceBurnTraceResult v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (htrace : balanceBurnTraceResult fork v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       evm sender (accountWord currency) amount) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   rw [balanceBurnResult, hI] at hbody
   rw [balanceBurnTraceResult] at htrace
   by_cases hfit : amount.toNat ≤ (balanceWord evm sender (accountWord currency)).toNat
@@ -48,11 +50,11 @@ theorem burnFromRefinement {σ σ₀ A I} {g : UInt256} {args imms : Store} {f :
     (hd : dispatchMsg contract I.calldata = some burnTransition)
     (hdec : config.externalABI.decodeCalldata? (burnTransition.params.map Param.name)
       (transitionSignature burnTransition).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args burnTransition.body
+    (hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) args burnTransition.body
       (burnFromResult f evm sender (accountWord currency) amount) imms)
-    (htrace : burnFromTraceResult v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (htrace : burnFromTraceResult fork v I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       evm sender (accountWord currency) amount) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   rw [burnFromResult] at hbody
   rw [burnFromTraceResult] at htrace
   by_cases hneed : transferFromNeedsAllowance evm sender
@@ -80,15 +82,15 @@ theorem burnFromRefinement {σ σ₀ A I} {g : UInt256} {args imms : Store} {f :
 theorem poolManagerBurnBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 30)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 30) rfl hsel
   have hd : dispatchMsg contract I.calldata = some burnTransition := by
     apply poolManagerDispatch_burn <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachBurnBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachBurnBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨820⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -119,7 +121,7 @@ theorem poolManagerBurnBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImm
               ((store_get_ne _ _ (by decide : ("id" == "from") = false)).trans (store_get_self _ _ _))
           have hi : args.get? "id" = some (.int (Int.ofNat id.toNat)) :=
             (store_get_ne _ _ (by decide : ("amount" == "id") = false)).trans (store_get_self _ _ _)
-          have hbody := burnBodyExec (evm := evm) (imms := immStore v) (sender := sender) (id := id) (amount := amount)
+          have hbody := burnBodyExec (fork := fork) (evm := evm) (imms := immStore v) (sender := sender) (id := id) (amount := amount)
             hwv hhi hcanon hr hi (store_get_self _ _ _)
           have htrace := burnTrace (evm := evm) v (by simp) entryMemory_size hI hcanon rdBody
           rw [burnBodyResult] at hbody
@@ -172,7 +174,7 @@ theorem poolManagerBurnBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutab
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 30)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerBurnBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

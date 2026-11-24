@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.MintAfterUpdateCases
 import Examples.UniswapV2Pair.UpdateCallRuntimeCases
 import Examples.UniswapV2Pair.MintTailMintCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -14,7 +16,7 @@ theorem uniswapMintTailRuntimeCases
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (recipient : AccountAddress) (fee : Bool)
-    (rd3841 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3841 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         liquidity, toWord, ⟨861⟩, sel]
@@ -39,16 +41,16 @@ theorem uniswapMintTailRuntimeCases
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock fork config { contract := contract, locals := locals } evm
         mintAfterLiquidityTailStmts .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ frame' evm' σ',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         mintAfterLiquidityTailStmts (.returned frame' evm'
           (some [uniswapUint256Value liquidity])) ∧
       σ' = evm'.accountMap ∧
-      RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         σ' (UInt256.toByteArray liquidity)) := by
   rcases uniswapMintTailMintCases evm recipient rd3841 hAccounts henv hrecipient hto hliq

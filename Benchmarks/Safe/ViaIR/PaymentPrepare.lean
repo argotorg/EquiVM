@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_024
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_025
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -38,11 +40,11 @@ theorem safePaymentReceiverWord (p : PaymentInput) (I : ExecutionEnv) :
 set_option maxRecDepth 5000 in
 theorem safePaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {scratch₀ scratch₁ : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4979⟩
+    (h : RD fork safeBytecode I g s0 ⟨4979⟩
       (UInt256.ofNat p.refundReceiver.val :: ⟨0⟩ :: p.gasUsed ::
         UInt256.ofNat p.gasToken.val :: scratch₀ :: scratch₁ :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨5004⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨5004⟩
       (UInt256.ofNat p.gasToken.val :: ⟨0⟩ :: p.gasUsed ::
         UInt256.ofNat (p.receiver I).val :: R) mem aw rdata σ k' C' := by
   have hc : (UInt256.ofNat p.refundReceiver.val).toNat < EVM.addressModulus :=
@@ -72,9 +74,9 @@ theorem safePaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
 set_option maxRecDepth 5000 in
 theorem safePaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5040⟩ (p.gasTotal :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5040⟩ (p.gasTotal :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hc : calldataWord I.calldata 196 = p.gasPrice) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9466⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9466⟩
       (p.gasTotal :: p.nativePrice I :: ⟨5066⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_5040 (by simp; omega) h
@@ -101,11 +103,11 @@ theorem safePaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw mem rda
 set_option maxRecDepth 5000 in
 theorem safePaymentPrepare (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {scratch₀ scratch₁ : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4979⟩
+    (h : RD fork safeBytecode I g s0 ⟨4979⟩
       (UInt256.ofNat p.refundReceiver.val :: ⟨0⟩ :: p.gasUsed ::
         UInt256.ofNat p.gasToken.val :: scratch₀ :: scratch₁ :: R) mem aw rdata σ k C)
     (hc : calldataWord I.calldata 164 = p.baseGas) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8914⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8914⟩
       (p.gasUsed :: p.baseGas :: paymentAddReturnPC p :: paymentAddSaved p I R)
       mem aw rdata σ k' C' := by
   obtain ⟨k₁, C₁, h₁⟩ := safePaymentReceiverTrace p h (by omega)

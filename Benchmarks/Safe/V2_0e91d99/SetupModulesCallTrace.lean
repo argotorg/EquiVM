@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V2_0e91d99.SetupPaymentTrace
 import Benchmarks.Safe.V2_0e91d99.SetupDataAllocate
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -14,7 +16,7 @@ theorem setupModulesMemory_load (mem : ByteArray) (off : UInt256)
 
 theorem safeSetupModulesCallTrace (evm : EVM.State)
     {I g s0 σ k C aw mem rdata n len ptr locals} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4719⟩ (setupDecodedStack I.calldata n len (ret :: R))
+    (h : RD fork safeBytecode I g s0 ⟨4719⟩ (setupDecodedStack I.calldata n len (ret :: R))
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hl : SetupLocals (setupCalldataInput I.calldata n len) locals)
@@ -23,7 +25,7 @@ theorem safeSetupModulesCallTrace (evm : EVM.State)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hptr : ptr + 64 + len < 2 ^ 220)
     (hperm : I.perm = true) (hov : R.length + 36 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    VoidRoutineOutcome config { contract := contract, locals := locals } evm
+    VoidRoutineOutcome fork config { contract := contract, locals := locals } evm
       (setupTransition.body.drop 4) safeBytecode I g s0 ret R := by
   let p := setupCalldataInput I.calldata n len
   let finish := ptr + 32 + ABI.paddedSize len

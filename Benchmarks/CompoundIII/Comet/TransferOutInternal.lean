@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.TransferMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_073
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -10,14 +12,14 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def TransferOutRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def TransferOutRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret ptr : UInt256) (R : List UInt256)
     (result : Option EVM.State) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some evm' => ∃ σ' mem aw out k C, SourceState s0 ee σ' evm' ∧
       memLoad ⟨64⟩ mem = ptr ∧ ptr.toNat ≤ mem.size ∧
-      RD (deployedRuntime v) ee g s0 ret R mem aw out σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret R mem aw out σ' k C
 
 theorem cometTransferOutInternal {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
@@ -27,11 +29,11 @@ theorem cometTransferOutInternal {v : CometWithExtendedAssetListImmutables}
     (hb : ptr.toNat + 68 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16113⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16113⟩
       (EVM.word asset.val :: EVM.word recipient.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, TransferOutTrace asset recipient amount evm result ∧
-      TransferOutRun v ee g s0 ret ptr R result := by
+    ∃ result, TransferOutTrace fork asset recipient amount evm result ∧
+      TransferOutRun fork v ee g s0 ret ptr R result := by
   have ha : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))
       (EVM.word asset.val) = EVM.word asset.val :=
@@ -70,7 +72,7 @@ theorem cometTransferOutInternal {v : CometWithExtendedAssetListImmutables}
     have r4 := cometWithExtendedAssetList_block_16171
       (immWords := wordsOf (immStore v)) (by change R.length + 6 + 5 ≤ 1024; omega) r3
     simp only [cometWithExtendedAssetList_block_16171_stack, word_add_sub_left] at r4
-    change RD _ _ _ _ _ _ (transferInputMemory mem ptr recipient amount) _ _ _ _ _ at r4
+    change RD fork _ _ _ _ _ _ (transferInputMemory mem ptr recipient amount) _ _ _ _ _ at r4
     obtain ⟨evm', σ', z, out, k5, C5, hcall, hs', r5, hh⟩ := zeroCallBridge r4 hs
       (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
         wordsOf (immStore v), (⟨16175⟩ : UInt256), UInt8.ofNat 241, .CALL, none,
@@ -79,13 +81,13 @@ theorem cometTransferOutInternal {v : CometWithExtendedAssetListImmutables}
         (recipient := recipient) (amount := amount) hb)
       (by rw [transferPayload_size]; decide)
       (by change R.length + 4 + 1 ≤ 1024; omega)
-    have hcall' : callViaEVM evm asset 0 (transferPayload recipient amount) (z, evm', out) := by
+    have hcall' : callViaEVM fork evm asset 0 (transferPayload recipient amount) (z, evm', out) := by
       have haddr : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
         accountAddress_roundtrip asset
       simpa only [haddr] using hcall
     have htrace := TransferOutTrace.callResult
       (by simpa only [hs.accounts] using hc) hcall' (lt_trans hh (by decide))
-    change RD _ _ _ _ ⟨16176⟩ _
+    change RD fork _ _ _ _ ⟨16176⟩ _
       (callOutputMem (transferInputMemory mem ptr recipient amount) out ptr ⟨0⟩) _ _ _ _ _ at r5
     rw [callOutputMem_zero] at r5
     rcases cometTransferResponse (by omega) (lt_trans hh (by change 2^138 < 2^256; decide))

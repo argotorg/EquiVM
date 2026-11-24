@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedRevokeTailMemory
 import Benchmarks.EAS.EAS.MemoryArrayIndex
 import Benchmarks.EAS.EAS.RuntimeBlocks_006
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,12 +14,12 @@ theorem easDelegatedRevokeTailEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlo : 128 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hsize : ee.calldata.size < UInt256.size) (h100 : 100 ≤ ee.calldata.size) (hbig : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1136⟩ (revoker::schema::UInt256.ofNat 1180::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1136⟩ (revoker::schema::UInt256.ofNat 1180::R) mem aw rdata σ k C) :
     if heap.toNat+192 ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨12085⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨12085⟩
         (schema::heap::revoker::ee.weiValue::UInt256.ofNat 1180::R)
         (delegatedRevokeTailMemory mem heap ee.calldata) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_1136_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   by_cases h128 : heap.toNat+128 ≤ 2^64-1

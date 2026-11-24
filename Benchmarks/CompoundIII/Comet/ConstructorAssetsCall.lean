@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorAssetsMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -11,15 +13,15 @@ theorem cometConstructorAssetsCall {tail : ByteArray} {ee : ExecutionEnv} {g : S
     (hn : c.assetConfigs.length ≤ 24) (hout : out.size < UInt256.size)
     (hfeed : feed.size < UInt256.size) (hfactory : factoryOut.size < 2^138)
     (hcanon : (calldataWord factoryOut 0).toNat < 2^160)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1308⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1308⟩
       (UInt256.ofNat 640 :: UInt256.ofNat (constructorRecordBase c) ::
         calldataWord factoryOut 0 :: R)
       (constructorAssetsBaseMemory c w out feed factoryOut) aw factoryOut σ k C) :
     ∃ evm' σ' z assetOut aw' k' C',
-      callViaEVM evm (AccountAddress.ofUInt256 (calldataWord factoryOut 0)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (calldataWord factoryOut 0)) 0
         (createAssetListPayload c.assetConfigs c.assetConfigs.length) (z, evm', assetOut) ∧
       SourceState s0 ee σ' evm' ∧ assetOut.size < 2^138 ∧
-      RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1394⟩
+      RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1394⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat (constructorAssetsPtr c) :: R)
         (callOutputMem (constructorAssetsInputMemory c w out feed factoryOut)
           assetOut (UInt256.ofNat (constructorAssetsPtr c)) ⟨32⟩) aw' assetOut σ' k' C' := by

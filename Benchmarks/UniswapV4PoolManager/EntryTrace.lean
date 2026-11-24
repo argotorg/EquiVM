@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Common
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_005
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory and the shared empty revert at PoolManager ABI entries. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,19 +24,19 @@ theorem entryMemory_returnWord (value : UInt256) :
 theorem emptyRevert {I : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 2 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨816⟩ R mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 :=
+    (h : RD fork (deployedRuntime v) I g s0 ⟨816⟩ R mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 :=
   poolManagerBlocks.poolManager_block_816 hstack h
 
 -- LIBRARY CANDIDATE: a selected entry that reverts for every decoded argument store.
 theorem selectedRevert {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : Sat256} {code : ByteArray}
-    (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
+    (hcode : I.code = code) (h : RDrev fork code g (initState σ σ₀ g A I))
     (hd : dispatchMsg C I.calldata = some t)
-    (hbody : ∀ args, ExecTransitionBody cfg C (initState σ σ₀ g A I)
+    (hbody : ∀ args, ExecTransitionBody fork cfg C (initState σ σ₀ g A I)
       args t.body .reverted imms)
     (hfallback : C.fallback = none := by rfl) (hreceive : C.receive = none := by rfl) :
-    runtimeRefinementFor cfg C σ σ₀ g.toUInt256 A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g.toUInt256 A I imms := by
   cases hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata with
   | none => exact h.reEquivDecodingFailed hcode hd hdec hfallback hreceive

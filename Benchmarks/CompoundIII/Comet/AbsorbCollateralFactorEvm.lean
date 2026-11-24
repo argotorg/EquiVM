@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AssetMemory
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_080
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,14 +19,14 @@ theorem cometAbsorbCollateralFactor {v : CometWithExtendedAssetListImmutables}
     {aw value delta seized ptr factor : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hf : factor.toNat < 2^64)
     (hm : memLoad (ptr + UInt256.ofNat 192) mem = factor)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17769⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17769⟩
       (value :: delta :: seized :: ptr :: R) mem aw rdata σ k C) :
     if value.toNat * factor.toNat < UInt256.size ∧
         delta.toNat + (mulFactorWord value factor).toNat < UInt256.size then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17811⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17811⟩
         ((delta + mulFactorWord value factor) :: seized :: value :: R)
         mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r5 := cometWithExtendedAssetList_block_17769 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [cometWithExtendedAssetList_block_17769_stack] at r5

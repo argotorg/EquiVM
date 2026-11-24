@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.ExecTransactionSourcePrefix
 import Benchmarks.Safe.ViaIR.SignatureCallerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -18,9 +20,9 @@ theorem execSignedFrame_locals (p : ExecTransactionInput) (evm : EVM.State) :
 set_option maxRecDepth 100000
 
 theorem safeExecSignatureCall (p : ExecTransactionInput) (evm : EVM.State) {result : ExecResult}
-    (hb : ExecFuncBody config (execSignatureInput p evm).frame (execNonceState evm)
+    (hb : ExecFuncBody fork config (execSignatureInput p evm).frame (execNonceState evm)
       checkSignaturesImplFunction.body result) :
-    ExecStmt config (execHashFrame p evm) (execNonceState evm)
+    ExecStmt fork config (execHashFrame p evm) (execNonceState evm)
       (.internalCall "checkSignaturesImpl" [sender, .var "txHash", .var "signatures"] "_sigOk")
       (internalCallResult (execHashFrame p evm) "_sigOk" result) := by
   apply safeInternalCheckSignatures (p := execSignatureInput p evm) rfl rfl
@@ -33,10 +35,10 @@ theorem safeExecSignatureCall (p : ExecTransactionInput) (evm : EVM.State) {resu
 theorem safeExecSignatureRevert (p : ExecTransactionInput) (evm : EVM.State)
     (hn : p.signatures.size ≤ 2 ^ 64 - 192) (ho : p.tx.operation.toNat < 2)
     (hno : (execNonce evm).toNat + 1 < UInt256.size)
-    (hb : ExecFuncBody config (execSignatureInput p evm).frame (execNonceState evm)
+    (hb : ExecFuncBody fork config (execSignatureInput p evm).frame (execNonceState evm)
       checkSignaturesImplFunction.body .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config p.frame evm exectransactionTransition.body .reverted :=
+    ExecBlock fork config p.frame evm exectransactionTransition.body .reverted :=
   safeExecTransactionNoncePrefix (hperm := by assumption) p evm hn ho hno
     (.consNormal (safeExecTransactionHashLet p evm) (.consRevert (safeExecSignatureCall p evm hb)))
 
@@ -44,12 +46,12 @@ theorem safeExecSignaturePrefix (p : ExecTransactionInput) (evm : EVM.State)
     {f' : Frame} {evm' : EVM.State} {result : ExecResult}
     (hn : p.signatures.size ≤ 2 ^ 64 - 192) (ho : p.tx.operation.toNat < 2)
     (hno : (execNonce evm).toNat + 1 < UInt256.size)
-    (hb : ExecFuncBody config (execSignatureInput p evm).frame (execNonceState evm)
+    (hb : ExecFuncBody fork config (execSignatureInput p evm).frame (execNonceState evm)
       checkSignaturesImplFunction.body (.returned f' evm' none))
-    (ht : ExecBlock config (execSignedFrame p evm) evm'
+    (ht : ExecBlock fork config (execSignedFrame p evm) evm'
       (exectransactionTransition.body.drop 6) result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config p.frame evm exectransactionTransition.body result :=
+    ExecBlock fork config p.frame evm exectransactionTransition.body result :=
   safeExecTransactionNoncePrefix (hperm := by assumption) p evm hn ho hno
     (.consNormal (safeExecTransactionHashLet p evm)
       (.consNormal (safeExecSignatureCall p evm hb) ht))

@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.FinalizeVoid
 import Benchmarks.Morpho.MorphoBlue.SupplyCallbackABI
 import Benchmarks.Morpho.MorphoBlue.SupplyEvent
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,9 +17,9 @@ theorem morphoSupplyCallbackNoCode {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {s0 : State} {mem out : ByteArray} {aw srcOff len assets shares : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
       (supplyCallbackTail assets shares srcOff len R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a, k, C, rd⟩ := morphoBlocks.morpho_block_4218_taken_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 8 + 2 ≤ 1024; omega)
     (by rw [hc]; decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -29,9 +31,9 @@ theorem morphoSupplyCallbackPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {
     {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hm : MorphoHeap mem ptr 0) (hlen : len.toNat ≤ solcMaxU64)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) ≠ UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4218)
       (supplyCallbackTail assets shares srcOff len R) mem aw out σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4290)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4290)
       ([gasArg, UInt256.ofNat ee.source.val, UInt256.ofNat 0, ptr,
         UInt256.ofNat (100 + paddedSize len.toNat), ptr, UInt256.ofNat 0,
         ptr, UInt256.ofNat 0, UInt256.ofNat 128, UInt256.ofNat 32, shares, assets, solcAddrMask] ++ R)
@@ -57,9 +59,9 @@ theorem morphoSupplyCallbackFailure {v : MorphoImmutables} {ee : ExecutionEnv} {
     {s0 : State} {mem out : ByteArray} {aw ptr assets shares : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hout : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4291)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4291)
       ([UInt256.ofNat 0, ptr, UInt256.ofNat 0, UInt256.ofNat 128, UInt256.ofNat 32, shares, assets, solcAddrMask] ++ R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_4291_taken_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 7 + 3 ≤ 1024; omega)
     (by decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -71,10 +73,10 @@ theorem morphoSupplyCallbackSuccess {v : MorphoImmutables} {ee : ExecutionEnv} {
     {s0 : State} {mem out : ByteArray} {aw ptr assets shares : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hptr : ptr.toNat < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4291)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4291)
       ([UInt256.ofNat 1, ptr, UInt256.ofNat 0, UInt256.ofNat 128, UInt256.ofNat 32, shares, assets, solcAddrMask] ++ R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4186)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4186)
       (supplyCallbackTail assets shares (UInt256.ofNat 0) (UInt256.ofNat 0) R)
       (writeWord mem 64 ptr) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_4291_fallthrough_packed

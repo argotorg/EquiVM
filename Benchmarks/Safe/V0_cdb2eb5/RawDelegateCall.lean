@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.DelegateCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -9,17 +11,17 @@ theorem rawDelegateCallTraceFromBounded {σ : AccountMap} {I : ExecutionEnv} {g 
     {s0 : State} (evm : EVM.State)
     {code mem rdata : ByteArray} {pc aw gasArg target inOffset inSize outOffset outSize : UInt256}
     {k C : Nat} {R : List UInt256}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hdec : decode code pc = some (.DELEGATECALL, .none)) (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      delegateCallViaEVM evm (AccountAddress.ofUInt256 target)
+      delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target)
         (mem.readWithPadding inOffset.toNat inSize.toNat) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD code I g s0 (pc + ⟨1⟩)
+      RD fork code I g s0 (pc + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) (callOutputMem mem out outOffset outSize)
         aw' out σ' k' C' ∧ out.size < UInt256.size ∧
       ((mem.readWithPadding inOffset.toNat inSize.toNat).size ≤ maxReturnDataSizeByGas →
@@ -27,7 +29,7 @@ theorem rawDelegateCallTraceFromBounded {σ : AccountMap} {I : ExecutionEnv} {g 
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := delegateCallDepthLimitReach h hdec hd hov
     refine ⟨{ evm with substate :=
-        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+        (Ethereum.EVM.callSubstate fork evm.accountMap (AccountAddress.ofUInt256
           target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
@@ -50,17 +52,17 @@ theorem rawDelegateCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat25
     {s0 : State} (evm : EVM.State)
     {code mem rdata : ByteArray} {pc aw gasArg target inOffset inSize outOffset outSize : UInt256}
     {k C : Nat} {R : List UInt256}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hdec : decode code pc = some (.DELEGATECALL, .none)) (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      delegateCallViaEVM evm (AccountAddress.ofUInt256 target)
+      delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target)
         (mem.readWithPadding inOffset.toNat inSize.toNat) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD code I g s0 (pc + ⟨1⟩)
+      RD fork code I g s0 (pc + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) (callOutputMem mem out outOffset outSize)
         aw' out σ' k' C' ∧ out.size < UInt256.size := by
   obtain ⟨evm', σ', z, out, aw', k', C', hc, he, ha, hw, hr, hs, _⟩ :=
@@ -71,16 +73,16 @@ theorem rawDelegateCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat25
 theorem rawDelegateCallTrace {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {code mem rdata : ByteArray} {pc aw gasArg target inOffset inSize outOffset outSize : UInt256}
     {k C : Nat} {R : List UInt256}
-    (h : RD code I g (initState σ σ₀ g A I) pc
+    (h : RD fork code I g (initState σ σ₀ g A I) pc
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hdec : decode code pc = some (.DELEGATECALL, .none)) (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      delegateCallViaEVM (initState σ σ₀ g A I) (AccountAddress.ofUInt256 target)
+      delegateCallViaEVM fork (initState σ σ₀ g A I) (AccountAddress.ofUInt256 target)
         (mem.readWithPadding inOffset.toNat inSize.toNat) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧
-      RD code I g (initState σ σ₀ g A I) (pc + ⟨1⟩)
+      RD fork code I g (initState σ σ₀ g A I) (pc + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) (callOutputMem mem out outOffset outSize)
         aw' out σ' k' C' ∧ out.size < UInt256.size := by
   obtain ⟨evm', σ', z, out, aw', k', C', hc, he, ha, _, hr, hs⟩ :=
@@ -90,11 +92,11 @@ theorem rawDelegateCallTrace {σ σ₀ : AccountMap} {A : Substate} {I : Executi
 -- LIBRARY CANDIDATE: source delegate calls have a result for any gas and substate witness.
 theorem delegateCallExists (evm : EVM.State) (target : EVM.Address) (payload : ByteArray)
     (gas : UInt256) (AIn : Substate) :
-    ∃ z evm' out, delegateCallViaEVM evm target payload (z, evm', out) := by
+    ∃ z evm' out, delegateCallViaEVM fork evm target payload (z, evm', out) := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨false, _, ByteArray.empty, delegateCallViaEVM.callNotMade rfl rfl hd⟩
-  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ AIn evm.executionEnv.source
-      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.executionEnv.fork
+  · let result := Θ fork evm.accountMap evm.σ₀ AIn evm.executionEnv.source
+      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute fork
         evm.accountMap target)
       gas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ evm.executionEnv.weiValue payload
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes

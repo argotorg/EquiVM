@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.IsInAssetEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_049
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -27,10 +29,10 @@ theorem cometCollateralMembership {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (hstack : R.length + 17 ≤ 1024)
     (hi : i < total.toNat) (hi8 : i < 256)
     (ha : assets.toNat < 2^16) (hr : reserved.toNat < 2^8)
-    (h : RD (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
       (collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (collateralMemberPc borrow)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (collateralMemberPc borrow)
       (boolWord (isInAssetBool assets (UInt256.ofNat i) reserved) ::
         collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k' C' := by
@@ -38,7 +40,7 @@ theorem cometCollateralMembership {v : CometWithExtendedAssetListImmutables}
     UInt256.toNat_ofNat_of_lt (by change i < 2^256; omega)
   have hmask : UInt256.land (UInt256.ofNat i) ⟨255⟩ = UInt256.ofNat i :=
     lowByteClean (by rw [hin]; exact hi8)
-  have hstep : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11456⟩
+  have hstep : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11456⟩
       (assets :: UInt256.ofNat i :: reserved :: collateralMemberPc borrow ::
         collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k' C' := by
@@ -71,10 +73,10 @@ theorem cometCollateralIncrement {v : CometWithExtendedAssetListImmutables}
     {aw assets reserved account total liquidity ret : UInt256}
     {σ : AccountMap} {k C i : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 10 ≤ 1024) (hi : i + 1 < 256)
-    (h : RD (deployedRuntime v) ee g s0 (collateralIncrementPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralIncrementPc borrow)
       (collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
       (collateralLoopStack (i + 1) assets reserved account total liquidity ret R)
       mem aw rdata σ k' C' := by
   cases borrow with
@@ -97,9 +99,9 @@ theorem cometCollateralMemberBranch {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (borrow member : Bool) (hstack : R.length + 2 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (collateralMemberPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralMemberPc borrow)
       (boolWord member :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if member then collateralSelectedPc borrow else collateralIncrementPc borrow)
       R mem aw rdata σ k' C' := by
   cases borrow <;> cases member
@@ -121,10 +123,10 @@ theorem cometCollateralExhausted {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (hstack : R.length + 12 ≤ 1024)
     (hi : total.toNat ≤ i) (hi8 : i < 256)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
       (collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (boolWord (collateralResultBool borrow liquidity) :: R) mem aw rdata σ k' C' := by
   have hin : (UInt256.ofNat i).toNat = i :=
     UInt256.toNat_ofNat_of_lt (by change i < 2^256; omega)

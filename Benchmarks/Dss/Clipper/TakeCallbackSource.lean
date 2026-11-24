@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.TakeCallbackCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -132,7 +134,7 @@ theorem clipperTakeCallbackSkipWhoVatStmt (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hwho : UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
@@ -157,7 +159,7 @@ theorem clipperTakeCallbackSkipWhoDogStmt (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hwho : UInt256.land (clipperTakeWhoWord I) solcAddrMask =
       UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
@@ -229,7 +231,7 @@ theorem clipperTakeCallbackNoCodeStmt (v : ClipperImmutables)
         ((evmVat.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v)) evmVat
       (.ite
@@ -263,13 +265,13 @@ theorem clipperTakeCallbackCallFailureStmt (v : ClipperImmutables)
         ((evmVat.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmVat
+    (hcall : typedCallViaEVM fork config evmVat
       (EVM.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) "clipperCall" 0
       [.address evmVat.executionEnv.source,
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat),
         .int (Int.ofNat slice'.toNat), clipperTakeDataValue I]
       (false, evmCb, outCb) true) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v)) evmVat
       (.ite
@@ -291,7 +293,7 @@ theorem clipperTakeCallbackCallFailureStmt (v : ClipperImmutables)
       (clipperEvalTakeCallbackCodeGuardTrue v evmLoc evmRead evmVat I price slice owe0
         owe slice' tabNew lotNew hcode))
       (ExecBlock.consRevert
-        (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew)
           (by simp [evalExpr?, pure]) (by simpa [dogFrame] using hargs) hcall)))
@@ -312,13 +314,13 @@ theorem clipperTakeCallbackCallSuccessStmt (v : ClipperImmutables)
         ((evmVat.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM config evmVat
+    (hcall : typedCallViaEVM fork config evmVat
       (EVM.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) "clipperCall" 0
       [.address evmVat.executionEnv.source,
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat),
         .int (Int.ofNat slice'.toNat), clipperTakeDataValue I]
       (true, evmCb, outCb) true) :
-    ExecStmt config
+    ExecStmt fork config
       (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v)) evmVat
       (.ite
@@ -345,7 +347,7 @@ theorem clipperTakeCallbackCallSuccessStmt (v : ClipperImmutables)
       (clipperEvalTakeCallbackCodeGuardTrue v evmLoc evmRead evmVat I price slice owe0
         owe slice' tabNew lotNew hcode))
       (ExecBlock.consNormal
-        (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           (clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew)
           (by simp [evalExpr?, pure]) (by simpa [dogFrame] using hargs) hcall

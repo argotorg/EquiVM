@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueFunctionRefine
 import Benchmarks.Morpho.MorphoBlue.CreateMarketSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -10,8 +12,8 @@ theorem morphoAccrueInternalOk (p : MarketParamsWords) (locals imms : Store) (ev
     (hp : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm params = .ok p.value)
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm id =
       .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id)))
-    (hb : ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body (.returned frame' evm' value)) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    (hb : ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body (.returned frame' evm' value)) :
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "_accrueInterest" [params, id] retVar)
       (.ok (resumeAfterInternalCall { contract := contract, locals := locals, immutables := imms } retVar value) evm') := by
   exact internalCallFunctionReturn (callee := accrueInterestFunction) (value := value)
@@ -22,8 +24,8 @@ theorem morphoAccrueInternalRevert (p : MarketParamsWords) (locals imms : Store)
     (hp : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm params = .ok p.value)
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm id =
       .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id)))
-    (hb : ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body .reverted) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    (hb : ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body .reverted) :
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "_accrueInterest" [params, id] retVar) .reverted := by
   exact internalCallFunctionRevert (callee := accrueInterestFunction)
     (by simp only [evalExprs?, hp, hi, pure, bind, EvalResult.bind]; rfl) rfl rfl hb
@@ -33,8 +35,8 @@ theorem morphoAccrueInternalStatic (p : MarketParamsWords) (locals imms : Store)
     (hp : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm params = .ok p.value)
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm id =
       .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id)))
-    (hb : ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body .staticViolation) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    (hb : ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body .staticViolation) :
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "_accrueInterest" [params, id] retVar) .staticViolation := by
   exact ExecStmt.internalCallStatic (callee := accrueInterestFunction.toCallable)
     (by simp only [evalExprs?, hp, hi, pure, bind, EvalResult.bind]; rfl) rfl rfl hb
@@ -51,7 +53,7 @@ theorem accruePublic_locals (p : MarketParamsWords) (cd : ByteArray) (imms : Sto
 
 theorem morphoAccruePublicPrelude (p : MarketParamsWords) (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ABlock config evm { contract := contract, locals := createMarketArgs p, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := createMarketArgs p, immutables := imms }
       accrueInterestTransition.body (createMarketFrame p evm.executionEnv.calldata imms)
       (accrueInterestTransition.body.drop 4) := by
   refine ⟨fun h => (calldataPrelude_ok hcv hsize).run (ExecBlock.consNormal ?_ h)⟩
@@ -62,7 +64,7 @@ theorem morphoAccruePublicPrelude (p : MarketParamsWords) (hc : p.Canonical) (ev
 theorem morphoAccruePublicGuard (p : MarketParamsWords) (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hcreated : marketFieldWord evm.accountMap evm.executionEnv p.id 4 ≠ ⟨0⟩) :
-    ABlock config evm { contract := contract, locals := createMarketArgs p, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := createMarketArgs p, immutables := imms }
       accrueInterestTransition.body (createMarketFrame p evm.executionEnv.calldata imms)
       (accrueInterestTransition.body.drop 5) := by
   apply (morphoAccruePublicPrelude p hc evm imms hcv hsize).requireStep
@@ -72,7 +74,7 @@ theorem morphoAccruePublicGuard (p : MarketParamsWords) (hc : p.Canonical) (evm 
 theorem morphoAccruePublicReject (p : MarketParamsWords) (hc : p.Canonical) (evm : EVM.State) (imms : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hcreated : marketFieldWord evm.accountMap evm.executionEnv p.id 4 = ⟨0⟩) :
-    ExecTransitionBody config contract evm (createMarketArgs p) accrueInterestTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm (createMarketArgs p) accrueInterestTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply (morphoAccruePublicPrelude p hc evm imms hcv hsize).requireRevert
   simpa only [hcreated, ne_eq, not_true_eq_false, decide_false] using

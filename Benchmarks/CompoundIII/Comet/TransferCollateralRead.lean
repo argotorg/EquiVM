@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferCollateralStacks
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_071
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometTransferCollateralRead {v : CometWithExtendedAssetListImmutables}
     {aw amount ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (src dst asset : AccountAddress) (hstack : R.length + 16 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15329⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15329⟩
       (EVM.word src.val :: EVM.word dst.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15305⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15305⟩
       (transferCollateralSubStack src dst asset amount
         (withdrawCollateralBalance evm src asset) (withdrawCollateralBalance evm dst asset) ret R)
       (transferCollateralMemory mem src dst asset) aw' rdata σ k' C' := by
@@ -28,7 +30,7 @@ theorem cometTransferCollateralRead {v : CometWithExtendedAssetListImmutables}
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [cometWithExtendedAssetList_block_15329_stack,
     cometWithExtendedAssetList_block_15329_memory, hclean] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.word src.val) ⟨6⟩ mem) :: _)
     (twoWordHashMem (EVM.word src.val) ⟨6⟩ mem) _ _ _ _ _ at r1
   have hhashSrc : keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.word src.val) ⟨6⟩ mem) =
@@ -43,7 +45,7 @@ theorem cometTransferCollateralRead {v : CometWithExtendedAssetListImmutables}
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
   simp only [cometWithExtendedAssetList_block_15382_stack,
     cometWithExtendedAssetList_block_15382_memory, hclean] at r3
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (keccakWord ⟨0⟩ ⟨64⟩
       (twoWordHashMem (EVM.word dst.val) ⟨6⟩ (userCollateralMemory mem src asset)) :: _)
     (twoWordHashMem (EVM.word dst.val) ⟨6⟩ (userCollateralMemory mem src asset)) _ _ _ _ _ at r3
@@ -58,7 +60,7 @@ theorem cometTransferCollateralRead {v : CometWithExtendedAssetListImmutables}
   obtain ⟨k5, C5, r5⟩ := cometWithExtendedAssetList_block_15413
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 13 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-  change RD _ _ _ _ _ (transferCollateralSubStack src dst asset amount
+  change RD fork _ _ _ _ _ (transferCollateralSubStack src dst asset amount
     (low128 (solcSlotWord σ ee (userCollateralSlot src asset)))
     (low128 (solcSlotWord σ ee (userCollateralSlot dst asset))) ret R) _ _ _ _ _ _ at r5
   rw [← hs.storageRead, ← hs.storageRead] at r5

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolInitializeTrace
 import Benchmarks.UniswapV4PoolManager.TransientTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,11 +14,11 @@ theorem poolInitializeGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 12 ≤ 1024) (hI : evm.executionEnv = I)
     (hid : keccakWord keyPtr (UInt256.ofNat 160) mem = id)
-    (h : RD (deployedRuntime v) I g s0 ⟨4292⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4292⟩
       (x0 :: x1 :: price :: currency1Ptr :: feePtr :: hooksPtr :: keyPtr :: price :: spacingPtr :: fee :: R)
       mem aw rdata evm.accountMap k C) :
-    (poolSqrtPriceWord evm id ≠ ⟨0⟩ ∧ RDrev (deployedRuntime v) g s0) ∨
-    (poolSqrtPriceWord evm id = ⟨0⟩ ∧ ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨4341⟩
+    (poolSqrtPriceWord evm id ≠ ⟨0⟩ ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (poolSqrtPriceWord evm id = ⟨0⟩ ∧ ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨4341⟩
       (price :: poolSlot id :: id :: currency1Ptr :: feePtr :: hooksPtr :: keyPtr :: price :: spacingPtr :: fee :: R)
       (twoWordHashMem id ⟨6⟩ mem) aw' rdata evm.accountMap k' C') := by
   have hslot : keccakWord ⟨0⟩ (UInt256.ofNat 64)
@@ -36,7 +38,7 @@ theorem poolInitializeGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
       (by simp only [List.length_cons]; omega) (hcond.trans hz) h
     simp only [poolManagerBlocks.poolManager_block_4292_fallthrough_stack,
       poolManagerBlocks.poolManager_block_4292_fallthrough_memory] at rd1
-    change RD _ _ _ _ ⟨4341⟩
+    change RD fork _ _ _ _ ⟨4341⟩
       (price :: keccakWord ⟨0⟩ (UInt256.ofNat 64)
         (twoWordHashMem (keccakWord keyPtr (UInt256.ofNat 160) mem) ⟨6⟩ mem) ::
         keccakWord keyPtr (UInt256.ofNat 160) mem :: currency1Ptr :: feePtr :: hooksPtr :: keyPtr ::
@@ -50,15 +52,15 @@ theorem poolInitializeGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     exact .inl ⟨hz, poolManagerBlocks.poolManager_block_4792
       (by change R.length + 12 ≤ 1024; exact hstack) rd1⟩
 
-@[irreducible] def poolInitializeTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+@[irreducible] def poolInitializeTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm : State) (mem rdata : ByteArray) (id price fee currency1Ptr feePtr hooksPtr keyPtr spacingPtr : UInt256)
     (R : List UInt256) : Prop :=
-  if poolSqrtPriceWord evm id ≠ ⟨0⟩ then RDrev (deployedRuntime v) g s0 else
+  if poolSqrtPriceWord evm id ≠ ⟨0⟩ then RDrev fork (deployedRuntime v) g s0 else
     match tickPriceResult price with
-    | none => RDrev (deployedRuntime v) g s0
+    | none => RDrev fork (deployedRuntime v) g s0
     | some tick =>
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨4555⟩
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨4555⟩
         (memLoad hooksPtr (initializeEventMemory (twoWordHashMem id ⟨6⟩ mem) feePtr hooksPtr spacingPtr price tick) ::
           keyPtr :: price :: tick :: UInt256.ofNat 32 :: R)
         (initializeEventMemory (twoWordHashMem id ⟨6⟩ mem) feePtr hooksPtr spacingPtr price tick) aw' rdata
@@ -70,10 +72,10 @@ theorem poolInitializeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length + 35 ≤ 1024) (hI : evm.executionEnv = I)
     (hid : keccakWord keyPtr (UInt256.ofNat 160) mem = id)
     (hp : price.toNat < 2^160) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨4292⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4292⟩
       (x0 :: x1 :: price :: currency1Ptr :: feePtr :: hooksPtr :: keyPtr :: price :: spacingPtr :: fee :: R)
       mem aw rdata evm.accountMap k C) :
-    poolInitializeTraceResult v I g s0 evm mem rdata id price fee currency1Ptr feePtr hooksPtr keyPtr spacingPtr R := by
+    poolInitializeTraceResult fork v I g s0 evm mem rdata id price fee currency1Ptr feePtr hooksPtr keyPtr spacingPtr R := by
   unfold poolInitializeTraceResult
   rcases poolInitializeGuardTrace v (by omega) hI hid h with ⟨hn, hr⟩ | ⟨hz, aw1, k1, C1, rd1⟩
   · simp only [if_pos hn]

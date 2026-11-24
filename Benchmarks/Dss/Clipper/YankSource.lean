@@ -5,6 +5,8 @@ import Benchmarks.Dss.Clipper.Vat
 import Benchmarks.Dss.Clipper.Count
 import Benchmarks.Dss.Clipper.YankBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -50,7 +52,7 @@ theorem clipperYankRemoveBind (I : ExecutionEnv) :
 theorem clipperYankRemoveEmptySourceReverts (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hlen : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
       .reverted := by
   have hlenEval :=
@@ -678,7 +680,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
       UInt256.sub (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩
     let move :=
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperYankActiveSlot lastIndex)
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
       (.returned { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
         (clipperYankDeleteSaleState (clipperYankRemovePopState evm lastIndex) I) none) := by
@@ -701,7 +703,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
     rw [hlastNat]
     omega
   have hlastStmt :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (.letDecl "lastIndex" (some uint256)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
@@ -709,7 +711,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
         (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
@@ -721,7 +723,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
         (.binary .ne (.var "id") (.var "_move")) = .ok (.bool false) := by
     exact clipperEvalYankRemoveIdNeMove_false v evm I lastIndex move (by simpa [move] using heq)
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.ite (.binary .ne (.var "id") (.var "_move"))
           [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
@@ -732,7 +734,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
           evm) := by
     exact ExecStmt.iteFalse hcond ExecBlock.nil
   have hpop :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.pop activeRef)
         (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
@@ -752,7 +754,7 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
       sstoreAccountMap, haccElem, Option.option, Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
         (clipperYankRemovePopState evm lastIndex)
         (.delete (saleRef (.var "id")))
@@ -1084,7 +1086,7 @@ theorem clipperYankAuthSourceReverts {σ σ₀ A I} {g : UInt256}
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
       evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
@@ -1094,7 +1096,7 @@ theorem clipperYankAuthSourceReverts {σ σ₀ A I} {g : UInt256}
       evalExpr_clipperAuth_false v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth] using
       nonpayableSecondRequireReverts
@@ -1113,9 +1115,9 @@ theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     (I.perm = true → clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩ →
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v)) ∧
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals
+      ExecTransitionBody fork config contract evm0 locals
         yankTransition.body .staticViolation (immStore v)) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -1143,9 +1145,9 @@ theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         (yankTransition.body.drop 3) result) :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1166,12 +1168,12 @@ theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
           (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool false) := by
       simpa [locals] using clipperEvalYankSalesUsrNeZero_false v evmLock I husrLoad
     have hblock :
-        ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
           yankTransition.body .reverted := by
       apply hprefix
       simpa [yankTransition, nonpayable, auth, lockPrefix] using
         (by
-          refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+          refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
           exact ExecBlock.consRevert (ExecStmt.requireFalse husrEval))
     simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
   · intro hperm
@@ -1188,7 +1190,7 @@ theorem clipperYankInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) :=
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) :=
   (clipperYankInactiveSourceRevertsSplit v hwv hauth hlocked).1 hperm husr
 
 theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
@@ -1197,7 +1199,7 @@ theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
       evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
@@ -1213,7 +1215,7 @@ theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
       evalExpr_clipperLocked_zero_false v evm0 locals
         (by simp [locals]) hlocked
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix] using
       (by
@@ -1236,7 +1238,7 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1299,7 +1301,7 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool false) := by
     exact clipperEvalYankDogCodeGuard_false v evmLock locals (by simp [locals]) hnoDogCode
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append] using
@@ -1308,7 +1310,7 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
         · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
         refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue husrEval) ?_
         exact ExecBlock.consRevert (ExecStmt.requireFalse hdogEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
@@ -1330,7 +1332,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1345,7 +1347,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1406,7 +1408,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM config evmLock
+      typedCallViaEVM fork config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1417,7 +1419,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append] using
@@ -1426,11 +1428,11 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
         · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
         refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue husrEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hdogEval) ?_
         exact ExecBlock.consRevert
-          (ExecStmt.externalCallFailure (hperm := Or.inl rfl)
+          (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
@@ -1452,7 +1454,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1470,7 +1472,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1531,7 +1533,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM config evmLock
+      typedCallViaEVM fork config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1548,7 +1550,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     exact clipperEvalYankVatCodeGuard_false v evmDog (clipperYankDogRetStore I)
       hvatNoCode
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore] using
@@ -1557,11 +1559,11 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
         · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
         refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue husrEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hdogEval) ?_
         refine ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
             (clipperYankDecodeDigsVoid outDog)) ?_
@@ -1585,7 +1587,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1601,7 +1603,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Stele.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
@@ -1610,7 +1612,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1671,7 +1673,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM config evmLock
+      typedCallViaEVM fork config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1698,7 +1700,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankSalesLotSlot I)).toNat)] :=
     clipperEvalYankVatFluxArgsAfterDog v evmDog I
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore] using
@@ -1707,17 +1709,17 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
         · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
         refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue husrEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hdogEval) ?_
         refine ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
             (clipperYankDecodeDigsVoid outDog)) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hvatEval) ?_
         exact ExecBlock.consRevert
-          (ExecStmt.externalCallFailure (hperm := Or.inl rfl)
+          (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalVat v evmDog (clipperYankDogRetStore I))
             (by simp [evalExpr?, pure]) hvatArgs hcallVat))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
@@ -1739,7 +1741,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (Stele.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1755,7 +1757,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Stele.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
@@ -1765,7 +1767,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1826,7 +1828,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM config evmLock
+      typedCallViaEVM fork config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1877,12 +1879,12 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       exact hval.symm
     exact evalExprs?_singleton (by simp [evalExpr?, hgetIdVal, EvalResult.ofOption])
   have hremoveBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmVat
         removeFunction.body .reverted :=
     clipperYankRemoveEmptySourceReverts v evmVat I hactiveLen
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore, clipperYankFluxRetStore] using
@@ -1891,17 +1893,17 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
         · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
         refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlockRhs hlockAssign) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue husrEval) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hdogEval) ?_
         refine ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
             (clipperYankDecodeDigsVoid outDog)) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hvatEval) ?_
         refine ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
             (clipperEvalVat v evmDog (clipperYankDogRetStore I))
             (by simp [evalExpr?, pure]) hvatArgs hcallVat
             (clipperYankDecodeFluxVoid outVat)) ?_

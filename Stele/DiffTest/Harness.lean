@@ -31,6 +31,8 @@ structure Target where
   name : String
   contract : ContractDecl
   config : Config
+  /-- the fork both the bytecode and the specification's external calls run under -/
+  fork : Ethereum.Fork := .cancun
   /-- the deployed runtime code (for immutables: the template patched with `immutables`) -/
   runtime : ByteArray
   immutables : Store := ∅
@@ -157,9 +159,9 @@ def runCase (t : Target) (c : Case) : Run :=
   let g : UInt256 := .ofNat t.gas
   let A : Substate := default
   let evm0 := initialState c.σ c.σ g A c.I
-  let tr := runTrace evm0 (t.gas + 1)
+  let tr := runTrace t.fork evm0 (t.gas + 1)
   let evmRes := tr.xiResult
-  let (spec, ω) := steleExecRun t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract t.immutables
+  let (spec, ω) := steleExecRun t.fork t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract t.immutables
     c.σ c.σ g A c.I
   let verdict := compareRuntime evmRes spec
   -- A successful specification run must have consumed every EVM call boundary and matched each.
@@ -190,9 +192,9 @@ def runConstructor (t : Target) (initcode : ByteArray) (args : List Value) (valu
     let g : UInt256 := .ofNat t.gas
     let A : Substate := default
     let evm0 := initialState σ σ g A I
-    let tr := runTrace evm0 (t.gas + 1)
+    let tr := runTrace t.fork evm0 (t.gas + 1)
     let evmRes := tr.xiResult
-    match steleCtorExecRun t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract args σ σ g A I with
+    match steleCtorExecRun t.fork t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract args σ σ g A I with
     | none => (.specStuck "constructor arity mismatch", none)
     | some (outcome, ω) =>
       let verdict := compareConstructor evmRes outcome t.codeOf
@@ -220,9 +222,9 @@ def Target.resolveRuntime (t : Target) (r : Rng) (attempts : Nat := 8) : Target 
           let σ := t.world ByteArray.empty
           let I := t.env code (t.callers.headD t.selfAddress) 0 ByteArray.empty true
           let g : UInt256 := .ofNat t.gas
-          let tr := runTrace (initialState σ σ g default I) (t.gas + 1)
+          let tr := runTrace t.fork (initialState σ σ g default I) (t.gas + 1)
           match tr.result,
-                steleCtorExecRun t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract args σ σ g default I with
+                steleCtorExecRun t.fork t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract args σ σ g default I with
           | .ok (.success _ o), some (.result (.returned frame _ _), _) =>
               return ({ t with runtime := o, immutables := frame.immutables,
                                runtimeCodeOf := t.runtimeCodeOf <|> some fun _ => o }, r)

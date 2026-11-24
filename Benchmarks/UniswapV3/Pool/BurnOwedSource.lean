@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BurnAmountsSource
 import Benchmarks.UniswapV3.Pool.FlashProtocolWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -56,7 +58,7 @@ theorem evalBurnOwedExpr (locals imms : Store) (evm : EVM.State)
 theorem burnOwedSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (burnAmountsFrame v a key a0 a1) evm burnOwedBody
+    ExecBlock fork config (burnAmountsFrame v a key a0 a1) evm burnOwedBody
       (.ok (burnOwedFrame v a key a0 a1 evm) (burnOwedState key a0 a1 evm)) := by
   have he0 : evalExpr? config (burnAmountsFrame v a key a0 a1) evm (burnOwedExpr false) =
       .ok (.int (Int.ofNat (burnOwedValue key a0 a1 evm false).toNat)) :=
@@ -69,11 +71,11 @@ theorem burnOwedSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
       (by burn_owed_get) (by burn_owed_get)
   refine ExecBlock.consNormal (ExecStmt.letDecl (name := "__t3") he1) ?_
   refine ExecBlock.consNormal (stele := burnOwedFrame v a key a0 a1 evm)
-    (ExecStmt.assign (hperm := Or.inr hperm) (value := .int (Int.ofNat (burnOwedValue key a0 a1 evm false).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (value := .int (Int.ofNat (burnOwedValue key a0 a1 evm false).toNat))
       (evalExpr_var_get (by burn_owed_get))
       (assignPositionOwed _ (immStore v) evm key false _ (by burn_owed_get))) ?_
   exact ExecBlock.consNormal (stele := burnOwedFrame v a key a0 a1 evm)
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [storePositionOwed_executionEnv] using hperm)) (value := .int (Int.ofNat (burnOwedValue key a0 a1 evm true).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storePositionOwed_executionEnv] using hperm)) (value := .int (Int.ofNat (burnOwedValue key a0 a1 evm true).toNat))
       (evalExpr_var_get (by burn_owed_get))
       (assignPositionOwed _ (immStore v) _ key true _ (by burn_owed_get))) ExecBlock.nil
 

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ObservePrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -19,7 +21,7 @@ theorem observeSourceReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
       (poolLiquidityWord evm.accountMap evm.executionEnv) (slot0FieldWord 25 2 evm.accountMap evm.executionEnv)
       evm.accountMap evm.executionEnv 0 (List.replicate secondsAgos.length (.int 0))
       (List.replicate secondsAgos.length (.int 0)) ticks seconds) :
-    ExecTransitionBody config contract evm (observeLocals secondsAgos) observeTransition.body
+    ExecTransitionBody fork config contract evm (observeLocals secondsAgos) observeTransition.body
       (.returned (observeResultFrame v secondsAgos evm.executionEnv ticks seconds) evm
         (some [.array ticks, .array seconds])) (immStore v) := by
   obtain ⟨callee, hbody⟩ := oracleObserveReturns (immStore v) evm (blockTimestampWord evm.executionEnv)
@@ -27,7 +29,7 @@ theorem observeSourceReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (slot0FieldWord 23 2 evm.accountMap evm.executionEnv) (poolLiquidityWord evm.accountMap evm.executionEnv)
     (slot0FieldWord 25 2 evm.accountMap evm.executionEnv) ticks seconds hc
     (u256LandMaskToNatLtOfToNat _ _ (by decide)) (normalizeSint_bounds ⟨24, by decide⟩ _) hn hrun
-  have hcall : ExecStmt config (observeReadyFrame v secondsAgos evm.executionEnv) evm
+  have hcall : ExecStmt fork config (observeReadyFrame v secondsAgos evm.executionEnv) evm
       (.internalCall "Oracle_observe" observeCallArgs "__c2")
       (.ok (observeResultFrame v secondsAgos evm.executionEnv ticks seconds) evm) :=
     internalCallFunctionReturn (callee := oracleObserveFunction) (calleeStele := callee)
@@ -49,8 +51,8 @@ theorem observeSourceReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
       (slot0TickValue evm.accountMap evm.executionEnv) (slot0FieldWord 23 2 evm.accountMap evm.executionEnv)
       (poolLiquidityWord evm.accountMap evm.executionEnv) (slot0FieldWord 25 2 evm.accountMap evm.executionEnv)
       evm.accountMap evm.executionEnv) :
-    ExecTransitionBody config contract evm (observeLocals secondsAgos) observeTransition.body .reverted (immStore v) := by
-  have hbody := oracleObserveFailureReverts (immStore v) evm (blockTimestampWord evm.executionEnv)
+    ExecTransitionBody fork config contract evm (observeLocals secondsAgos) observeTransition.body .reverted (immStore v) := by
+  have hbody := oracleObserveFailureReverts (fork := fork) (immStore v) evm (blockTimestampWord evm.executionEnv)
     secondsAgos (slot0TickValue evm.accountMap evm.executionEnv)
     (slot0FieldWord 23 2 evm.accountMap evm.executionEnv) (poolLiquidityWord evm.accountMap evm.executionEnv)
     (slot0FieldWord 25 2 evm.accountMap evm.executionEnv)

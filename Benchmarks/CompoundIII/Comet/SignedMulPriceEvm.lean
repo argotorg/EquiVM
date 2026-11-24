@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_053
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_043
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,12 +19,12 @@ theorem cometSignedMulPrice {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 12 ≤ 1024) (hm : m.toNat ≤ 2^255)
     (hp : 0 < p.toNat) (hp' : p.toNat < 2^255) (hscale : scale.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11226⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11226⟩
       (UInt256.sub (UInt256.ofNat 0) m :: p :: scale :: ret :: R) mem aw rdata σ k C) :
     if signedDebtPriceValid m p scale then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (signedDebtPriceWord m p scale :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hzword : UInt256.ofNat 0 = (⟨0⟩ : UInt256) := rfl
   have hn : signedWord (UInt256.sub (UInt256.ofNat 0) m) = -Int.ofNat m.toNat :=
     signedWord_zeroSub_le hm

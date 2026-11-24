@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.EcrecoverPrepare
 import Benchmarks.Safe.ViaIR.RawStaticCall
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -11,13 +13,13 @@ set_option maxRecDepth 2000
 
 theorem safeEcrecoverFinish (z : Bool) {I g s0 σ k C aw mem out ptr}
     {p : EcrecoverInput} {last : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8679⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: last :: R)
+    (h : RD fork safeBytecode I g s0 ⟨8679⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: last :: R)
       (ecrecoverOutputMemory mem ptr p out) aw out σ k C)
     (ho : EcrecoverOutput out) (hov : R.length + 8 ≤ 1024) :
-    if z then ∃ aw' k' C', RD safeBytecode I g s0 ⟨7803⟩
+    if z then ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7803⟩
       (last :: calldataWord out 0 :: R)
       (ecrecoverOutputMemory mem ptr p out) aw' out σ k' C'
-    else RDrev safeBytecode g s0 := by
+    else RDrev fork safeBytecode g s0 := by
   cases z with
   | false =>
       have h₁ := safeRuntime_block_8679_taken (by simp; omega) (by decide) (by jump_dest) h
@@ -34,19 +36,19 @@ theorem safeEcrecoverFinish (z : Bool) {I g s0 σ k C aw mem out ptr}
 
 theorem safeEcrecoverCall (evm : EVM.State) {I g s0 σ k C aw mem rdata ptr}
     {p : EcrecoverInput} {gasArg last : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8678⟩
+    (h : RD fork safeBytecode I g s0 ⟨8678⟩
       (gasArg :: ⟨1⟩ :: UInt256.ofNat ptr :: ⟨128⟩ :: ⟨0⟩ :: ⟨32⟩ :: last :: R)
       (ecrecoverInputMemory mem ptr p) aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hp : 32 ≤ ptr) (hb : ptr + 128 < UInt256.size) (hov : R.length + 8 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config (ecrecoverFrame p) evm ecrecoverAddressFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config (ecrecoverFrame p) evm ecrecoverAddressFunction.body .reverted) ∨
     ∃ evm' σ' out aw' k' C',
-      ExecFuncBody config (ecrecoverFrame p) evm ecrecoverAddressFunction.body
+      ExecFuncBody fork config (ecrecoverFrame p) evm ecrecoverAddressFunction.body
         (.returned (ecrecoverFinalFrame p true out) evm'
           (some [.address (AccountAddress.ofUInt256 (calldataWord out 0))])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨7803⟩ (last :: calldataWord out 0 :: R)
+      RD fork safeBytecode I g s0 ⟨7803⟩ (last :: calldataWord out 0 :: R)
         (ecrecoverOutputMemory mem ptr p out) aw' out σ' k' C' ∧ EcrecoverOutput out := by
   obtain ⟨evm', σ', z, out, aw', k', C', hc, he, ha, hw, h₁, hout, _⟩ :=
     rawStaticCallTraceFrom evm h hee hacc hworld (by native_decide) (by simp; omega)
@@ -57,7 +59,7 @@ theorem safeEcrecoverCall (evm : EVM.State) {I g s0 σ k C aw mem rdata ptr}
     rw [callOutputLength hout]
     rfl
   rw [hm] at h₁
-  have hc' : callViaEVM evm (AccountAddress.ofNat 1) 0 (wordBytes (ecrecoverWords p))
+  have hc' : callViaEVM fork evm (AccountAddress.ofNat 1) 0 (wordBytes (ecrecoverWords p))
       (z, evm', out) false := by
     simpa only [ulit_toNat' ptr (by omega), show (⟨128⟩ : UInt256).toNat = 128 from rfl,
       ecrecoverInputMemory_read _ _ _ hp] using hc

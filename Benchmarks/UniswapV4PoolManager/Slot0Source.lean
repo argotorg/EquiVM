@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.LPFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -92,7 +94,7 @@ theorem wordFieldSetNormalizedBodyExec {cfg : Config} {f : Frame} {evm : EVM.Sta
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed))
     (hv : f.locals.get? name = some (.int input))
     (hc : normalizeInt (.uint bits) input = Int.ofNat value.toNat) :
-    ExecFuncBody cfg f evm (wordFieldSetBody mask shift bits name)
+    ExecFuncBody fork cfg f evm (wordFieldSetBody mask shift bits name)
       (.returned {f with locals := f.locals.insert "cleared" (.int (Int.ofNat (UInt256.land packed mask).toNat))}
         evm (some [wordBytes32Value (UInt256.lor (UInt256.land packed mask)
           (UInt256.shiftLeft value (UInt256.ofNat shift)))])) := by
@@ -114,7 +116,7 @@ theorem wordFieldSetBodyExec {cfg : Config} {f : Frame} {evm : EVM.State} {packe
     (hn : shift < 256) (hname : ("cleared" == name) = false)
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed))
     (hv : f.locals.get? name = some (.int (Int.ofNat value.toNat))) (hc : value.toNat < EVM.twoPow bits.val) :
-    ExecFuncBody cfg f evm (wordFieldSetBody mask shift bits name)
+    ExecFuncBody fork cfg f evm (wordFieldSetBody mask shift bits name)
       (.returned {f with locals := f.locals.insert "cleared" (.int (Int.ofNat (UInt256.land packed mask).toNat))}
         evm (some [wordBytes32Value (UInt256.lor (UInt256.land packed mask)
           (UInt256.shiftLeft value (UInt256.ofNat shift)))])) :=
@@ -133,7 +135,7 @@ theorem slot0LPFee_lookup : lookupCallable? contract "Slot0Library_setLpFee" = s
 
 theorem slot0SqrtBody {f : Frame} {evm : EVM.State} {packed : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed)) :
-    ExecFuncBody config f evm slot0SqrtFunction.body
+    ExecFuncBody fork config f evm slot0SqrtFunction.body
       (.returned f evm (some [.int (Int.ofNat (slot0SqrtPriceWord packed).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -143,7 +145,7 @@ theorem slot0SqrtBody {f : Frame} {evm : EVM.State} {packed : UInt256}
 
 theorem slot0SqrtCall {f : Frame} {evm : EVM.State} {e : Expr} {packed : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (wordBytes32Value packed)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_sqrtPriceX96" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_sqrtPriceX96" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (slot0SqrtPriceWord packed).toNat))} evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed])
     (value := some [.int (Int.ofNat (slot0SqrtPriceWord packed).toNat)]) (evalExprs?_singleton he)
@@ -153,7 +155,7 @@ theorem slot0SqrtCall {f : Frame} {evm : EVM.State} {e : Expr} {packed : UInt256
 theorem slot0LPFeeBody {f : Frame} {evm : EVM.State} {packed fee : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed))
     (hf : f.locals.get? "_lpFee" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm slot0LPFeeFunction.body
+    ExecFuncBody fork config f evm slot0LPFeeFunction.body
       (.returned {f with locals := f.locals.insert "cleared" (.int (Int.ofNat (UInt256.land packed lpFeeClearMask).toNat))}
         evm (some [wordBytes32Value (slot0LPFeeWord packed fee)])) :=
   wordFieldSetBodyExec lpFeeClearMask 208 ⟨24, by decide⟩ "_lpFee" (by decide) (by decide) hp hf hc
@@ -162,7 +164,7 @@ theorem slot0LPFeeCall {f : Frame} {evm : EVM.State} {ep ef : Expr} {packed fee 
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (hp : evalExpr? config f evm ep = .ok (wordBytes32Value packed))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_setLpFee" [ep, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_setLpFee" [ep, ef] retVar)
       (.ok {f with locals := f.locals.insert retVar (wordBytes32Value (slot0LPFeeWord packed fee))} evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed, .int (Int.ofNat fee.toNat)])
     (value := some [wordBytes32Value (slot0LPFeeWord packed fee)])

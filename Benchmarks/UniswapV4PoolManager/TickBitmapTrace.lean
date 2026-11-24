@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SignedModStep
 import Benchmarks.UniswapV4PoolManager.WordSignextend24
 import Benchmarks.UniswapV4PoolManager.FunctionResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,15 +17,15 @@ theorem tickBitmapExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : int24Canonical tick) (hs : int24Canonical spacing) (hb : (EVM.signed tick).natAbs ≤ 887272)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     if tickBitmapAligned (EVM.signed tick) (EVM.signed spacing) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-        RD (deployedRuntime v) I g s0 ret R
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+        RD fork (deployedRuntime v) I g s0 ret R
           (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
             (poolSlot id+⟨5⟩) mem) (tickBitmapActiveWords aw) rdata
           (tickBitmapPost evm id (EVM.signed tick) (EVM.signed spacing)).accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManager_block_16652 (by simp only [List.length_cons]; omega) h
   have ht' : UInt256.signextend (UInt256.ofNat 2) tick = tick := (signextend24_eq_iff tick).mpr ht
   have hs' : UInt256.signextend (UInt256.ofNat 2) spacing = spacing := (signextend24_eq_iff spacing).mpr hs
@@ -48,15 +50,15 @@ theorem tickBitmapTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (ht : int24Canonical tick) (hs : int24Canonical spacing) (hb : (EVM.signed tick).natAbs ≤ 887272)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16652⟩ ((poolSlot id+⟨5⟩) :: tick :: spacing :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     if tickBitmapAligned (EVM.signed tick) (EVM.signed spacing) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret R
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+        RD fork (deployedRuntime v) I g s0 ret R
           (twoWordHashMem (EVM.wordOfInt (tickBitmapPosition (EVM.signed tick) (EVM.signed spacing)))
             (poolSlot id+⟨5⟩) mem) aw' rdata
           (tickBitmapPost evm id (EVM.signed tick) (EVM.signed spacing)).accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hr := tickBitmapExactTrace v hstack hI ht hs hb hret h
   split_ifs at hr ⊢
   all_goals first | exact hr | (obtain ⟨k', C', rd⟩ := hr; exact ⟨_, k', C', rd⟩)

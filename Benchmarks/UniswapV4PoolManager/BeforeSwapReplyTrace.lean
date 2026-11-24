@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapParseTrace
 import Benchmarks.UniswapV4PoolManager.BeforeSwapFeeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,10 +19,10 @@ theorem beforeSwapReplyTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hview : BytesObjectView mem ptr out) (hsize : out.size < UInt256.size)
     (hfit : ptr.toNat+96 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15462⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15462⟩
       (ptr :: accountWord hook :: keyPtr :: ret :: ⟨0⟩ :: ⟨0⟩ :: amount :: R) mem aw out evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
-      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
+      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
         (beforeSwapRawFee key out :: beforeSwapReplyHook hook out :: beforeSwapReplyAmount hook amount out :: R)
           mem aw' out post.accountMap k' C') (fun _ _ => False)
       (beforeSwapReplyResult f evm hook key amount out) := by

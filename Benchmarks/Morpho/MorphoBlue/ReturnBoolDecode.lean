@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ReturnData
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,10 +15,10 @@ theorem morphoReturnBoolDecodeOk {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (hspan : UInt256.sub last first = UInt256.ofNat out.size)
     (hword : memLoad first mem = calldataWord out 0) (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
       (first :: last :: ret :: R) mem aw rdata σ k C) :
     ABI.decodeReturnValue? abiBool out = some (.bool (decide (calldataWord out 0 ≠ ⟨0⟩))) ∧
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord out 0 :: R) mem aw' rdata σ k' C' := by
   refine ⟨decodeReturnBool_valid hv hb, ?_⟩
   have rd1 := morphoBlocks.morpho_block_14642_fallthrough
@@ -38,9 +40,9 @@ theorem morphoReturnBoolDecodeRevert {v : MorphoImmutables} {ee : ExecutionEnv} 
     (hspan : UInt256.sub last first = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad first mem = calldataWord out 0)
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14642)
       (first :: last :: ret :: R) mem aw rdata σ k C) :
-    ABI.decodeReturnValue? abiBool out = none ∧ RDrev (deployedRuntime v) g s0 := by
+    ABI.decodeReturnValue? abiBool out = none ∧ RDrev fork (deployedRuntime v) g s0 := by
   refine ⟨decodeReturnBool_invalid hv hb, ?_⟩
   by_cases hl : 32 ≤ out.size
   · have rd1 := morphoBlocks.morpho_block_14642_fallthrough

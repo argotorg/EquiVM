@@ -1,6 +1,8 @@
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.HealBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,12 +14,12 @@ attribute [local irreducible] Ethereum.KEC
 
 theorem RD.vatHealSinSubUnderflow
     {σ σ₀ A I} {g sel rad : UInt256} {k C : ℕ}
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6423⟩
       [rad, ⟨524⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
     (hlt : (solcSlotWordAt (healSinSlot I) σ I).toNat < rad.toNat) :
-    RDrev vatBytecode (Sat256.ofUInt256 g)
+    RDrev fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hslotEq :
       solcSlotWord σ I (solcMappingSlot ⟨6⟩ (healSourceWord I)) =
@@ -47,7 +49,7 @@ theorem RD.vatHealSinSubUnderflow
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
-  have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6440 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
       (solcSlotWordAt (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
@@ -72,12 +74,12 @@ theorem RD.vatHealSinSubUnderflow
 
 theorem RD.vatHealSinSubSuccess
     {σ σ₀ A I} {g sel rad : UInt256} {k C : ℕ}
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6423⟩
       [rad, ⟨524⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
     (hle : rad.toNat ≤ (solcSlotWordAt (healSinSlot I) σ I).toNat) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) rad ::
         healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -111,7 +113,7 @@ theorem RD.vatHealSinSubSuccess
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
-  have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6440 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
       (solcSlotWordAt (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
@@ -135,13 +137,13 @@ theorem RD.vatHealSinSubSuccess
 
 theorem RD.vatHealDaiLoadedSplit
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
     (I.perm = true ∧
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
       (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I ::
@@ -151,7 +153,7 @@ theorem RD.vatHealDaiLoadedSplit
           (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k' C') ∨
-      (I.perm = false ∧ RDstatic vatBytecode (Sat256.ofUInt256 g)
+      (I.perm = false ∧ RDstatic fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hcanonSource : (healSourceWord I).toNat < EVM.addressModulus := by
     rw [healSourceWord_toNat]
@@ -222,7 +224,7 @@ theorem RD.vatHealDaiLoadedSplit
       rd6480pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k6481, C6481, rd6481raw⟩ := rd6480pre.sstore hperm (by native_decide) (by evm_ov)
-  have rd6481 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6481 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6481⟩
       (⟨32⟩ :: ⟨0⟩ :: ⟨64⟩ :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩
@@ -256,7 +258,7 @@ theorem RD.vatHealDaiLoadedSplit
   have rd6486 := rd6485.keccak256 0 (solcMappingSlot ⟨5⟩ (healSourceWord I))
     (UInt256.ofNat 3) (by native_decide) mem_cost hdaiHash (by native_decide) (by evm_ov)
   obtain ⟨k6487, C6487, rd6487raw⟩ := rd6486.sload (by native_decide) (by evm_ov)
-  have rd6487 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6487 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
       (solcSlotWordAt (healDaiSlot I) σSin I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiMem (UInt256.ofNat 3) ByteArray.empty σSin k6487 C6487 := by
@@ -266,12 +268,12 @@ theorem RD.vatHealDaiLoadedSplit
 theorem RD.vatHealDaiLoaded
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
       (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I ::
@@ -286,14 +288,14 @@ theorem RD.vatHealDaiLoaded
 theorem RD.vatHealDaiSubUnderflow
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (hlt : (solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat < rad.toNat) :
-    RDrev vatBytecode (Sat256.ofUInt256 g)
+    RDrev fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6487⟩ := RD.vatHealDaiLoaded hperm rd
   have rd6621pre := evm_run rd6487 with [
@@ -318,7 +320,7 @@ theorem RD.vatHealDaiSubUnderflow
 theorem RD.vatHealDaiSubSuccess
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
@@ -326,7 +328,7 @@ theorem RD.vatHealDaiSubSuccess
     (hle : rad.toNat ≤
       (solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6496⟩
       (UInt256.sub
           (solcSlotWordAt (healDaiSlot I)
@@ -359,7 +361,7 @@ theorem RD.vatHealDaiSubSuccess
 theorem RD.vatHealViceLoaded
     {σ σ₀ A I} {g sel rad sinNew daiNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6496⟩
       (daiNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (wordAt32Mem ⟨5⟩
@@ -367,7 +369,7 @@ theorem RD.vatHealViceLoaded
           (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k C) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
       (solcSlotWordAt healViceSlot
           (sstoreAccountMap I.codeOwner
@@ -440,14 +442,14 @@ theorem RD.vatHealViceLoaded
   have rd6521 := rd6520pre.keccak256 0 (solcMappingSlot ⟨5⟩ (healSourceWord I))
     (UInt256.ofNat 3) (by native_decide) mem_cost hdaiHash (by native_decide) (by evm_ov)
   obtain ⟨k6522, C6522, rd6522raw⟩ := rd6521.sstore hperm (by native_decide) (by evm_ov)
-  have rd6522 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6522 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6522⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiHashMem (UInt256.ofNat 3) ByteArray.empty σDai k6522 C6522 := by
     simpa [σSin, σDai, hdaiSlot, daiHashMem] using rd6522raw
   have rd6524 := rd6522.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k6525, C6525, rd6525raw⟩ := rd6524.sload (by native_decide) (by evm_ov)
-  have rd6525 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6525 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
       (solcSlotWordAt healViceSlot σDai I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiHashMem (UInt256.ofNat 3) ByteArray.empty σDai k6525 C6525 := by
@@ -457,7 +459,7 @@ theorem RD.vatHealViceLoaded
 theorem RD.vatHealViceSubUnderflow
     {σ σ₀ A I} {g sel rad sinNew daiNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6496⟩
       (daiNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (wordAt32Mem ⟨5⟩
@@ -469,7 +471,7 @@ theorem RD.vatHealViceSubUnderflow
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I).toNat < rad.toNat) :
-    RDrev vatBytecode (Sat256.ofUInt256 g)
+    RDrev fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6525⟩ := RD.vatHealViceLoaded hperm rd
   have rd6621pre := evm_run rd6525 with [
@@ -496,7 +498,7 @@ theorem RD.vatHealViceSubUnderflow
 theorem RD.vatHealViceSubSuccess
     {σ σ₀ A I} {g sel rad sinNew daiNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6496⟩
       (daiNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (wordAt32Mem ⟨5⟩
@@ -508,7 +510,7 @@ theorem RD.vatHealViceSubSuccess
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I).toNat) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6534⟩
       (UInt256.sub
           (solcSlotWordAt healViceSlot
@@ -548,7 +550,7 @@ theorem RD.vatHealViceSubSuccess
 theorem RD.vatHealDebtLoaded
     {σ σ₀ A I} {g sel rad sinNew daiNew viceNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6534⟩
       (viceNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -559,7 +561,7 @@ theorem RD.vatHealDebtLoaded
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
         (healDaiSlot I) daiNew) k C) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
       (solcSlotWordAt healDebtSlot
           (sstoreAccountMap I.codeOwner
@@ -588,14 +590,14 @@ theorem RD.vatHealDebtLoaded
   have rd6535 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd6537 := rd6535.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k6538, C6538, rd6538raw⟩ := rd6537.sstore hperm (by native_decide) (by evm_ov)
-  have rd6538 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6538 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6538⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty σVice k6538 C6538 := by
     simpa [σDai, σVice, healViceSlot, mem] using rd6538raw
   have rd6540 := rd6538.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k6541, C6541, rd6541raw⟩ := rd6540.sload (by native_decide) (by evm_ov)
-  have rd6541 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6541 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
       (solcSlotWordAt healDebtSlot σVice I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty σVice k6541 C6541 := by
@@ -605,7 +607,7 @@ theorem RD.vatHealDebtLoaded
 theorem RD.vatHealDebtSubUnderflow
     {σ σ₀ A I} {g sel rad sinNew daiNew viceNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6534⟩
       (viceNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -622,7 +624,7 @@ theorem RD.vatHealDebtSubUnderflow
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
             (healDaiSlot I) daiNew)
           healViceSlot viceNew) I).toNat < rad.toNat) :
-    RDrev vatBytecode (Sat256.ofUInt256 g)
+    RDrev fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6541⟩ := RD.vatHealDebtLoaded hperm rd
   have rd6621pre := evm_run rd6541 with [
@@ -651,7 +653,7 @@ theorem RD.vatHealDebtSubUnderflow
 theorem RD.vatHealDebtSubSuccess
     {σ σ₀ A I} {g sel rad sinNew daiNew viceNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6534⟩
       (viceNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -668,7 +670,7 @@ theorem RD.vatHealDebtSubSuccess
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
             (healDaiSlot I) daiNew)
           healViceSlot viceNew) I).toNat) :
-    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6550⟩
       (UInt256.sub
           (solcSlotWordAt healDebtSlot
@@ -714,7 +716,7 @@ theorem RD.vatHealDebtSubSuccess
 theorem RD.vatHealStoreDebtReturn
     {σ σ₀ A I} {g sel rad sinNew daiNew viceNew debtNew : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6550⟩
       (debtNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -727,7 +729,7 @@ theorem RD.vatHealStoreDebtReturn
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew)
         healViceSlot viceNew) k C) :
-    RDret vatBytecode (Sat256.ofUInt256 g)
+    RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
@@ -745,7 +747,7 @@ theorem RD.vatHealStoreDebtReturn
   have rd6551 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd6553 := rd6551.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k6554, C6554, rd6554raw⟩ := rd6553.sstore hperm (by native_decide) (by evm_ov)
-  have rd6554 : RD vatBytecode I (Sat256.ofUInt256 g)
+  have rd6554 : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6554⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -770,13 +772,13 @@ theorem vatHealFinishSuccess
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (healLocals I) healTransition.body
         (.returned { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
           (healPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             I sinNew daiNew viceNew debtNew) none))
-    (hdebtOk : RD vatBytecode I (Sat256.ofUInt256 g)
+    (hdebtOk : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6550⟩
       (debtNew :: healSourceWord I :: healRad I :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -789,7 +791,7 @@ theorem vatHealFinishSuccess
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew)
         healViceSlot viceNew) k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hret := RD.vatHealStoreDebtReturn
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (sel := sel) (rad := healRad I) (sinNew := sinNew)
@@ -865,7 +867,7 @@ theorem vatHealAllSuccess
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
               (healDaiSlot I) daiNew)
             healViceSlot viceNew) I).toNat)
-    (hdebtOk : RD vatBytecode I (Sat256.ofUInt256 g)
+    (hdebtOk : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6550⟩
       (debtNew :: healSourceWord I :: healRad I :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨5⟩
@@ -878,7 +880,7 @@ theorem vatHealAllSuccess
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew)
         healViceSlot viceNew) k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evm0Stele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSinStele := Stele.EVM.storageStore evm0Stele evm0Stele.executionEnv.codeOwner
     (healSinSlot I) sinNew
@@ -986,7 +988,7 @@ theorem vatHealAllSuccess
           (healSinSlot I)).toNat := by
     simpa [evm0Stele, initState, Stele.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (healLocals I) healTransition.body
         (.returned { contract := contract, locals := healLocalsDebtNew I sinNew daiNew viceNew debtNew }
@@ -1040,7 +1042,7 @@ theorem vatReachHealBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 14)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨1597⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0xf37ac61c⟩ :=
@@ -1071,12 +1073,12 @@ theorem vatReachHealBody {σ σ₀ A I} {g : Sat256}
 
 theorem RD.vatHealDecodeToRoutine
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1597⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6423⟩
       [healRad I, ⟨524⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
@@ -1101,9 +1103,9 @@ theorem vatHealShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I (vatSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vatReachHealBody (σ := σ)
+    vatReachHealBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -1130,10 +1132,10 @@ theorem vatHealBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1597⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hroutine⟩ := RD.vatHealDecodeToRoutine hreach hsz36 hsize
   by_cases hsinEvm : (solcSlotWordAt (healSinSlot I) σ I).toNat < (healRad I).toNat
   · have hsinStele :
@@ -1143,7 +1145,7 @@ theorem vatHealBodyCoreOk
             (healSinSlot I)).toNat < (healRad I).toNat := by
       simpa [initState, solcSlotWordAt, Stele.EVM.storageLoad] using hsinEvm
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (healLocals I) healTransition.body .reverted := by
       exact vatHealSourceSinUnderflow
@@ -1203,7 +1205,7 @@ theorem vatHealBodyCoreOk
         rw [← hmapSinStele] at htmp
         simpa [evmSinStele, Stele.EVM.storageLoad, storageStore_executionEnv] using htmp
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (healLocals I) healTransition.body .reverted := by
         exact vatHealSourceDaiUnderflow (hperm := by assumption)
@@ -1302,7 +1304,7 @@ theorem vatHealBodyCoreOk
           simpa [howner, evmDaiStele, Stele.EVM.storageLoad, storageStore_executionEnv,
             State.lookupAccount, Account.lookupStorage] using htmp
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (healLocals I) healTransition.body .reverted := by
           exact vatHealSourceViceUnderflow (hperm := by assumption)
@@ -1454,7 +1456,7 @@ theorem vatHealBodyCoreOk
             simpa [howner, evmViceStele, Stele.EVM.storageLoad, storageStore_executionEnv,
               State.lookupAccount, Account.lookupStorage] using htmp
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (healLocals I) healTransition.body .reverted := by
             exact vatHealSourceDebtUnderflow (hperm := by assumption)
@@ -1506,13 +1508,13 @@ theorem vatHealBodyCoreOk
             hdebtEnoughEvm
             hdebtOk
 
-theorem vatHealBodyCore : VatBodyTheoremAnyPerm 14 := by
+theorem vatHealBodyCore : VatBodyTheoremAnyPerm fork 14 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some healTransition :=
     vatDispatchHeal hsel
-  have hreach := vatReachHealBody (σ := σ)
+  have hreach := vatReachHealBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

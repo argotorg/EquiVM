@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseUpdateModel
 import Benchmarks.CompoundIII.Comet.UpdateBaseSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -19,7 +21,7 @@ theorem transferBaseUpdate_source (v : CometWithExtendedAssetListImmutables)
     (hdb : frame.locals.get? "dstUser" = some (userBasicValue dstBasic))
     (hsn : frame.locals.get? "srcPrincipalNew" = some (.int (signed104 srcNext)))
     (hdn : frame.locals.get? "dstPrincipalNew" = some (.int (signed104 dstNext))) :
-    ExecBlock config frame evm transferBaseUpdateBlock
+    ExecBlock fork config frame evm transferBaseUpdateBlock
       (transferBaseUpdateResult frame v evm src dst srcBasic dstBasic srcNext dstNext) := by
   have hsa : evalExpr? config frame evm (.var "src") = .ok (.address src) := by
     simp only [evalExpr?, hsrc, EvalResult.ofOption]
@@ -27,7 +29,7 @@ theorem transferBaseUpdate_source (v : CometWithExtendedAssetListImmutables)
     simp only [evalExpr?, hsb, EvalResult.ofOption]
   have hsne : evalExpr? config frame evm (.var "srcPrincipalNew") =
       .ok (.int (signed104 srcNext)) := by simp only [evalExpr?, hsn, EvalResult.ofOption]
-  have hs := updateBase_call v frame evm src srcBasic srcNext _ _ _ "__c9" hc hi hsa hsbe hsne
+  have hs := updateBase_call (fork := fork) v frame evm src srcBasic srcNext _ _ _ "__c9" hc hi hsa hsbe hsne
   cases ho : updateBaseOutcome v evm src srcBasic srcNext with
   | reverted =>
       simp only [ho, internalStmtResult] at hs
@@ -53,7 +55,7 @@ theorem transferBaseUpdate_source (v : CometWithExtendedAssetListImmutables)
         simp only [evalExpr?, f, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
         change EvalResult.ofOption .unboundVariable (frame.locals.get? "dstPrincipalNew") = _
         rw [hdn]; rfl
-      have hd := updateBase_call v f evm' dst dstBasic dstNext _ _ _ "__c10" hc hi hda hdbe hdne
+      have hd := updateBase_call (fork := fork) v f evm' dst dstBasic dstNext _ _ _ "__c10" hc hi hda hdbe hdne
       cases ho' : updateBaseOutcome v evm' dst dstBasic dstNext with
       | reverted =>
           simp only [ho', internalStmtResult] at hd

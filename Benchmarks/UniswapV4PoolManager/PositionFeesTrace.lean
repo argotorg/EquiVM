@@ -2,28 +2,30 @@ import Benchmarks.UniswapV4PoolManager.PositionFeesComputeTrace
 import Benchmarks.UniswapV4PoolManager.PositionStoreStatic
 import Benchmarks.UniswapV4PoolManager.FunctionResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def positionUpdateReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def positionUpdateReturnTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (aw r0 r1 : UInt256) (R : List UInt256)
     (post : State) (values : Option (List Value)) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ owed0 owed1 : UInt256,
     values = some [.int (Int.ofNat owed0.toNat), .int (Int.ofNat owed1.toNat)] ∧
-      ∃ k C, RD (deployedRuntime v) I g s0 ⟨12458⟩ (owed0 :: r0 :: r1 :: owed1 :: R)
+      ∃ k C, RD fork (deployedRuntime v) I g s0 ⟨12458⟩ (owed0 :: r0 :: r1 :: owed1 :: R)
         mem aw rdata post.accountMap k C
 
 theorem positionFeesStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id key fee0 fee1 owed0 owed1 r0 r1 : UInt256} {k C : Nat} {R : List UInt256}
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨5985⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5985⟩
       (owed1 :: fee0 :: positionFeeSlot id key true :: fee1 :: owed0 :: r0 :: r1 :: positionFeeSlot id key false :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (positionUpdateReturnTrace v I g s0 evm.σ₀ mem rdata aw r0 r1 R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (positionUpdateReturnTrace fork v I g s0 evm.σ₀ mem rdata aw r0 r1 R)
       (positionFeesStoreResult f evm id key fee0 fee1 owed0 owed1) := by
   simp only [positionFeesStoreResult]
   by_cases hp : evm.executionEnv.perm = false
@@ -47,10 +49,10 @@ theorem positionFeesStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
 theorem positionFeesTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id key liquidity fee0 fee1 r0 r1 : UInt256} {k C : Nat} {R : List UInt256}
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨5950⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5950⟩
       (liquidity :: fee1 :: positionSlot id key :: r0 :: r1 :: fee0 :: R) mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (positionUpdateReturnTrace v I g s0 evm.σ₀ mem rdata aw r0 r1 R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (positionUpdateReturnTrace fork v I g s0 evm.σ₀ mem rdata aw r0 r1 R)
       (positionFeesResult f evm id key liquidity fee0 fee1) := by
   have hr := positionFeesComputeTrace v hstack hI h
   simp only [positionFeesResult]

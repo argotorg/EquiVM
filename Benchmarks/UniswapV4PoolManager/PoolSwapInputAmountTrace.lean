@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SignedAddTrace
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_058
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,15 +20,15 @@ theorem poolSwapInputAmountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hi : memLoad (step+UInt256.ofNat 128) mem = s.amountIn)
     (ho : memLoad (step+UInt256.ofNat 160) mem = s.amountOut)
     (hf : memLoad (step+UInt256.ofNat 192) mem = s.feeAmount)
-    (h : RD (deployedRuntime v) I g s0 ⟨20320⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20320⟩
       ([remaining, x1, params, calculated, tag, fee, protocol, amountToProtocol, dir, step] ++ R) mem aw rdata σ k C) :
     if poolSwapInputAmountFits s calculated then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19794⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19794⟩
         ([tag, x1, params, remaining+(s.amountIn+s.feeAmount), calculated+s.amountOut,
           fee, protocol, amountToProtocol, dir, step] ++ R)
         mem (M (M (M aw (step+UInt256.ofNat 128) ⟨32⟩) (step+UInt256.ofNat 192) ⟨32⟩)
           (step+UInt256.ofNat 160) ⟨32⟩) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have htotal : memLoad (step+UInt256.ofNat 192) mem + memLoad (step+UInt256.ofNat 128) mem = s.amountIn+s.feeAmount := by
     rw [hf, hi, u256_add_comm]
   by_cases ht : (s.amountIn+s.feeAmount).toNat < 2^255

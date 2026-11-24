@@ -5,6 +5,8 @@ import Benchmarks.Dss.Cat.BiteCallKick
 import Benchmarks.Dss.Cat.BiteConnectMem
 import Benchmarks.Dss.Cat.BiteConnectDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -172,7 +174,7 @@ theorem catBiteReach2383to2532 {σ σ₀ A I} {g : UInt256}
     {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn ilk milkFlip : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o σx k C)
@@ -189,7 +191,7 @@ theorem catBiteReach2383to2532 {σ σ₀ A I} {g : UInt256}
     (hov : R.length + 40 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool) (o' : ByteArray)
       (aw' : UInt256) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨292⟩ :: ⟨891151872⟩ ::
           UInt256.land biteAddrMaskWord milkFlip ::

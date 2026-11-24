@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.ReservesInternal
 import Benchmarks.CompoundIII.Comet.FreeWordReturn
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -10,25 +12,25 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def GetReservesResult (v : CometWithExtendedAssetListImmutables) (σ : AccountMap)
+def GetReservesResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (σ : AccountMap)
     (I : ExecutionEnv) (g : Sat256) (s0 : EVM.State) : Prop :=
   let w0 := solcSlotWordAt ⟨0⟩ σ I
   let w1 := solcSlotWordAt ⟨1⟩ σ I
   let time := timestampWord I
   if I.weiValue = ⟨0⟩ ∧ I.calldata.size < 2^255 + 4 ∧ CurrentIndicesValid v w0 w1 time then
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM s0 v.baseToken 0 (tokenBalancePayload I.codeOwner) (z, evm', out) false ∧
+      callViaEVM fork s0 v.baseToken 0 (tokenBalancePayload I.codeOwner) (z, evm', out) false ∧
       σ' = evm'.accountMap ∧ out.size < 2^138 ∧
       if ReservesReplyValid v w0 w1 time z out then
-        RDret (deployedRuntime v) g s0 σ' (reservesWord v w0 w1 time (calldataWord out 0)).toByteArray
-      else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+        RDret fork (deployedRuntime v) g s0 σ' (reservesWord v w0 w1 time (calldataWord out 0)).toByteArray
+      else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem getReservesX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 1)) :
-    GetReservesResult v σ I g (initState σ σ₀ g A I) := by
+    GetReservesResult fork v σ I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetReservesBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1375 (immWords := wordsOf (immStore v))

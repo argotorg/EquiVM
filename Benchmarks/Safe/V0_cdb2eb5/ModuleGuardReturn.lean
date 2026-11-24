@@ -4,6 +4,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_026
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_027
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -12,17 +14,17 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000
 
 theorem safeModuleGuardCallFailureTrace {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5740⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 4 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨5740⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 4 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hr := safeRuntime_block_5740_fallthrough (by omega) (by decide) h
   exact safeRuntime_block_5747 (by simp [safeRuntime_block_5740_fallthrough_stack]; omega) hr
 
 theorem safeModuleGuardReturnStart {I g s0 σ k C aw out} {x0 x1 x2 : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5740⟩ (⟨1⟩ :: x0 :: x1 :: x2 :: R)
+    (h : RD fork safeBytecode I g s0 ⟨5740⟩ (⟨1⟩ :: x0 :: x1 :: x2 :: R)
       ((guardOutputMemory .moduleGuard) out) aw out σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11501⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11501⟩
       (⟨128⟩ :: (⟨128⟩ + UInt256.ofNat out.size) :: ⟨5790⟩ :: R)
       ((guardDecodedMemory .moduleGuard) out) aw' out σ k' C' := by
   have hr := safeRuntime_block_5740_taken (by simp; omega) (by decide) (by jump_dest) h
@@ -33,14 +35,14 @@ theorem safeModuleGuardReturnStart {I g s0 σ k C aw out} {x0 x1 x2 : UInt256}
     safeRuntime_block_5754_memory, hf, guardDecodedMemory, Reasoning.Theory.writeWord] using hd⟩
 
 theorem safeModuleGuardSupported {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5792⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5792⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 2 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨5814⟩ R mem aw rdata σ k' C' :=
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨5814⟩ R mem aw rdata σ k' C' :=
   ⟨_, _, safeRuntime_block_5792_taken hov (by decide) (by jump_dest) h⟩
 
 theorem safeModuleGuardUnsupported {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5792⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨5792⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hf := safeRuntime_block_5792_fallthrough (by omega) (by decide) h
   have hr := safeRuntime_block_5798
     (by simpa only [safeRuntime_block_5792_fallthrough_stack] using
@@ -50,12 +52,12 @@ theorem safeModuleGuardUnsupported {I g s0 σ k C aw mem rdata} {R : List UInt25
     (by simp [safeRuntime_block_5798_stack, safeRuntime_block_5792_fallthrough_stack]; omega) hr
 
 theorem safeModuleGuardReturnTrue {I g s0 σ k C aw out} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11501⟩
+    (h : RD fork safeBytecode I g s0 ⟨11501⟩
       (⟨128⟩ :: (⟨128⟩ + UInt256.ofNat out.size) :: ⟨5790⟩ :: R)
       ((guardDecodedMemory .moduleGuard) out) aw out σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ out.size) (hb : out.size < 2 ^ 255)
     (hw : calldataWord out 0 = ⟨1⟩) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨5814⟩ R
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨5814⟩ R
       ((guardDecodedMemory .moduleGuard) out) aw' out σ k' C' := by
   obtain ⟨aw', k', C', hd⟩ := safeBoolDecoderValid h hov hl hb
     (guardDecodedMemory_word (kind := .moduleGuard) out hl) (.inr hw) (by jump_dest)
@@ -65,11 +67,11 @@ theorem safeModuleGuardReturnTrue {I g s0 σ k C aw out} {R : List UInt256}
   exact ⟨aw', k'', C'', he⟩
 
 theorem safeModuleGuardReturnFalse {I g s0 σ k C aw out} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11501⟩
+    (h : RD fork safeBytecode I g s0 ⟨11501⟩
       (⟨128⟩ :: (⟨128⟩ + UInt256.ofNat out.size) :: ⟨5790⟩ :: R)
       ((guardDecodedMemory .moduleGuard) out) aw out σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ out.size) (hb : out.size < 2 ^ 255)
-    (hw : calldataWord out 0 = ⟨0⟩) : RDrev safeBytecode g s0 := by
+    (hw : calldataWord out 0 = ⟨0⟩) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, _, hd⟩ := safeBoolDecoderValid h hov hl hb
     (guardDecodedMemory_word (kind := .moduleGuard) out hl) (.inl hw) (by jump_dest)
   rw [hw] at hd

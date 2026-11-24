@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.InitializeStringSource
 import Benchmarks.CurveVault.InitializeStringEntries
 import Benchmarks.CurveVault.RuntimeBlocks_004
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,8 +13,8 @@ theorem vaultInitializeStringWrites {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hsize : size.toNat ≤ 32) (hbound : mem.size ≤ 384) (hptr : ptr.toNat ≤ 352)
     (hfull : ptr.toNat + 32 ≤ mem.size) (hn : memLoad ptr mem = size)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 476) (size :: ptr :: x2 :: x3 :: R) mem aw rdata σ k C) :
-    RDret vaultBytecode g s0
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 476) (size :: ptr :: x2 :: x3 :: R) mem aw rdata σ k C) :
+    RDret fork vaultBytecode g s0
       (vaultInitializeStringAccounts I σ size (memLoad (UInt256.ofNat (ptr.toNat + 32)) mem)) ByteArray.empty := by
   let word := memLoad (UInt256.ofNat (ptr.toNat + 32)) mem
   let copied := vaultInitializeCopyMemory mem ptr

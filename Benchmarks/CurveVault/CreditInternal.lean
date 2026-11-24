@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.CreditAfterController
 import Benchmarks.CurveVault.MutatingLock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,15 +13,15 @@ theorem vaultCreditRoutine (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} {s
     (hmr : memLoad (UInt256.ofNat 576) mem = receiver)
     (hcanon : receiver.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (if isDeposit then 2169 else 3172)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (if isDeposit then 2169 else 3172)) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)}
+      ExecFuncBody fork config {contract := contract, locals := vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)}
         (vaultSetLock evm ⟨1⟩) (vaultCreditFunction isDeposit).body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)}
-      (vaultSetLock evm ⟨1⟩) (vaultCreditFunction isDeposit).body .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := vaultCreditLocals isDeposit (AccountAddress.ofNat receiver.toNat) (calldataWord I.calldata 4)}
+      (vaultSetLock evm ⟨1⟩) (vaultCreditFunction isDeposit).body .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let evm0 := vaultSetLock evm ⟨1⟩
   let σ0 := tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩
   let controller := codeOwnerStorageWord I σ0 ⟨3⟩
@@ -30,14 +32,14 @@ theorem vaultCreditRoutine (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} {s
     rw [hs.env]
     exact sourceStateTransientWrite hs ⟨0⟩ ⟨1⟩
   have hprep :
-      (ExecBlock config {contract := contract, locals := locals} evm0
+      (ExecBlock fork config {contract := contract, locals := locals} evm0
         ((vaultCreditFunction isDeposit).body.take (if isDeposit then 0 else 1))
         (.ok {contract := contract, locals := locals} evm0) ∧
-        ∃ aw0 k0 C0, RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+        ∃ aw0 k0 C0, RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
           (UInt256.ofNat 672 :: UInt256.ofNat (if isDeposit then 2190 else 3320) :: R)
           mem0 aw0 rdata σ0 k0 C0) ∨
-      (ExecFuncBody config {contract := contract, locals := locals} evm0
-        (vaultCreditFunction isDeposit).body .reverted ∧ RDrev vaultBytecode g s0) := by
+      (ExecFuncBody fork config {contract := contract, locals := locals} evm0
+        (vaultCreditFunction isDeposit).body .reverted ∧ RDrev fork vaultBytecode g s0) := by
     cases isDeposit
     · have hv : locals.get? "_shares" = some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)) :=
         store_get_self _ _ _

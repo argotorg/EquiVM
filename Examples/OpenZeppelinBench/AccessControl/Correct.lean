@@ -6,6 +6,8 @@ import Examples.OpenZeppelinBench.AccessControl.RenounceRole
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -22,7 +24,7 @@ matched body PC to its per-function proof.
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (accessControlX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -46,7 +48,7 @@ theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
 theorem accessControlShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (accessControlX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
     hcode (accessControlDispatch_none_short hsz)
@@ -56,7 +58,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (accessControlX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -68,7 +70,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
 /-- The deployed AccessControl benchmark runtime bytecode refines the Stele specification. -/
 theorem accessControlCorrect :
     runtimeRefinement config accessControlBenchBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩

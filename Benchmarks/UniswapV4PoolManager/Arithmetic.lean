@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -61,8 +63,8 @@ theorem checkedSubPass {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024) (hle : b.toNat ≤ a.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12269⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12269⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
   have hnext := poolManagerBlocks.poolManager_block_12269_fallthrough hstack (subGuardOk hle) h
   exact ⟨_, _, poolManagerBlocks.poolManager_block_12281 (by simp only [List.length_cons]; omega) hret hnext⟩
 
@@ -70,8 +72,8 @@ theorem checkedSubReverts {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {a b ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024) (hlt : a.toNat < b.toNat)
-    (h : RD (deployedRuntime v) I g s0 ⟨12269⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12269⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7572) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   have hnext := poolManagerBlocks.poolManager_block_12269_taken hstack (subGuardUnderflow hlt) hj h
@@ -83,8 +85,8 @@ theorem checkedAddPass {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024) (hfit : a.toNat + b.toNat < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12282⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12282⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
   have hnext := poolManagerBlocks.poolManager_block_12282_fallthrough hstack (addGuardOk hfit) h
   exact ⟨_, _, poolManagerBlocks.poolManager_block_12294 (by simp only [List.length_cons]; omega) hret hnext⟩
 
@@ -92,8 +94,8 @@ theorem checkedAddReverts {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {a b ret : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024) (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (h : RD (deployedRuntime v) I g s0 ⟨12282⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12282⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7572) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   have hnext := poolManagerBlocks.poolManager_block_12282_taken hstack (addGuardOverflow hover) hj h

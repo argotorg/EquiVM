@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.BytesLongWord
 import Benchmarks.EAS.EAS.BytesLongLoop
 import Benchmarks.EAS.EAS.BytesPayloadWords
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,10 +15,10 @@ theorem easBytesLongWrite {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hb : ptr.toNat+bytes.size+64 < UInt256.size)
     (hin : ptr.toNat+32+32*((bytes.size+31)/32) ≤ mem.size)
     (hread : mem.readWithPadding (ptr.toNat+32) bytes.size = bytes)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongPC site)
       (ptr::UInt256.ofNat 32::UInt256.ofNat bytes.size::slot::bytesWriteSaved site word src t1 t2 t3 t4 R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesWrittenPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site)
       (bytesWriteSaved site word src t1 t2 t3 t4 R) (Reasoning.Theory.writeWord mem 0 (slot+⟨6⟩)) aw' rdata
       (sstoreAccountMap ee.codeOwner
         (solidityDataWordsForwardFrom ee.codeOwner σ (slot+⟨6⟩) bytes 0 (solidityBytesDataWordCount bytes.size))

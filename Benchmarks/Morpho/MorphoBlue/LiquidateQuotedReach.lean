@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveReach
 import Benchmarks.Morpho.MorphoBlue.LiquidateWDivReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -19,9 +21,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {id seized shares price denom srcOff len : UInt256} {R : List UInt256}
 
 theorem morphoLiquidateQuotedReachMul (hstack : R.length + 24 ≤ 1024) (hn : seized ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
       (liquidateMathStack id seized shares price denom srcOff len R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([seized, price, UInt256.ofNat 1759, denom] ++ liquidateAmountTail id seized srcOff len R)
       mem aw out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_1743_fallthrough (immWords := wordsOf (immStore v))
@@ -31,9 +33,9 @@ theorem morphoLiquidateQuotedReachMul (hstack : R.length + 24 ≤ 1024) (hn : se
 
 theorem morphoLiquidateQuotedOk (hstack : R.length + 24 ≤ 1024) (hn : seized ≠ ⟨0⟩)
     (hf : MulDivUpFits seized price oraclePriceScale)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
       (liquidateMathStack id seized shares price denom srcOff len R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1785)
       ([liquidateQuotedSum seized price, denom] ++ liquidateAmountTail id seized srcOff len R)
       mem aw out σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoLiquidateQuotedReachMul (v := v) hstack hn h
@@ -46,9 +48,9 @@ theorem morphoLiquidateQuotedOk (hstack : R.length + 24 ≤ 1024) (hn : seized �
 
 theorem morphoLiquidateQuotedReverts (hstack : R.length + 24 ≤ 1024) (hn : seized ≠ ⟨0⟩)
     (hf : ¬ MulDivUpFits seized price oraclePriceScale)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
       (liquidateMathStack id seized shares price denom srcOff len R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, rd1⟩ := morphoLiquidateQuotedReachMul (v := v) hstack hn h
   by_cases hp : seized.toNat * price.toNat < UInt256.size
   swap

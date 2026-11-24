@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -117,7 +119,7 @@ theorem uniswapDecode_getReserves {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.siz
 /-- The Stele `getReserves()` body returns the three packed values from slot 8. -/
 theorem uniswapGetReservesBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ getReservesTransition.body
+    ExecTransitionBody fork config contract evm ∅ getReservesTransition.body
       (.returned { contract := contract, locals := ∅ } evm
         (some  [
           .int (Int.ofNat (UInt256.land
@@ -342,11 +344,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2852⟩ (ret :: R) mem aw rdata
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2852⟩ (ret :: R) mem aw rdata
         σ k C)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UniswapV2Pair.blockTimestampLastWord σ ee :: UniswapV2Pair.reserve1Word σ ee ::
         UniswapV2Pair.reserve0Word σ ee :: R)
       mem aw rdata σ k' C' := by
@@ -368,10 +370,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ts r1 r0 : UInt256} {R : List UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨705⟩ (ts :: r1 :: r0 :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨705⟩ (ts :: r1 :: r0 :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
-    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc
+    RDret fork UniswapV2Pair.uniswapV2PairBytecode g s0 acc
       (UInt256.toByteArray (UInt256.land r0 UniswapV2Pair.reserve112Mask) ++
         UInt256.toByteArray (UInt256.land r1 UniswapV2Pair.reserve112Mask) ++
         UInt256.toByteArray (UInt256.land ts UniswapV2Pair.reserve32Mask)) := by
@@ -430,10 +432,10 @@ namespace UniswapV2Pair
 
 /-- From `getReserves()`'s external body entry (pc 697), the bytecode returns the packed values. -/
 theorem uniswapX_getReserves {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨697⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (reserve0Word σ I) ++ UInt256.toByteArray (reserve1Word σ I) ++
         UInt256.toByteArray (blockTimestampLastWord σ I)) := by
   obtain ⟨_, _, rd2852⟩ := RD.uniswapGetterThunk (returnPc := ⟨705⟩) (routine := ⟨2852⟩)
@@ -465,12 +467,12 @@ theorem uniswapGetReservesBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (getReservesTransition.params.map Param.name)
         (transitionSignature getReservesTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨697⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         getReservesTransition.body
         (.returned { contract := contract, locals := ∅ }
@@ -514,7 +516,7 @@ theorem uniswapGetReservesBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩ rfl hsel
   exact uniswapGetReservesBodyCore hcode hwv hdispatch (uniswapDecode_getReserves hsz)

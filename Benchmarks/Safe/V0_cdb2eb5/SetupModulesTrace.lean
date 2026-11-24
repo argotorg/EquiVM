@@ -5,6 +5,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_037
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -14,19 +16,19 @@ set_option maxRecDepth 100000
 
 theorem safeSetupModulesTrace (p : SetupModulesInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8577⟩
+    (h : RD fork safeBytecode I g s0 ⟨8577⟩
       (UInt256.ofNat ptr :: p.target :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hm : BytesMemory mem ptr p.payload) (hp : 96 ≤ ptr)
     (hb : ptr + 64 + p.payload.size < UInt256.size)
     (hc : p.target.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm setupModulesFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted) ∨
     ∃ f' evm' out aw' k' C',
-      ExecFuncBody config p.frame evm setupModulesFunction.body (.returned f' evm' none) ∧
+      ExecFuncBody fork config p.frame evm setupModulesFunction.body (.returned f' evm' none) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret R (setupModulesMemory mem) aw' out evm'.accountMap k' C' := by
+      RD fork safeBytecode I g s0 ret R (setupModulesMemory mem) aw' out evm'.accountMap k' C' := by
   obtain ⟨hrev, hsource⟩ | ⟨aw₁, k₁, C₁, he, h₁⟩ :=
     safeSetupModulesPrepare p evm h hee hacc hc hperm hov
   · exact .inl ⟨hrev, hsource⟩
@@ -62,14 +64,14 @@ theorem safeSetupModulesTrace (p : SetupModulesInput) (evm : EVM.State)
     safeExecuteRawTrace (p.state evm) p.payload h₃ hee₁ rfl hw₁ hdata (by decide)
       (by simp; omega) (by jump_dest)
   · exact False.elim (hn rfl)
-  have hdelegate : delegateCallViaEVM (p.state evm)
+  have hdelegate : delegateCallViaEVM fork (p.state evm)
       (EVM.address (AccountAddress.ofUInt256 p.target)) p.payload (z, evm', out) := by
     rcases hcall with ⟨_, hcall⟩ | ⟨hn, _⟩
     · exact hcall
     · exact False.elim (hn rfl)
   have hcallee := safeExecuteDelegateSource (value := ⟨0⟩) (operation := ⟨1⟩)
     (txGas := UInt256.lnot ⟨0⟩) rfl hdelegate
-  have hsource := safeSetupModulesCalled (hperm := by simpa only [hee] using hperm) p evm hc he ht hcode
+  have hsource := safeSetupModulesCalled (fork := fork) (hperm := by simpa only [hee] using hperm) p evm hc he ht hcode
     (by simpa only [accountAddress_ofUInt256_eq_ofNat_toNat] using hcallee)
   cases z with
   | false =>
@@ -89,8 +91,8 @@ theorem safeInternalSetupModules {caller : Frame} {evm : EVM.State}
     (hc : caller.contract = contract) (him : caller.immutables = ∅)
     (ht : evalExpr? config caller evm target = .ok (.address (AccountAddress.ofNat p.target.toNat)))
     (hd : evalExpr? config caller evm payload = .ok (.bytes p.payload))
-    (hb : ExecFuncBody config p.frame evm setupModulesFunction.body result) :
-    ExecStmt config caller evm (.internalCall "setupModules" [target, payload] retVar)
+    (hb : ExecFuncBody fork config p.frame evm setupModulesFunction.body result) :
+    ExecStmt fork config caller evm (.internalCall "setupModules" [target, payload] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := setupModulesFunction) (locals := p.args)
     (argVals := [.address (AccountAddress.ofNat p.target.toNat), .bytes p.payload])

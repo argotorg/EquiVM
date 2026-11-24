@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionBitmapTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,20 +22,20 @@ theorem updatePositionBitmapsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (updatePositionTickAfter v a evm true))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19386⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19386⟩
       ((updatePositionFlipped v a evm true).toUInt256 ::
         updatePositionTickSavedWords v a evm true ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 24 ≤ 1024) :
-    (ExecBlock config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
+    (ExecBlock fork config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
       updatePositionBitmapsBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
-      updatePositionBitmapsBody .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
+      updatePositionBitmapsBody .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (updatePositionUpperFrame v a evm) (updatePositionTickAfter v a evm true)
       updatePositionBitmapsBody
       (.ok (updatePositionBitmapDoneFrame v a evm true) (updatePositionBitmapAfter v a evm true)) ∧
       ∃ σ' k' C', SourceState s0 ee σ' (updatePositionBitmapAfter v a evm true) ∧
-      RD (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionUpdatedWords v a evm ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionUpdatedWords v a evm ++ R)
         (updatePositionBitmapsMemory mem v a evm) aw rdata σ' k' C' ∧
       HeapMemory (updatePositionBitmapsMemory mem v a evm) aw p) := by
   rcases updatePositionBitmapX (v := v) a evm false hs rd ha hm hov with

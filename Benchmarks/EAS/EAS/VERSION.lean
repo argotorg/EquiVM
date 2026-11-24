@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.Allocate
 import Benchmarks.EAS.EAS.MemoryCopy
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS `VERSION()` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,7 +30,7 @@ private theorem versionSource_ok {cfg : Config} {evm : EVM.State} {locals imms :
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hs : evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecTransitionBody cfg contract evm locals vERSIONTransition.body
+    ExecTransitionBody fork cfg contract evm locals vERSIONTransition.body
       (.returned
         { contract := contract
           locals := versionFinalLocals locals evm.executionEnv.calldata
@@ -45,7 +47,7 @@ private theorem versionSource_ok {cfg : Config} {evm : EVM.State} {locals imms :
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .tuple []) ?_) ?_
   · simp only [evalExpr?, store_get_self, EvalResult.ofOption, EvalResult.bind, bind]
     rfl
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int 288) ?_ (assignLocalBase_ok (old := .int 224) ?_)) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int 288) ?_ (assignLocalBase_ok (old := .int 224) ?_)) ?_
   · simp only [evalExpr?, store_get_ne _ _ (by decide : ("allocation" == "allocation$allocation") = false),
       store_get_self, EvalResult.ofOption, EvalResult.bind, bind]
     rfl
@@ -67,8 +69,8 @@ private theorem versionOutput_encoding : encodeReturnValue? .string (.bytes "0.2
 
 private theorem versionEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} (v : EASImmutables)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨321⟩ [] versionInitialMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ versionOutput := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨321⟩ [] versionInitialMemory aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ versionOutput := by
   have rd1 := easBlocks.eas_block_321 (immWords := wordsOf (immStore v)) (by simp)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   have hstack1 : easBlocks.eas_block_321_stack (mem := versionInitialMemory) (R := []) =
@@ -76,7 +78,7 @@ private theorem versionEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   rw [hstack1] at rd1
   obtain ⟨aw2, k2, C2, rd2⟩ := easAllocate_ok v (by simp) (by decide)
     (by rw [easPatchedValidJumps v]; jump_dest) rd1
-  change RD _ _ _ _ ⟨338⟩ [⟨64⟩, ⟨224⟩, ⟨398⟩] versionAllocatedMemory _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ ⟨338⟩ [⟨64⟩, ⟨224⟩, ⟨398⟩] versionAllocatedMemory _ _ _ _ _ at rd2
   obtain ⟨aw3, k3, C3, rd3⟩ := easBlocks.eas_block_338_packed (immWords := wordsOf (immStore v))
     (by simp) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd2
   have hstack3 : easBlocks.eas_block_338_stack (mem := versionAllocatedMemory)
@@ -87,7 +89,7 @@ private theorem versionEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by rw [easPatchedValidJumps v]; jump_dest) rd3
   have hnext : (UInt256.land (memLoad ⟨224⟩ versionStringMemory + ⟨31⟩)
       (UInt256.lnot ⟨31⟩) + ⟨320⟩) + ⟨32⟩ = ⟨384⟩ := by native_decide
-  change RD _ _ _ _ ⟨398⟩ [(UInt256.land (memLoad ⟨224⟩ versionStringMemory + ⟨31⟩)
+  change RD fork _ _ _ _ ⟨398⟩ [(UInt256.land (memLoad ⟨224⟩ versionStringMemory + ⟨31⟩)
       (UInt256.lnot ⟨31⟩) + ⟨320⟩) + ⟨32⟩, ⟨288⟩, ⟨288⟩]
     (easEncodeBytesMemory ⟨224⟩ ⟨320⟩ versionStringMemory) _ _ _ _ _ at rd4
   rw [hnext] at rd4
@@ -96,7 +98,7 @@ private theorem versionEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easVERSIONBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 21) rfl hsel
   have hd : dispatchMsg contract I.calldata = some vERSIONTransition := by
     apply easDispatch_vERSION (hsel := hsel)
@@ -110,7 +112,7 @@ theorem easVERSIONBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     by
       change decodeCalldataWithMode Syntax.abiDecodeMode [] [] I.calldata = some (∅ : Store)
       exact decodeCalldataWithMode_empty_ok hsz
-  obtain ⟨k, C, rd⟩ := easReachVERSIONBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachVERSIONBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_273_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

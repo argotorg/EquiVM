@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaBounds
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_059
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -52,12 +54,12 @@ theorem amountDeltaRawSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool) (a : AmountDeltaArgs)
     (sqrtARaw sqrtBRaw liquidityRaw : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
       (amountDeltaRawEntryWords a sqrtARaw sqrtBRaw liquidityRaw ++ ret :: R) mem aw rdata σ k C)
     (hA : UInt256.land sqrtARaw (UInt256.ofNat (2 ^ 160 - 1)) = a.sqrtA)
     (hB : UInt256.land sqrtBRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.sqrtB)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
       (amountDeltaRawSortedWords a sqrtARaw sqrtBRaw liquidityRaw ++ ret :: R)
       mem aw rdata σ k' C' := by
   have ha : UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1)
@@ -74,7 +76,7 @@ theorem amountDeltaRawSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (UInt256.ofNat 1)) sqrtBRaw)) = UInt256.ofNat 0 := by
       rw [ha, hb, ugt_one hs]
       rfl
-    have r1 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 18031 else 18154))
+    have r1 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 18031 else 18154))
         (⟨0⟩ :: a.roundUp.toUInt256 :: liquidityRaw :: sqrtBRaw :: sqrtARaw :: ret :: R)
         mem aw rdata σ (k + 20) (C + 65) := by
       cases second
@@ -82,7 +84,7 @@ theorem amountDeltaRawSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (by evm_ov) hc rd
       · exact uniswapV3Pool_block_18002_fallthrough (immWords := wordsOf (immStore v))
           (by evm_ov) hc rd
-    have r2 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
+    have r2 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
         (⟨0⟩ :: a.roundUp.toUInt256 :: liquidityRaw :: sqrtARaw :: sqrtBRaw :: ret :: R)
         mem aw rdata σ (k + 20 + 3) (C + 65 + 9) := by
       cases second
@@ -98,7 +100,7 @@ theorem amountDeltaRawSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (UInt256.ofNat 1)) sqrtBRaw)) ≠ UInt256.ofNat 0 := by
       rw [ha, hb, ugt_zero (Nat.le_of_not_gt hs)]
       decide
-    have r1 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
+    have r1 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
         (⟨0⟩ :: a.roundUp.toUInt256 :: liquidityRaw :: sqrtBRaw :: sqrtARaw :: ret :: R)
         mem aw rdata σ (k + 20) (C + 65) := by
       cases second
@@ -113,10 +115,10 @@ theorem amountDeltaRawSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem amountDeltaSortX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool) (a : AmountDeltaArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
       (amountDeltaEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaSortExit second))
       (amountDeltaSortedWords a ++ ret :: R) mem aw rdata σ k' C' := by
   have hA := u256LandMaskCleanOfToNat (bits := 160) a.sqrtA
     (UInt256.ofNat (2 ^ 160 - 1)) (by decide) hfit.1

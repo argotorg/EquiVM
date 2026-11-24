@@ -4,6 +4,8 @@ import Benchmarks.Safe.Main.Decoders
 import Reasoning.WordArithmetic
 import Benchmarks.Safe.Main.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -15,7 +17,7 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 800000 in
 theorem safeAddressArrayCopyLoop (words : List UInt256)
     {I g s0 σ k C aw mem rdata i n src dst scratch arr ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10256⟩
+    (h : RD fork safeBytecode I g s0 ⟨10256⟩
       (UInt256.ofNat i :: UInt256.ofNat src :: UInt256.ofNat n :: scratch :: arr ::
         UInt256.ofNat dst :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024)
@@ -24,7 +26,7 @@ theorem safeAddressArrayCopyLoop (words : List UInt256)
     (hn : n < UInt256.size) (hend : dst + 32 * words.length < UInt256.size)
     (hc : ∀ w ∈ words, w.toNat < EVM.addressModulus)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (dst + 32 * words.length) :: R)
       (mem ++ wordBytes words) aw' rdata σ k' C' := by
   induction words generalizing i src dst mem aw k C with
@@ -34,7 +36,7 @@ theorem safeAddressArrayCopyLoop (words : List UInt256)
         (by rw [hin, ult_zero (by omega)]; decide) (by jump_dest) h
       have h₂ := safeRuntime_block_10295 (by omega) hret h₁
       simpa only [List.length_nil, Nat.mul_zero, Nat.add_zero, wordBytes,
-        ByteArray.append_empty] using (show ∃ aw' k' C', RD safeBytecode I g s0 ret
+        ByteArray.append_empty] using (show ∃ aw' k' C', RD fork safeBytecode I g s0 ret
           (UInt256.ofNat dst :: R) mem aw' rdata σ k' C' from ⟨_, _, _, h₂⟩)
   | cons w ws ih =>
       have hi' : i < n := by simp only [List.length_cons] at hi; omega
@@ -74,7 +76,7 @@ theorem safeAddressArrayCopyLoop (words : List UInt256)
         (fun v hv ↦ hc v (by simp [hv]))
       have hout : dst + 32 + 32 * ws.length = dst + 32 * (w :: ws).length := by simp; omega
       rw [hout] at h'
-      change RD safeBytecode I g s0 ret _ ((writeWord mem dst w) ++ wordBytes ws)
+      change RD fork safeBytecode I g s0 ret _ ((writeWord mem dst w) ++ wordBytes ws)
         aw' rdata σ k' C' at h'
       rw [show writeWord mem dst w = mem ++ w.toByteArray from writeWordAtEnd mem w hm,
         ByteArray.append_assoc] at h'

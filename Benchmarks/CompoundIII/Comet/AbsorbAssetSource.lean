@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbAssetModel
 import Benchmarks.CompoundIII.Comet.AbsorbAfterAssetSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -8,7 +10,7 @@ namespace Benchmarks.CompoundIII.Comet
 
 theorem absorbAsset_source {v : CometWithExtendedAssetListImmutables} {account : AccountAddress}
     {i delta : UInt256} {evm : State} {result : InternalValueOutcome AbsorbAssetData}
-    (ht : AbsorbAssetTrace v account i delta evm result) (frame : Frame)
+    (ht : AbsorbAssetTrace fork v account i delta evm result) (frame : Frame)
     (absorber : AccountAddress) (hc : frame.contract = contract)
     (hi : frame.immutables = immStore v)
     (hd : frame.locals.get? "deltaValue" = some (.int delta.toNat))
@@ -17,7 +19,7 @@ theorem absorbAsset_source {v : CometWithExtendedAssetListImmutables} {account :
     (hU : frame.locals.get? "userCollateral" = none)
     (hT : frame.locals.get? "totalsCollateral" = none)
     (he : evalExpr? config frame evm (.var "i") = .ok (.int i.toNat)) :
-    ExecBlock config frame evm absorbAssetBlock
+    ExecBlock fork config frame evm absorbAssetBlock
       (internalValueFrameResult (absorbAssetFrame frame delta) result) := by
   have him : frame.immutables.get? "assetList" = some (.address v.assetList) := by
     rw [hi]; exact immStore_get_assetList v

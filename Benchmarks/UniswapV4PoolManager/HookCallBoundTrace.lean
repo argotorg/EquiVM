@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.HookCallTrace
 import Benchmarks.UniswapV4PoolManager.HookReplyGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,16 +19,16 @@ theorem hookCallBoundTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hlo : 96 ≤ ptr.toNat+32) (hbefore : ptr.toNat+32+data.size ≤ free.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16165⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16165⟩
       (accountWord hook :: ptr :: ret :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ evm' z out, callViaEVM evm hook 0 data (z, evm', out) ∧
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ evm' z out, callViaEVM fork evm hook 0 data (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (z = true → out.size+4096 ≤ solcMaxU64) ∧
       (if z = true ∧ hookReplyValid data out then ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret (free :: R)
+        RD fork (deployedRuntime v) I g s0 ret (free :: R)
           (solcReturnDataMem mem free out) aw' out evm'.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   have hfit : free.toNat+32 < UInt256.size := by change _ < 2^256; omega
   have hp : ptr.toNat+32 < UInt256.size := by omega
   obtain ⟨evm', z, out, k1, C1, hcall, henv, hworld, ho, hr⟩ :=

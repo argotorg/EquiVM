@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralUpdateReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,34 +17,34 @@ theorem CollateralTransferLocals.evalCollateral {p assets account receiver local
   evalMorphoPositionField evm locals imms _ _ p.id account 2 hl.position
     (hl.evalId imms evm) (hl.evalAccount imms evm) ha
 
-inductive WithdrawCollateralUpdateRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive WithdrawCollateralUpdateRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets account receiver : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (withdrawCollateralTransition.body.drop 12) .reverted → RDrev (deployedRuntime v) g s0 →
-      WithdrawCollateralUpdateRefines v ee g s0 p assets account receiver locals imms evm mem fp R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (withdrawCollateralTransition.body.drop 12) .staticViolation → RDstatic (deployedRuntime v) g s0 →
-      WithdrawCollateralUpdateRefines v ee g s0 p assets account receiver locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (withdrawCollateralTransition.body.drop 12) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      WithdrawCollateralUpdateRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (withdrawCollateralTransition.body.drop 12) .staticViolation → RDstatic fork (deployedRuntime v) g s0 →
+      WithdrawCollateralUpdateRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R
   | ok {evm' σ' mem' fp' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (withdrawCollateralTransition.body.drop 12)
         { contract := contract, locals := locals.insert "__c3" (.int (Int.ofNat assets.toNat)), immutables := imms }
         evm' (withdrawCollateralTransition.body.drop 14) → SourceState s0 ee σ' evm' → ee.perm = true →
       MorphoHeap mem' fp' 352 → HeapAdvance mem fp mem' fp' 64 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5686)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5686)
         (withdrawCollateralUpdateTail p.id assets account receiver R)
         mem' aw' out' σ' k' C' →
-      WithdrawCollateralUpdateRefines v ee g s0 p assets account receiver locals imms evm mem fp R
+      WithdrawCollateralUpdateRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R
 
 theorem morphoWithdrawCollateralUpdateRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets account receiver : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (p : MarketParamsWords) (locals imms : Store) (hstack : R.length + 36 ≤ 1024) (ha : account.toNat < EVM.addressModulus)
     (hl : CollateralTransferLocals p assets account receiver locals) (hs : SourceState s0 ee σ evm)
     (hm : MorphoHeap mem fp 416)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
       (withdrawCollateralGuardTail p.id assets account receiver R) mem aw out σ k C) :
-    WithdrawCollateralUpdateRefines v ee g s0 p assets account receiver locals imms evm mem fp R := by
+    WithdrawCollateralUpdateRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R := by
   obtain ⟨k1, C1, rd1⟩ := morphoWithdrawCollateralReachCast (v := v) (by omega) h
   by_cases hc : assets.toNat < 2 ^ 128
   swap
@@ -51,12 +53,12 @@ theorem morphoWithdrawCollateralUpdateRefine {v : MorphoImmutables} {ee : Execut
       (morphoToUint128Reverts (v := v) (by simp only [withdrawCollateralGuardTail, withdrawCollateralUpdateTail, withdrawCollateralHealthTail, List.length_append, List.length_cons, List.length_nil, List.append]; omega)
         (hm.alloc64Guard (by decide)) hm.size (by rw [hm.free]; exact hm.lower)
         hm.errorGap hm.errorHi (Nat.le_of_not_gt hc) rd1)
-  have he1 := morphoToUint128CallOk assets evm locals imms (.var "assets") "__c3" (hl.evalAssets imms evm) hc
+  have he1 := morphoToUint128CallOk (fork := fork) assets evm locals imms (.var "assets") "__c3" (hl.evalAssets imms evm) hc
   let l1 := locals.insert "__c3" (.int (Int.ofNat assets.toNat))
   have hl1 : CollateralTransferLocals p assets account receiver l1 := hl.insert _ _ (by decide) (by decide)
   have he5 : evalExpr? config { contract := contract, locals := l1, immutables := imms } evm (.var "__c3") =
       .ok (.int (Int.ofNat assets.toNat)) := by simp only [evalExpr?, l1, store_get_self, EvalResult.ofOption]
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (withdrawCollateralTransition.body.drop 12) { contract := contract, locals := l1, immutables := imms }
       evm (withdrawCollateralTransition.body.drop 13) := StateBlock.start.step he1
   obtain ⟨a2, k2, C2, rd2⟩ := morphoToUint128Ok (v := v) (by simp only [withdrawCollateralGuardTail, withdrawCollateralUpdateTail, withdrawCollateralHealthTail, List.length_append, List.length_cons, List.length_nil, List.append]; omega)
@@ -75,7 +77,7 @@ theorem morphoWithdrawCollateralUpdateRefine {v : MorphoImmutables} {ee : Execut
       (morphoCheckedSub128Reverts (v := v) (by simp only [withdrawCollateralGuardTail, withdrawCollateralUpdateTail, withdrawCollateralHealthTail, List.length_append, List.length_cons, List.length_nil, List.append]; omega) hb hc (Nat.lt_of_not_ge hf) rd3)
   have hf' : assets.toNat ≤ (positionFieldWord evm.accountMap evm.executionEnv p.id account 2).toNat := by
     simpa only [hs.env, ← hs.accounts] using hf
-  have hass : ExecStmt config { contract := contract, locals := l1, immutables := imms }
+  have hass : ExecStmt fork config { contract := contract, locals := l1, immutables := imms }
       evm withdrawCollateralTransition.body[13]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := l1, immutables := imms }
         (storePositionPacked evm p.id account true

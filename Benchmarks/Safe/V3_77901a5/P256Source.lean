@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.EcrecoverSource
 import Benchmarks.Safe.V3_77901a5.WordCallResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -85,9 +87,9 @@ theorem evalP256Result (p : P256Input) (evm : EVM.State) (z : Bool) (out : ByteA
     evalBinaryOp_eq_int_ok]
 
 theorem safeP256Source {evm evm' : EVM.State} {p : P256Input} {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm (AccountAddress.ofNat 256) 0 (wordBytes p.words)
+    (hc : callViaEVM fork evm (AccountAddress.ofNat 256) 0 (wordBytes p.words)
       (z, evm', out) false) :
-    ExecFuncBody config p.frame evm p256VerifyFunction.body
+    ExecFuncBody fork config p.frame evm p256VerifyFunction.body
       (.returned (p.finalFrame z out) evm' (some [.bool (p256Result z out)])) := by
   apply ExecFuncBody.execBlockRet
   refine .consNormal ?_ (.consReturn (.return
@@ -98,7 +100,7 @@ theorem safeP256Source {evm evm' : EVM.State} {p : P256Input} {z : Bool} {out : 
       EvalResult.bind, bind, pure, intToNat?]
   have hv : evalExpr? config p.frame evm (.intLit 0) = .ok (.int 0) := by
     simp [evalExpr?, pure]
-  have hc' : callViaEVM evm (EVM.address (AccountAddress.ofNat 256)) 0
+  have hc' : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 256)) 0
       (wordBytes p.words) (z, evm', out) false := by
     simpa only [addressOfAddress] using hc
   cases z

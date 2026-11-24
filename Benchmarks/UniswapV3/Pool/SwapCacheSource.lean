@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.BlockTimestamp
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStorage
 import Benchmarks.UniswapV3.Pool.FlashProtocolWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -62,10 +64,10 @@ macro "swap_time_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl))
 
 theorem swapTimestampSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State) :
-    ExecStmt config (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false)
+    ExecStmt fork config (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false)
       (.internalCall "_blockTimestamp" [] "__c1")
       (.ok (swapTimeFrame v a evm) (storeSlot0Unlocked evm false)) := by
-  have hret := blockTimestampReturns (immStore v) (storeSlot0Unlocked evm false)
+  have hret := blockTimestampReturns (fork := fork) (immStore v) (storeSlot0Unlocked evm false)
   rw [storeSlot0Unlocked_executionEnv] at hret
   exact internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)
     (calleeStele := {contract := contract, locals := ∅, immutables := immStore v})
@@ -118,7 +120,7 @@ theorem evalSwapCache (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.St
   rfl
 
 theorem swapCacheSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State) :
-    ExecBlock config (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false)
+    ExecBlock fork config (swapSlot0Frame v a evm) (storeSlot0Unlocked evm false)
       ((swapTransition.body.drop 9).take 2)
       (.ok (swapCachedFrame v a evm) (storeSlot0Unlocked evm false)) := by
   exact ExecBlock.consNormal (swapTimestampSource v a evm)

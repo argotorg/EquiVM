@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CopyRequestCall
 import Benchmarks.EAS.EAS.ArrayAllocateSource
 import Benchmarks.EAS.EAS.ResolveManySource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -53,15 +55,15 @@ theorem copyRequestArrayCallArgsSource {L imms : Store} {evm : EVM.State} {rs : 
 theorem copyRequestArrayIterationSource {L imms : Store} {evm : EVM.State} {rs : List AttestationRequestRecord} {heap i : Nat}
     (h : CopyRequestArrayLocals L rs heap i) (hi : i < rs.length) (hlen : rs.length < UInt256.size) :
     (copyRequestValid heap rs[i].data.size →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayIteration
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayIteration
         (.ok {contract := contract,locals := (allocateBlockLocals L (copyRequestNext heap rs[i].data.size)).insert "i" (.int (Int.ofNat (i+1))),immutables := imms} evm)) ∧
     (¬ copyRequestValid heap rs[i].data.size →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayIteration .reverted) := by
-  have hc := copyRequestCall_branches (retVar := "allocation$allocation") (copyRequestArrayCallArgsSource (imms := imms) (evm := evm) h hi)
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayIteration .reverted) := by
+  have hc := copyRequestCall_branches (fork := fork) (retVar := "allocation$allocation") (copyRequestArrayCallArgsSource (imms := imms) (evm := evm) h hi)
   constructor
   · intro hv
     apply ExecBlock.consNormal (hc.1 hv)
-    change ExecBlock config {contract := contract,locals := L.insert "allocation$allocation" (.tuple [.tuple [],.int (Int.ofNat (copyRequestNext heap rs[i].data.size))]),immutables := imms} evm
+    change ExecBlock fork config {contract := contract,locals := L.insert "allocation$allocation" (.tuple [.tuple [],.int (Int.ofNat (copyRequestNext heap rs[i].data.size))]),immutables := imms} evm
       ([.letDecl "allocation" none (.tupleGet (.var "allocation$allocation") 0),
         .assign .localVar {base := "$EAS.freeMemory"} (.tupleGet (.var "allocation$allocation") 1)] ++ [resolveManyIncrement]) _
     apply execBlock_append (unpackHeapResult (store_get_self _ _ _)
@@ -76,15 +78,15 @@ theorem copyRequestArrayPrefixSource {L imms : Store} {evm : EVM.State} {rs : Li
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     let next := allocateNext heap (32+32*rs.length)
     (rs.length ≤ 2^64-1 ∧ (next ≤ 2^64-1 ∧ heap ≤ next) →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayPrefix
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayPrefix
         (.ok {contract := contract,locals := (allocateBlockLocals L next).insert "i" (.int 0),immutables := imms} evm) ∧
       CopyRequestArrayLocals ((allocateBlockLocals L next).insert "i" (.int 0)) rs next 0) ∧
     (¬ (rs.length ≤ 2^64-1 ∧ (next ≤ 2^64-1 ∧ heap ≤ next)) →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayPrefix .reverted) := by
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm copyRequestArrayPrefix .reverted) := by
   dsimp only
   have hl := evalLocalArrayLength (cfg := config) (evm := evm) (stele := {contract := contract,locals := L,immutables := imms}) hd
   simp only [List.length_map] at hl
-  have ha := arrayAllocateExprSource (length := copyRequestArrayLength) hl hh 32
+  have ha := arrayAllocateExprSource (fork := fork) (length := copyRequestArrayLength) hl hh 32
   constructor
   · intro hv
     rw [if_pos hv.1,if_pos hv.2] at ha

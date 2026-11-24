@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.PairBalanceCallRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -14,12 +16,12 @@ theorem RD.uniswapPairBalanceHeaderStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr : UInt256} {R : List UInt256} {k C : Nat}
-    (rd : RD uniswapV2PairBytecode I g s0 site.headerPc R mem aw rdata acc k C)
+    (rd : RD fork uniswapV2PairBytecode I g s0 site.headerPc R mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 (site.headerPc + ⟨22⟩) (ptr :: ptr :: R)
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 (site.headerPc + ⟨22⟩) (ptr :: ptr :: R)
       (balanceDynamicCalldataMem mem ptr (UInt256.ofNat I.codeOwner.val))
       (balanceDynamicCalldataWords aw ptr) rdata acc k' C' := by
   have h64c : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo

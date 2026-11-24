@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_054
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_063
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -17,12 +19,12 @@ theorem poolSwapLimitBranchTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+8 ≤ 1024)
     (hl : limit.toNat < 2^160) (hm : memLoad (params+UInt256.ofNat 96) mem = limit)
-    (h : RD (deployedRuntime v) I g s0 (if zeroForOne then ⟨18985⟩ else ⟨22052⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if zeroForOne then ⟨18985⟩ else ⟨22052⟩)
       (slot0SqrtPriceWord packed :: ret :: params :: R) mem aw rdata σ k C) :
     if poolSwapLimitValid packed limit zeroForOne then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19061⟩ (ret :: params :: R)
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19061⟩ (ret :: params :: R)
         mem (poolSwapLimitAW aw params) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land limit (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = limit :=
     solcAddrMask_clean hl
   have hclean' : UInt256.land (UInt256.ofNat 1461501637330902918203684832716283019655932542975) limit = limit :=

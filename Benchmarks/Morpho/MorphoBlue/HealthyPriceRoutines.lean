@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.HealthyPriceReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,10 +14,10 @@ theorem morphoHealthyPriceRoutines {v : MorphoImmutables} {ee : ExecutionEnv} {g
     (hstack : R.length + 32 ≤ 1024) (hc : account.toNat < EVM.addressModulus)
     (hparams : p.InMemory (UInt256.ofNat 128) mem) (hsize : 288 ≤ mem.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
       ([UInt256.ofNat 128, p.id, account, price, ret] ++ R) mem aw out σ k C) :
-    (¬ HealthyPriceFits σ ee p account price ∧ RDrev (deployedRuntime v) g s0) ∨
-    (HealthyPriceFits σ ee p account price ∧ ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (¬ HealthyPriceFits σ ee p account price ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (HealthyPriceFits σ ee p account price ∧ ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((if healthyPriceResult σ ee p account price then UInt256.ofNat 1 else UInt256.ofNat 0) :: R)
       (healthyPriceMem p.id account mem) aw' out σ k' C') := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoHealthyPriceReachAssets (v := v) (by omega) hc h
@@ -40,7 +42,7 @@ theorem morphoHealthyPriceRoutines {v : MorphoImmutables} {ee : ExecutionEnv} {g
   have rd5 := morphoBlocks.morpho_block_14355 (immWords := wordsOf (immStore v))
     (by change R.length + 4 + 4 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd4
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([healthyCollateralValue σ ee p account price, memLoad (UInt256.ofNat 256) (healthyPriceMem p.id account mem),
       UInt256.ofNat 14365, wad, healthyBorrowed σ ee p account, ret] ++ R)
     (healthyPriceMem p.id account mem) _ _ _ _ _ at rd5
@@ -52,7 +54,7 @@ theorem morphoHealthyPriceRoutines {v : MorphoImmutables} {ee : ExecutionEnv} {g
   obtain ⟨k6, C6, rd6⟩ := morphoCheckedMulOk (v := v) (by change R.length + 3 + 6 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumps v]; jump_dest) hf3 rd5
   have rd7 := morphoBlocks.morpho_block_14365 (immWords := wordsOf (immStore v)) (by change R.length + 4 ≤ 1024; omega) hvalid rd6
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.isZero (UInt256.lt (healthyMaxBorrow σ ee p account price) (healthyBorrowed σ ee p account)) :: R)
     (healthyPriceMem p.id account mem) _ _ _ _ _ at rd7
   have hw : UInt256.isZero (UInt256.lt (healthyMaxBorrow σ ee p account price) (healthyBorrowed σ ee p account)) =

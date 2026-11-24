@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.PaymentNativeTrace
 import Benchmarks.Safe.ViaIR.PaymentTokenTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -8,7 +10,7 @@ namespace Benchmarks.Safe.ViaIR
 theorem safePaymentTrace (p : PaymentInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr}
     {scratch₀ scratch₁ guard success hash flag : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4979⟩
+    (h : RD fork safeBytecode I g s0 ⟨4979⟩
       (UInt256.ofNat p.refundReceiver.val :: ⟨0⟩ :: p.gasUsed :: UInt256.ofNat p.gasToken.val ::
         scratch₀ :: scratch₁ :: guard :: success :: hash :: flag :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
@@ -18,7 +20,7 @@ theorem safePaymentTrace (p : PaymentInput) (evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 128 ≤ mem.size) (hp : 128 ≤ ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hb : ptr < 2 ^ 220)
     (hov : R.length + 32 ≤ 1024) :
-    PaymentOutcome p evm I g s0 mem ptr ⟨5097⟩
+    PaymentOutcome fork p evm I g s0 mem ptr ⟨5097⟩
       (hash :: guard :: success :: hash :: flag :: ⟨0⟩ :: R) := by
   rcases safePaymentArithmetic p evm h hee hcBase hcPrice (by simp; omega) with
     hr | ⟨k₁, C₁, hsum, hprod, h₁⟩
@@ -41,8 +43,8 @@ theorem safeInternalPayment {p : PaymentInput} {caller : Frame} {evm : EVM.State
     (hp : evalExpr? config caller evm price = .ok (uint256Value p.gasPrice))
     (ht : evalExpr? config caller evm token = .ok (.address p.gasToken))
     (hr : evalExpr? config caller evm receiver = .ok (.address p.refundReceiver))
-    (hbody : ExecFuncBody config p.frame evm handlePaymentFunction.body result) :
-    ExecStmt config caller evm (.internalCall "handlePayment" [used, base, price, token, receiver]
+    (hbody : ExecFuncBody fork config p.frame evm handlePaymentFunction.body result) :
+    ExecStmt fork config caller evm (.internalCall "handlePayment" [used, base, price, token, receiver]
       retVar) (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := handlePaymentFunction)
     (argVals := [uint256Value p.gasUsed, uint256Value p.baseGas, uint256Value p.gasPrice,

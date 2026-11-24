@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorTraceStores
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor return trace
 -/
@@ -15,9 +17,9 @@ theorem spotCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
-    (h : RD (spotCtorCode vat) I g s0 ⟨128⟩ []
+    (h : RD fork (spotCtorCode vat) I g s0 ⟨128⟩ []
       (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata acc k C) :
-    RDret (spotCtorCode vat) g s0 acc spotBytecode := by
+    RDret fork (spotCtorCode vat) g s0 acc spotBytecode := by
   have hcopy : (spotCtorCode vat).write 142 (spotCtorWardsHashMem I vat) 0 2178 =
       spotCtorReturnMem I vat := by
     rfl
@@ -38,7 +40,7 @@ theorem spotInitcodeSuccess
     (hcode : I.code = spotCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (spotCtorCode vat) g
+    RDret fork (spotCtorCode vat) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner

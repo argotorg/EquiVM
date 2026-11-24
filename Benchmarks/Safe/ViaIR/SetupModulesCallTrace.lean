@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.SetupPaymentTrace
 import Benchmarks.Safe.ViaIR.SetupDataAllocate
 import Benchmarks.Safe.ViaIR.SetupModulesTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -15,7 +17,7 @@ theorem setupModulesMemory_load (mem : ByteArray) (off : UInt256)
 
 theorem safeSetupModulesCallTrace (evm : EVM.State)
     {I g s0 σ k C aw mem rdata n len locals} {scratch : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3401⟩
+    (h : RD fork safeBytecode I g s0 ⟨3401⟩
       (scratch :: UInt256.ofNat len :: UInt256.ofNat (setupDataStart I.calldata) :: ⟨3409⟩ ::
         calldataWord I.calldata 68 :: calldataWord I.calldata 68 ::
         calldataWord I.calldata 164 :: calldataWord I.calldata 228 ::
@@ -25,7 +27,7 @@ theorem safeSetupModulesCallTrace (evm : EVM.State)
     (hb : SetupCalldataBounds I.calldata n len)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat (160 + 32 * n)) (hm : 128 ≤ mem.size)
     (hperm : I.perm = true) (hov : R.length + 36 ≤ 1024) :
-    SetupTailOutcome (setupCalldataInput I.calldata n len)
+    SetupTailOutcome fork (setupCalldataInput I.calldata n len)
       { contract := contract, locals := locals } evm (setupTransition.body.drop 5) g s0 := by
   let p := setupCalldataInput I.calldata n len
   let ptr := 160 + 32 * n

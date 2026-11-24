@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.CurrencyReservesSource
 import Benchmarks.UniswapV4PoolManager.CurrencyBalanceABI
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,21 +23,21 @@ def currencyBalanceResult (f : Frame) (evm' : EVM.State) (currency : AccountAddr
 theorem currencyBalanceBody {f : Frame} {evm evm' : EVM.State} {currency : AccountAddress} {z : Bool} {out : ByteArray}
     (hf : f.contract = contract) (hc : f.locals.get? "currency" = some (.address currency))
     (hn : currency ≠ AccountAddress.ofNat 0) (ho : out.size < 2^255)
-    (hcall : typedCallViaEVM config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false) :
-    ExecFuncBody config f evm currencyBalanceFunction.body (currencyBalanceResult f evm' currency z out) := by
+    (hcall : typedCallViaEVM fork config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false) :
+    ExecFuncBody fork config f evm currencyBalanceFunction.body (currencyBalanceResult f evm' currency z out) := by
   let f1 : Frame := {f with locals := f.locals.insert "__c0" (.bool false)}
   let f2 : Frame := {f1 with locals := f1.locals.insert "__c1" (.address currency)}
-  have hzero := currencyZeroCall (evm := evm) hf (evalLocalValue hc) "__c0"
+  have hzero := currencyZeroCall (fork := fork) (evm := evm) hf (evalLocalValue hc) "__c0"
   rw [decide_eq_false hn] at hzero
   have hguard : evalExpr? config f1 evm (.var "__c0") = .ok (.bool false) := evalLocalValue (store_get_self _ _ _)
-  have hlet : ExecStmt config f1 evm (.letDecl "__c1" none (.cast (.var "currency") (.elem .address))) (.ok f2 evm) :=
+  have hlet : ExecStmt fork config f1 evm (.letDecl "__c1" none (.cast (.var "currency") (.elem .address))) (.ok f2 evm) :=
     ExecStmt.letDecl (evalCastValue (evalLocalValue
       ((store_get_ne _ _ (by decide : ("__c0" == "currency") = false)).trans hc)) rfl)
   have hrecv : evalExpr? config f2 evm (.var "__c1") = .ok (.address currency) := evalLocalValue (store_get_self _ _ _)
   have heth : evalExpr? config f2 evm (.intLit 0) = .ok (.int 0) := by simp only [evalExpr?, pure]
   have hargs : evalExprs? config f2 evm [.env .this] = .ok [.address evm.executionEnv.codeOwner] := by
     simp only [evalExprs?, evalExpr?, envValue, bind, EvalResult.bind, pure]
-  have hcall' : typedCallViaEVM config evm (EVM.address currency) "balanceOf" 0
+  have hcall' : typedCallViaEVM fork config evm (EVM.address currency) "balanceOf" 0
       [.address evm.executionEnv.codeOwner] (z, evm', out) false := by
     simpa only [address_of_val] using hcall
   unfold currencyBalanceResult
@@ -43,25 +45,25 @@ theorem currencyBalanceBody {f : Frame} {evm evm' : EVM.State} {currency : Accou
   | false =>
     rw [if_neg (by simp)]
     exact .execBlockRevert (ExecBlock.consNormal hzero (ExecBlock.consRevert (ExecStmt.iteFalse hguard
-      (ExecBlock.consNormal hlet (ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hrecv heth hargs hcall'))))))
+      (ExecBlock.consNormal hlet (ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hrecv heth hargs hcall'))))))
   | true =>
     by_cases hlo : 32 ≤ out.size
     · rw [if_pos ⟨rfl, hlo⟩]
-      have hbalance := ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (retVar := "__c2") hrecv heth hargs hcall' (balanceOfDecode_ok hlo ho)
+      have hbalance := ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (retVar := "__c2") hrecv heth hargs hcall' (balanceOfDecode_ok hlo ho)
       exact .execBlockRet (ExecBlock.consNormal hzero (ExecBlock.consReturn (ExecStmt.iteFalse hguard
         (ExecBlock.consNormal hlet (ExecBlock.consNormal hbalance
           (ABlock.start.returns (evalLocalValue (store_get_self _ _ _))))))))
     · rw [if_neg (fun h => hlo h.2)]
       exact .execBlockRevert (ExecBlock.consNormal hzero (ExecBlock.consRevert (ExecStmt.iteFalse hguard
-        (ExecBlock.consNormal hlet (ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+        (ExecBlock.consNormal hlet (ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
           hrecv heth hargs hcall' (balanceOfDecode_short (Nat.lt_of_not_ge hlo))))))))
 
 theorem currencyBalanceCall {f : Frame} {evm evm' : EVM.State} {e : Expr} {currency : AccountAddress} {z : Bool} {out : ByteArray}
     (hf : f.contract = contract) (hc : evalExpr? config f evm e = .ok (.address currency))
     (hn : currency ≠ AccountAddress.ofNat 0) (ho : out.size < 2^255)
-    (hcall : typedCallViaEVM config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false)
+    (hcall : typedCallViaEVM fork config evm currency "balanceOf" 0 [.address evm.executionEnv.codeOwner] (z, evm', out) false)
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "CurrencyLibrary_balanceOfSelf" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "CurrencyLibrary_balanceOfSelf" [e] retVar)
       (if z = true ∧ 32 ≤ out.size then
         .ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (returnedBalanceWord out).toNat))} evm'
       else .reverted) := by

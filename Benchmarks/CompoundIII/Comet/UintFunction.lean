@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AbiRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -7,12 +9,12 @@ namespace Benchmarks.CompoundIII.Comet
 def uintFunctionArgs (name : Ident) (I : ExecutionEnv) : Store :=
   (∅ : Store).insert name (.int (calldataWord I.calldata 4).toNat)
 
-def UintFunctionResult (P : Prop) [Decidable P]
+def UintFunctionResult (fork : Ethereum.Fork) (P : Prop) [Decidable P]
     (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 + 4 ∧ P then
-    RDret code g s0 σ out
-  else RDrev code g s0
+    RDret fork code g s0 σ out
+  else RDrev fork code g s0
 
 -- LIBRARY CANDIDATE: refinement for one-word functions whose body has a success condition.
 theorem uintFunction_refines {t : TransitionDecl} {imms : Store}
@@ -24,15 +26,15 @@ theorem uintFunction_refines {t : TransitionDecl} {imms : Store}
     (hb : t.body = calldataPrologue body)
     (hreturn : P → returnEquiv out (some [value]) t.returnType)
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 → P → ∃ frame,
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (uintFunctionArgs name I) (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [value])) imms)
     (hsourceRevert : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 → ¬ P →
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (uintFunctionArgs name I) (calldataPrologue body) .reverted imms)
-    (hX : UintFunctionResult P code I (Sat256.ofUInt256 g)
+    (hX : UintFunctionResult fork P code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   have hdecode : config.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata =
       decodeCalldata [name] [abiUInt256] I.calldata := by

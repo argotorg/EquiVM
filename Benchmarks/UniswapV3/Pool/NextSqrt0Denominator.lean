@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0Prefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -14,7 +16,7 @@ def nextSqrt0DenominatorExpr (add : Bool) : Expr :=
     (.elem (.int (.uint ⟨256, by decide⟩)))
 
 theorem nextSqrt0DenominatorSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs) :
-    ExecStmt config (nextSqrt0ProductFrame imms a) evm
+    ExecStmt fork config (nextSqrt0ProductFrame imms a) evm
       (.letDecl "denominator" (some (.elem (.int (.uint ⟨256, by decide⟩))))
         (nextSqrt0DenominatorExpr a.add))
       (.ok (nextSqrt0DenominatorFrame imms a) evm) := by
@@ -78,7 +80,7 @@ theorem evalNextSqrt0FullArgs (imms : Store) (evm : EVM.State) (a : NextSqrtArgs
 
 theorem nextSqrt0FullReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt0FullValid a) :
-    ExecStmt config (nextSqrt0DenominatorFrame imms a) evm
+    ExecStmt fork config (nextSqrt0DenominatorFrame imms a) evm
       (.internalCall "FullMath_mulDivRoundingUp" nextSqrt0FullArgs (nextSqrt0FullCallName a.add))
       (.ok (nextSqrt0FullFrame imms a) evm) :=
   internalCallFunctionReturn (callee := fullMathRoundFunction)
@@ -91,7 +93,7 @@ theorem nextSqrt0FullReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt0FullReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : ¬nextSqrt0FullValid a) :
-    ExecStmt config (nextSqrt0DenominatorFrame imms a) evm
+    ExecStmt fork config (nextSqrt0DenominatorFrame imms a) evm
       (.internalCall "FullMath_mulDivRoundingUp" nextSqrt0FullArgs (nextSqrt0FullCallName a.add))
       .reverted :=
   internalCallFunctionRevert (callee := fullMathRoundFunction)

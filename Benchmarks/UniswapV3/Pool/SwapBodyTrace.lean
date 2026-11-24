@@ -5,6 +5,8 @@ import Benchmarks.UniswapV3.Pool.SwapLimitTrace
 import Benchmarks.UniswapV3.Pool.SwapGuardReverts
 import Benchmarks.UniswapV3.Pool.WordArrayFreshMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -15,21 +17,21 @@ theorem swapBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {len start : UInt256} {rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2292⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2292⟩
       (swapWords a start len ++ ⟨621⟩ :: R) solcFreePtrMem ⟨3⟩ rdata σ k C)
     (ha : a.Fits) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hd : a.data = ee.calldata.extract start.toNat (start.toNat + len.toNat))
     (hc : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hov : R.length + 67 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .reverted
-        (immStore v) ∧ (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .staticViolation
-        (immStore v) ∧ RDstatic (deployedRuntime v) g s0) ∨
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .reverted
+        (immStore v) ∧ (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .staticViolation
+        (immStore v) ∧ RDstatic fork (deployedRuntime v) g s0) ∨
     ∃ (frame : Frame) (evm' : EVM.State) (amount0 amount1 : Int),
-      ExecTransitionBody config contract evm (swapLocals a) swapTransition.body
+      ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body
         (.returned frame evm' (some [.int amount0, .int amount1])) (immStore v) ∧
-      RDret (deployedRuntime v) g s0 evm'.accountMap
+      RDret fork (deployedRuntime v) g s0 evm'.accountMap
         ((EVM.wordOfInt amount0).toByteArray ++ (EVM.wordOfInt amount1).toByteArray) ∧
       (-(2 ^ 255 : Int) ≤ amount0 ∧ amount0 < 2 ^ 255) ∧
       (-(2 ^ 255 : Int) ≤ amount1 ∧ amount1 < 2 ^ 255) := by
@@ -99,7 +101,7 @@ theorem swapBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have hz4 : memLoad (UInt256.ofNat 96) m4 = ⟨0⟩ := by
       rw [MemoryPrefix.memLoad hpre (UInt256.ofNat 96) (by decide) (by decide) hm2size]
       exact wordArrayAllocMem_fresh_zero _ (by simp [slot0StructWords])
-    have hinit := swapInitSource (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) v a evm hwv hself' hn hu' hlimit'
+    have hinit := swapInitSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs.env).trans hperm) v a evm hwv hself' hn hu' hlimit'
     rcases swapLoopFinishX (v := v) a (swapCacheInitial a evm) (swapStateInitial a evm)
         evm (swapReadyFrame v a evm) (storeSlot0Unlocked evm false) r4 hs4 rfl rfl hperm
         (swapReadyFrame_zero v a evm)

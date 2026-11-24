@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.HookCallSource
 import Benchmarks.UniswapV4PoolManager.SignedBytesDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -37,7 +39,7 @@ theorem hookDelta_resume (f cf : Frame) (ret : Ident) (evm : State) (z : Bool)
 theorem hookDeltaReply {f : Frame} {evm : State} {out : ByteArray} {parse : Bool}
     (hp : f.locals.get? "parseReturn" = some (.bool parse))
     (ho : f.locals.get? "result" = some (.bytes out)) :
-    ExecFuncBody config f evm (hookDeltaFunction.body.drop 1) (hookDeltaReplyResult f evm out parse) := by
+    ExecFuncBody fork config f evm (hookDeltaFunction.body.drop 1) (hookDeltaReplyResult f evm out parse) := by
   have he := evalNotBool (evalLocalValue (cfg := config) (evm := evm) hp)
   cases parse with
   | false =>
@@ -46,7 +48,7 @@ theorem hookDeltaReply {f : Frame} {evm : State} {out : ByteArray} {parse : Bool
       (ABlock.start.returns (by simp only [evalExpr?, pure]; rfl))))
   | true =>
     simp only [hookDeltaReplyResult, true_and]
-    have hg : ExecStmt config f evm hookDeltaFunction.body[1]! (.ok f evm) :=
+    have hg : ExecStmt fork config f evm hookDeltaFunction.body[1]! (.ok f evm) :=
       ExecStmt.iteFalse he ExecBlock.nil
     have hlen := evalNatEqLiteral (k := 64) (evalLocalBytesLength (cfg := config) (evm := evm) ho)
     by_cases hl : out.size = 64
@@ -64,8 +66,8 @@ theorem hookDeltaBody {f : Frame} {evm post : State} {hook : AccountAddress}
     (hs : f.locals.get? "self" = some (.address hook))
     (hd : f.locals.get? "data" = some (.bytes data))
     (hp : f.locals.get? "parseReturn" = some (.bool parse)) (hlen : 4 ≤ data.size)
-    (hcall : callViaEVM evm hook 0 data (z, post, out)) :
-    ExecFuncBody config f evm hookDeltaFunction.body (hookDeltaResult f post z data out parse) := by
+    (hcall : callViaEVM fork evm hook 0 data (z, post, out)) :
+    ExecFuncBody fork config f evm hookDeltaFunction.body (hookDeltaResult f post z data out parse) := by
   have hc := hookCall hf (evalLocalValue hs) (evalLocalValue hd) hlen hcall "result"
   by_cases hv : z = true ∧ hookReplyValid data out
   · rw [if_pos hv] at hc
@@ -81,8 +83,8 @@ theorem hookDeltaCall {f : Frame} {evm post : State} {hook : AccountAddress}
     (hs : evalExpr? config f evm es = .ok (.address hook))
     (hd : evalExpr? config f evm ed = .ok (.bytes data))
     (hp : evalExpr? config f evm ep = .ok (.bool parse)) (hlen : 4 ≤ data.size)
-    (hcall : callViaEVM evm hook 0 data (z, post, out)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_callHookWithReturnDelta" [es, ed, ep] ret)
+    (hcall : callViaEVM fork evm hook 0 data (z, post, out)) (ret : Ident) :
+    ExecStmt fork config f evm (.internalCall "Hooks_callHookWithReturnDelta" [es, ed, ep] ret)
       (hookDeltaInvocationResult f ret post z data out parse) := by
   rw [← hookDelta_resume f
     {f with locals := (((∅ : Store).insert "parseReturn" (.bool parse)).insert "data" (.bytes data)).insert "self" (.address hook)}]

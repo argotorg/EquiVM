@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.PermitHashMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {nonce owner spender value deadline domain s r v ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5589⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5589⟩
       (nonce :: ⟨1⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       baseMem (UInt256.ofNat 3) rdata σ k C)
@@ -20,7 +22,7 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨128⟩ : UInt256))
     (hspenderMask : UInt256.land spender solcAddrMask = spender)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5688⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5688⟩
       (permitRuntimeStructHashWord baseMem owner spender value nonce deadline ::
         ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
@@ -108,7 +110,7 @@ theorem RD.uniswapPermitDigestHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {structHash domain s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5688⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5688⟩
       (structHash :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       baseMem (UInt256.ofNat 11) rdata σ k C)
@@ -116,7 +118,7 @@ theorem RD.uniswapPermitDigestHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hbaseRead64 :
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨352⟩ : UInt256))
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
       (permitRuntimeDigestWord baseMem domain structHash ::
         ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
@@ -170,7 +172,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
       (digest :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       baseMem (UInt256.ofNat 15) rdata σ k C)
@@ -181,14 +183,14 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute ee.fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitRuntimeEcrecoverInputMem baseMem digest v r s).readWithPadding 482 128)
           (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks false)
-      ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5814⟩
+      ∧ RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5814⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ ::
             digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
           (o.write 0 (permitRuntimeEcrecoverInputMem baseMem digest v r s) 450
@@ -265,7 +267,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
       (digest :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       baseMem (UInt256.ofNat 15) rdata σ k C)
@@ -273,7 +275,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
     (hvMask : UInt256.land (⟨255⟩ : UInt256) v = v)
     (hdepth : ee.depth = 1024)
     (hov : R.length + 24 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5749 := evm_run h with [
     swap6, dup4, swap1,
     raw mstore 3 (permitRuntimeEcrecoverMem0 baseMem)
@@ -336,7 +338,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
     native_decide
   have rd5814 := rd5814₀
   rw [haw] at rd5814
-  have rd5814' : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5814⟩
+  have rd5814' : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5814⟩
       (⟨0⟩ :: ⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline ::
         value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s ByteArray.empty)
@@ -354,7 +356,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecoded {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem o : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline :: value ::
         spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -362,7 +364,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecoded {g : Sat256} {s0 : State}
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :: digest :: s :: r :: v ::
         deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -393,7 +395,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecodedShort {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem o : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline :: value ::
         spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -401,7 +403,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecodedShort {g : Sat256} {s0 : State
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)) ::
         digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -432,13 +434,13 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata acc k C)
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmatch : UInt256.land recovered solcAddrMask = UInt256.land owner solcAddrMask)
     (hov : R.length + 19 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata acc k' C' := by
   have rd5861₀ := evm_run h with [
@@ -479,11 +481,11 @@ theorem RD.uniswapPermitApproveSetup {g : Sat256} {s0 : State} {ee : ExecutionEn
     {k C : ℕ} {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata σ k C)
     (hov : R.length + 19 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: owner :: ⟨5976⟩ :: recovered :: digest :: s :: r :: v ::
         deadline :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata σ k' C' := by
@@ -497,12 +499,12 @@ theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : Execu
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: owner :: ret :: R) mem (UInt256.ofNat 20) rdata σ k C)
     (hmem : 96 ≤ mem.size)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       (twoWordHashMem owner ⟨2⟩ mem)
@@ -564,7 +566,7 @@ theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : Execution
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata σ k C)
@@ -572,7 +574,7 @@ theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : Execution
     (hperm : ee.perm = true)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender (mapSlot owner ⟨2⟩) mem)
       (UInt256.ofNat 20) rdata
@@ -626,7 +628,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata acc k C)
     (hmem : 514 ≤ mem.size)
@@ -634,7 +636,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     (hperm : ee.perm = true)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       ((UInt256.toByteArray value).write 0 mem 482 32)
       (UInt256.ofNat 20) rdata acc k' C' := by
   have hwf : solcPlainLog3AndJumpWf UniswapV2Pair.uniswapV2PairBytecode
@@ -715,7 +717,7 @@ theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : Execu
     {k C : ℕ} {recovered digest s r v deadline value spender owner : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ⟨570⟩ :: R)
       mem (UInt256.ofNat 20) rdata σ k C)
     (hmem : 514 ≤ mem.size)
@@ -724,7 +726,7 @@ theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : Execu
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 23 ≤ 1024) :
-    RDret UniswapV2Pair.uniswapV2PairBytecode g s0
+    RDret fork UniswapV2Pair.uniswapV2PairBytecode g s0
       (sstoreAccountMap ee.codeOwner σ (mapSlot spender (mapSlot owner ⟨2⟩)) value)
       ByteArray.empty := by
   obtain ⟨_, _, rd7412⟩ := RD.uniswapPermitApproveSetup
@@ -777,13 +779,13 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {digest v r s : UInt256} {stk : List UInt256}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hov : stk.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let mem := permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o
   have hmem : mem.size = 610 := by
     simpa [mem] using
@@ -879,13 +881,13 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {digest v r s : UInt256} {stk : List UInt256}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size)
     (hov : stk.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let mem := permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o
   have hmem : mem.size = 610 := by
     simpa [mem] using
@@ -983,7 +985,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardZeroReverts {g : Sat256} {s0 : St
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -991,7 +993,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardZeroReverts {g : Sat256} {s0 : St
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hov : R.length + 19 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5861₀ := evm_run h with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, iszero, dup1,
     iszero, swap1, push2 ⟨5884⟩]
@@ -1021,7 +1023,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchReverts {g : Sat256} {s0 
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -1030,7 +1032,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchReverts {g : Sat256} {s0 
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hov : R.length + 19 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5861₀ := evm_run h with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, iszero, dup1,
     iszero, swap1, push2 ⟨5884⟩]
@@ -1074,7 +1076,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardZeroRevertsShort {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -1082,7 +1084,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardZeroRevertsShort {g : Sat256} {s0
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size)
     (hov : R.length + 19 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5861₀ := evm_run h with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, iszero, dup1,
     iszero, swap1, push2 ⟨5884⟩]
@@ -1112,7 +1114,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchRevertsShort {g : Sat256}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -1121,7 +1123,7 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchRevertsShort {g : Sat256}
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size)
     (hov : R.length + 19 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5861₀ := evm_run h with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, iszero, dup1,
     iszero, swap1, push2 ⟨5884⟩]

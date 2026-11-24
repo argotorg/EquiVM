@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BeforeLiquiditySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -40,9 +42,9 @@ theorem beforeLiquidityCall {f : Frame} {evm post : State} {hook : AccountAddres
     (hd : evalExpr? config f evm ed = .ok (.bytes data))
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
     (hcall : ∀ add, evm.executionEnv.source ≠ hook → beforeLiquidityEnabled hook p add →
-      callViaEVM evm hook 0 (beforeLiquidityPayload add evm.executionEnv.source key p data) (z, post, out))
+      callViaEVM fork evm hook 0 (beforeLiquidityPayload add evm.executionEnv.source key p data) (z, post, out))
     (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_beforeModifyLiquidity" [es, ek, ep, ed] ret)
+    ExecStmt fork config f evm (.internalCall "Hooks_beforeModifyLiquidity" [es, ek, ep, ed] ret)
       (beforeLiquidityInvocationResult f ret evm post hook key p data z out) := by
   rw [← beforeLiquidity_resume f (beforeLiquidityCallFrame f hook key p data)]
   apply internalCallFunctionExec (argVals := [.address hook, poolKeyValue key, modifyLiquidityParamsValue p, .bytes data])

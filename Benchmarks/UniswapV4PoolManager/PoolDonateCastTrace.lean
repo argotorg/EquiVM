@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_029
 import Benchmarks.UniswapV4PoolManager.SafeCast
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,15 +15,15 @@ theorem poolDonateCastTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id hook key src amount0 amount1 len junk j0 j1 : UInt256}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨10191⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10191⟩
       (j0 :: j1 :: hook :: key :: src :: amount1 :: amount0 :: len :: poolSlot id :: id :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    if poolLiquidityWord evm id = ⟨0⟩ then RDrev (deployedRuntime v) g s0 else
+    if poolLiquidityWord evm id = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0 else
     if amount0.toNat < 2^127 ∧ amount1.toNat < 2^127 then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨10246⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨10246⟩
         (amount1 :: UInt256.sub ⟨0⟩ amount0 :: poolLiquidityWord evm id :: id :: hook :: key :: src ::
           amount1 :: amount0 :: len :: poolSlot id :: ⟨32⟩ :: junk :: R) mem aw rdata evm.accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hread : UInt256.land (evm.accountMap.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
       (fun ac => ac.storage.getD (poolSlot id+UInt256.ofNat 3) ⟨0⟩))
       (UInt256.ofNat 340282366920938463463374607431768211455) = poolLiquidityWord evm id := by

@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.ExponentialDecrease.RpowSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -16,9 +18,9 @@ theorem RD.stairstepRpowXZeroNNonzeroReturns
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
-    (rd1042 : RD exponentialDecreaseBytecode I g s0 ⟨987⟩
+    (rd1042 : RD fork exponentialDecreaseBytecode I g s0 ⟨987⟩
       (b :: n :: ⟨0⟩ :: ⟨658⟩ :: R) mem aw out acc k C) :
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨658⟩ (⟨0⟩ :: R)
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨658⟩ (⟨0⟩ :: R)
       mem aw out acc k' C' := by
   have rd1051pre := evm_run rd1042 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -65,13 +67,13 @@ theorem RD.stairstepRpowToLoop
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
     (hx : x ≠ ⟨0⟩)
-    (rd1042 : RD exponentialDecreaseBytecode I g s0 ⟨987⟩
+    (rd1042 : RD fork exponentialDecreaseBytecode I g s0 ⟨987⟩
       (b :: n :: x :: ⟨658⟩ :: R) mem aw out acc k C) :
     let half := UInt256.div b ⟨2⟩
     let z := if n.toNat % 2 = 0 then b else x
     let n' := UInt256.div n ⟨2⟩
     ∃ scratch₁ scratch₂ k' C',
-      RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+      RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
         (half :: scratch₁ :: scratch₂ :: z :: b :: n' :: x :: ⟨658⟩ :: R)
         mem aw out acc k' C' := by
   intro half z n'
@@ -151,10 +153,10 @@ theorem RD.stairstepRpowLoopExit
     {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (rd1092 : RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+    (rd1092 : RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: ⟨0⟩ :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨658⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨658⟩
       (z :: R) mem aw out acc k' C' := by
   have rd1098pre := evm_run rd1092 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -191,10 +193,10 @@ theorem RD.stairstepRpowLoopBodyEntry
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
-    (rd1092 : RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+    (rd1092 : RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k' C' := by
   have rd1098pre := evm_run rd1092 with [
@@ -213,10 +215,10 @@ theorem RD.stairstepRpowLoopRevertXX
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ x.toNat * x.toNat)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   have rd1110pre := evm_run rd1099 with [
     raw dup7 (by native_decide) (by evm_ov),
     raw dup8 (by native_decide) (by evm_ov),
@@ -242,10 +244,10 @@ theorem RD.stairstepRpowLoopRevertXXRound
     (hRlen : R.length ≤ 1000)
     (hfit : x.toNat * x.toNat < UInt256.size)
     (hover : UInt256.size ≤ (x * x).toNat + half.toNat)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   let xx := x * x
   have hshiftZero : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [rpowShiftRight128_zero_of_square_fit x hfit]
@@ -290,13 +292,13 @@ theorem RD.stairstepRpowLoopOddTailEntry
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (hodd : n.toNat % 2 ≠ 0)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
     let xx := x * x
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨1092⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨1092⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x' :: ⟨658⟩ :: R)
       mem aw out acc k' C' := by
   intro xx xxRound x'
@@ -369,10 +371,10 @@ theorem RD.stairstepRpowLoopRevertZX
     (hodd : n.toNat % 2 ≠ 0)
     (hover :
       UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
@@ -446,10 +448,10 @@ theorem RD.stairstepRpowLoopRevertZXRound
     (hover :
       UInt256.size ≤
         (z * UInt256.div ((x * x) + half) b).toNat + half.toNat)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
@@ -533,14 +535,14 @@ theorem RD.stairstepRpowLoopStepEven
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (heven : n.toNat % 2 = 0)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
     let xx := x * x
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
     let n' := UInt256.div n ⟨2⟩
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n' :: x' :: ⟨658⟩ :: R)
       mem aw out acc k' C' := by
   intro xx xxRound x' n'
@@ -621,7 +623,7 @@ theorem RD.stairstepRpowLoopStepOdd
       z.toNat * (UInt256.div ((x * x) + half) b).toNat < UInt256.size)
     (hfitZXRound :
       (z * UInt256.div ((x * x) + half) b).toNat + half.toNat < UInt256.size)
-    (rd1099 : RD exponentialDecreaseBytecode I g s0 ⟨1044⟩
+    (rd1099 : RD fork exponentialDecreaseBytecode I g s0 ⟨1044⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
     let xx := x * x
@@ -631,7 +633,7 @@ theorem RD.stairstepRpowLoopStepOdd
     let zxRound := zx + half
     let z' := UInt256.div zxRound b
     let n' := UInt256.div n ⟨2⟩
-    ∃ k' C', RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+    ∃ k' C', RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
       (half :: scratch₁ :: scratch₂ :: z' :: b :: n' :: x' :: ⟨658⟩ :: R)
       mem aw out acc k' C' := by
   intro xx xxRound x' zx zxRound z' n'
@@ -735,19 +737,19 @@ theorem rpowLoopCoupled
     (hstore : RpowLoopStore x n b z half locals)
     (hb : b ≠ ⟨0⟩)
     (hle : n.toNat ≤ v)
-    (rd1092 : RD exponentialDecreaseBytecode I g s0 ⟨1037⟩
+    (rd1092 : RD fork exponentialDecreaseBytecode I g s0 ⟨1037⟩
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨658⟩ :: R)
       mem aw out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
       RpowLoopStore xFinal ⟨0⟩ b zFinal half localsFinal ∧
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody)
         (.ok { contract := contract, locals := localsFinal } evm) ∧
-      RD exponentialDecreaseBytecode I g s0 ⟨658⟩
+      RD fork exponentialDecreaseBytecode I g s0 ⟨658⟩
         (zFinal :: R) mem aw out acc k' C') ∨
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody) .reverted ∧
-      RDrev exponentialDecreaseBytecode g s0) := by
+      RDrev fork exponentialDecreaseBytecode g s0) := by
   revert x n z locals k C
   induction v with
   | zero =>
@@ -779,14 +781,14 @@ theorem rpowLoopCoupled
         obtain ⟨_, _, rd1099⟩ :=
           RD.stairstepRpowLoopBodyEntry (R := R) hRlen hnz rd1092
         by_cases hoverXX : UInt256.size ≤ x.toNat * x.toNat
-        · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+        · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
               rpowLoopBody .reverted :=
             execRpowLoopBodyRevertXX hstore hoverXX
           have hrev := RD.stairstepRpowLoopRevertXX (R := R) hRlen hoverXX rd1099
           exact .inr ⟨ExecStmt.whileRevert hcond hbody, hrev⟩
         · have hfitXX : x.toNat * x.toNat < UInt256.size := Nat.lt_of_not_ge hoverXX
           by_cases hoverXXRound : UInt256.size ≤ (x * x).toNat + half.toNat
-          · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+          · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                 rpowLoopBody .reverted :=
               execRpowLoopBodyRevertXXRound hstore hfitXX hoverXXRound
             have hrev := RD.stairstepRpowLoopRevertXXRound
@@ -799,7 +801,7 @@ theorem rpowLoopCoupled
             by_cases hodd : n.toNat % 2 ≠ 0
             · by_cases hoverZX :
                   UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat
-              · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+              · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                     rpowLoopBody .reverted :=
                   execRpowLoopBodyRevertZX hstore hb hfitXX hfitXXRound hodd hoverZX
                 have hrev := RD.stairstepRpowLoopRevertZX
@@ -811,7 +813,7 @@ theorem rpowLoopCoupled
                 by_cases hoverZXRound :
                     UInt256.size ≤
                       (z * UInt256.div ((x * x) + half) b).toNat + half.toNat
-                · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+                · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                       rpowLoopBody .reverted :=
                     execRpowLoopBodyRevertZXRound hstore hb hfitXX hfitXXRound hodd
                       hfitZX hoverZXRound
@@ -876,19 +878,19 @@ theorem rpowFunctionCoupled
     (hn : n ≠ ⟨0⟩)
     (hx : x ≠ ⟨0⟩)
     (hb : b ≠ ⟨0⟩)
-    (rd1042 : RD exponentialDecreaseBytecode I g s0 ⟨987⟩
+    (rd1042 : RD fork exponentialDecreaseBytecode I g s0 ⟨987⟩
       (b :: n :: x :: ⟨658⟩ :: R) mem aw out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
       RpowLoopStore xFinal ⟨0⟩ b zFinal (UInt256.div b ⟨2⟩) localsFinal ∧
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
         rpowFunction.body
         (.returned { contract := contract, locals := localsFinal } evm
           (some [.int (Int.ofNat zFinal.toNat)])) ∧
-      RD exponentialDecreaseBytecode I g s0 ⟨658⟩
+      RD fork exponentialDecreaseBytecode I g s0 ⟨658⟩
         (zFinal :: R) mem aw out acc k' C') ∨
-    (ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+    (ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
         rpowFunction.body .reverted ∧
-      RDrev exponentialDecreaseBytecode g s0) := by
+      RDrev fork exponentialDecreaseBytecode g s0) := by
   let half := UInt256.div b ⟨2⟩
   let z := if n.toNat % 2 = 0 then b else x
   let n' := UInt256.div n ⟨2⟩
@@ -908,7 +910,7 @@ theorem rpowFunctionCoupled
       rcases hret with
         ⟨xFinal, zFinal, localsFinal, k', C', hfinalStore, hwhile, rd707⟩
       have hbody :
-          ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+          ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
             rpowFunction.body
             (.returned { contract := contract, locals := localsFinal } evm
               (some [.int (Int.ofNat zFinal.toNat)])) :=
@@ -921,7 +923,7 @@ theorem rpowFunctionCoupled
   | inr hrev =>
       rcases hrev with ⟨hwhile, hrdRev⟩
       have hbody :
-          ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
+          ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals x n b } evm
             rpowFunction.body .reverted :=
         execRpowFunctionRevertXNonzeroWithLoop (evm := evm)
           (x := x) (n := n) (b := b) hx hn

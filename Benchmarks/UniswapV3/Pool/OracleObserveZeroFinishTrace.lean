@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveZeroLoadTrace
 import Benchmarks.UniswapV3.Pool.ObservationReadMemory
 import Benchmarks.UniswapV3.Pool.OracleTransform
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 theorem oracleObserveZeroFinishCursorX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret card liquidity index tickRaw secondsAgoRaw timeRaw time : UInt256}
     {tick : Int} {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13311⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13311⟩
       ((if (oracleStoredObservation index σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat 4294967295 :: p :: (oracleStoredObservation index σ ee).timestamp ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: card :: liquidity :: index :: tickRaw :: secondsAgoRaw :: timeRaw ::
@@ -23,7 +25,7 @@ theorem oracleObserveZeroFinishCursorX {σ : AccountMap} {ee : ExecutionEnv} {g 
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
-    Nonempty (OracleObserveSingleExit v ee g s0 σ rdata ret R time ⟨0⟩ tick index liquidity card
+    Nonempty (OracleObserveSingleExit fork v ee g s0 σ rdata ret R time ⟨0⟩ tick index liquidity card
       mem (oracleReadHeadAw mem aw) p C) := by
   let last := oracleStoredObservation index σ ee
   have hp96 : (p + UInt256.ofNat 96).toNat = p.toNat + 96 :=
@@ -92,7 +94,7 @@ theorem oracleObserveZeroFinishCursorX {σ : AccountMap} {ee : ExecutionEnv} {g 
 theorem oracleObserveZeroFinishMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret card liquidity index tickRaw secondsAgoRaw timeRaw time : UInt256}
     {tick : Int} {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13311⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13311⟩
       ((if (oracleStoredObservation index σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat 4294967295 :: p :: (oracleStoredObservation index σ ee).timestamp ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: card :: liquidity :: index :: tickRaw :: secondsAgoRaw :: timeRaw ::
@@ -104,7 +106,7 @@ theorem oracleObserveZeroFinishMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : 
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
-    Nonempty (OracleObserveSingleExit v ee g s0 σ rdata ret R time ⟨0⟩ tick index liquidity card
+    Nonempty (OracleObserveSingleExit fork v ee g s0 σ rdata ret R time ⟨0⟩ tick index liquidity card
       mem (oracleReadHeadAw mem aw) p C) := by
   exact oracleObserveZeroFinishCursorX (v := v) rd hm.cursor hb hin htime htick hliq hret hov
 

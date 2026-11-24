@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.TransferFromStele
 
+variable {fork : Ethereum.Fork}
+
 /-! # WETH9 `transferFrom(address,address,uint256)` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,11 +19,11 @@ theorem weth9TFReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1087⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨1087⟩
       (tfWadWord I :: tfDstMasked I :: tfSrcMasked I :: ⟨361⟩ :: [weth9SelWord I])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h434⟩ := solcFunctionGuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -61,16 +63,16 @@ abbrev wtfBoolReturnMem (src dst wad : UInt256) (mem : ByteArray) : ByteArray :=
     the boolean-return encoder, halting with output `0x…01` and the two-store post-state. -/
 theorem weth9TFReturnTrueSplit {ee g s0 rdata σ k C} {src dst wad : UInt256} {S : List UInt256}
     {mem : ByteArray}
-    (h : RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ⟨361⟩ :: S)
+    (h : RD fork weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ⟨361⟩ :: S)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (hdst : dst.toNat < EVM.addressModulus)
     (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : S.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-      RDret weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
+      RDret fork weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
         (UInt256.toByteArray (⟨1⟩ : UInt256))) ∨
-      (ee.perm = false ∧ RDstatic weth9Bytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork weth9Bytecode g s0) := by
   rcases weth9TFTailSplit h hsrc hdst hmemsize hread64 (by jump_dest) hov with
     ⟨hperm, _, _, h361⟩ | ⟨hperm, hstatic⟩
   swap
@@ -116,13 +118,13 @@ theorem weth9TFReturnTrueSplit {ee g s0 rdata σ k C} {src dst wad : UInt256} {S
 
 theorem weth9TFReturnTrue {ee g s0 rdata σ k C} {src dst wad : UInt256} {S : List UInt256}
     {mem : ByteArray}
-    (h : RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ⟨361⟩ :: S)
+    (h : RD fork weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ⟨361⟩ :: S)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
     (hdst : dst.toNat < EVM.addressModulus)
     (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : S.length + 16 ≤ 1024) :
-    RDret weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
+    RDret fork weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
   permSplit_true hperm (weth9TFReturnTrueSplit h hsrc hdst hmemsize hread64 hov)
 
@@ -165,14 +167,14 @@ theorem weth9TFConnect {σ σ₀ A I} {g : UInt256} {evmPost : EVM.State} {cs}
     {evmPostMap : AccountMap}
     (hcode : I.code = weth9Bytecode) (hsel : selIs I (weth9SelBytes 3))
     (hsz100 : 100 ≤ I.calldata.size)
-    (hX : RDret weth9Bytecode (Sat256.ofUInt256 g)
+    (hX : RDret fork weth9Bytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) evmPostMap
       (UInt256.toByteArray (⟨1⟩ : UInt256)))
-    (hbody : ExecTransitionBody config contract
+    (hbody : ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true])))
     (hbodyMap : evmPost.accountMap = evmPostMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   refine weth9ReEquivExecGen (t := transferFromTransition) hcode hX
     (weth9SelectorDispatchTransferFrom hsel) ?_ hbody ?_ ?_
   · show config.externalABI.decodeCalldata? (transferFromTransition.params.map Param.name)
@@ -188,8 +190,8 @@ theorem weth9TFGuardRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
+    RDrev fork weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact solcFunctionGuardPeelRev (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -200,8 +202,8 @@ theorem weth9TFDecodeFailRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 3)) :
-    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
+    RDrev fork weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h434⟩ := solcFunctionGuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -228,14 +230,14 @@ theorem weth9TFDecodeFailRev {σ σ₀ A I} {g : Sat256}
 theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 3) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchTransferFrom hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz100 : 100 ≤ I.calldata.size
     · -- decode succeeds; reach the shared body
-      obtain ⟨_, _, h1087⟩ := weth9TFReachBody (σ := σ)
+      obtain ⟨_, _, h1087⟩ := weth9TFReachBody (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz100 hsize hsel
       by_cases hbal : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat
       · obtain ⟨_, _, h1124⟩ := weth9TFReqBalanceOk h1087 (tfSrcMasked_canonical I) hbal
@@ -315,7 +317,7 @@ theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                 (by change (tfAllowWord I σ).toNat < (tfWadWord I).toNat; omega)
                 (by simp only [List.length_cons, List.length_nil]; omega)
               exact weth9ReEquivExecRev hcode hrev hdisp (tfDecode_ok hsz100)
-                (weth9TFSteleRevAllow (σ := σ) (σ₀ := σ₀)
+                (weth9TFSteleRevAllow (fork := fork) (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv
                   hsrcAddr hmax hbal
                   (by omega))
@@ -324,7 +326,7 @@ theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
           (by change (tfBalSrcWord I σ).toNat < (tfWadWord I).toNat; omega)
           (by simp only [List.length_cons, List.length_nil]; omega)
         exact weth9ReEquivExecRev hcode hrev hdisp (tfDecode_ok hsz100)
-          (weth9TFSteleRevBal (σ := σ) (σ₀ := σ₀)
+          (weth9TFSteleRevBal (fork := fork) (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv
             (by omega))
     · -- calldata < 100: decode failure

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0FullSource
 import Benchmarks.UniswapV3.Pool.NextSqrt0FallbackCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -8,11 +10,11 @@ set_option maxRecDepth 10000
 theorem nextSqrt0FastChoiceReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = true) (hn : a.amount.toNat ≠ 0) (hs : nextSqrt0Fast a)
     (hv : nextSqrt0FullValid a) :
-    ExecStmt config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
+    ExecStmt fork config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
       (.returned (nextSqrt0FullFrame imms a) evm (some [.int (Int.ofNat
         (UInt256.land (nextSqrt0FullResult a) (UInt256.ofNat (2 ^ 160 - 1))).toNat)])) := by
   have hp := evalNextSqrt0ProductGuard imms evm a hn
-  have hd := nextSqrt0DenominatorSource imms evm a
+  have hd := nextSqrt0DenominatorSource (fork := fork) imms evm a
   have hg := evalNextSqrt0DenominatorGuard imms evm a
   have hge : (nextSqrt0Numerator a).toNat ≤ (nextSqrt0Denominator a).toNat := by
     simpa only [nextSqrt0Denominator, ha, if_true] using hs.2
@@ -24,10 +26,10 @@ theorem nextSqrt0FastChoiceReturns (imms : Store) (evm : EVM.State) (a : NextSqr
 theorem nextSqrt0FastChoiceReverts (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = true) (hn : a.amount.toNat ≠ 0) (hs : nextSqrt0Fast a)
     (hv : ¬nextSqrt0FullValid a) :
-    ExecStmt config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
+    ExecStmt fork config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
       .reverted := by
   have hp := evalNextSqrt0ProductGuard imms evm a hn
-  have hd := nextSqrt0DenominatorSource imms evm a
+  have hd := nextSqrt0DenominatorSource (fork := fork) imms evm a
   have hg := evalNextSqrt0DenominatorGuard imms evm a
   have hge : (nextSqrt0Numerator a).toNat ≤ (nextSqrt0Denominator a).toNat := by
     simpa only [nextSqrt0Denominator, ha, if_true] using hs.2
@@ -38,11 +40,11 @@ theorem nextSqrt0FastChoiceReverts (imms : Store) (evm : EVM.State) (a : NextSqr
 
 theorem nextSqrt0FallbackChoice (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (ha : a.add = true) (hn : a.amount.toNat ≠ 0) (hs : ¬nextSqrt0Fast a) :
-    ExecStmt config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
+    ExecStmt fork config (nextSqrt0ProductFrame imms a) evm (nextSqrt0Branch true)[2]!
       (.ok (nextSqrt0FallbackFrame imms a) evm) := by
   have hp := evalNextSqrt0ProductGuard imms evm a hn
   by_cases he : nextSqrt0ProductExact a
-  · have hd := nextSqrt0DenominatorSource imms evm a
+  · have hd := nextSqrt0DenominatorSource (fork := fork) imms evm a
     have hg := evalNextSqrt0DenominatorGuard imms evm a
     have hge : ¬(nextSqrt0Numerator a).toNat ≤ (nextSqrt0Denominator a).toNat := by
       intro h
@@ -58,7 +60,7 @@ theorem nextSqrt0FallbackChoice (imms : Store) (evm : EVM.State) (a : NextSqrtAr
 
 theorem nextSqrt0FallbackReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hv : nextSqrt0FallbackValid a) :
-    ExecBlock config (nextSqrt0FallbackFrame imms a) evm ((nextSqrt0Branch true).drop 3)
+    ExecBlock fork config (nextSqrt0FallbackFrame imms a) evm ((nextSqrt0Branch true).drop 3)
       (.returned (nextSqrt0FallbackDivFrame imms a) evm (some [.int (Int.ofNat
         (UInt256.land (unsafeDivRoundResult (nextSqrt0Numerator a) (nextSqrt0FallbackSum a))
           (UInt256.ofNat (2 ^ 160 - 1))).toNat)])) := by

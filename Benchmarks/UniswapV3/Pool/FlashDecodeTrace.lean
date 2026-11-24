@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashCalldata
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.BytesWindowWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,12 +13,12 @@ set_option maxRecDepth 10000
 theorem flashDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1136⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1136⟩ R mem aw rdata σ k C)
     (hsz : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024) :
-    (¬ FlashCalldataValid ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ FlashCalldataValid ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (FlashCalldataValid ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨6440⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨6440⟩
         (UInt256.ofNat (flashDataLength ee.calldata) :: UInt256.ofNat (flashDataStart ee.calldata) ::
           (flashDecodedArgs ee.calldata).amount1 :: (flashDecodedArgs ee.calldata).amount0 ::
           EVM.word (flashDecodedArgs ee.calldata).recipient.val :: ⟨857⟩ :: R) mem aw rdata σ k' C') := by
@@ -50,7 +52,7 @@ theorem flashDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EV
     change UInt256.land (calldataWord ee.calldata 4) solcAddrMask = _
     exact (word_of_addressOfNat_eq_mask _).symm
   rw [hclean] at r2
-  change RD (deployedRuntime v) ee g s0 ⟨1213⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨1213⟩
     (calldataWord ee.calldata 100 :: UInt256.ofNat 132 :: UInt256.ofNat 4 ::
       UInt256.ofNat ee.calldata.size :: (flashDecodedArgs ee.calldata).amount1 ::
       (flashDecodedArgs ee.calldata).amount0 :: EVM.word (flashDecodedArgs ee.calldata).recipient.val ::

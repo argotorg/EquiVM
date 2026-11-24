@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.Address196Decode
 import Benchmarks.Morpho.MorphoBlue.CalldataBytesDecode
 import Benchmarks.Morpho.MorphoBlue.CreateMarketMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,15 +20,15 @@ theorem morphoSupplyCollateralDecode {v : MorphoImmutables} {ee : ExecutionEnv} 
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (hs : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9982) (UInt256.ofNat 0 :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9982) (UInt256.ofNat 0 :: R)
       solcFreePtrMem aw out σ k C) :
-    (¬ MarketWordAddressBytesBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ MarketWordAddressBytesBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (MarketWordAddressBytesBounds ee.calldata ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10077)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10077)
         (supplyCollateralDecodeStack ee.calldata R)
         (createMarketDecodedMem (marketParamsFromCalldata ee.calldata)) aw' out σ k' C') := by
   have hbad (hc : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩)
-      (UInt256.ofNat 256) = ⟨1⟩) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat 256) = ⟨1⟩) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_9982_taken (immWords := wordsOf (immStore v))
       (by change R.length + 1 + 3 ≤ 1024; omega)
       (by rw [wordAddNegFour, hc]; decide)

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyLimitsTrace
 import Benchmarks.UniswapV4PoolManager.BlockTraceCost
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -30,11 +32,11 @@ theorem poolModifyLimitsPaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hgl : gl.toNat < 2^128) (hgu : gu.toNat < 2^128)
     (hfit : ptr.toNat+128 < UInt256.size) (hactive : ptr.toNat+128 ≤ aw.toNat*32)
     (hpa : (params+UInt256.ofNat 128).toNat+32 ≤ aw.toNat*32) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ kr Cr, Cₘ aw ≤ Cr ∧
-      RD (deployedRuntime v) I g s0 ⟨7256⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ kr Cr, Cₘ aw ≤ Cr ∧
+      RD fork (deployedRuntime v) I g s0 ⟨7256⟩
         (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
         mem aw rdata post.accountMap kr Cr) (fun _ _ => False)
       (poolModifyLimitsResult f evm delta (EVM.signed spacing) gl gu) := by

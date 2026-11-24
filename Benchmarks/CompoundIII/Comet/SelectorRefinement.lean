@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.DispatchRules
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -21,14 +23,14 @@ theorem selectorStateReturn_refines {cfg : Config} {C : ContractDecl} {t : Trans
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code out : ByteArray} {args frame values}
     {σ' : AccountMap} {evm' : EVM.State}
     (hcode : I.code = code)
-    (h : RDret code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ' out)
+    (h : RDret fork code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ' out)
     (hd : selectorDispatchMsg C I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       args t.body (.returned frame evm' values) imms)
     (haccounts : σ' = evm'.accountMap) (henc : returnEquiv out values t.returnType) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rw [← hcode] at hoog; exact hoog))
   · have hxi := Xi_success_of_X (g := g) (by rw [← hcode] at hX; exact hX)
@@ -39,13 +41,13 @@ theorem selectorStateReturn_refines {cfg : Config} {C : ContractDecl} {t : Trans
 theorem selectorStatic_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray} {args}
     (hcode : I.code = code)
-    (h : RDstatic code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (h : RDstatic fork code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hd : selectorDispatchMsg C I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       args t.body .staticViolation imms) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   exact h.reEquivElim hcode fun hxi ↦
     .execution hxi (.intro hd rfl hdec rfl hbody) (.staticHalt rfl rfl)
 
@@ -54,14 +56,14 @@ theorem selectorStatic_refines {cfg : Config} {C : ContractDecl} {t : Transition
 theorem selectorReturn_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code out : ByteArray} {args frame values}
     (hcode : I.code = code)
-    (h : RDret code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out)
+    (h : RDret fork code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out)
     (hd : selectorDispatchMsg C I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       args t.body (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) values) imms)
     (henc : returnEquiv out values t.returnType) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   exact selectorStateReturn_refines hcode h hd hdec hbody rfl henc
 
 -- GENERALIZES Reasoning.Dispatch.RDrev.reEquivExecutionRevert — the same
@@ -69,13 +71,13 @@ theorem selectorReturn_refines {cfg : Config} {C : ContractDecl} {t : Transition
 theorem selectorRevert_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray} {args}
     (hcode : I.code = code)
-    (h : RDrev code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (h : RDrev fork code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hd : selectorDispatchMsg C I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       args t.body .reverted imms) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   exact h.reEquivElim hcode fun _ _ hxi ↦
     .execution hxi (.intro hd rfl hdec rfl hbody) (.revert rfl rfl)
 
@@ -83,11 +85,11 @@ theorem selectorRevert_refines {cfg : Config} {C : ContractDecl} {t : Transition
 theorem selectorDecodeFailure_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code : ByteArray}
     (hcode : I.code = code)
-    (h : RDrev code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (h : RDrev fork code (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hd : selectorDispatchMsg C I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   exact h.reEquivElim hcode fun _ _ hxi ↦
     .execution hxi (.decodingFailed hd hdec) (.decodingFailed rfl rfl)
 

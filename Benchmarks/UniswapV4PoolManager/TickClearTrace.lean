@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.PoolFeeInsideMemory
 import Benchmarks.UniswapV4PoolManager.WordSignextend24
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -40,9 +42,9 @@ theorem tickClearUpperExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {mem rdata : ByteArray} {aw id tick x0 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hc : int24Canonical tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨6642⟩ (x0 :: tick :: R) mem aw rdata evm.accountMap k C) :
-    if evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨6681⟩ (x0 :: tick :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6642⟩ (x0 :: tick :: R) mem aw rdata evm.accountMap k C) :
+    if evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨6681⟩ (x0 :: tick :: R)
         (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) (tickClearActiveWords aw) rdata
         (tickClearPost evm id (EVM.signed tick)).accountMap k' C' := by
   by_cases hp : evm.executionEnv.perm = false
@@ -61,9 +63,9 @@ theorem tickClearUpperTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id tick x0 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hc : int24Canonical tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨6642⟩ (x0 :: tick :: R) mem aw rdata evm.accountMap k C) :
-    if evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨6681⟩ (x0 :: tick :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6642⟩ (x0 :: tick :: R) mem aw rdata evm.accountMap k C) :
+    if evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨6681⟩ (x0 :: tick :: R)
         (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) aw' rdata
         (tickClearPost evm id (EVM.signed tick)).accountMap k' C' := by
   have hr := tickClearUpperExactTrace v hstack hI hm hc h
@@ -76,9 +78,9 @@ theorem tickClearLowerExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {mem rdata : ByteArray} {aw id tick x0 x1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hc : int24Canonical tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨6686⟩ (x0 :: x1 :: tick :: R) mem aw rdata evm.accountMap k C) :
-    if evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨6725⟩ (x0 :: x1 :: tick :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6686⟩ (x0 :: x1 :: tick :: R) mem aw rdata evm.accountMap k C) :
+    if evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨6725⟩ (x0 :: x1 :: tick :: R)
         (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) (tickClearActiveWords aw) rdata
         (tickClearPost evm id (EVM.signed tick)).accountMap k' C' := by
   by_cases hp : evm.executionEnv.perm = false
@@ -97,9 +99,9 @@ theorem tickClearLowerTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id tick x0 x1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hc : int24Canonical tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨6686⟩ (x0 :: x1 :: tick :: R) mem aw rdata evm.accountMap k C) :
-    if evm.executionEnv.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨6725⟩ (x0 :: x1 :: tick :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6686⟩ (x0 :: x1 :: tick :: R) mem aw rdata evm.accountMap k C) :
+    if evm.executionEnv.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨6725⟩ (x0 :: x1 :: tick :: R)
         (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) aw' rdata
         (tickClearPost evm id (EVM.signed tick)).accountMap k' C' := by
   have hr := tickClearLowerExactTrace v hstack hI hm hc h

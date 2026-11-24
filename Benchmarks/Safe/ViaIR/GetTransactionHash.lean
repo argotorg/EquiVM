@@ -7,6 +7,8 @@ import Benchmarks.Safe.ViaIR.Routines
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_011
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,7 +19,7 @@ variable {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
 set_option maxRecDepth 2000 in
 theorem safeGetTransactionHashTrace (tx : SafeTransaction)
     {I g s0 σ k C aw rdata} {off : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9040⟩
+    (h : RD fork safeBytecode I g s0 ⟨9040⟩
       (UInt256.ofNat tx.target.val :: tx.value :: off :: UInt256.ofNat tx.payload.size ::
         tx.operation :: tx.safeTxGas :: tx.baseGas :: tx.gasPrice ::
         UInt256.ofNat tx.gasToken.val :: UInt256.ofNat tx.refundReceiver.val ::
@@ -26,7 +28,7 @@ theorem safeGetTransactionHashTrace (tx : SafeTransaction)
     (hi : off.toNat + tx.payload.size ≤ I.calldata.size)
     (hd : I.calldata.extract off.toNat (off.toNat + tx.payload.size) = tx.payload)
     (hov : R.length + 21 ≤ 1024) :
-    RDret safeBytecode g s0 σ (transactionWord I tx).toByteArray := by
+    RDret fork safeBytecode g s0 σ (transactionWord I tx).toByteArray := by
   obtain ⟨_, _, _, hr⟩ := safeTransactionHashTrace tx h solcFreePtrMem_mload64
     (by rw [solcFreePtrMem_size]) (by decide) (by decide) hn hi hd (by simp; omega) (by jump_dest)
   let mem := transactionHashMemory solcFreePtrMem 128 I off tx
@@ -44,10 +46,10 @@ theorem safeGettransactionhashBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some gettransactionhashTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xd8 0xd1 0x1f 0x78 ⟨0xd8d11f78⟩
     hdispatch gettransactionhashSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xd8d11f78⟩ 20 ⟨2246⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -58,7 +60,7 @@ theorem safeGettransactionhashBodyCore
   let evm := initState σ σ₀ (.ofUInt256 g) A I
   cases hdec : decodeCalldata transactionCalldataNames transactionCalldataTypes I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       rcases safeDecodeTransactionArgsEvidence hdecode hlong hsize (by simp) with
         hr | ⟨len, k', C', hh, hs, hc, hoff, hw, hn, hin, ho, hgas, href, hr⟩
       · exact hr
@@ -91,7 +93,7 @@ theorem safeGettransactionhashBodyCore
       have hnat : (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat + 32)).toNat =
           4 + (calldataWord I.calldata 68).toNat + 32 :=
         ulit_toNat' _ (by change _ < 2 ^ 256; omega)
-      have htrace : RD safeBytecode I (.ofUInt256 g) evm ⟨9040⟩
+      have htrace : RD fork safeBytecode I (.ofUInt256 g) evm ⟨9040⟩
           (UInt256.ofNat tx.target.val :: tx.value ::
             UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat + 32) ::
             UInt256.ofNat tx.payload.size :: tx.operation :: tx.safeTxGas :: tx.baseGas ::
@@ -107,11 +109,11 @@ theorem safeGettransactionhashBodyCore
         (by change _ + payload.size ≤ _; rw [hnat, hlen]; exact hin)
         (by change I.calldata.extract _ (_ + payload.size) = payload; rw [hnat, hlen])
         (by simp)
-      have hbody := safeTransactionHashBody (evm := evm) (tx := tx) hvalue ho
+      have hbody := safeTransactionHashBody (fork := fork) (evm := evm) (tx := tx) hvalue ho
       exact RDret.reEquivElim hcode hret fun _ _ hΞ ↦
         reEquivSelectorExecution hdispatch hdec' hbody
           (.success hΞ rfl rfl (.abi (returnEquiv_of_encode (bytes32ReturnEncoding _))))
-    · have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    · have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
         rcases safeDecodeTransactionArgsEvidence hdecode hlong hsize (by simp) with
           hr | ⟨len', k', C', hh', hs', hc', hoff', hw', hn', hin', ho', hgas', href', hr⟩
         · exact hr
@@ -124,7 +126,7 @@ theorem safeGettransactionhashRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some gettransactionhashTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeGettransactionhashBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

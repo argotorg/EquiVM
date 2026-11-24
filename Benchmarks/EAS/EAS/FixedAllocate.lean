@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Allocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -36,14 +38,14 @@ theorem easFixedAllocate_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+5 ≤ 1024)
     (hg : allocateNext heap.toNat site.size ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat site.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 site.pc (heap::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    (rd : RD fork (deployedRuntime v) ee g s0 site.pc (heap::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat site.size))) aw' rdata σ k' C' := by
   have hm : UInt256.land (UInt256.ofNat site.size+⟨31⟩) (UInt256.lnot ⟨31⟩) = UInt256.ofNat site.size := by cases site <;> rfl
   have hs : (UInt256.ofNat site.size).toNat = site.size := by cases site <;> rfl
   have hc := allocateCheck_ok heap (UInt256.ofNat site.size) (by simpa only [hs] using hg)
   simp only [hm] at hc
-  have hfirst : ∃ a j D, RD (deployedRuntime v) ee g s0 site.finish
+  have hfirst : ∃ a j D, RD fork (deployedRuntime v) ee g s0 site.finish
       ((heap+UInt256.ofNat site.size)::ret::R) mem a rdata σ j D := by
     cases site with
     | bytes64 =>
@@ -62,7 +64,7 @@ theorem easFixedAllocate_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       exact easBlocks.eas_block_4854_fallthrough_packed (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega) hc rd
   obtain ⟨a1,j1,D1,r1⟩ := hfirst
-  have hlast : ∃ a j D, RD (deployedRuntime v) ee g s0 ret R
+  have hlast : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord mem 64 (heap+UInt256.ofNat site.size)) a rdata σ j D := by
     cases site with
     | bytes64 =>
@@ -82,13 +84,13 @@ theorem easFixedAllocate_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {heap : UInt256} {R : List UInt256} (v : EASImmutables) (site : FixedAllocationSite)
     (hstack : R.length+4 ≤ 1024)
     (hg : ¬ (allocateNext heap.toNat site.size ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat site.size))
-    (rd : RD (deployedRuntime v) ee g s0 site.pc (heap::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 site.pc (heap::R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hm : UInt256.land (UInt256.ofNat site.size+⟨31⟩) (UInt256.lnot ⟨31⟩) = UInt256.ofNat site.size := by cases site <;> rfl
   have hs : (UInt256.ofNat site.size).toNat = site.size := by cases site <;> rfl
   have hc := allocateCheck_revert heap (UInt256.ofNat site.size) (by simpa only [hs] using hg)
   simp only [hm] at hc
-  have hfirst : ∃ a j D, RD (deployedRuntime v) ee g s0 ⟨4723⟩
+  have hfirst : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ⟨4723⟩
       ((heap+UInt256.ofNat site.size)::R) mem a rdata σ j D := by
     have hdest : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 4723) = true := by rw [easPatchedValidJumps v]; jump_dest
     cases site with

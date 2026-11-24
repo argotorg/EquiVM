@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.AllocationCostTrace
 import Benchmarks.UniswapV4PoolManager.TickLogCompiled
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -58,17 +60,17 @@ theorem wordBytesCallAllocationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (v : PoolManagerImmutables) (hstack : R.length+7 ≤ 1024)
     (hf : ptr.toNat+99+32*words.length+len.toNat < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨7990⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7990⟩
       (UInt256.ofNat (ptr.toNat+68+32*words.length+paddedSize len.toNat) :: ptr :: ret :: arg :: ptr :: R)
       (wordBytesCallMemory I.calldata mem src.toNat (ptr.toNat+32) selector words len) aw rdata σ k C) :
     (¬AllocationBounds ptr (wordBytesCallAllocationSize words len) ∧
       ∃ aw' k' C', C+92+Cₘ aw' ≤ C'+Cₘ aw ∧
-        RD (deployedRuntime v) I g s0 ⟨7857⟩
+        RD fork (deployedRuntime v) I g s0 ⟨7857⟩
           (allocationEnd ptr (wordBytesCallAllocationSize words len) :: ret :: arg :: ptr :: R)
           (wordBytesCallObjectMemory I.calldata mem src.toNat ptr selector words len) aw' rdata σ k' C') ∨
     (AllocationBounds ptr (wordBytesCallAllocationSize words len) ∧
       ∃ aw' k' C', C+106+Cₘ aw' ≤ C'+Cₘ aw ∧
-        RD (deployedRuntime v) I g s0 ret (arg :: ptr :: R)
+        RD fork (deployedRuntime v) I g s0 ret (arg :: ptr :: R)
           (wordBytesCallAllocatedMemory I.calldata mem src.toNat ptr selector words len) aw' rdata σ k' C') := by
   obtain ⟨hsub, hheader⟩ := wordBytesCallAllocation_arith ptr len words hf
   have hm : poolManager_block_7990_memory

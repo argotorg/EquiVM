@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Pot.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -44,7 +46,7 @@ theorem potDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body
       (.returned { contract := contract, locals := relyStore I } (denyPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [denyTransition, nonpayable, auth] using
@@ -68,7 +70,7 @@ theorem potDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableRequireAssignStorageBlockStatic
@@ -91,7 +93,7 @@ theorem potDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -107,7 +109,7 @@ theorem potReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 3)) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         ⟨545⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : potSelWord I = ⟨0x9c52a7f1⟩ :=
@@ -128,10 +130,10 @@ theorem potReachDenyBody {σ σ₀ A I} {g : Sat256}
 
 theorem potDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
         [relyGuyMaskedWord I, ⟨301⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
@@ -152,10 +154,10 @@ theorem potDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem potDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -173,10 +175,10 @@ theorem potDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem potDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD potBytecode I g s0 ⟨1704⟩
+    (h : RD fork potBytecode I g s0 ⟨1704⟩
       [relyGuyMaskedWord I, ⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1793⟩
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1793⟩
       [relyGuyMaskedWord I, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -207,7 +209,7 @@ theorem potDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1721, C1721, rd1721raw⟩ := rd1720.sload (by native_decide) (by evm_ov)
-  have rd1721 : RD potBytecode I g s0 ⟨1721⟩
+  have rd1721 : RD fork potBytecode I g s0 ⟨1721⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1721 C1721 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
@@ -223,10 +225,10 @@ theorem potDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem potDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD potBytecode I g s0 ⟨1704⟩
+    (h : RD fork potBytecode I g s0 ⟨1704⟩
       [relyGuyMaskedWord I, ⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -255,7 +257,7 @@ theorem potDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1721, C1721, rd1721raw⟩ := rd1720.sload (by native_decide) (by evm_ov)
-  have rd1721 : RD potBytecode I g s0 ⟨1721⟩
+  have rd1721 : RD fork potBytecode I g s0 ⟨1721⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1721 C1721 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
@@ -289,14 +291,14 @@ theorem potDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem potDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD potBytecode I g s0 ⟨1793⟩
+    (h : RD fork potBytecode I g s0 ⟨1793⟩
       [relyGuyMaskedWord I, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret potBytecode g s0
+    RDret fork potBytecode g s0
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic potBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork potBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -359,14 +361,14 @@ theorem potDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
 theorem potX_deny_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret potBytecode g (initState σ σ₀ g A I)
+    RDret fork potBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic potBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork potBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1704⟩ := potDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1793⟩ := potDenyX_authorized (I := I) hauth rd1704
   exact potDenyX_storeAuthorizedSplit rd1793
@@ -374,10 +376,10 @@ theorem potX_deny_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem potX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret potBytecode g (initState σ σ₀ g A I)
+    RDret fork potBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty :=
   permSplit_true hperm (potX_deny_split hsz36 hsize hauth hreach)
@@ -385,19 +387,19 @@ theorem potX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem potX_deny_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = false) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic potBytecode g (initState σ σ₀ g A I) :=
+    RDstatic fork potBytecode g (initState σ σ₀ g A I) :=
   permSplit_false hperm (potX_deny_split hsz36 hsize hauth hreach)
 
 theorem potX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1704⟩ := potDenyX_decoded (g := g) hsz36 hsize hreach
   exact potDenyX_unauthorized (I := I) hauth rd1704
 
@@ -411,14 +413,14 @@ theorem potDenyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmStele I) none) := by
@@ -446,14 +448,14 @@ theorem potDenyBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I) denyTransition.body
+      ExecTransitionBody fork config contract evmStele (relyStore I) denyTransition.body
         .staticViolation := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -475,14 +477,14 @@ theorem potDenyBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -498,10 +500,10 @@ theorem potDenyBodyCoreDecodeFailed_short
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨545⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (potDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (potDecode_deny_none_short hsz4 hshort)
 
@@ -511,12 +513,12 @@ theorem potDenyBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (potSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     potDispatchDeny hsel
-  have hreach := potReachDenyBody
+  have hreach := potReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -534,7 +536,7 @@ theorem potDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potDenyBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm
@@ -542,7 +544,7 @@ theorem potDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (potSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     potDispatchDeny hsel
-  have hreach := potReachDenyBody
+  have hreach := potReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

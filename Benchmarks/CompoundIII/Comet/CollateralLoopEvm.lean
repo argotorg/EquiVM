@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralLoopSelected
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -7,19 +9,19 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def CollateralLoopRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def CollateralLoopRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret : UInt256) (R : List UInt256) (limit : Nat)
     (result : Option (EVM.State × Bool)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', value) => ∃ σ' mem free aw rdata k C, SourceState s0 ee σ' evm' ∧
       96 ≤ mem.size ∧ memLoad ⟨64⟩ mem = free ∧ 96 ≤ free.toNat ∧ free.toNat ≤ limit ∧
       free.toNat ≤ mem.size + 32 ∧
-      RD (deployedRuntime v) ee g s0 ret (boolWord value :: R) mem aw rdata σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (boolWord value :: R) mem aw rdata σ' k C
 
 theorem CollateralLoopRun.mono {v ee g s0 ret R result limit limit'}
-    (h : CollateralLoopRun v ee g s0 ret R limit result) (hle : limit ≤ limit') :
-    CollateralLoopRun v ee g s0 ret R limit' result := by
+    (h : CollateralLoopRun fork v ee g s0 ret R limit result) (hle : limit ≤ limit') :
+    CollateralLoopRun fork v ee g s0 ret R limit' result := by
   cases result with
   | none => exact h
   | some r =>
@@ -37,11 +39,11 @@ theorem cometCollateralLoop {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 928 * (v.numAssets.toNat - i) + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
       (collateralLoopStack i assets reserved (EVM.word account.val) v.numAssets liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ result, CollateralLoopTrace v borrow account assets reserved i liquidity evm result ∧
-      CollateralLoopRun v ee g s0 ret R (free.toNat + 928 * (v.numAssets.toNat - i)) result := by
+    ∃ result, CollateralLoopTrace fork v borrow account assets reserved i liquidity evm result ∧
+      CollateralLoopRun fork v ee g s0 ret R (free.toNat + 928 * (v.numAssets.toNat - i)) result := by
   have hi8 : i < 256 := lt_of_le_of_lt hi v.numAssets_lt
   by_cases hib : i < v.numAssets.toNat
   · obtain ⟨k1, C1, r1⟩ := cometCollateralMembership borrow (by omega) hib hi8 ha hr h

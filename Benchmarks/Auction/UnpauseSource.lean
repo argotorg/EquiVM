@@ -1,6 +1,8 @@
 import Benchmarks.Auction.PausableSource
 import Benchmarks.Auction.SettleStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -24,11 +26,11 @@ theorem SourceState.unpause {s0 I σ evm} (hs : SourceState s0 I σ evm) :
 
 theorem unpauseStoreSourceSplit {evm : EVM.State} {locals : Store}
     (hb : locals.get? "_paused" = none) :
-    (evm.executionEnv.perm = true → ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    (evm.executionEnv.perm = true → ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage pausedRef (.boolLit false))
       (.ok { contract := auctionContract, locals := locals } (unpauseState evm))) ∧
       (evm.executionEnv.perm = false →
-        ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+        ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
         (.assign .storage pausedRef (.boolLit false)) .staticViolation) := by
   have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
       evm (.boolLit false) = .ok (.bool false) := by simp only [evalExpr?, pure]
@@ -41,7 +43,7 @@ theorem unpauseStoreSourceSplit {evm : EVM.State} {locals : Store}
 theorem unpauseStoreSource {evm : EVM.State} {locals : Store}
     (hb : locals.get? "_paused" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage pausedRef (.boolLit false))
       (.ok { contract := auctionContract, locals := locals } (unpauseState evm)) :=
   (unpauseStoreSourceSplit hb).1 hperm

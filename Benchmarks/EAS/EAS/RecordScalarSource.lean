@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.AttestationWriteStatements
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -11,7 +13,7 @@ def recordScalarBody : Body := recordSetUIDStmt ::
 
 theorem recordSetUIDSource {L imms : Store} {evm : EVM.State} {a : AttestationRecord} {word : UInt256}
     (ha : L.get? "attestation" = some a.value) (hu : L.get? "uid" = some (wordBytes32Value word)) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm recordSetUIDStmt
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm recordSetUIDStmt
       (.ok {contract := contract,locals := recordScalarLocals L a word,immutables := imms} evm) := by
   apply ExecStmt.assign (hperm := Or.inl rfl) (value := wordBytes32Value word) (by simp only [evalExpr?,hu,EvalResult.ofOption])
   simp only [recordSetUIDStmt,assignStorageRef?,ha,updateLocalPath?,
@@ -29,7 +31,7 @@ theorem recordScalarSource {L imms : Store} {evm : EVM.State} {a : AttestationRe
     (ha : L.get? "attestation" = some a.value) (hu : L.get? "uid" = some (wordBytes32Value word))
     (hd : L.get? "_db" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm recordScalarBody
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm recordScalarBody
       (.ok {contract := contract,locals := recordScalarLocals L a word,immutables := imms}
         (attestationWriteHead evm (dbSlot word) {a with uid := word})) := by
   apply ExecBlock.consNormal (recordSetUIDSource ha hu)
@@ -43,7 +45,7 @@ theorem recordScalarSource {L imms : Store} {evm : EVM.State} {a : AttestationRe
 theorem recordScalarSource_static {L imms : Store} {evm : EVM.State} {a : AttestationRecord} {word : UInt256}
     (ha : L.get? "attestation" = some a.value) (hu : L.get? "uid" = some (wordBytes32Value word))
     (hd : L.get? "_db" = none) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm recordScalarBody .staticViolation := by
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm recordScalarBody .staticViolation := by
   apply ExecBlock.consNormal (recordSetUIDSource ha hu)
   apply attestationWriteStatic
     ((recordScalarLocals_get L a word "_db" (by decide)).trans hd)

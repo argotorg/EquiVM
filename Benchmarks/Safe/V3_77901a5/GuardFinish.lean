@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.GuardCall
 import Benchmarks.Safe.V3_77901a5.GuardRefinement
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -18,12 +20,12 @@ theorem safeGuardFinish {σ σ₀ σ' : AccountMap} {g : UInt256} {A : Substate}
     (hg : locals["guard"]? = some (.address (AccountAddress.ofNat guard.toNat)))
     (hb : locals.get? "_guard" = none) (hee : evm'.executionEnv = I)
     (hacc : evm'.accountMap = σ')
-    (hcheck : ExecStmt config (guardFrame .transaction guard) (initState σ σ₀ (.ofUInt256 g) A I)
+    (hcheck : ExecStmt fork config (guardFrame .transaction guard) (initState σ σ₀ (.ofUInt256 g) A I)
       (guardCheck .transaction)
       (.ok { contract := contract, locals := locals } evm'))
-    (h : RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨6158⟩
+    (h : RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨6158⟩
       (guard :: ⟨664⟩ :: R) mem aw out σ' k C)
-    (hov : R.length + 6 ≤ 1024) : runtimeRefinementFor config contract σ σ₀ g A I := by
+    (hov : R.length + 6 ≤ 1024) : runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact guardFinish (kind := .transaction) hcode hdispatch hdec hc hv ha hg hb hee hacc hcheck
     (fun hp ↦ safeGuardStoreStatic h (by simp; omega) hp)
     (fun hp ↦ safeGuardStoreTrace h hov hp)

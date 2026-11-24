@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapFinishTrace
 import Benchmarks.UniswapV4PoolManager.AfterSwapReturn
 import Benchmarks.UniswapV4PoolManager.FunctionFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -30,18 +32,18 @@ theorem afterSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+84)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15745⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15745⟩
       (accountWord hook :: keyPtr :: paramsPtr :: delta :: src :: len :: before :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm afterSwapFunction.body result ∧
-      functionResultTrace (deployedRuntime v) g s0 (afterSwapReturn v I g s0 mem free ret R) result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm afterSwapFunction.body result ∧
+      functionResultTrace fork (deployedRuntime v) g s0 (afterSwapReturn fork v I g s0 mem free ret R) result := by
   have he := afterSwapEntryTrace v (by omega) hpaid hret h
   by_cases hself : I.source = hook
   · rw [afterSwapEntryResult, if_pos hself] at he
     obtain ⟨aw', k', C', hpay, rd⟩ := he
     have hcall : evm.executionEnv.source ≠ hook → afterSwapActive hook →
-        callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
+        callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) (false, evm, .empty) := by
       rw [hI]; intro hn _; exact (hn hself).elim
     refine .inr ⟨_, afterSwapBody hc hs hk hp hd hb hbefore hcanonical hlimit hcall, ?_⟩
@@ -56,7 +58,7 @@ theorem afterSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
         hog | ⟨post, z, out, hcall, henv, hworld, ht⟩
       · exact .inl hog
       have hcall' : evm.executionEnv.source ≠ hook → afterSwapActive hook →
-          callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
+          callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
             (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) := by
         rw [hI]; exact fun _ _ => hcall
       refine .inr ⟨_, afterSwapBody hc hs hk hp hd hb hbefore hcanonical hlimit hcall', ?_⟩
@@ -76,7 +78,7 @@ theorem afterSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
       exact afterSwapReturn_hook henv hworld hsrc (by omega) hf hbound (by omega) rd3
     · rw [if_neg ha] at rd1
       have hcall : evm.executionEnv.source ≠ hook → afterSwapActive hook →
-          callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
+          callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta
             (I.calldata.extract src.toNat (src.toNat+len.toNat))) (false, evm, .empty) :=
         fun _ hen => (ha hen).elim
       refine .inr ⟨_, afterSwapBody hc hs hk hp hd hb hbefore hcanonical hlimit hcall, ?_⟩

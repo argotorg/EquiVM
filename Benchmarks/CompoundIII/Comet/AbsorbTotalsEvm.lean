@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SupplyBaseTotalsEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_078
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,9 +15,9 @@ theorem cometAbsorbTotals {v : CometWithExtendedAssetListImmutables}
     {aw supplied repaid : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hS : supplied.toNat < 2^104) (hB : repaid.toNat < 2^104)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17315⟩ (supplied :: repaid :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17315⟩ (supplied :: repaid :: R)
       mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ⟨17381⟩ R
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ⟨17381⟩ R
       (supplyBaseTotalsOutcome evm supplied repaid) := by
   have hword := sourceState_supplyPrincipalRead hs
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_17315
@@ -24,7 +26,7 @@ theorem cometAbsorbTotals {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_7787
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 1) σ ee) ::
+  change RD fork _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 1) σ ee) ::
     supplied :: repaid :: R) _ _ _ _ _ _ at r2
   rw [hword] at r2
   have r3 := cometWithExtendedAssetList_block_17327 (immWords := wordsOf (immStore v))
@@ -52,7 +54,7 @@ theorem cometAbsorbTotals {v : CometWithExtendedAssetListImmutables}
       have r8 := cometWithExtendedAssetList_block_7871 (immWords := wordsOf (immStore v))
         (by change R.length + 1 + 5 ≤ 1024; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r7
-      change RD _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
+      change RD fork _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
         (solcSlotWordAt (UInt256.ofNat 1) σ1 ee) (UInt256.ofNat 104)) :: repaid :: R)
         _ _ _ _ _ _ at r8
       rw [hwordB] at r8

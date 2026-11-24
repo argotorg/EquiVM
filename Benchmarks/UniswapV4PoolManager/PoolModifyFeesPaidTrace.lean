@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyFeesTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyFeesPreludePaidTrace
 import Benchmarks.UniswapV4PoolManager.BlockTraceCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,13 +14,13 @@ theorem poolModifyFeesTailExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     {k C : Nat} {R : List UInt256} (f : Frame)
     (v : PoolManagerImmutables) (hstack : R.length+31 ≤ 1024) (hI : evm.executionEnv = I)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨5915⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionUpdateInputStack evm id (poolModifyPositionKey p) p.delta (poolModifyFeeWord evm id p false)
         p.upper x0 x1 x2 ptr x4 x5 p.lower x9 (poolModifyFeeWord evm id p true) R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ kr Cr,
-        RD (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+        RD fork (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
           (poolModifyFeesOutputStack (poolModifyFeeDeltaWord evm id p) ptr x0 x1 x2 x4 x5 x9 p R)
           mem aw rdata post.accountMap kr Cr)
       (fun _ _ => False) (poolModifyFeesResult f evm id p) := by
@@ -46,13 +48,13 @@ theorem poolModifyFeesPaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hs : memLoad (params+UInt256.ofNat 160) mem = p.salt)
     (hp : 64 ≤ params.toNat) (hps : params.toNat+192 ≤ mem.size) (hpf : params.toNat+160 < UInt256.size)
     (h5 : 5 ≤ aw.toNat) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨5722⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ aw' kr Cr,
         Cₘ aw' ≤ Cr ∧ aw.toNat ≤ aw'.toNat ∧
-        RD (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+        RD fork (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
           (poolModifyFeesOutputStack (poolModifyFeeDeltaWord evm id p) ptr x0 x1 x2 x4 x5 x9 p R)
           (poolModifyFeesMemory mem free id p) aw' rdata post.accountMap kr Cr)
       (fun _ _ => False) (poolModifyFeesResult f evm id p) := by

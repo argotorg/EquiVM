@@ -2,25 +2,27 @@ import Benchmarks.CompoundIII.Comet.CollateralReservesInternal
 import Benchmarks.CompoundIII.Comet.TransferInEvm
 import Benchmarks.CompoundIII.Comet.MappingScratch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive CollateralReservesTrace (asset : AccountAddress) (evm : EVM.State) :
+inductive CollateralReservesTrace (fork : Ethereum.Fork) (asset : AccountAddress) (evm : EVM.State) :
     Option (EVM.State × UInt256) → Prop where
   | response {evm' z out}
-      (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+      (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
         (z, evm', out) false) (hh : out.size < 2^255) :
-      CollateralReservesTrace asset evm
+      CollateralReservesTrace fork asset evm
         (if CollateralReservesValid evm' asset z out then
           some (evm', collateralReservesValue evm' asset out) else none)
 
 theorem collateralReservesTrace_call {asset evm result}
-    (ht : CollateralReservesTrace asset evm result) (frame : Frame) (expr : Expr) (ret : Ident)
+    (ht : CollateralReservesTrace fork asset evm result) (frame : Frame) (expr : Expr) (ret : Ident)
     (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.address asset)) :
-    ExecStmt config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
       (wordCallResult frame ret result) := by
   cases ht with
   | @response evm' z out hc hh =>
@@ -39,10 +41,10 @@ theorem cometCollateralReservesTrace {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 36 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9561⟩ (EVM.word asset.val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9561⟩ (EVM.word asset.val :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, CollateralReservesTrace asset evm result ∧
-      TransferInRun v ee g s0 ret (ptr + ⟨32⟩) R result := by
+    ∃ result, CollateralReservesTrace fork asset evm result ∧
+      TransferInRun fork v ee g s0 ret (ptr + ⟨32⟩) R result := by
   obtain ⟨evm', σ', z, out, hc, hs', hh, hr⟩ :=
     cometCollateralReservesInternal hstack hfree hlo hptr hret hs h
   have ht := CollateralReservesTrace.response hc (lt_trans hh (by decide))

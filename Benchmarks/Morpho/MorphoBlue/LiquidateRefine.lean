@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateStorageTail
 import Benchmarks.Morpho.MorphoBlue.LiquidateOracleRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,31 +17,31 @@ theorem morphoLiquidateRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     (hac : locals.get? "__accrued" = some (.bool (accrueActive p evm)))
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1460)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1460)
       (liquidateGuardTail p.id seized shares srcOff len []) (supplyInputMem p) aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (liquidateTransition.body.drop 8) liquidateTransition.returnType := by
   obtain he | he | ⟨ab1, hl1, hg1, hs1, hm1, hlo1, hsize1, hparams1, hz1, rd1⟩ :=
     morphoLiquidateAccrueRefine (v := v) p locals imms (by decide) hc hl hac hs h
-  · exact .reverted he ‹RDrev _ _ _›
-  · exact .static he ‹RDstatic _ _ _›
+  · exact .reverted he ‹RDrev fork _ _ _›
+  · exact .static he ‹RDstatic fork _ _ _›
   rename_i locals1 evm1 σ1 mem1 fp1 aw1 out1 k1 C1
   obtain he | ⟨price, z, ab2, hl2, hg2, hp2, hz2, hs2, hm2, ad2, rd2⟩ :=
     morphoLiquidateOracleRefine (v := v) p _ imms (by decide) hc ha haccount hl1 hs1 hm1 hg1 hparams1
       (by omega) (by omega) rd1
-  · exact .reverted (ab1.run he) ‹RDrev _ _ _›
+  · exact .reverted (ab1.run he) ‹RDrev fork _ _ _›
   rename_i locals2 evm2 σ2 mem2 fp2 aw2 out2 k2 C2
   have hparams2 := hparams1.ofPrefix ad2.preserves (by decide) (by decide) (by change 288 ≤ mem1.size; omega) (by change 288 ≤ fp1.toNat; omega)
   have hsize2 : 288 ≤ mem2.size := le_trans (by omega) ad2.preserves.size
   have hlo2 : 288 ≤ fp2.toNat := by rw [ad2.cursor]; omega
   obtain he | ⟨ab3, hl3, hg3, hp3, hf3, hlltv, hs3, hm3, ad3, rd3⟩ :=
     morphoLiquidateIncentiveRefine (v := v) p _ imms z (by decide) hl2 hs2 hm2 hg2 hp2 hz2 hparams2 hsize2 hlo2 rd2
-  · exact .reverted (ab1.run (ab2.run he)) ‹RDrev _ _ _›
+  · exact .reverted (ab1.run (ab2.run he)) ‹RDrev fork _ _ _›
   rename_i locals3 mem3 fp3 aw3 out3 σ3 k3 C3
   obtain he | ⟨assets, ab4, hl4, hg4, has4, hm4, ad4, rd4⟩ :=
     morphoLiquidateMathRefine (v := v) p _ imms (by decide) hl3 hs3 hlltv hm3 hp3 hf3 rd3
-  · exact .reverted (ab1.run (ab2.run (ab3.run he))) ‹RDrev _ _ _›
+  · exact .reverted (ab1.run (ab2.run (ab3.run he))) ‹RDrev fork _ _ _›
   rename_i seized4 shares4 locals4 aw4 out4 mem4 k4 C4
   have ad24 := (ad2.trans ad3).trans ad4
   have hp := ad24.preserves

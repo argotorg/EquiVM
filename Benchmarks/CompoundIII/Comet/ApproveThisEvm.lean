@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.ApproveThisInternal
 import Benchmarks.CompoundIII.Comet.TwoAddressUintDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -10,21 +12,21 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def ApproveThisResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def ApproveThisResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ TwoAddressUintCalldataValid I then
-    ∃ result, ApproveThisTrace v
+    ∃ result, ApproveThisTrace fork v
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (AccountAddress.ofNat (calldataWord I.calldata 36).toNat)
-      (calldataWord I.calldata 68) s0 result ∧ ApproveThisRun v g s0 result
-  else RDrev (deployedRuntime v) g s0
+      (calldataWord I.calldata 68) s0 result ∧ ApproveThisRun fork v g s0 result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem approveThisX {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 51)) :
-    ApproveThisResult v I g (initState σ σ₀ g A I) := by
+    ApproveThisResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachApproveThisBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_934 (immWords := wordsOf (immStore v))

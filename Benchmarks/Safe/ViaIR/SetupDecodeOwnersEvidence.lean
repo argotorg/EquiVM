@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.SetupDecodeOwners
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_014
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,19 +12,19 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000 in
 set_option maxHeartbeats 1000000 in
 theorem safeSetupDecodeOwnersEvidence {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2980⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 22 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ n k' C', 260 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 ∧
       (calldataWord I.calldata 4).toNat ≤ 2 ^ 64 - 1 ∧
       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = UInt256.ofNat n ∧
       n ≤ 2 ^ 64 - 1 ∧ setupOwnersStart I.calldata + 32 * n ≤ I.calldata.size ∧
-      RD safeBytecode I g s0 ⟨3060⟩ (setupDecodeOwnersStack I.calldata n (⟨0⟩ :: R))
+      RD fork safeBytecode I g s0 ⟨3060⟩ (setupDecodeOwnersStack I.calldata n (⟨0⟩ :: R))
         mem aw rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hfail (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) (UInt256.ofNat 4))
-      (UInt256.ofNat 256) = ⟨1⟩) : RDrev safeBytecode g s0 := by
+      (UInt256.ofNat 256) = ⟨1⟩) : RDrev fork safeBytecode g s0 := by
     have h₁ := safeRuntime_block_2980_taken (by simp; omega) (by
       rw [safeIRArgumentSizeSub hlong hsize, hc]; decide) (by jump_dest) h
     exact safeRuntime_block_589 (by simp; omega) h₁
@@ -51,7 +53,7 @@ theorem safeSetupDecodeOwnersEvidence {I g s0 σ k C aw mem rdata} {R : List UIn
     rw [hmax]
     change UInt256.gt (calldataWord I.calldata 4) _ = _
     exact ugt_zero (by rwa [hmaxNat])) h₁
-  change RD safeBytecode I g s0 ⟨3010⟩ (calldataWord I.calldata 4 :: ⟨0⟩ :: R)
+  change RD fork safeBytecode I g s0 ⟨3010⟩ (calldataWord I.calldata 4 :: ⟨0⟩ :: R)
     mem aw rdata σ _ _ at h₂
   have hoff (a : Nat) (hb : (calldataWord I.calldata 4).toNat + a < UInt256.size) :
       calldataWord I.calldata 4 + UInt256.ofNat a =
@@ -60,7 +62,7 @@ theorem safeSetupDecodeOwnersEvidence {I g s0 σ k C aw mem rdata} {R : List UIn
     exact wordOfNatAdd _ _ hb
   have hheadFail (hc : UInt256.slt
       (UInt256.ofNat ((calldataWord I.calldata 4).toNat + 35))
-      (UInt256.ofNat I.calldata.size) = ⟨0⟩) : RDrev safeBytecode g s0 := by
+      (UInt256.ofNat I.calldata.size) = ⟨0⟩) : RDrev fork safeBytecode g s0 := by
     have h₃ := safeRuntime_block_3010_taken (by simp; omega) (by
       rw [hoff 35 (by omega), hc]; decide) (by jump_dest) h₂
     exact safeRuntime_block_3913 (by omega) h₃
@@ -98,7 +100,7 @@ theorem safeSetupDecodeOwnersEvidence {I g s0 σ k C aw mem rdata} {R : List UIn
     change UInt256.gt (calldataWord I.calldata _) _ = _
     rw [ho4]
     exact ugt_zero (by rw [hmaxNat]; exact hn)) h₃
-  change RD safeBytecode I g s0 ⟨3041⟩
+  change RD fork safeBytecode I g s0 ⟨3041⟩
     (calldataWord I.calldata 4 :: calldataWord I.calldata _ :: ⟨0⟩ :: R)
     mem aw rdata σ _ _ at h₄
   rw [ho4, hw] at h₄

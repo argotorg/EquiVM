@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CalldataWordBytes
 import Benchmarks.EAS.EAS.CopyRequestSource
 import Benchmarks.EAS.EAS.CalldataPayload
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -29,7 +31,7 @@ theorem calldataWordTailSource {L imms : Store} {evm : EVM.State} {offset : UInt
     (hi : L.get? "input"=some (.bytes evm.executionEnv.calldata))
     (hc : L.get? "count"=some (.int (Int.ofNat (min (evm.executionEnv.calldata.size-offset.toNat) 32))))
     (hb : offset.toNat<evm.executionEnv.calldata.size) :
-    ∃ L', ExecBlock config {contract := contract,locals := L,immutables := imms} evm calldataWordTail
+    ∃ L', ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm calldataWordTail
       (.returned {contract := contract,locals := L',immutables := imms} evm
         (some [.int (Int.ofNat (calldataWord evm.executionEnv.calldata offset.toNat).toNat),.int (Int.ofNat heap)])) := by
   let count := min (evm.executionEnv.calldata.size-offset.toNat) 32
@@ -72,14 +74,14 @@ theorem calldataWordTailSource {L imms : Store} {evm : EVM.State} {offset : UInt
 theorem calldataWordSource {L imms : Store} {evm : EVM.State} {offset : UInt256} {heap : Nat}
     (ho : L.get? "offset"=some (.int (Int.ofNat offset.toNat)))
     (hh : L.get? "$EAS.freeMemory"=some (.int (Int.ofNat heap))) :
-    ∃ L', ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm calldataWordFunction.body
+    ∃ L', ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm calldataWordFunction.body
       (.returned {contract := contract,locals := L',immutables := imms} evm
         (some [.int (Int.ofNat (calldataWord evm.executionEnv.calldata offset.toNat).toNat),.int (Int.ofNat heap)])) := by
   let L1 := L.insert "input" (.bytes evm.executionEnv.calldata)
   have hi1 : L1.get? "input"=some (.bytes evm.executionEnv.calldata) := store_get_self _ _ _
   have ho1 : L1.get? "offset"=some (.int (Int.ofNat offset.toNat)) := (store_get_ne _ _ (by decide)).trans ho
   have hh1 : L1.get? "$EAS.freeMemory"=some (.int (Int.ofNat heap)) := (store_get_ne _ _ (by decide)).trans hh
-  have hinput : ExecStmt config {contract := contract,locals := L,immutables := imms} evm calldataWordInput
+  have hinput : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm calldataWordInput
       (.ok {contract := contract,locals := L1,immutables := imms} evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?,envValue,pure])
   have hguard : evalExpr? config {contract := contract,locals := L1,immutables := imms} evm calldataWordGuard=
@@ -97,7 +99,7 @@ theorem calldataWordSource {L imms : Store} {evm : EVM.State} {offset : UInt256}
   · let n := evm.executionEnv.calldata.size-offset.toNat
     let L2 := L1.insert "count" (.int (Int.ofNat n))
     have hc2 : L2.get? "count"=some (.int (Int.ofNat n)) := store_get_self _ _ _
-    have hcount : ExecStmt config {contract := contract,locals := L1,immutables := imms} evm calldataWordCount
+    have hcount : ExecStmt fork config {contract := contract,locals := L1,immutables := imms} evm calldataWordCount
         (.ok {contract := contract,locals := L2,immutables := imms} evm) := by
       apply ExecStmt.letDecl
       simp only [evalExpr?,hi1,ho1,readLocalPath?,EvalResult.ofOption,bind,EvalResult.bind,pure,evalBinaryOp?]
@@ -109,12 +111,12 @@ theorem calldataWordSource {L imms : Store} {evm : EVM.State} {offset : UInt256}
       simp only [evalExpr?,hc2,EvalResult.ofOption,bind,EvalResult.bind,pure,evalBinaryOp?,Int.ofNat_eq_natCast]
       change EvalResult.ok (Value.bool (decide ((32:Int)<(n:Int))))=EvalResult.ok (Value.bool (decide (32<n)))
       simp only [show ((32:Int)<(n:Int)) ↔ 32<n by omega]
-    have hprefix : ExecBlock config {contract := contract,locals := L,immutables := imms} evm
+    have hprefix : ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm
         [calldataWordInput,.ite calldataWordGuard calldataWordEmpty [],calldataWordCount]
         (.ok {contract := contract,locals := L2,immutables := imms} evm) :=
       ExecBlock.consNormal hinput (ExecBlock.consNormal (ExecStmt.iteFalse (by simpa only [decide_eq_false hb] using hguard) ExecBlock.nil)
         (ExecBlock.consNormal hcount ExecBlock.nil))
-    have hbounded : ∃ L3, ExecStmt config {contract := contract,locals := L2,immutables := imms} evm calldataWordLimit
+    have hbounded : ∃ L3, ExecStmt fork config {contract := contract,locals := L2,immutables := imms} evm calldataWordLimit
           (.ok {contract := contract,locals := L3,immutables := imms} evm) ∧
         L3.get? "offset"=some (.int (Int.ofNat offset.toNat)) ∧
         L3.get? "$EAS.freeMemory"=some (.int (Int.ofNat heap)) ∧
@@ -122,7 +124,7 @@ theorem calldataWordSource {L imms : Store} {evm : EVM.State} {offset : UInt256}
         L3.get? "count"=some (.int (Int.ofNat (min n 32))) := by
       by_cases hn : 32<n
       · refine ⟨L2.insert "count" (.int 32),ExecStmt.iteTrue (by simpa only [decide_eq_true hn] using hlimit)
-          (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?,pure]) (assignLocalValue hc2)) ExecBlock.nil),?_,?_,?_,?_⟩
+          (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?,pure]) (assignLocalValue hc2)) ExecBlock.nil),?_,?_,?_,?_⟩
         all_goals simp (disch := decide) only [L2,store_get_ne,store_get_self,Nat.min_eq_right (by omega : 32≤n)]
         all_goals first | exact ho1 | exact hh1 | exact hi1 | rfl
       · refine ⟨L2,ExecStmt.iteFalse (by simpa only [decide_eq_false hn] using hlimit) ExecBlock.nil,?_,?_,?_,?_⟩
@@ -133,7 +135,7 @@ theorem calldataWordSource {L imms : Store} {evm : EVM.State} {offset : UInt256}
     refine ⟨L4,?_⟩
     rw [calldataWord_body]
     apply ExecFuncBody.execBlockRet
-    change ExecBlock config _ evm ([calldataWordInput,.ite calldataWordGuard calldataWordEmpty [],calldataWordCount]++(calldataWordLimit::calldataWordTail)) _
+    change ExecBlock fork config _ evm ([calldataWordInput,.ite calldataWordGuard calldataWordEmpty [],calldataWordCount]++(calldataWordLimit::calldataWordTail)) _
     exact execBlock_append hprefix (ExecBlock.consNormal hs3 hs4)
 
 def calldataWordArgs (offset : UInt256) (heap : Nat) : Store :=
@@ -145,7 +147,7 @@ theorem calldataWord_bind (offset : UInt256) (heap : Nat) :
 theorem calldataWordCall {L imms : Store} {evm : EVM.State} {offset : UInt256} {heap : Nat} {args : List Expr} {retVar : Ident}
     (he : evalExprs? config {contract := contract,locals := L,immutables := imms} evm args=
       .ok [.int (Int.ofNat offset.toNat),.int (Int.ofNat heap)]) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_calldataWord" args retVar)
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_calldataWord" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} retVar
         (some [.int (Int.ofNat (calldataWord evm.executionEnv.calldata offset.toNat).toNat),.int (Int.ofNat heap)])) evm) := by
   obtain ⟨L',hs⟩ := calldataWordSource (offset := offset) (heap := heap) (L := calldataWordArgs offset heap) (imms := imms) (evm := evm)

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PackedWordABI
 import Benchmarks.UniswapV4PoolManager.TickPriceCanonical
 import Benchmarks.UniswapV4PoolManager.TransientSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -53,7 +55,7 @@ theorem positionKeyBody {f : Frame} {evm : EVM.State} {owner : AccountAddress} {
     (hu : f.locals.get? "tickUpper" = some (.int (EVM.signed upper)))
     (hs : f.locals.get? "salt" = some (wordBytes32Value salt))
     (hlo : int24Canonical lower) (hup : int24Canonical upper) :
-    ExecFuncBody config f evm positionKeyFunction.body
+    ExecFuncBody fork config f evm positionKeyFunction.body
       (.returned f evm (some [wordBytes32Value (positionKey owner lower upper salt)])) := by
   exact .execBlockRet (ABlock.start.returns (evalKeccakWord
     (positionKeyBytes_eval (evalLocalValue ha) (evalLocalValue hl) (evalLocalValue hu) (evalLocalValue hs) hlo hup)))
@@ -65,7 +67,7 @@ theorem positionKeyCall {f : Frame} {evm : EVM.State} {ea el eu es : Expr}
     (hu : evalExpr? config f evm eu = .ok (.int (EVM.signed upper)))
     (hs : evalExpr? config f evm es = .ok (wordBytes32Value salt))
     (hlo : int24Canonical lower) (hup : int24Canonical upper) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Position_calculatePositionKey" [ea, el, eu, es] ret)
+    ExecStmt fork config f evm (.internalCall "Position_calculatePositionKey" [ea, el, eu, es] ret)
       (.ok {f with locals := f.locals.insert ret (wordBytes32Value (positionKey owner lower upper salt))} evm) := by
   apply internalCallFunctionReturn (argVals := [.address owner, .int (EVM.signed lower),
       .int (EVM.signed upper), wordBytes32Value salt])

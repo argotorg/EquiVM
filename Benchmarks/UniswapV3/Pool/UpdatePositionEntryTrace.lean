@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.PositionGet
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_063
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_064
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -25,11 +27,11 @@ def updatePositionPrefixMemory (a : UpdatePositionArgs) (mem : ByteArray) (free 
 theorem updatePositionEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19151⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19151⟩
       (updatePositionEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hm : HeapMemory mem aw free) (hb : free.toNat + 87 ≤ 2 ^ 200)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (UInt256.ofNat (if a.delta = 0 then 19492 else 19190))
       (updatePositionPrefixWords a σ ee ++ ret :: R)
       (updatePositionPrefixMemory a mem free) aw' rdata σ k' C' ∧

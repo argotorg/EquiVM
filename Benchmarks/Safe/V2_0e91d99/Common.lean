@@ -6,6 +6,8 @@ import Reasoning.Solc
 import Reasoning.SteleBody
 import Reasoning.JumpDest
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -55,10 +57,10 @@ theorem reEquivSelectorExecution {cfg : Config} {c : ContractDecl} {imms : Store
     (hd : selectorDispatchMsg c I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some args)
-    (hbody : ExecTransitionBody cfg c (initState σ σ₀ (.ofUInt256 g) A I)
+    (hbody : ExecTransitionBody fork cfg c (initState σ σ₀ (.ofUInt256 g) A I)
       args t.body result imms)
-    (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) result (.abi t.returnType)) :
-    runtimeRefinementFor cfg c σ σ₀ g A I imms :=
+    (hequiv : execResultsEquiv (Ξ fork σ σ₀ g A I) result (.abi t.returnType)) :
+    runtimeRefinementFor fork cfg c σ σ₀ g A I imms :=
   .execution rfl (.intro hd rfl hdec rfl hbody) hequiv
 
 -- LIBRARY CANDIDATE: a reverting selector entry covers both failed decoding and
@@ -67,10 +69,10 @@ theorem reEquivSelectorRevert {cfg : Config} {c : ContractDecl} {imms : Store}
     {σ σ₀ A I t} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
     (hd : selectorDispatchMsg c I.calldata = some t)
-    (hrev : RDrev code g (initState σ σ₀ g A I))
-    (hbody : ∀ args, ExecTransitionBody cfg c (initState σ σ₀ g A I)
+    (hrev : RDrev fork code g (initState σ σ₀ g A I))
+    (hbody : ∀ args, ExecTransitionBody fork cfg c (initState σ σ₀ g A I)
       args t.body .reverted imms) :
-    runtimeRefinementFor cfg c σ σ₀ g.toUInt256 A I imms := by
+    runtimeRefinementFor fork cfg c σ σ₀ g.toUInt256 A I imms := by
   refine RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦ ?_
   cases hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata with
@@ -85,8 +87,8 @@ theorem reEquivSelectorDecodingFailed {cfg : Config} {c : ContractDecl} {imms : 
     (hd : selectorDispatchMsg c I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none)
-    (hrev : RDrev code g (initState σ σ₀ g A I)) :
-    runtimeRefinementFor cfg c σ σ₀ g.toUInt256 A I imms :=
+    (hrev : RDrev fork code g (initState σ σ₀ g A I)) :
+    runtimeRefinementFor fork cfg c σ σ₀ g.toUInt256 A I imms :=
   RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
     .execution hΞ (.decodingFailed hd hdec) (.decodingFailed rfl rfl)
 
@@ -94,11 +96,11 @@ theorem reEquivSelectorDecodingFailed {cfg : Config} {c : ContractDecl} {imms : 
 theorem reEquivReturnElim {imms : Store} {cfg c σ σ₀ σ' A I} {g : Sat256}
     {code out : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ' out)
+    (h : RDret fork code g (initState σ σ₀ g A I) σ' out)
     (next : ∀ (g' : UInt256) (A' : Substate),
-      Ξ σ σ₀ g.toUInt256 A I = .ok (.success (σ', g', A') out) →
-        runtimeRefinementFor cfg c σ σ₀ g.toUInt256 A I imms) :
-    runtimeRefinementFor cfg c σ σ₀ g.toUInt256 A I imms := by
+      Ξ fork σ σ₀ g.toUInt256 A I = .ok (.success (σ', g', A') out) →
+        runtimeRefinementFor fork cfg c σ σ₀ g.toUInt256 A I imms) :
+    runtimeRefinementFor fork cfg c σ σ₀ g.toUInt256 A I imms := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -626,7 +628,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondBalanceDynamicStaticcallMem self o toWord prevValue out1 out2)
       (skimSecondBalanceDynamicStaticcallWords out1) out2 σ k C)
@@ -639,15 +641,15 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+          Ethereum.EVM.Θ fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
               |>.readWithPadding (skimSecondSafeTransferDynamicCallPtr out1).toNat 68)
             (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+      ∧ RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: skimSecondSafeTransferDynamicRetEnd out1 ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::

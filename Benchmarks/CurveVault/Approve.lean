@@ -6,6 +6,8 @@ import Benchmarks.CurveVault.AddressWord
 import Benchmarks.CurveVault.MutatingLock
 import Benchmarks.CurveVault.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -15,12 +17,12 @@ def vaultApprovePublicLocals (spender : AccountAddress) (value : UInt256) : Stor
   ((∅ : Store).insert "_value" (.int (Int.ofNat value.toNat))).insert "_spender" (.address spender)
 
 theorem vaultApprovePublicReturns {evm evm' : State} {spender : AccountAddress} {value : UInt256}
-    (hbody : ExecFuncBody config
+    (hbody : ExecFuncBody fork config
       {contract := contract, locals := vaultApproveLocals evm.executionEnv.source spender value}
       evm vaultApproveFunction.body
       (.returned {contract := contract, locals := vaultApproveLocals evm.executionEnv.source spender value}
         evm' none)) :
-    ExecFuncBody config {contract := contract, locals := vaultApprovePublicLocals spender value}
+    ExecFuncBody fork config {contract := contract, locals := vaultApprovePublicLocals spender value}
       evm vaultApprovePublicFunction.body
       (.returned {contract := contract, locals := (vaultApprovePublicLocals spender value).insert "__c0" .unit}
         evm' (some [.bool true])) := by
@@ -38,7 +40,7 @@ theorem vaultApprovePublicReturns {evm evm' : State} {spender : AccountAddress} 
 theorem vaultApproveBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 6) rfl hsel
   have hd : dispatchMsg contract I.calldata = some approveTransition := by
     apply vaultDispatch_approve
@@ -73,7 +75,7 @@ theorem vaultApproveBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _; rw [hlocked]; decide +kernel)
       (by native_decide) rd5959
     have hrev := vaultBlocks.vault_block_8284 (by simp [vaultBlocks.vault_block_5959_taken_stack]) rdRevert
-    have hsource := vaultLockedBodyReverts evm locals (approveTransition.body.drop 2) hvalue
+    have hsource := vaultLockedBodyReverts (fork := fork) evm locals (approveTransition.body.drop 2) hvalue
       (by rw [hload]; exact hlocked)
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   have rd5971 := vaultBlocks.vault_block_5959_fallthrough (by simp)
@@ -87,7 +89,7 @@ theorem vaultApproveBodyCore {σ σ₀ A I} {g : UInt256}
       (by simp [vaultBlocks.vault_block_5959_fallthrough_stack])
     have hstatic := tstoreStaticReach rd5974 hp (by native_decide)
       (by simp [vaultBlocks.vault_block_5959_fallthrough_stack])
-    have hsource := vaultMutatingBodyStatic evm locals (approveTransition.body.drop 3) hvalue
+    have hsource := vaultMutatingBodyStatic (fork := fork) evm locals (approveTransition.body.drop 3) hvalue
       (by rw [hload]; exact hlocked) hp
     exact hstatic.reEquivStaticHalt hcode hd hdec hsource
   have hsLocked : SourceState evm I (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩) (vaultSetLock evm ⟨1⟩) :=
@@ -102,7 +104,7 @@ theorem vaultApproveBodyCore {σ σ₀ A I} {g : UInt256}
   have hspender : memLoad (UInt256.ofNat 192) (owner.toByteArray.write 0 mem 64 32) = spender := by
     rw [memLoad_above_write _ _ 64 192 (by rw [toByteArray_size]) (by omega) (by omega) hsizeMem (by decide +kernel)]
     exact memLoad_write_back _ _ 192 (by decide +kernel) (hgap _ (by omega) _)
-  change RD vaultBytecode I (Sat256.ofUInt256 g) evm (UInt256.ofNat 7939) (UInt256.ofNat 5998 :: _)
+  change RD fork vaultBytecode I (Sat256.ofUInt256 g) evm (UInt256.ofNat 7939) (UInt256.ofNat 5998 :: _)
     (value.toByteArray.write 0 ((memLoad (UInt256.ofNat 192) (owner.toByteArray.write 0 mem 64 32)).toByteArray.write 0
       (owner.toByteArray.write 0 mem 64 32) 96 32) 128 32) _ _ _ _ _ at rd7939
   rw [hspender] at rd7939
@@ -124,7 +126,7 @@ theorem vaultApproveBodyCore {σ σ₀ A I} {g : UInt256}
     (by simp only [evalExprs?, evalExpr?, locals, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
       EvalResult.bind, pure, bind]; rfl) rfl rfl hcallee'
   have hret := vaultBlocks.vault_block_5998 (by simp [vaultBlocks.vault_block_5959_fallthrough_stack]) hperm rd5998
-  change RDret vaultBytecode (Sat256.ofUInt256 g) evm (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
+  change RDret fork vaultBytecode (Sat256.ofUInt256 g) evm (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
     (((⟨1⟩ : UInt256).toByteArray.write 0 _ 224 32).readWithPadding 224 32) at hret
   rw [toByteArray_write_read_back_of_gap _ _ _ (hgap _ (by omega) _)] at hret
   have hsFinal : SourceState evm I (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (vaultSetLock evm' ⟨0⟩) := by
@@ -138,6 +140,6 @@ theorem vaultApproveBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultApproveBodyCore hcode hsize hsel
 end Benchmarks.CurveVault

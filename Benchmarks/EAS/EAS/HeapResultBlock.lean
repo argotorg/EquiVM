@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.AllocateBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -11,11 +13,11 @@ def heapResultLocals (L : Store) (tmp result cursor : Ident) (value : Value) (he
 
 theorem heapResultBlock_ok {cfg : Config} {frame : Frame} {evm evm' : EVM.State}
     {callee tmp result cursor : Ident} {args : List Expr} {value oldHeap : Value} {heap : Nat}
-    (hc : ExecStmt cfg frame evm (.internalCall callee args tmp)
+    (hc : ExecStmt fork cfg frame evm (.internalCall callee args tmp)
       (.ok (resumeAfterInternalCall frame tmp (some [value,.int (Int.ofNat heap)])) evm'))
     (hh : frame.locals.get? cursor = some oldHeap)
     (htc : (tmp == cursor) = false) (htr : (result == tmp) = false) (hrc : (result == cursor) = false) :
-    ExecBlock cfg frame evm (heapResultBlock callee args tmp result cursor)
+    ExecBlock fork cfg frame evm (heapResultBlock callee args tmp result cursor)
       (.ok {frame with locals := heapResultLocals frame.locals tmp result cursor value heap} evm') := by
   apply ExecBlock.consNormal hc
   exact unpackHeapResult (store_get_self _ _ _) ((store_get_ne _ _ htc).trans hh) htr hrc

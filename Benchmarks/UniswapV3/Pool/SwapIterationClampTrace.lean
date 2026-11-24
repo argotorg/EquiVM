@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationTickMemory
 import Benchmarks.UniswapV3.Pool.SwapIterationTickSource
 import Benchmarks.UniswapV3.Pool.SwapIterationBitmapStoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,13 +19,13 @@ theorem swapIterationClampX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 (if d.tickNext < -887272 then ⟨3144⟩ else ⟨3158⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if d.tickNext < -887272 then ⟨3144⟩ else ⟨3158⟩)
       (p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem p d)
     (ht : -(2 ^ 23 : Int) ≤ d.tickNext ∧ d.tickNext < 2 ^ 23)
     (hp : 96 ≤ p.toNat) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 4 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3189⟩ (p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3189⟩ (p :: R)
         (swapIterationClampMem mem p d.tickNext) aw' rdata σ k' C' ∧
       HeapMemory (swapIterationClampMem mem p d.tickNext) aw' free ∧
       SwapIterationMemory (swapIterationClampMem mem p d.tickNext) p

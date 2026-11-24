@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.FoldTail
 
+variable {fork : Ethereum.Fork}
+
 namespace Benchmarks.Dss.Vat
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000000
 theorem RD.vatFoldRateStoreOkSplit
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
       [foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
@@ -24,7 +26,7 @@ theorem RD.vatFoldRateStoreOkSplit
           (foldRateWord I + solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
           (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩) :
     (I.perm = true ∧
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨5768⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
       (twoWordHashMem (foldIlkWord I) ⟨2⟩ mem)
@@ -33,7 +35,7 @@ theorem RD.vatFoldRateStoreOkSplit
         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)
         (foldRateWord I + solcSlotWord σ I
           (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))) k' C') ∨
-      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork vatBytecode g (initState σ σ₀ g A I)) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let old := solcSlotWord σ I (base + ⟨1⟩)
   let sum := foldRateWord I + old
@@ -94,7 +96,7 @@ theorem RD.vatFoldRateStoreOkSplit
 theorem RD.vatFoldRateStoreRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
       [foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
@@ -115,7 +117,7 @@ theorem RD.vatFoldRateStoreRevert
               (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
             (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) =
               ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let old := solcSlotWord σ I (base + ⟨1⟩)
   let sum := foldRateWord I + old
@@ -163,7 +165,7 @@ theorem RD.vatFoldRateStoreRevert
 theorem RD.vatFoldArtMulOk
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -178,7 +180,7 @@ theorem RD.vatFoldArtMulOk
               (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
             (foldRateWord I))
           (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [UInt256.mul (foldRateWord I)
         (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))),
         ⟨0⟩, solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
@@ -212,7 +214,7 @@ theorem RD.vatFoldArtMulOk
 theorem RD.vatFoldArtMulRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -226,7 +228,7 @@ theorem RD.vatFoldArtMulRevert
                 (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
               (foldRateWord I))
             (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let art := solcSlotWord σ I base
   have rd5769 := h.dup1 (by native_decide) (by evm_ov)
@@ -260,17 +262,17 @@ theorem vatFoldFinishSuccess
       config.externalABI.decodeCalldata? (foldTransition.params.map Param.name)
         (transitionSignature foldTransition).paramTypes I.calldata = some (foldStore I))
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (foldStore I) foldTransition.body (.returned cs evmOut none))
     (haccounts : Eq acc evmOut.accountMap)
-    (hretPc : RD vatBytecode I (Sat256.ofUInt256 g)
+    (hretPc : RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
-      RDret vatBytecode (Sat256.ofUInt256 g)
+      RDret fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         acc ByteArray.empty := by
     simpa using RD.stop hretPc' (by native_decide) (by simp)
@@ -281,13 +283,13 @@ theorem vatFoldFinishSuccess
     haccounts henc
 
 set_option maxHeartbeats 0 in
-theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
+theorem vatFoldBodyCore : VatBodyTheoremAnyPerm fork 9 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some foldTransition :=
     vatDispatchFold hsel
-  have hreach := vatReachFoldBody (σ := σ)
+  have hreach := vatReachFoldBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
@@ -835,7 +837,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                     simpa [evmDai, evmRate, storageStore_executionEnv] using
                       evalSignedAddGuardPos_true hrad0 hdebtNewVar hdebtLoad
                         (Or.inl (by norm_num))
-                  have hbody := vatFoldSourceSuccess (hperm := by assumption) evm0 I hwv hsz100
+                  have hbody := vatFoldSourceSuccess (fork := fork) (hperm := by assumption) evm0 I hwv hsz100
                     hguardAuth hguardLive hloadRateS (by rfl)
                     hRateGuardNeg hRateGuardPos hloadArtS
                     (by simp [hRateIntZero]) (by norm_num) (by norm_num)
@@ -938,12 +940,12 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                   have hradHi : rad < (2 : Int) ^ 255 := by
                     simpa [rad, hArtWord] using hradRange.2
                   have hradBlock :=
-                    vatFoldRadMulOk evmRate I hsz100
+                    vatFoldRadMulOk (fork := fork) evmRate I hsz100
                       (by simpa [evmRate, storageStore_executionEnv] using hloadArtS)
                       (by rfl) hradLo hradHi
                       (by simpa [evmRate] using hmulGuardMax)
                       (by simpa [evmRate] using hmulGuard)
-                  have hrateBlock := vatFoldRateAddAssignOk (hperm := by assumption) evm0 I hsz100 hloadRateS
+                  have hrateBlock := vatFoldRateAddAssignOk (fork := fork) (hperm := by assumption) evm0 I hsz100 hloadRateS
                     (by rfl) hRateGuardNeg hRateGuardPos
                   have hmemArt :
                       (twoWordHashMem (foldIlkWord I) ⟨2⟩
@@ -1225,7 +1227,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                                 hDebtPosE)
                             simpa [evmDai, evmRate, storageStore_executionEnv] using
                               evalSignedAddGuardPos_true hradv hnewv hloadv hcond
-                          have hbody := vatFoldSourceSuccess (hperm := by assumption) evm0 I hwv hsz100
+                          have hbody := vatFoldSourceSuccess (fork := fork) (hperm := by assumption) evm0 I hwv hsz100
                             hguardAuth hguardLive hloadRateS (by rfl)
                             hRateGuardNeg hRateGuardPos hloadArtS (by rfl)
                             hradLo hradHi hmulGuardMax hmulGuard hloadDaiS
@@ -1344,10 +1346,10 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                             exact evalSignedAddGuardPos_true hradv hnewv hloadv
                               (signedAddGuardPosCond_of_word hradLo hradHi hradWord
                                 (by simpa [daiNewS, daiNewE, hDaiWord] using hDaiPosE))
-                          have hdaiOk := vatFoldDaiAddOk evmRate I
+                          have hdaiOk := vatFoldDaiAddOk (fork := fork) evmRate I
                             (by simpa [evmRate, storageStore_executionEnv] using hloadDaiS)
                             hradWord (by rfl) hDaiGuardNeg hDaiGuardPos
-                          have hdaiAssign := vatFoldAssignDaiOk (hperm := by
+                          have hdaiAssign := vatFoldAssignDaiOk (fork := fork) (hperm := by
                               simpa only [evmRate, evm0, storageStore_executionEnv] using hperm) evmRate I
                             (rateNew := rateNewS) (rad := rad) (daiNew := daiNewS)
                           have hloadDebtS :
@@ -1412,7 +1414,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                                   intro h
                                   exact hDebtPosE
                                     (by simpa [debtNewS, debtNewE, hDebtWord] using h)))
-                          have hdebtRev := vatFoldDebtAddRevertGuardPos evmDai I
+                          have hdebtRev := vatFoldDebtAddRevertGuardPos (fork := fork) evmDai I
                             hloadDebtS hradWord (by rfl) hDebtGuardNeg hDebtGuardPos
                           have hbody := vatFoldSourceRevertAfterDebtBlock evm0 evmRate
                             evmDai I hwv hguardAuth hguardLive hrateBlock hradBlock
@@ -1492,10 +1494,10 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                           exact evalSignedAddGuardPos_true hradv hnewv hloadv
                             (signedAddGuardPosCond_of_word hradLo hradHi hradWord
                               (by simpa [daiNewS, daiNewE, hDaiWord] using hDaiPosE))
-                        have hdaiOk := vatFoldDaiAddOk evmRate I
+                        have hdaiOk := vatFoldDaiAddOk (fork := fork) evmRate I
                           (by simpa [evmRate, storageStore_executionEnv] using hloadDaiS)
                           hradWord (by rfl) hDaiGuardNeg hDaiGuardPos
-                        have hdaiAssign := vatFoldAssignDaiOk (hperm := by
+                        have hdaiAssign := vatFoldAssignDaiOk (fork := fork) (hperm := by
                               simpa only [evmRate, evm0, storageStore_executionEnv] using hperm) evmRate I
                           (rateNew := rateNewS) (rad := rad) (daiNew := daiNewS)
                         have hloadDebtS :
@@ -1532,7 +1534,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                                 intro h
                                 exact hDebtNegE
                                   (by simpa [debtNewS, debtNewE, hDebtWord] using h)))
-                        have hdebtRev := vatFoldDebtAddRevertGuardNeg evmDai I
+                        have hdebtRev := vatFoldDebtAddRevertGuardNeg (fork := fork) evmDai I
                           hloadDebtS hradWord (by rfl) hDebtGuardNeg
                         have hbody := vatFoldSourceRevertAfterDebtBlock evm0 evmRate
                           evmDai I hwv hguardAuth hguardLive hrateBlock hradBlock
@@ -1621,7 +1623,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                               intro h
                               exact hDaiPosE
                                 (by simpa [daiNewS, daiNewE, hDaiWord] using h)))
-                      have hdaiRev := vatFoldDaiAddRevertGuardPos evmRate I
+                      have hdaiRev := vatFoldDaiAddRevertGuardPos (fork := fork) evmRate I
                         (by simpa [evmRate, storageStore_executionEnv] using hloadDaiS)
                         hradWord (by rfl) hDaiGuardNeg hDaiGuardPos
                       have hbody := vatFoldSourceRevertAfterDaiBlock evm0 evmRate I hwv
@@ -1675,7 +1677,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                             intro h
                             exact hDaiNegE
                               (by simpa [daiNewS, daiNewE, hDaiWord] using h)))
-                    have hdaiRev := vatFoldDaiAddRevertGuardNeg evmRate I
+                    have hdaiRev := vatFoldDaiAddRevertGuardNeg (fork := fork) evmRate I
                       (by simpa [evmRate, storageStore_executionEnv] using hloadDaiS)
                       hradWord (by rfl) hDaiGuardNeg
                     have hbody := vatFoldSourceRevertAfterDaiBlock evm0 evmRate I hwv
@@ -1707,7 +1709,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
                 by_cases hbadRange :
                     Int.ofNat artOldS.toNat * foldRateInt I < -((2 : Int) ^ 255) ∨
                       Int.ofNat artOldS.toNat * foldRateInt I ≥ (2 : Int) ^ 255
-                · have hradRevert := vatFoldRadMulRevertRange evmRate I
+                · have hradRevert := vatFoldRadMulRevertRange (fork := fork) evmRate I
                     (rateNew := rateNewS) (artOld := artOldS) hsz100 (by rfl)
                     hbadRange
                   have hbody := vatFoldSourceRevertAfterRadBlock evm0 evmRate I hwv
@@ -1751,7 +1753,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
               have hArtMaxSNe : UInt256.slt artOldS ⟨0⟩ ≠ ⟨0⟩ := by
                 intro h
                 exact hArtMaxE (by simpa [hArtWord] using h)
-              have hradRevert := vatFoldRadMulRevertMax evmRate I
+              have hradRevert := vatFoldRadMulRevertMax (fork := fork) evmRate I
                 (rateNew := rateNewS) (artOld := artOldS) hsz100
                 (by rfl) (uintWordGtMaxInt256_of_slt_ne_zero hArtMaxSNe)
               have hbody := vatFoldSourceRevertAfterRadBlock evm0 evmRate I hwv
@@ -1827,10 +1829,10 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
               evalSignedAddGuardPos_false hrateVar hrateNewVar hrateLoadEval
                 hRatePosFalseCond
             have hrateRevert :
-                ExecBlock config { contract := contract, locals := foldStore I } evm0
+                ExecBlock fork config { contract := contract, locals := foldStore I } evm0
                   (checkedAddSignedInto "rateNew" (.storage (ilksF (.var "i") "rate"))
                     (.var "rate")) .reverted := by
-              change ExecBlock config { contract := contract, locals := foldStore I } evm0
+              change ExecBlock fork config { contract := contract, locals := foldStore I } evm0
                 [ .letDecl "rateNew" (some uint256)
                     (wordWrap256 (.binary .add
                       (.storage (ilksF (.var "i") "rate")) (.var "rate"))),
@@ -1881,10 +1883,10 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
             evalSignedAddGuardNeg_false hrateVar hrateNewVar hrateLoadEval
               hRateNegFalseCond
           have hrateRevert :
-              ExecBlock config { contract := contract, locals := foldStore I } evm0
+              ExecBlock fork config { contract := contract, locals := foldStore I } evm0
                 (checkedAddSignedInto "rateNew" (.storage (ilksF (.var "i") "rate"))
                   (.var "rate")) .reverted := by
-            change ExecBlock config { contract := contract, locals := foldStore I } evm0
+            change ExecBlock fork config { contract := contract, locals := foldStore I } evm0
               [ .letDecl "rateNew" (some uint256)
                   (wordWrap256 (.binary .add
                     (.storage (ilksF (.var "i") "rate")) (.var "rate"))),
@@ -1907,7 +1909,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
           exact hliveEvm hstele
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody config contract evm0 (foldStore I) foldTransition.body .reverted := by
+            ExecTransitionBody fork config contract evm0 (foldStore I) foldTransition.body .reverted := by
           have hguardAuth := vatAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := foldStore I)
@@ -1917,7 +1919,7 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
             (g := Sat256.ofUInt256 g) (locals := foldStore I)
             (foldStore_live I) (by simpa [liveSlot] using hliveStele)
           have hblock :
-              ExecBlock config { contract := contract, locals := foldStore I } evm0
+              ExecBlock fork config { contract := contract, locals := foldStore I } evm0
                 ([ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                    .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                    .require (.binary .eq (.storage liveRef) (.intLit 1)) ] ++
@@ -1962,12 +1964,12 @@ theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
         exact hauthEvm hstele
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody config contract evm0 (foldStore I) foldTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 (foldStore I) foldTransition.body .reverted := by
         have hguard := vatAuthGuardEval_false
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := foldStore I)
           (foldStore_wards I) (by simpa [callerSlot] using hauthStele)
-        have hblock := nonpayableSecondRequireReverts
+        have hblock := nonpayableSecondRequireReverts (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := foldStore I })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))

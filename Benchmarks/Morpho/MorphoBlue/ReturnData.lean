@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.Allocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,9 +29,9 @@ theorem morphoReturnDataEmpty {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {k C : Nat} {R : List UInt256} (hout : out.size = 0)
     (hstack : R.length + 3 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
       (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat 96 :: R) mem aw' out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_14548_taken
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 2 ≤ 1024; omega)
@@ -41,8 +43,8 @@ theorem morphoReturnDataOversize {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     {s0 : State} {mem out : ByteArray} {aw ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hb : out.size < UInt256.size)
     (hout : 2 ^ 64 ≤ out.size) (hstack : R.length + 4 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
-      (ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+      (ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hn : UInt256.ofNat out.size ≠ UInt256.ofNat 0 := by
     intro he
     have he := congrArg UInt256.toNat he
@@ -63,9 +65,9 @@ theorem morphoReturnDataPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     {s0 : State} {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hb : out.size < 2 ^ 64) (hn : out.size ≠ 0)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 8 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
       (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11535)
       (ptr :: UInt256.ofNat ((out.size + 63) / 32 * 32) :: UInt256.ofNat 14625 ::
         UInt256.ofNat out.size :: ret :: ptr :: R) mem aw' out σ k' C' := by
   have hsize : out.size < UInt256.size := by change _ < 2 ^ 256; omega
@@ -95,8 +97,8 @@ theorem morphoReturnDataOverflow {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (hp : ptr.toNat < 2 ^ 64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 8 ≤ 1024)
     (hbad : 2 ^ 64 ≤ ptr.toNat + (out.size + 63) / 32 * 32)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
-      (ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+      (ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoReturnDataPrepare hb hn hfree hstack h
   exact morphoAllocDynamicOverflow _ (by change R.length + 3 + 5 ≤ 1024; omega)
     (by omega) (by omega) rd1
@@ -107,9 +109,9 @@ theorem morphoReturnDataCopy {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : ptr.toNat + (out.size + 63) / 32 * 32 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
       (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (ptr :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (ptr :: R)
       (bytesAllocMem mem out ptr) aw' out σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoReturnDataPrepare hb hn hfree hstack h
   obtain ⟨aw2, k2, C2, rd2⟩ := morphoAllocDynamicExact _

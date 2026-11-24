@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.CheckedAmountSource
 import Benchmarks.UniswapV4PoolManager.SafeCast256Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,11 +12,11 @@ theorem checkedAmountReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw w ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (negate : Bool)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 (if negate then ⟨17691⟩ else ⟨17653⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if negate then ⟨17691⟩ else ⟨17653⟩)
       (w :: ret :: R) mem aw rdata σ k C) :
-    if w.toNat < 2^255 then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    if w.toNat < 2^255 then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (checkedAmountReturnWord w negate :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases negate with
   | false => exact uintToInt256Trace v hstack hret h
   | true =>

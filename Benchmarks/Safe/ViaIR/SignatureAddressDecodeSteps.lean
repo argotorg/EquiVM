@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_006
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_007
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -32,11 +34,11 @@ def signatureDecodedStack (counted : Bool) (cd : ByteArray) (R : List UInt256) :
 
 theorem safeSignatureDecodeHeaderRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted) (scratch :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted) (scratch :: R) mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat (signatureAddressHead counted)) = ⟨1⟩)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hov : R.length + 18 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 18 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   cases counted with
   | false =>
     have h₁ := safeRuntime_block_906_taken (by simp; omega) (by
@@ -55,12 +57,12 @@ theorem safeSignatureDecodeHeaderRevert (counted : Bool)
 
 theorem safeSignatureDecodeAddress (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted) (scratch :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted) (scratch :: R) mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat (signatureAddressHead counted)) = ⟨0⟩)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6952⟩ (signatureAddressPC counted :: scratch :: R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6952⟩ (signatureAddressPC counted :: scratch :: R)
       mem aw rdata σ k' C' := by
   cases counted with
   | false =>
@@ -76,10 +78,10 @@ theorem safeSignatureDecodeAddress (counted : Bool)
 
 theorem safeSignatureDecodeOffsetRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureAddressPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureAddressPC counted)
       (signatureAddressStack counted I.calldata scratch R) mem aw rdata σ k C)
     (hoff : 2 ^ 64 - 1 < (calldataWord I.calldata 68).toNat)
-    (hov : R.length + 18 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 18 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hmax : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have hcond : UInt256.gt (calldataWord I.calldata 68)
@@ -98,11 +100,11 @@ theorem safeSignatureDecodeOffsetRevert (counted : Bool)
 
 theorem safeSignatureDecodeBytes (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureAddressPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureAddressPC counted)
       (signatureAddressStack counted I.calldata scratch R) mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7262⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7262⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) :: UInt256.ofNat I.calldata.size ::
         signatureBytesPC counted :: signatureBytesSaved counted I.calldata scratch R)
       mem aw rdata σ k' C' := by
@@ -120,7 +122,7 @@ theorem safeSignatureDecodeBytes (counted : Bool)
   | false =>
     have h₁ := safeRuntime_block_925_fallthrough (by simp; omega) hcond h
     have h₂ := safeRuntime_block_944 (by simp; omega) (by jump_dest) h₁
-    change RD safeBytecode I g s0 ⟨7262⟩
+    change RD fork safeBytecode I g s0 ⟨7262⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 68) :: UInt256.ofNat I.calldata.size ::
         signatureBytesPC false :: signatureBytesSaved false I.calldata scratch R)
       mem aw rdata σ _ _ at h₂
@@ -129,7 +131,7 @@ theorem safeSignatureDecodeBytes (counted : Bool)
   | true =>
     have h₁ := safeRuntime_block_6533_fallthrough (by simp; omega) hcond h
     have h₂ := safeRuntime_block_6552 (by simp; omega) (by jump_dest) h₁
-    change RD safeBytecode I g s0 ⟨7262⟩
+    change RD fork safeBytecode I g s0 ⟨7262⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 68) :: UInt256.ofNat I.calldata.size ::
         signatureBytesPC true :: signatureBytesSaved true I.calldata scratch R)
       mem aw rdata σ _ _ at h₂
@@ -138,10 +140,10 @@ theorem safeSignatureDecodeBytes (counted : Bool)
 
 theorem safeSignatureDecodeFinish (counted : Bool)
     {I g s0 σ k C aw mem rdata scratch} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureBytesPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureBytesPC counted)
       (⟨128⟩ :: signatureBytesSaved counted I.calldata scratch R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 (signatureBodyPC counted)
+    ∃ k' C', RD fork safeBytecode I g s0 (signatureBodyPC counted)
       (signatureDecodedStack counted I.calldata (scratch :: R)) mem aw rdata σ k' C' := by
   cases counted with
   | false =>

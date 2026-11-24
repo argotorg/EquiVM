@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ModulesSource
 import Benchmarks.Safe.ViaIR.Calldata
 import Benchmarks.Safe.ViaIR.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! Boundary witness for the IR paginated-module array allocation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,26 +60,26 @@ theorem safeIRModuleAllocationDecoding :
   simpa only [hs, hn] using hd
 
 theorem safeIRModuleAllocationExecution :
-    (match Ξ safeIRModuleAllocationAccounts safeIRModuleAllocationAccounts ⟨100000⟩
+    (match Ξ .cancun safeIRModuleAllocationAccounts safeIRModuleAllocationAccounts ⟨100000⟩
         default safeIRModuleAllocationEnv with
       | .ok (.revert gas out) => gas == ⟨99080⟩ &&
           out == (⟨#[0x4e, 0x48, 0x7b, 0x71]⟩ ++ (⟨0x41⟩ : UInt256).toByteArray)
       | _ => false) = true := by native_decide
 
 theorem safeIRModuleAllocationSourceReverts :
-    ExecTransitionBody config contract safeIRModuleAllocationState
+    ExecTransitionBody fork config contract safeIRModuleAllocationState
       (modulesArgs ⟨1⟩ safeIRModuleAllocationSize) getmodulespaginatedTransition.body
       .reverted := by
   exact safeModulesSourceLarge safeIRModuleAllocationState ⟨1⟩ safeIRModuleAllocationSize
     (by decide) rfl (.inl rfl) (by decide) (by decide)
 
 theorem safeIRModuleAllocationRefines :
-    runtimeRefinementFor config contract safeIRModuleAllocationAccounts
+    runtimeRefinementFor .cancun config contract safeIRModuleAllocationAccounts
       safeIRModuleAllocationAccounts ⟨100000⟩ default safeIRModuleAllocationEnv := by
   have hex := safeIRModuleAllocationExecution
-  have hbody := safeIRModuleAllocationSourceReverts
+  have hbody := safeIRModuleAllocationSourceReverts (fork := .cancun)
   have hsel := safeIRModuleAllocationPremises.2.2.2
-  cases he : Ξ safeIRModuleAllocationAccounts safeIRModuleAllocationAccounts ⟨100000⟩
+  cases he : Ξ .cancun safeIRModuleAllocationAccounts safeIRModuleAllocationAccounts ⟨100000⟩
       default safeIRModuleAllocationEnv with
   | error => rw [he] at hex; cases hex
   | ok result =>

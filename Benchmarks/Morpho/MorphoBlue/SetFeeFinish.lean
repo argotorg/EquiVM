@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SetFeeMemory
 import Benchmarks.Morpho.MorphoBlue.AccrueSupplyShares
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,14 +14,14 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
 
 theorem morphoSetFeeFinish (id fee : UInt256) (hp : ee.perm = true) (hc : fee.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9884) (setFeeAccrueTail id fee) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 (storeMarketFieldAccounts σ ee id ⟨5, by decide⟩ fee) ByteArray.empty := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9884) (setFeeAccrueTail id fee) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 (storeMarketFieldAccounts σ ee id ⟨5, by decide⟩ fee) ByteArray.empty := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_9884_packed
     (immWords := wordsOf (immStore v)) (by simp) hp
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem) =
       solcMappingSlot ⟨3⟩ id := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _ [fee, UInt256.ofNat 32, setFeeTopic, id, UInt256.ofNat 0]
+  change RD fork _ _ _ _ _ [fee, UInt256.ofNat 32, setFeeTopic, id, UInt256.ofNat 0]
     (twoWordHashMem id (UInt256.ofNat 3) mem) aw1 rdata
     (sstoreAccountMap ee.codeOwner σ
       (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 2)
@@ -34,9 +36,9 @@ theorem morphoSetFeeFinish (id fee : UInt256) (hp : ee.perm = true) (hc : fee.to
 
 theorem morphoSetFeeFinishStatic {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9884)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9884)
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨9884⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup6 (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨9885⟩ : UInt256), UInt8.ofNat 133, .DUP6, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

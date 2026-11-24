@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.SetupAfterOwners
 import Benchmarks.Safe.V3_77901a5.SetupEventTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -9,7 +11,7 @@ set_option maxRecDepth 100000
 
 theorem safeSetupBodyTrace (evm : EVM.State)
     {I g s0 σ k C aw rdata n len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len (ret :: R))
+    (h : RD fork safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len (ret :: R))
       solcFreePtrMem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hb : SetupCalldataBounds I.calldata n len)
@@ -17,7 +19,7 @@ theorem safeSetupBodyTrace (evm : EVM.State)
       w.toNat < EVM.addressModulus)
     (hv : I.weiValue = ⟨0⟩) (hov : R.length + 36 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    VoidRoutineOutcome config (setupCalldataInput I.calldata n len).frame evm
+    VoidRoutineOutcome fork config (setupCalldataInput I.calldata n len).frame evm
       setupTransition.body safeBytecode I g s0 ret R := by
   let p := setupCalldataInput I.calldata n len
   have hv' : evm.executionEnv.weiValue = ⟨0⟩ := by rwa [hee]
@@ -35,7 +37,7 @@ theorem safeSetupBodyTrace (evm : EVM.State)
               rw [calldataWords_length]; have := hb.ownersLength; norm_num [UInt256.size]; omega)
           (fun j hj ↦ hc _ (List.getElem_mem hj)) hperm
           (by simp [setupDecodedStack]; omega) (by jump_dest)
-      · exact .reverted (safeSetupPrefix (hperm := by simpa only [hee] using hperm) p evm hv'
+      · exact .reverted (safeSetupPrefix (fork := fork) (hperm := by simpa only [hee] using hperm) p evm hv'
           (.consRevert (safeSetupOwnersCall p evm (SetupLocals.initial p) hs))) hrev
       have hm : mem'.size = 288 + 32 * n :=
         hm'.trans (setupOwnersAllocatedMemory_size hb.ownersEnd)
@@ -58,8 +60,8 @@ theorem safeSetupBodyTrace (evm : EVM.State)
         hfree (by omega) hzero hperm hov hret
       have hbody := htail.prepend (safeSetupOwnersCall p evm (SetupLocals.initial p) hs)
       cases hbody with
-      | reverted source trace => exact .reverted (safeSetupPrefix (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
-      | staticHalt source trace => exact .staticHalt (safeSetupPrefix (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
-      | success source trace => exact .success (safeSetupPrefix (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
+      | reverted source trace => exact .reverted (safeSetupPrefix (fork := fork) (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
+      | staticHalt source trace => exact .staticHalt (safeSetupPrefix (fork := fork) (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
+      | success source trace => exact .success (safeSetupPrefix (fork := fork) (hperm := by simpa only [hee] using hperm) p evm hv' source) trace
 
 end Benchmarks.Safe.V3_77901a5

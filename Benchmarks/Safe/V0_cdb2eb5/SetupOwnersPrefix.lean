@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.SetupOwnersContext
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -47,9 +49,9 @@ theorem safeSetupOwnersNonzero (p : SetupOwnersInput) (evm : EVM.State) :
 theorem safeSetupOwnersPrefix (p : SetupOwnersInput) (evm : EVM.State) {result : ExecResult}
     (hz : (storedThreshold evm).toNat = 0) (hle : p.threshold.toNat ≤ p.owners.length)
     (hne : p.threshold.toNat ≠ 0)
-    (htail : ExecBlock config { contract := contract, locals := p.loopLocals } evm
+    (htail : ExecBlock fork config { contract := contract, locals := p.loopLocals } evm
       (setupOwnersFunction.body.drop 6) result) :
-    ExecBlock config p.frame evm setupOwnersFunction.body result := by
+    ExecBlock fork config p.frame evm setupOwnersFunction.body result := by
   refine .consNormal (.requireTrue (by
       simpa only [hz, decide_true] using safeSetupOwnersUninitialized p evm))
     (.consNormal (.requireTrue (by
@@ -68,13 +70,13 @@ theorem safeSetupOwnersPrefix (p : SetupOwnersInput) (evm : EVM.State) {result :
 
 theorem safeSetupOwnersAlreadyInitialized (p : SetupOwnersInput) (evm : EVM.State)
     (hz : (storedThreshold evm).toNat ≠ 0) :
-    ExecFuncBody config p.frame evm setupOwnersFunction.body .reverted :=
+    ExecFuncBody fork config p.frame evm setupOwnersFunction.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (by
     simpa only [hz, decide_false] using safeSetupOwnersUninitialized p evm)))
 
 theorem safeSetupOwnersThresholdTooLarge (p : SetupOwnersInput) (evm : EVM.State)
     (hz : (storedThreshold evm).toNat = 0) (hle : ¬p.threshold.toNat ≤ p.owners.length) :
-    ExecFuncBody config p.frame evm setupOwnersFunction.body .reverted :=
+    ExecFuncBody fork config p.frame evm setupOwnersFunction.body .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (by
       simpa only [hz, decide_true] using safeSetupOwnersUninitialized p evm))
     (.consRevert (.requireFalse (by
@@ -83,7 +85,7 @@ theorem safeSetupOwnersThresholdTooLarge (p : SetupOwnersInput) (evm : EVM.State
 theorem safeSetupOwnersThresholdZero (p : SetupOwnersInput) (evm : EVM.State)
     (hz : (storedThreshold evm).toNat = 0) (hle : p.threshold.toNat ≤ p.owners.length)
     (hne : p.threshold.toNat = 0) :
-    ExecFuncBody config p.frame evm setupOwnersFunction.body .reverted :=
+    ExecFuncBody fork config p.frame evm setupOwnersFunction.body .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (by
       simpa only [hz, decide_true] using safeSetupOwnersUninitialized p evm))
     (.consNormal (.requireTrue (by

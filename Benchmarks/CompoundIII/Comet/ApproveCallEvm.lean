@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ApprovePayload
 import Benchmarks.CompoundIII.Comet.ApproveResponseEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,11 +17,11 @@ theorem cometApproveCall {v : CometWithExtendedAssetListImmutables}
     (manager asset : AccountAddress) (hstack : R.length + 14 ≤ 1024)
     (hfree : memLoad ⟨64⟩ mem = ptr) (hb : ptr.toNat + 68 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5186⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5186⟩
       (amount :: EVM.word manager.val :: EVM.word asset.val :: R) mem aw rdata σ k C) :
-    ∃ evm' z out, callViaEVM evm asset 0 (approvePayload manager amount) (z, evm', out) ∧
-      if z then RDret (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
-        else RDrev (deployedRuntime v) g s0 := by
+    ∃ evm' z out, callViaEVM fork evm asset 0 (approvePayload manager amount) (z, evm', out) ∧
+      if z then RDret fork (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
+        else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_5186 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   have hf : memLoad (UInt256.ofNat 64) mem = ptr := hfree
@@ -42,7 +44,7 @@ theorem cometApproveCall {v : CometWithExtendedAssetListImmutables}
   have r3 := cometWithExtendedAssetList_block_5221 (immWords := wordsOf (immStore v))
     (by change R.length + 3 + 5 ≤ 1024; omega) r2
   simp only [cometWithExtendedAssetList_block_5221_stack, word_add_sub_left] at r3
-  change RD _ _ _ _ _ _ (approveInputMemory mem ptr manager amount) _ _ _ _ _ at r3
+  change RD fork _ _ _ _ _ _ (approveInputMemory mem ptr manager amount) _ _ _ _ _ at r3
   obtain ⟨evm', σ', z, out, k4, C4, hcall, hs', r4, _⟩ := zeroCallBridge r3 hs
     (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
       wordsOf (immStore v), (⟨5225⟩ : UInt256), UInt8.ofNat 241, .CALL, none,
@@ -51,11 +53,11 @@ theorem cometApproveCall {v : CometWithExtendedAssetListImmutables}
       (manager := manager) (amount := amount) hb)
     (by rw [approvePayload_size]; decide)
     (by change R.length + 1 + 1 ≤ 1024; omega)
-  have hcall' : callViaEVM evm asset 0 (approvePayload manager amount) (z, evm', out) := by
+  have hcall' : callViaEVM fork evm asset 0 (approvePayload manager amount) (z, evm', out) := by
     have haddr : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
       accountAddress_roundtrip asset
     simpa only [haddr] using hcall
-  change RD _ _ _ _ ⟨5226⟩ _
+  change RD fork _ _ _ _ ⟨5226⟩ _
     (callOutputMem (approveInputMemory mem ptr manager amount) out ptr ⟨0⟩) _ _ _ _ _ at r4
   rw [callOutputMem_zero] at r4
   have hr := cometApproveResponse (v := v) (z := z) (ptr := ptr) (by omega) (by omega) r4

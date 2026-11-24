@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.SignatureBranchResult
 import Benchmarks.Safe.Runs1e6.SignatureApprovalTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -30,7 +32,7 @@ theorem signatureApprovalMemoryFacts {mem : ByteArray} {src ptr : Nat} {p : Sign
 theorem safeSignatureApprovalBranch (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src i} {s r current last executor : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2230⟩
+    (h : RD fork safeBytecode I g s0 ⟨2230⟩
       (UInt256.ofNat i :: s :: r :: ⟨1⟩ :: current :: last :: p.required :: UInt256.ofNat src ::
         p.hash :: executor :: R) mem aw rdata σ k C)
     (hc : SignatureContext p f i last) (he : p.executor = AccountAddress.ofUInt256 executor)
@@ -40,8 +42,8 @@ theorem safeSignatureApprovalBranch (p : SignatureInput) (evm : EVM.State)
     (hm : BytesMemory mem src p.signatures) (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hsrc : 128 ≤ src) (hb : src < UInt256.size)
     (hov : R.length + 16 ≤ 1024) :
-    SignatureBranchResult p I g s0 f evm i last executor src ptr mem R signatureApprovalBody := by
-  have hsource := signatureApprovalSource (evm := evm) hc.toSignatureCore he hr ho
+    SignatureBranchResult fork p I g s0 f evm i last executor src ptr mem R signatureApprovalBody := by
+  have hsource := signatureApprovalSource (fork := fork) (evm := evm) hc.toSignatureCore he hr ho
   rw [hee, hacc] at hsource
   obtain ⟨hrev, hbad⟩ | ⟨mem', aw', k', C', hv, h₁, hform⟩ :=
     safeSignatureApprovalTrace h (by have := hm.available; omega) hov

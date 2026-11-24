@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V1_0227664.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -20,12 +22,12 @@ structure ExecuteLocals (frame : Frame) (target : EVM.Address) (value : UInt256)
   data : frame.locals["data"]? = some (.bytes payload)
   operation : frame.locals["operation"]? = some (.int (Int.ofNat operation.toNat))
 
-def executeViaEVM (evm : EVM.State) (target : EVM.Address) (value : UInt256)
+def executeViaEVM (fork : Ethereum.Fork) (evm : EVM.State) (target : EVM.Address) (value : UInt256)
     (payload : ByteArray) (operation : UInt256) (z : Bool) (evm' : EVM.State)
     (out : ByteArray) : Prop :=
-  (operation = ⟨1⟩ ∧ delegateCallViaEVM evm (EVM.address target) payload (z, evm', out)) ∨
+  (operation = ⟨1⟩ ∧ delegateCallViaEVM fork evm (EVM.address target) payload (z, evm', out)) ∨
     (operation ≠ ⟨1⟩ ∧
-      callViaEVM evm (EVM.address target) (Int.ofNat value.toNat) payload (z, evm', out))
+      callViaEVM fork evm (EVM.address target) (Int.ofNat value.toNat) payload (z, evm', out))
 
 theorem safeExecuteCallCondition {cfg : Config} {frame : Frame} {evm : EVM.State}
     {target : EVM.Address} {value operation : UInt256} {payload : ByteArray}
@@ -48,9 +50,9 @@ theorem safeExecuteCallCondition {cfg : Config} {frame : Frame} {evm : EVM.State
 theorem safeExecuteCallStatement {cfg : Config} {frame : Frame} {evm evm' : EVM.State}
     {target : EVM.Address} {value operation : UInt256} {payload out : ByteArray} {z : Bool}
     (hl : ExecuteLocals frame target value payload operation)
-    (hc : executeViaEVM evm target value payload operation z evm' out)
+    (hc : executeViaEVM fork evm target value payload operation z evm' out)
     (hperm : operation = ⟨1⟩ ∨ value = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecStmt cfg frame evm executeCallStmt (.ok (executeCallFrame frame z out) evm') := by
+    ExecStmt fork cfg frame evm executeCallStmt (.ok (executeCallFrame frame z out) evm') := by
   have ht : evalExpr? cfg frame evm (.var "to") = .ok (.address target) := by
     simp [evalExpr?, hl.target, EvalResult.ofOption, pure]
   have hv : evalExpr? cfg frame evm (.var "value") = .ok (.int (Int.ofNat value.toNat)) := by
@@ -71,7 +73,7 @@ theorem safeExecuteCallStatementStatic {cfg : Config} {frame : Frame} {evm : EVM
     {target : EVM.Address} {value operation : UInt256} {payload : ByteArray}
     (hl : ExecuteLocals frame target value payload operation)
     (hop : operation ≠ ⟨1⟩) (hp : evm.executionEnv.perm = false) (hv : value ≠ ⟨0⟩) :
-    ExecStmt cfg frame evm executeCallStmt .staticViolation := by
+    ExecStmt fork cfg frame evm executeCallStmt .staticViolation := by
   apply ExecStmt.iteFalse (by simpa only [hop, decide_false] using safeExecuteCallCondition hl)
   exact .consStatic (.lowLevelCallStatic (sendVal := Int.ofNat value.toNat)
     (target := target) (calldata := payload) (by

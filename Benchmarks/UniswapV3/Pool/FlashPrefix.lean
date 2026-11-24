@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStorage
 import Benchmarks.UniswapV3.Pool.NoDelegateCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -37,14 +39,14 @@ theorem evalFlashUnlocked (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : F
 theorem flashRevertsLocked (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : FlashArgs)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (flashLocals a) flashTransition.body .reverted
+    ExecTransitionBody fork config contract evm (flashLocals a) flashTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireRevert
   simpa only [hlocked, decide_true, Bool.not_true] using evalFlashUnlocked v evm a
 
 theorem flashAssignLock (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : FlashArgs) :
-    ExecStmt config (flashFrame v a) evm
+    ExecStmt fork config (flashFrame v a) evm
       (.assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false))
       (if evm.executionEnv.perm then .ok (flashFrame v a) (storeSlot0Unlocked evm false) else .staticViolation) :=
   execStmt_assign_storage (by simp only [evalExpr?, pure])
@@ -54,7 +56,7 @@ theorem flashLockPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : Fla
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (flashFrame v a) evm (flashTransition.body.take 3)
+    ExecBlock fork config (flashFrame v a) evm (flashTransition.body.take 3)
       (.ok (flashFrame v a) (storeSlot0Unlocked evm false)) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -65,7 +67,7 @@ theorem flashStatic (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : FlashAr
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (flashLocals a) flashTransition.body .staticViolation
+    ExecTransitionBody fork config contract evm (flashLocals a) flashTransition.body .staticViolation
       (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
@@ -78,11 +80,11 @@ theorem flashRevertsDelegate (v : UniswapV3PoolImmutables) (evm : EVM.State) (a 
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hdelegate : evm.executionEnv.codeOwner ≠ v.original)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (flashLocals a) flashTransition.body .reverted
+    ExecTransitionBody fork config contract evm (flashLocals a) flashTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 flashTransition.body]
-  apply execBlock_append_ok (flashLockPrefix (hperm := by assumption) v evm a hwv hunlocked)
+  apply execBlock_append_ok (flashLockPrefix (fork := fork) (hperm := by assumption) v evm a hwv hunlocked)
   apply ExecBlock.consRevert
   exact internalCallFunctionRevert (argVals := []) (locals := ∅)
     (by simp only [evalExprs?, pure]) noDelegateCallLookup rfl
@@ -94,11 +96,11 @@ theorem flashLoadLiquidityPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hself : evm.executionEnv.codeOwner = v.original)
     (hperm : evm.executionEnv.perm = true) :
     let locked := storeSlot0Unlocked evm false
-    ExecBlock config (flashFrame v a) evm (flashTransition.body.take 5)
+    ExecBlock fork config (flashFrame v a) evm (flashTransition.body.take 5)
       (.ok (flashReadyFrame v a (poolLiquidityWord locked.accountMap locked.executionEnv)) locked) := by
-  change ExecBlock _ _ _ (flashTransition.body.take 3 ++ (flashTransition.body.drop 3).take 2) _
-  apply execBlock_append_ok (flashLockPrefix (hperm := by assumption) v evm a hwv hunlocked)
-  have hcall : ExecStmt config (flashFrame v a) (storeSlot0Unlocked evm false)
+  change ExecBlock fork _ _ _ (flashTransition.body.take 3 ++ (flashTransition.body.drop 3).take 2) _
+  apply execBlock_append_ok (flashLockPrefix (fork := fork) (hperm := by assumption) v evm a hwv hunlocked)
+  have hcall : ExecStmt fork config (flashFrame v a) (storeSlot0Unlocked evm false)
       (.internalCall "checkNotDelegateCall" [] "__c0")
       (.ok (flashCheckedFrame v a) (storeSlot0Unlocked evm false)) :=
     internalCallFunctionReturn (callee := noDelegateCallFunction) (argVals := []) (locals := ∅)
@@ -124,11 +126,11 @@ theorem flashReadyPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State) (a : Fl
       (storeSlot0Unlocked evm false).executionEnv).toNat)
     (hperm : evm.executionEnv.perm = true) :
     let locked := storeSlot0Unlocked evm false
-    ExecBlock config (flashFrame v a) evm (flashTransition.body.take 6)
+    ExecBlock fork config (flashFrame v a) evm (flashTransition.body.take 6)
       (.ok (flashReadyFrame v a (poolLiquidityWord locked.accountMap locked.executionEnv)) locked) := by
-  change ExecBlock _ _ _ (flashTransition.body.take 5 ++ [.require
+  change ExecBlock fork _ _ _ (flashTransition.body.take 5 ++ [.require
     (.binary .gt (.var "_liquidity") (.intLit 0))]) _
-  apply execBlock_append_ok (flashLoadLiquidityPrefix (hperm := by assumption) v evm a hwv hunlocked hself)
+  apply execBlock_append_ok (flashLoadLiquidityPrefix (fork := fork) (hperm := by assumption) v evm a hwv hunlocked hself)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil
   simpa only [hliq, decide_true] using
     evalFlashLiquidityGuard v (storeSlot0Unlocked evm false) a
@@ -142,11 +144,11 @@ theorem flashRevertsLiquidity (v : UniswapV3PoolImmutables) (evm : EVM.State) (a
     (hliq : ¬ 0 < (poolLiquidityWord (storeSlot0Unlocked evm false).accountMap
       (storeSlot0Unlocked evm false).executionEnv).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (flashLocals a) flashTransition.body .reverted
+    ExecTransitionBody fork config contract evm (flashLocals a) flashTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 5 flashTransition.body]
-  apply execBlock_append_ok (flashLoadLiquidityPrefix (hperm := by assumption) v evm a hwv hunlocked hself)
+  apply execBlock_append_ok (flashLoadLiquidityPrefix (fork := fork) (hperm := by assumption) v evm a hwv hunlocked hself)
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   simpa only [hliq, decide_false] using
     evalFlashLiquidityGuard v (storeSlot0Unlocked evm false) a

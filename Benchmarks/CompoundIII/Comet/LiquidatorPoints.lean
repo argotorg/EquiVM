@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_030
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `liquidatorPoints(address)`
 
@@ -124,7 +126,7 @@ def liquidatorScalars (w : UInt256) : List ScalarReturn :=
 
 theorem liquidatorPoints_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "arg0" I) liquidatorPointsTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some ((liquidatorScalars (liquidatorWord σ I
@@ -153,7 +155,7 @@ theorem liquidatorPointsX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 56)) :
-    AddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    AddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (wordBytes ((liquidatorScalars (liquidatorWord σ I
         (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).map ScalarReturn.word)) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachLiquidatorPointsBody
@@ -208,7 +210,7 @@ theorem liquidatorPointsX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
           let b := liquidatorFieldWord val 1
           let c := liquidatorFieldWord val 2
           let d := liquidatorFieldWord val 3
-          change RDret _ _ _ _
+          change RDret fork _ _ _ _
             ((d.toByteArray.write 0 (c.toByteArray.write 0
               (b.toByteArray.write 0 (solcScratchReturnMem mem a) 160 32) 192 32) 224 32).readWithPadding
               128 128) at rd6
@@ -249,7 +251,7 @@ theorem liquidatorPointsX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
 theorem cometWithExtendedAssetListLiquidatorPointsBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 56)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 56) rfl hsel
   let w := liquidatorWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
   apply addressGetterValues_refines (t := liquidatorPointsTransition)

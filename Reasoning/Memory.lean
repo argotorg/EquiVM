@@ -3,6 +3,8 @@ import Reasoning.Stepping
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Memory — reusable EVM memory / `ByteArray` lemmas
 
